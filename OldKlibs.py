@@ -545,7 +545,7 @@ class App(KlibBase):
 				self.trial(trialNum)
 		self.performanceEval()
 		if blockNum+1 < self.blocks:
-			self.blockBreak()
+			self.block_break()
 
 	def blockBreak(self, message ='default', isPath = False):
 		default = "You've completed block {0} of {1}. When you're ready to continue, press any key.".format(self.blockCount+1, self.blocks)
@@ -1437,7 +1437,7 @@ class App(KlibBase):
 		else:
 			response = self.listen()
 		self.regrid() # occasionally __logTrial takes longer than usual, this prevents the token from hanging on the grid
-		self.__logTrial(nloc, response)
+		self.__log_trial(nloc, response)
 
 class Palette(KlibBase):
 		def __init__(self):

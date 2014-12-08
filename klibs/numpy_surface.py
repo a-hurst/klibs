@@ -1,8 +1,16 @@
 import os
+import numpy
 from copy import copy
 from PIL import Image
 from utility_functions import *
 from constants import *
+import aggdraw
+
+
+def from_aggdraw_context(draw_context):
+	draw_context_bytes = Image.frombytes(draw_context.mode, draw_context.size, draw_context.tostring())
+	return NumpySurface(numpy.asarray(draw_context_bytes))
+
 
 class NumpySurface(object):
 	# todo: save states! save diffs between operations! so cool and unnecessary!
@@ -102,8 +110,6 @@ class NumpySurface(object):
 			position = absolute_position(position, self)
 
 		registration = build_registrations(source_height, source_width)[registration]
-		print "Registration: {0}".format(registration)
-		print "Position: {0}".format(position)
 		position = (position[0] + registration[0], position[1] + registration[1])
 
 		# don't attempt the blit if source can't fit

@@ -21,18 +21,18 @@ from PIL import ImageOps
 import sdl2
 import sdl2.ext
 
-# string constants, included for tidyness below basically
 
-import params as Params
+# string constants, included for tidyness below basically
 from constants import *
+import params as Params
 from utility_functions import *
 from numpy_surface import NumpySurface
-from eeg import *
-from eyelink import *
-from app import App
 from database import Database
-from keymap import KeyMap
 from textlayer import TextLayer
+from keymap import KeyMap
+from eyelink import *
+from eeg import *
+from app import App
 
 #####################################################
 #

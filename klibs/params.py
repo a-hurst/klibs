@@ -1,6 +1,8 @@
 author = 'jono'
-import os
+
 from constants import *
+from utility_functions import *
+import os
 
 #  project structure; default paths & filenames
 global project_name
@@ -13,16 +15,20 @@ global database_backup_path
 global edf_path
 global schema_file_path
 global schema_filename
+global data_path
 global incomplete_data_path
 global initialized
 
 initialized = False
+participant_id = -1  # default for testing, debugging, etc.
+database = None
 
 key_maps = dict()  # todo: create a class, KeyMapper, to manage key maps
 id_field_name = "participant_id"
 random_seed = None
 collect_demographics = True
 eye_tracking = False
+eye_tracker_available = False
 exp_factors = None
 instructions = False  # todo: instructions file
 practicing = False
@@ -58,7 +64,7 @@ fixation_size = 1  # deg of visual angle
 box_size = 1  # deg of visual angle
 cue_size = 1  # deg of visual angle
 cue_back_size = 1  # deg of visual angle
-verbosity = 10  # Should hold a value between 0-10, with 0 being no errors and 10 being all errors
+verbosity = -1  # 0-10, with 0 being no errors and 10 being all errors todo: actually implement this hahaha so fail
 
 trials = []
 trial_number = 0
@@ -68,8 +74,6 @@ blocks = []
 block_number = 0
 blocks_per_experiment = 0
 practice_blocks_per_experiment = 0
-
-verbosity = -1
 
 
 def init_project():
@@ -84,8 +88,10 @@ def init_project():
 	global edf_path
 	global schema_file_path
 	global schema_filename
+	global data_path
 	global incomplete_data_path
 	global initialized
+
 	database_filename = project_name + DB
 	schema_filename = project_name + SCHEMA
 	log_filename = project_name + LOG

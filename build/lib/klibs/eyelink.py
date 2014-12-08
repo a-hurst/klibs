@@ -6,61 +6,66 @@ try:
 	import time
 	import pylink
 	import params as Params
+	import sdl2
 	from constants import *
+	from utility_functions import *
+
+	try:
+		from pymouse import PyMouse
+
+		DUMMY_MODE_AVAILABLE = True
+	except ImportError:
+		DUMMY_MODE_AVAILABLE = False
 
 	PYLINK_AVAILABLE = True
 
 	class EyeLink(pylink.EyeLink):
-		dummy_mode = False
+		__dummy_mode = None
+		__app_instance = None
+		__gaze_boundaries = {}
 
-		def __init__(self, dummy_mode=False):
-			self.is_dummy_mode = dummy_mode
+		def __init__(self, app_instance):
+			self.__app_instance = app_instance
 
-		def tracker_init(self, dummy_mode=False):
-			if dummy_mode:
-				self.is_dummy_mode = True
-			pylink.flushGetkeyQueue()
-			self.setOfflineMode()
-			self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
-			self.sendMessage("link_event_filter = SACCADE")
-			self.sendMessage("link_event_data = SACCADE")
-			self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
-			self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
-			self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
-			self.setMotionThreshold(Params.saccadic_motion_threshold)
-
-		def setup(self, file_name="TEST"):
-			pylink.openGraphics(Params.screen_x_y)
-			self.doTrackerSetup()
-			self.openDataFile(file_name + EDF)
-			self.filename = file_name
-
-		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
-			# ToDo: put some exceptions n here
-			start = self.startRecording(samples, events, link_samples, link_events)
-			if start == 0:
-				if self.__eye():
-					self.sendMessage("TRIAL_ID {0}".format(str(trial_number)))
-					self.sendMessage("TRIAL_START")
-					self.sendMessage("SYNCTIME {0}".format('0.0'))
-					return True
-				else:
-					return False
+			if DUMMY_MODE_AVAILABLE:
+				self.dummy_mode = Params.eye_tracker_available if self.dummy_mode is None else self.dummy_mode is True
 			else:
-				return False
+				self.dummy_mode = False
 
 		def __eye(self):
 			self.eye = self.eyeAvailable()
 			return self.eye != EL_NO_EYES
 
-		def sample(self):
-			self.__current_sample = self.getNewestSample()
+		def add_gaze_boundary(self, name, bounds, shape=RECT):  # todo: make this bad boy take more than bounding rects
+			if shape not in [RECT, CIRCLE]:
+				raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+			self.__gaze_boundaries[name] = {"shape": shape, "bounds": bounds}
 			return True
 
-		def stop(self):
-			self.stopRecording()
+		def within_boundary(self, boundary, point=None, shape=None):
+			try:
+				boundary_dict = self.__gaze_boundaries[boundary]
+				print boundary_dict
+				boundary = boundary_dict["bounds"]
+				shape = boundary_dict['shape']
+			except:
+				if shape is None:
+					raise IndexError("No boundary registered with given name.")
+				if shape not in [RECT, CIRCLE]:
+					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+			if point is None:
+				if self.dummy_mode:
+					point = mouse_pos()
+				else:
+					point = self.gaze()
+			if shape == RECT:
+				x_range = range(boundary[0][0], boundary[1][0])
+				y_range = range(boundary[0][1], boundary[1][1])
+				return point[0] in x_range and point[1] in y_range
+			if shape == CIRCLE:
+				return boundary[0] <= math.sqrt((point[0] - boundary[1][0]) ** 2 + (point[1] - boundary[1][1]) ** 2)
 
-		def drift(self, location=None, events=EL_TRUE, samples=EL_TRUE, max_attempts=1):
+		def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE, max_attempts=1):
 			location = Params.screen_c if location is None else location
 			attempts = 1
 			result = None
@@ -68,6 +73,7 @@ try:
 				iter(location)
 			except:
 				raise ValueError("Argument 'location' wasn't understood; must be a x, y location.")
+
 			if events == EL_TRUE:
 				if samples == EL_TRUE:
 					result = self.doDriftCorrect(location[0], location[1], 1, 1)
@@ -91,7 +97,7 @@ try:
 
 		def gaze(self, eye_required=None):
 			if self.dummy_mode:
-				return pygame.mouse.get_pos()
+				return self.mouse_pos()
 			if self.sample():
 				if not eye_required:
 					right_sample = self.__current_sample.isRightSample()
@@ -110,8 +116,47 @@ try:
 					if eye_required == EL_RIGHT_EYE:
 						return self.__current_sample.getLeftEye().getGaze()
 			else:
-				e = "Unable to collect a sample from the EyeLink."
-				raise ValueError(e)
+				raise ValueError("Unable to collect a sample from the EyeLink.")
+
+		def sample(self):
+			self.__current_sample = self.getNewestSample()
+			return True
+
+		def setup(self):
+			self.doTrackerSetup()
+			self.filename = exp_file_name(EDF_FILE)
+			self.openDataFile()
+
+		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
+			# ToDo: put some exceptions n here
+			start = self.startRecording(samples, events, link_samples, link_events)
+			if start == 0:
+				if self.__eye():
+					self.sendMessage("TRIAL_ID {0}".format(str(trial_number)))
+					self.sendMessage("TRIAL_START")
+					self.sendMessage("SYNCTIME {0}".format('0.0'))
+					return True
+				else:
+					return False
+			else:
+				return False
+
+		def stop(self):
+			self.stopRecording()
+
+		def tracker_init(self):
+			if not self.dummy_mode:
+				pylink.flushGetkeyQueue()
+				self.setOfflineMode()
+				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
+				self.sendMessage("link_event_filter = SACCADE")
+				self.sendMessage("link_event_data = SACCADE")
+				self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
+				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
+				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
+				self.setMotionThreshold(Params.saccadic_motion_threshold)
+				return True
+			return True
 
 		def shut_down_eyelink(self):
 			self.stopRecording()
@@ -121,21 +166,18 @@ try:
 			self.receiveDataFile(self.filename, Params.edf_path + self.filename)  # copy pa.EDF
 			self.close()
 
+
 		@abc.abstractmethod
 		def listen(self, **kwargs):
 			pass
 
 		@property
-		def is_dummy_mode(self):
-			return self.dummy_mode
+		def dummy_mode(self):
+			return self.__dummy_mode
 
-		@is_dummy_mode.setter
-		def is_dummy_mode(self, status):
-			if type(status) is not bool:
-				err_string = "Invalid argument provided for setting Eyelink.dummy_mode (boolean required, {0} passed."
-				raise TypeError(err_string.format(type(status)))
-			else:
-				self.dummy_mode = True
+		@dummy_mode.setter
+		def dummy_mode(self, status):
+				self.__dummy_mode = True
 except:
 	PYLINK_AVAILABLE = False
 	print "Warning: Pylink library not found; eye tracking will not be available."

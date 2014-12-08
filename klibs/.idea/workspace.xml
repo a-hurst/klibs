@@ -57,10 +57,10 @@
               </provider>
             </entry>
           </file>
-          <file leaf-file-name="app.py" pinned="false" current="true" current-in-tab="true">
+          <file leaf-file-name="app.py" pinned="false" current="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/app.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state line="1071" column="0" selection-start="38867" selection-end="38867" vertical-scroll-proportion="0.3744076" vertical-offset="13449" max-vertical-offset="15119">
+                <state line="1071" column="0" selection-start="38867" selection-end="38867" vertical-scroll-proportion="0.0" vertical-offset="13449" max-vertical-offset="15119">
                   <folding>
                     <element signature="e#20#30#0" expanded="true" />
                     <element signature="e#440#486#0" expanded="true" />
@@ -189,14 +189,14 @@
               </provider>
             </entry>
           </file>
-          <file leaf-file-name="numpy_surface.py" pinned="false" current="false" current-in-tab="false">
+          <file leaf-file-name="numpy_surface.py" pinned="false" current="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/numpy_surface.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state line="118" column="38" selection-start="4391" selection-end="4391" vertical-scroll-proportion="0.0" vertical-offset="169" max-vertical-offset="2379">
+                <state line="104" column="18" selection-start="3722" selection-end="3722" vertical-scroll-proportion="0.35939968" vertical-offset="0" max-vertical-offset="2353">
                   <folding>
                     <element signature="e#0#9#0" expanded="true" />
-                    <element signature="e#4826#4934#0" expanded="true" />
-                    <element signature="e#11260#13564#0" expanded="true" />
+                    <element signature="e#4736#4844#0" expanded="true" />
+                    <element signature="e#11170#13474#0" expanded="true" />
                   </folding>
                 </state>
               </provider>
@@ -220,14 +220,14 @@
       </split-first>
       <split-second>
         <leaf>
-          <file leaf-file-name="params.py" pinned="false" current="false" current-in-tab="true">
+          <file leaf-file-name="params.py" pinned="false" current="true" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/params.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state line="48" column="17" selection-start="1261" selection-end="1261" vertical-scroll-proportion="0.49289098" vertical-offset="0" max-vertical-offset="1456">
+                <state line="61" column="0" selection-start="1770" selection-end="1770" vertical-scroll-proportion="0.6328811" vertical-offset="0" max-vertical-offset="1430">
                   <folding>
                     <element signature="e#16#25#0" expanded="true" />
-                    <element signature="e#1980#2920#0" expanded="true" />
-                    <element signature="e#2968#3091#0" expanded="true" />
+                    <element signature="e#1964#2904#0" expanded="true" />
+                    <element signature="e#2952#3075#0" expanded="true" />
                   </folding>
                 </state>
               </provider>
@@ -255,12 +255,12 @@
         <option value="$PROJECT_DIR$/constants.py" />
         <option value="$PROJECT_DIR$/eeg.py" />
         <option value="$PROJECT_DIR$/eyelink.py" />
-        <option value="$PROJECT_DIR$/params.py" />
         <option value="$PROJECT_DIR$/__init__.py" />
         <option value="$PROJECT_DIR$/textlayer.py" />
         <option value="$PROJECT_DIR$/utility_functions.py" />
-        <option value="$PROJECT_DIR$/numpy_surface.py" />
         <option value="$PROJECT_DIR$/app.py" />
+        <option value="$PROJECT_DIR$/numpy_surface.py" />
+        <option value="$PROJECT_DIR$/params.py" />
       </list>
     </option>
   </component>
@@ -320,7 +320,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../../TOJ" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/.." />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
@@ -515,8 +515,8 @@
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32998455" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21121718" sideWeight="0.67001545" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24980111" sideWeight="0.67001545" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.21121718" sideWeight="0.67001545" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.24980111" sideWeight="0.67001545" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
@@ -725,17 +725,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/params.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="48" column="17" selection-start="1261" selection-end="1261" vertical-scroll-proportion="0.49289098" vertical-offset="0" max-vertical-offset="1456">
-          <folding>
-            <element signature="e#16#25#0" expanded="true" />
-            <element signature="e#1980#2920#0" expanded="true" />
-            <element signature="e#2968#3091#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/constants.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="25" column="17" selection-start="527" selection-end="527" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="533">
@@ -787,20 +776,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/numpy_surface.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="118" column="38" selection-start="4391" selection-end="4391" vertical-scroll-proportion="0.0" vertical-offset="169" max-vertical-offset="2379">
-          <folding>
-            <element signature="e#0#9#0" expanded="true" />
-            <element signature="e#4826#4934#0" expanded="true" />
-            <element signature="e#11260#13564#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/app.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="1071" column="0" selection-start="38867" selection-end="38867" vertical-scroll-proportion="0.3744076" vertical-offset="13449" max-vertical-offset="15119">
+        <state line="1071" column="0" selection-start="38867" selection-end="38867" vertical-scroll-proportion="0.0" vertical-offset="13449" max-vertical-offset="15119">
           <folding>
             <element signature="e#20#30#0" expanded="true" />
             <element signature="e#440#486#0" expanded="true" />
@@ -857,6 +835,28 @@
             <element signature="e#40759#40763#0" expanded="true" />
             <element signature="e#40815#40819#0" expanded="true" />
             <element signature="e#40880#40884#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/numpy_surface.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="104" column="18" selection-start="3722" selection-end="3722" vertical-scroll-proportion="0.35939968" vertical-offset="0" max-vertical-offset="2353">
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#4736#4844#0" expanded="true" />
+            <element signature="e#11170#13474#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/params.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="61" column="0" selection-start="1770" selection-end="1770" vertical-scroll-proportion="0.6328811" vertical-offset="0" max-vertical-offset="1430">
+          <folding>
+            <element signature="e#16#25#0" expanded="true" />
+            <element signature="e#1964#2904#0" expanded="true" />
+            <element signature="e#2952#3075#0" expanded="true" />
           </folding>
         </state>
       </provider>

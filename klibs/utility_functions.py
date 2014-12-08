@@ -1,11 +1,13 @@
 __author__ = 'jono'
-import numpy
-import sdl2
-import sdl2.ext
+
 import math
 import sys
-
+import os
 import params as Params
+from constants import *
+import datetime
+import sdl2
+from pymouse import PyMouse
 
 
 def absolute_position(position, destination):
@@ -95,6 +97,43 @@ def equiv(comparator, canonical):
 		return False
 
 
+def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, as_string=True):
+	participant_id = Params.participant_id if participant_id is None else participant_id
+	file_name_str = "p{0}_{1}{2}"
+	duplicate_file_name_str = "p{0}.{1}_{2}{3}"
+
+	if date is None:
+		try:
+			date_query = "SELECT `created` FROM `participants` WHERE `id` = {0}".format(participant_id)
+			# date = str(Params.database.query(date_query).fetchall()[0][:10])
+		except:
+			date = datetime.datetime.now()[:10]
+
+	if file_type == PARTICIPANT_FILE:
+		file_extension = DATA
+		if incomplete:
+			file_path = Params.incomplete_data_path
+			file_name_str = "p{0}_{1}_incomplete.txt"
+			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + DATA
+		else:
+			file_path = Params.data_path
+	else:
+		file_extension = EDF
+		file_path = Params.edf_path
+
+	file_name = file_name_str.format(participant_id, date, file_extension)  # second format arg = date sliced from date-time
+	if os.path.isfile(os.path.join(file_path, file_name)):
+		unique_file = False
+		append = 1
+		while not unique_file:
+			file_name = duplicate_file_name_str.format(participant_id, append, date)
+			if not os.path.isfile(os.path.join(file_path, file_name)):
+				unique_file = True
+			else:
+				append += 1
+	return os.path.join(file_path, file_name) if as_string else [file_path, file_name]
+
+
 def log(msg, priority):
 	"""Log an event
 	:param msg: - a string to log
@@ -109,14 +148,20 @@ def log(msg, priority):
 	return True
 
 
+def mouse_pos():
+	pos = PyMouse().position()
+	return [int(pos[0]), int(pos[1])]
+
+
 def peak(v1, v2):
 	if v1 > v2:
 		return v1
 	else:
 		return v2
 
+
 def pump():  # a silly wrapper because Jon always forgets the sdl2 call
-			return sdl2.SDL_PumpEvents()
+	return sdl2.SDL_PumpEvents()
 
 
 def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepend=None, before_last=None, each_n=None,

@@ -1,22 +1,24 @@
 __author__ = 'jono'
-import abc
-import os
 import random
+import numpy
+import math
 import time
-import datetime
 import hashlib
 import re
 from copy import copy
 import OpenGL.GL as gl
 import sdl2.ext
-
-from constants import *
-from utility_functions import *
+import aggdraw
 from klibs_exceptions import *
-from numpy_surface import NumpySurface
+from numpy_surface import *
 from database import Database
 from keymap import KeyMap
 from textlayer import TextLayer
+from eyelink import *
+import params as Params
+import utility_functions
+from constants import *
+
 
 class TrialIterator(object):
 	def __init__(self, l):
@@ -62,38 +64,39 @@ class App(object):
 	testing = True
 	paused = False
 	execute = True
-
+	eyelink = None
 	wrong_key_message = None
 
 	def __init__(self, project_name, el=None, asset_path="ExpAssets"):
 		if not Params.setup(project_name, asset_path):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 
-		Params.key_maps["*"] = KeyMap("*", (), (), ())
+		Params.key_maps["*"] = KeyMap("*", [], [], [])
+		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
 
 		# this is silly but it makes importing from the params file work smoothly with rest of App
 		self.event_code_generator = None
 
-		#initialize the database instance
-		self.__db_init()
+		#initialize the self.database instance
+		self.__database_init()
 
 		# initialize screen surface and screen parameters
-		self.__display_init(Params.view_distance, flags=SCREEN_FLAGS)
+		self.display_init(Params.view_distance, flags=SCREEN_FLAGS)
 
 		# Type(self.window) = sdl2.ext.window.Window
 
-		# initialize the text layer for the app
-		self.text = TextLayer(Params.screen_x_y, Params.screen_x_y, Params.ppi)
+		# initialize the self.text layer for the app
+		self.text_layer = TextLayer(Params.screen_x_y, Params.screen_x_y, Params.ppi)
 		if Params.default_font_size:
-			self.text.default_font_size = Params.default_font_size
+			self.text_layer.default_font_size = Params.default_font_size
 
 		# initialize eyelink
-		# if el:
-		# 	self.el = el
-		# else:
-		# 	self.el = EyeLink()
-		# self.no_tracker = self.el.dummy_mode
-		# self.el.screen_size = Params.screen_x_y
+		if PYLINK_AVAILABLE and Params.eye_tracking:
+			if el:
+				self.eyelink = el
+			else:
+				self.eyelink = EyeLink(self)
+			self.eyelink.dummy_mode = Params.eye_tracker_available
 
 	def __trial_func(self, *args, **kwargs):
 		"""
@@ -140,11 +143,12 @@ class App(object):
 				self.__trial_func(trial_factors, Params.trial_number)
 			self.block_break()
 		self.clean_up()
-		self.db.db.commit()
-		self.db.db.close()
+		self.database.db.commit()
+		self.database.db.close()
 
-	def __db_init(self):
-		self.db = Database()
+	def __database_init(self):
+		self.database = Database()
+		# Params.database = self.database
 
 	def __generate_trials(self, practice=False, event_code_generator=None):
 		"""
@@ -193,7 +197,6 @@ class App(object):
 				t.append(event_code_generator(t))
 		Params.trials = trials
 
-
 	def __log_trial(self, trial_data, auto_id=True):
 		#  todo: move this to a DB function.... :/
 		if auto_id:
@@ -201,8 +204,8 @@ class App(object):
 				self.participant_id = -1
 			trial_data[Params.id_field_name] = self.participant_id
 		for attr in trial_data:
-			self.db.log(attr, trial_data[attr])
-		self.db.insert()
+			self.database.log(attr, trial_data[attr])
+		self.database.insert()
 
 	def __set_stroke(self):
 		stroke = int(1 * math.floor(Params.screen_y / 500.0))
@@ -210,13 +213,13 @@ class App(object):
 			stroke = 1
 		return stroke
 
-	def __display_init(self, view_distance, flags=None, ppi="crt"):
+	def display_init(self, view_distance, flags=None, ppi="crt"):
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		Params.screen_x_y = [Params.screen_x, Params.screen_y]
 		window_flags = False
 		if flags:
-			window_flags = safe_flag_string(flags, 'sdl2')
+			window_flags = utility_functions.safe_flag_string(flags, 'sdl2')
 		if window_flags:
 			self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), window_flags)
 		else:
@@ -261,9 +264,9 @@ class App(object):
 
 		# TODO: THIS IS BROKEN. PPI needs to be calculated diagonally, this is using horizontal math only.
 		# http://en.wikipedia.org/wiki/Pixel_density
-		if equiv(ppi, "CRT"):
+		if utility_functions.equiv(ppi, "CRT"):
 			Params.ppi = 72
-		elif equiv(ppi, "LCD"):
+		elif utility_functions.equiv(ppi, "LCD"):
 			Params.ppi = 96
 		elif type(ppi) is int:
 			Params.ppi = ppi
@@ -288,11 +291,11 @@ class App(object):
 		"""
 		# if urgent:
 		# 	return self.message(alert_string, color=(255, 0, 0, 255), location='topRight', registration=9,
-		# 						font_size=self.text.default_font_size * 2, blit=True, flip=True)
+		# 						font_size=text.default_font_size * 2, blit=True, flip=True)
 		self.clear()
 		self.fill(Params.default_fill_color)
 		self.message(alert_string, color=(255, 0, 0, 255), location='center', registration=5,
-							font_size=self.text.default_font_size * 2, blit=True)
+							font_size=self.text_layer.default_font_size * 2, blit=True)
 		if display_for > 0:
 			start = time.time()
 			self.flip()
@@ -334,7 +337,7 @@ class App(object):
 
 		# convert english location strings to x,y coordinates of destination surface
 		if type(position) is str:
-			position = absolute_position(position, Params.screen_x_y)
+			position = utility_functions.absolute_position(position, Params.screen_x_y)
 
 		# define boundaries coordinates of region being blit to
 		x_bounds = [position[0], position[0] + width]
@@ -347,7 +350,7 @@ class App(object):
 		# 7--8--9  ie. Given an object of width = 3, height = 3, with registration 9 being blit to (5,5) of some
 		#          surface, the default blit behavior (placing the  top-left coordinate at 5,5) would result in
 		#          the top-left corner being blit to (2,2), such that the bottom-right corner would be at (5,5)
-		registrations = build_registrations(height, width)
+		registrations = utility_functions.build_registrations(height, width)
 
 		if 0 < registration & registration < 10:
 			x_bounds[0] += int(registrations[registration][0])
@@ -434,34 +437,33 @@ class App(object):
 
 	def collect_demographics(self):
 		"""
-		Gather participant demographic information and enter it into the database
+		Gather participant demographic information and enter it into the self.database
 
 		"""
 		# TODO: this function should have default questions/answers but should also be able to read from a
 		# CSV or array for custom Q&A
-		self.db.init_entry('participants', instance_name='ptcp', set_current=True)
+		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
 		name_query_string = self.query(
 			"What is your full name, banner number or e-mail address? Your answer will be encrypted and cannot be read later.",
 			as_password=True)
 		name_hash = hashlib.sha1(name_query_string)
 		name = name_hash.hexdigest()
-		self.db.log('userhash', name)
+		self.database.log('userhash', name)
 
 		# names must be unique; returns True if unique, False otherwise
-		if self.db.is_unique(name, 'userhash', 'participants'):
+		if self.database.is_unique(name, 'userhash', 'participants'):
 			gender = "What is your gender? Answer with:  (m)ale,(f)emale or (o)ther)"
 			handedness = "Are right-handed, left-handed or ambidextrous? Answer with (r)ight, (l)eft or (a)mbidextrous."
-			self.db.log('gender', self.query(gender, accepted=('m', 'M', 'f', 'F', 'o', 'O')))
-			self.db.log('handedness', self.query(handedness, accepted=('r', 'R', 'l', 'L', 'a', 'A')))
-			self.db.log('age', self.query('What is  your age?', return_type='int'))
-			self.db.log('created', self.now())
-			if not self.db.insert():
+			self.database.log('gender', self.query(gender, accepted=('m', 'M', 'f', 'F', 'o', 'O')))
+			self.database.log('handedness', self.query(handedness, accepted=('r', 'R', 'l', 'L', 'a', 'A')))
+			self.database.log('age', self.query('What is  your age?', return_type='int'))
+			self.database.log('created', self.now())
+			if not self.database.insert():
 				raise DatabaseException("Database.insert(), which failed for unknown reasons.")
-			self.db.cursor.execute("SELECT `id` FROM `participants` WHERE `userhash` = '{0}'".format(name))
-			result = self.db.cursor.fetchall()
-			self.participant_id = result[0][0]
-			if not self.participant_id:
-				raise ValueError("For unknown reasons, 'participant_id' couldn't be retrieved from database.")
+			self.database.cursor.execute("SELECT `id` FROM `participants` WHERE `userhash` = '{0}'".format(name))
+			Params.participant_id = self.database.cursor.fetchall()[0][0]
+			if not Params.participant_id:
+				raise ValueError("For unknown reasons, 'participant_id' couldn't be set or retrieved from self.database.")
 		else:
 			retry = self.query('That participant identifier has already been used. Do you wish to try another? (y/n) ')
 			if retry == 'y':
@@ -472,6 +474,46 @@ class App(object):
 				self.window.refresh()
 				time.sleep(2)
 				self.quit()
+
+	def drift_correct(self):
+		if self.eyelink:
+			if self.eyelink.dummy_mode is False:
+				return self.eyelink.drift_correct()
+			else:
+				self.fill()
+				sdl2.mouse.SDL_ShowCursor(1)
+				dc_length = Params.screen_x // 50
+				color = []
+				for channel in Params.default_fill_color:
+					color.append(255 - channel)
+				color[3] = 255
+				brush = aggdraw.Brush(tuple(color))
+				pen = aggdraw.Pen(Params.default_fill_color, dc_length // 10)
+				draw_context = aggdraw.Draw("RGBA", [dc_length, dc_length], (0, 0, 0, 0))
+				draw_context.ellipse([0, 0, dc_length, dc_length], brush)
+				x1 = dc_length // 2
+				y1 = dc_length // 5
+				x2 = x1
+				y2 = dc_length - y1
+				stroke = dc_length // 5
+				draw_context.line([x1, y1, x2, y2], pen)
+				draw_context.line([y1, x1, y2, x2], pen)
+				self.blit(from_aggdraw_context(draw_context), 5, "center")
+				x_min = Params.screen_c[0] - dc_length // 2
+				x_max = Params.screen_c[0] + dc_length // 2
+				y_min = Params.screen_c[1] - dc_length // 2
+				y_max = Params.screen_c[1] + dc_length // 2
+				x_range = range(x_min, x_max)
+				y_range = range(y_min, y_max)
+				self.flip()
+				mouse_in_bounds = False
+				while not mouse_in_bounds:
+					self.listen(MAX_WAIT, "drift_correct", flip=False)
+					pos = mouse_pos()
+					if pos[0] in x_range and pos[1] in y_range:
+						mouse_in_bounds = True
+				sdl2.mouse.SDL_ShowCursor(0)
+				return True
 
 	def exempt(self, index, state=True):
 		if index in self.exemptions.keys():
@@ -593,7 +635,7 @@ class App(object):
 
 			if el_args:
 				if type(el_args) is dict:
-					self.eyelink_response = self.el.listen(**el_args)
+					self.eyelink_response = self.eyelink.listen(**el_args)
 				else:
 					raise TypeError("Argument 'el_args' must be a dict.")
 			if wait_callback is not None and type(wait_callback).__name__ == 'instancemethod':  # todo: fix second cond.
@@ -652,34 +694,34 @@ class App(object):
 		message_surface = None  # unless wrap is true, will remain empty
 
 		if font is None:
-			font = self.text.default_font
+			font = self.text_layer.default_font
 
 		if font_size is None:
-			font_size = self.text.default_font_size
+			font_size = self.text_layer.default_font_size
 
 		if color is None:
-			if self.text.default_color:
-				color = self.text.default_color
+			if self.text_layer.default_color:
+				color = self.text_layer.default_color
 
 		if bg_color is None:
-			bg_color = self.text.default_bg_color
+			bg_color = self.text_layer.default_bg_color
 
-		if wrap:
-			print "Wrapped text is not currently implemented. This feature is pending."
-			exit()
-			message = self.text.wrapped_text(message, delimiter, font_size, font, wrap_width)
-			line_surfaces = []
-			message_height = 0
-			message_width = 0
-			for line in message:
-				line_surface = self.text.render_text(line, render_config)
-				line_surfaces.append((line_surface, [0, message_height]))
-				message_width = peak(line_surface.get_width(), message_width)
-				message_height = message_height + line_surface.get_height()
-			message_surface = pygame.Surface((message_width, message_height))
-			message_surface.fill(bg_color)
-			for ls in line_surfaces:
-				self.blit(ls[0], 7, ls[1], message_surface)
+		# if wrap:
+		# 	print "Wrapped text is not currently implemented. This feature is pending."
+		# 	exit()
+		# 	message = text.wrapped_text(message, delimiter, font_size, font, wrap_width)
+		# 	line_surfaces = []
+		# 	message_height = 0
+		# 	message_width = 0
+		# 	for line in message:
+		# 		line_surface = text.render_text(line, render_config)
+		# 		line_surfaces.append((line_surface, [0, message_height]))
+		# 		message_width = peak(line_surface.get_width(), message_width)
+		# 		message_height = message_height + line_surface.get_height()
+		# 	message_surface = pygame.Surface((message_width, message_height))
+		# 	message_surface.fill(bg_color)
+		# 	for ls in line_surfaces:
+		# 		self.blit(ls[0], 7, ls[1], message_surface)
 
 		#process blit registration
 		if location == "center" and registration is None:  # an exception case for perfect centering
@@ -714,7 +756,7 @@ class App(object):
 			if wrap:
 				return message_surface
 			else:
-				message_surface = self.text.render_text(message, render_config)
+				message_surface = self.text_layer.render_text(message, render_config)
 				#check for single lines that extend beyond the app area and wrap if need be
 				# if message_surface.shape[1] > self.screen_x:
 				# 	return self.message(message, wrap=True)
@@ -725,7 +767,7 @@ class App(object):
 			if wrap:
 				self.blit(message_surface, registration, Params.screen_c)
 			else:
-				message_surface = self.text.render_text(message, font, font_size, color, bg_color)
+				message_surface = self.text_layer.render_text(message, font, font_size, color, bg_color)
 				# if message_surface.shape[1] > self.screen_x:
 				# 	wrap = True
 				# 	return self.message(message, font, font_size, color, bg_color, location, registration,
@@ -851,19 +893,19 @@ class App(object):
 		if font_size is not None:
 			if type(font_size) is (tuple or list):
 				if len(font_size) == 2:
-					input_config[1] = self.text.font_sizes[font_size[0]]
-					query_config[1] = self.text.font_sizes[font_size[1]]
+					input_config[1] = self.text_layer.font_sizes[font_size[0]]
+					query_config[1] = self.text_layer.font_sizes[font_size[1]]
 					vertical_padding = query_config[1]
 					if input_config[1] < query_config[1]:  # smallest  size =  vertical padding from midline
 						vertical_padding = input_config[1]
 			else:
-				input_config[1] = self.text.font_sizes[font_size]
-				query_config[1] = self.text.font_sizes[font_size]
-				vertical_padding = self.text.font_sizes[font_size]
+				input_config[1] = self.text_layer.font_sizes[font_size]
+				query_config[1] = self.text_layer.font_sizes[font_size]
+				vertical_padding = self.text_layer.font_sizes[font_size]
 		else:
-			input_config[1] = self.text.default_font_size
-			query_config[1] = self.text.default_font_size
-			vertical_padding = self.text.default_font_size
+			input_config[1] = self.text_layer.default_font_size
+			query_config[1] = self.text_layer.default_font_size
+			vertical_padding = self.text_layer.default_font_size
 
 		if registration is not None:
 			if type(registration) is (tuple or list):
@@ -881,8 +923,8 @@ class App(object):
 			input_config[0] = font
 			query_config[0] = font
 		else:
-			input_config[0] = self.text.default_font
-			query_config[0] = self.text.default_font
+			input_config[0] = self.text_layer.default_font
+			query_config[0] = self.text_layer.default_font
 
 		# process the possibility of different query/input colors
 		if color is not None:
@@ -893,15 +935,15 @@ class App(object):
 				input_config[2] = color
 				query_config[2] = color
 		else:
-			input_config[2] = self.text.default_input_color
-			query_config[2] = self.text.default_color
+			input_config[2] = self.text_layer.default_input_color
+			query_config[2] = self.text_layer.default_color
 
 		# process locations
 		generate_locations = False
 		if locations is not None:
 			if None in (locations.get('query'), locations.get('input')):
-				query_location = self.text.fetch_print_location('query')
-				input_location = self.text.fetch_print_location('response')
+				query_location = self.text_layer.fetch_print_location('query')
+				input_location = self.text_layer.fetch_print_location('response')
 			else:
 				query_location = locations['query']
 				input_location = locations['input']
@@ -911,10 +953,10 @@ class App(object):
 		# Note: input_surface not declared until user input received, see while loop below
 		query_surface = None
 		if query is None:
-			query = self.text.fetch_string('query')
+			query = self.text_layer.fetch_string('query')
 
 		if query:
-			query_surface = self.text.render_text(query, *query_config)
+			query_surface = self.text_layer.render_text(query, *query_config)
 		else:
 			raise ValueError("A default query string was not set and argument 'query' was not provided")
 
@@ -966,7 +1008,7 @@ class App(object):
 								render_string = input_string
 
 							if len(render_string) > 0:
-								input_surface = self.text.render_text(render_string, *input_config)
+								input_surface = self.text_layer.render_text(render_string, *input_config)
 								self.fill()
 								self.blit(query_surface, query_registration, query_location)
 								self.blit(input_surface, input_registration, input_location)
@@ -995,8 +1037,8 @@ class App(object):
 							else:
 								error_string = no_answer_string
 							error_config = copy(input_config)
-							error_config[2] = self.text.alert_color
-							input_surface = self.text.render_text(error_string, *error_config)
+							error_config[2] = self.text_layer.alert_color
+							input_surface = self.text_layer.render_text(error_string, *error_config)
 							self.fill()
 							self.blit(query_surface, query_registration, query_location)
 							self.blit(input_surface, input_registration, input_location)
@@ -1004,7 +1046,7 @@ class App(object):
 							input_string = ""
 					elif sdl_keysym == sdl2.SDLK_ESCAPE:  # if escape, erase the string
 						input_string = ''
-						input_surface = self.text.render_text(input_string, *input_config)
+						input_surface = self.text_layer.render_text(input_string, *input_config)
 						self.fill()
 						self.blit(query_surface, query_registration, query_location)
 						self.blit(input_surface, input_registration, input_location)
@@ -1019,11 +1061,11 @@ class App(object):
 							if as_password:
 								if as_password is True and len(input_string) != 0:
 									password_string = '' + len(input_string) * '*'
-									input_surface = self.text.render_text(password_string, *input_config)
+									input_surface = self.text_layer.render_text(password_string, *input_config)
 								else:
-									input_surface = self.text.render_text(input_string, *input_config)
+									input_surface = self.text_layer.render_text(input_string, *input_config)
 							else:
-								input_surface = self.text.render_text(input_string, *input_config)
+								input_surface = self.text_layer.render_text(input_string, *input_config)
 							self.fill()
 							self.blit(query_surface, query_registration, query_location)
 							self.blit(input_surface, input_registration, input_location)
@@ -1044,18 +1086,18 @@ class App(object):
 
 	def quit(self):
 		try:
-			self.db.db.commit()
+			self.database.db.commit()
 		except:  # TODO: Determine exception type
-			print "Commit() to database failed."
+			print "Commit() to self.database failed."
 			pass
 		try:
-			self.db.db.close()
+			self.database.db.close()
 		except:  # TODO: Determine exception tpye
 			print "Database close() unsuccessful."
 			pass
 		if not self.no_tracker:
-			if self.el.el.isRecording():
-				self.el.el.stopRecording()
+			if self.eyelink.el.isRecording():
+				self.eyelink.el.stopRecording()
 		sdl2.SDL_Quit()
 		sys.exit()
 
@@ -1069,9 +1111,9 @@ class App(object):
 		# todo: consider adding sdl2's "area" argument, to fill a subset of the surface
 		if color is None:
 			color = Params.default_fill_color
-			
+
 		if len(color) == 3:
-			color = rgb_to_rgba(color)
+			color = utility_functions.rgb_to_rgba(color)
 		try:
 			context.fill(color)
 		# todo need a registry of all NumpySurfaces so they can be erased by name

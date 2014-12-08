@@ -1,7 +1,10 @@
 __author__ = 'jono'
 
-import os, shutil, sqlite3
+import os
+import shutil
+import sqlite3
 import params as Params
+
 
 class EntryTemplate(object):
 	null_field = "DELETE_THIS_FIELD"

@@ -2,6 +2,12 @@
 
 from distutils.core import setup
 
+try:
+	import pylink
+	install_packages = ['klibs']
+except:
+	install_packages = ['klibs', 'klibs.pylink']
+
 setup(
 	name='KLIBs', 
 	version = '0.1', 
@@ -9,6 +15,6 @@ setup(
 	author = 'Jonathan Mulle & Ross Story', 
 	author_email = 'this.impetus@gmail.com', 
 	url = 'git://kleinlab.psychology.dal.ca', 
-	packages=['klibs'],
+	packages=install_packages,
 	requires = ['numpy', 'pylink']
 	)

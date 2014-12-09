@@ -12,7 +12,6 @@ try:
 
 	try:
 		from pymouse import PyMouse
-
 		DUMMY_MODE_AVAILABLE = True
 	except ImportError:
 		DUMMY_MODE_AVAILABLE = False

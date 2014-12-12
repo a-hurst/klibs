@@ -20,6 +20,7 @@ import utility_functions
 from constants import *
 from EyeLinkCoreGraphicsKL import EyeLinkCoreGraphicsKL
 
+
 class TrialIterator(object):
 	def __init__(self, l):
 		self.l = l
@@ -102,8 +103,7 @@ class App(object):
 				self.eyelink = el
 			else:
 				self.eyelink = EyeLink(self)
-			self.core_graphics = EyeLinkCoreGraphicsKL(self, self.eyelink)
-
+			self.eyelink.core_graphics = EyeLinkCoreGraphicsKL(self, self.eyelink)
 			self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
 

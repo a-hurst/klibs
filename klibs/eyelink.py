@@ -24,12 +24,11 @@ try:
 		__gaze_boundaries = {}
 		core_graphics = None
 
-		def __init__(self, core_graphics):
+		def __init__(self):
 			if DUMMY_MODE_AVAILABLE:
 				self.dummy_mode = Params.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
 			else:
 				self.dummy_mode = False
-			self.core_graphics = core_graphics
 
 		def __eye(self):
 			self.eye = self.eyeAvailable()
@@ -121,6 +120,10 @@ try:
 			return True
 
 		def setup(self):
+			if self.core_graphics is None:
+				self.openGraphics(Params.screen_x_y)
+			else:
+				pylink.openGraphicsEx(self.core_graphics)
 			self.doTrackerSetup()
 			self.filename = exp_file_name(EDF_FILE)
 			self.openDataFile()

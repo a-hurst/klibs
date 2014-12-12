@@ -18,7 +18,7 @@ from eyelink import *
 import params as Params
 import utility_functions
 from constants import *
-
+from EyeLinkCoreGraphicsKL import EyeLinkCoreGraphicsKL
 
 class TrialIterator(object):
 	def __init__(self, l):
@@ -66,6 +66,7 @@ class App(object):
 	execute = True
 	eyelink = None
 	wrong_key_message = None
+	core_graphics = None
 
 	def __init__(self, project_name, el=None, asset_path="ExpAssets"):
 		if not Params.setup(project_name, asset_path):
@@ -73,6 +74,11 @@ class App(object):
 
 		Params.key_maps["*"] = KeyMap("*", [], [], [])
 		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
+		Params.key_maps["eyelink"] = KeyMap("eyelink",
+										["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
+										[sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
+										sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT, sdl2.SDLK_RIGHT],
+										["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 
 		# this is silly but it makes importing from the params file work smoothly with rest of App
 		self.event_code_generator = None
@@ -96,7 +102,10 @@ class App(object):
 				self.eyelink = el
 			else:
 				self.eyelink = EyeLink(self)
-			self.eyelink.dummy_mode = Params.eye_tracker_available
+			self.core_graphics = EyeLinkCoreGraphicsKL(self, self.eyelink)
+
+			self.eyelink.dummy_mode = Params.eye_tracker_available is False
+
 
 	def __trial_func(self, *args, **kwargs):
 		"""
@@ -478,6 +487,7 @@ class App(object):
 	def drift_correct(self):
 		if self.eyelink:
 			if self.eyelink.dummy_mode is False:
+				print "here son"
 				return self.eyelink.drift_correct()
 			else:
 				self.fill()

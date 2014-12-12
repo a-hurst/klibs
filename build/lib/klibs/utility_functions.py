@@ -7,8 +7,12 @@ import params as Params
 from constants import *
 import datetime
 import sdl2
-from pymouse import PyMouse
-
+try:
+	from pymouse import PyMouse
+	PYMOUSE_AVAILABLE = True
+except ImportError:
+	PYMOUSE_AVAILABLE = False
+	print "PyMouse is not available; dummy mode for EyeLink is not available."
 
 def absolute_position(position, destination):
 	height = None
@@ -149,8 +153,11 @@ def log(msg, priority):
 
 
 def mouse_pos():
-	pos = PyMouse().position()
-	return [int(pos[0]), int(pos[1])]
+	if PYMOUSE_AVAILABLE:
+		pos = PyMouse().position()
+		return [int(pos[0]), int(pos[1])]
+	else:
+		return False
 
 
 def peak(v1, v2):

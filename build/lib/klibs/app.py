@@ -96,7 +96,9 @@ class App(object):
 				self.eyelink = el
 			else:
 				self.eyelink = EyeLink(self)
-			self.eyelink.dummy_mode = Params.eye_tracker_available
+				print self.eyelink.dummy_mode
+			self.eyelink.dummy_mode = Params.eye_tracker_available is False
+			print self.eyelink.dummy_mode
 
 	def __trial_func(self, *args, **kwargs):
 		"""
@@ -478,6 +480,7 @@ class App(object):
 	def drift_correct(self):
 		if self.eyelink:
 			if self.eyelink.dummy_mode is False:
+				print "here son"
 				return self.eyelink.drift_correct()
 			else:
 				self.fill()

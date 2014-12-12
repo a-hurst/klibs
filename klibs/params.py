@@ -20,6 +20,11 @@ global incomplete_data_path
 global initialized
 
 initialized = False
+audio_initialized = False
+
+calibrate_with_audio = True
+calibrate_targets = 9
+
 participant_id = -1  # default for testing, debugging, etc.
 database = None
 

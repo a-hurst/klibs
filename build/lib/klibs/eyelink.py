@@ -12,23 +12,22 @@ try:
 
 	try:
 		from pymouse import PyMouse
-
 		DUMMY_MODE_AVAILABLE = True
 	except ImportError:
 		DUMMY_MODE_AVAILABLE = False
 
 	PYLINK_AVAILABLE = True
 
-	class EyeLink(pylink.EyeLink):
+	class EyeLink(pylink.EyeLinkListener):
 		__dummy_mode = None
 		__app_instance = None
 		__gaze_boundaries = {}
 
 		def __init__(self, app_instance):
 			self.__app_instance = app_instance
-
+			self.tracker.dummyopen()
 			if DUMMY_MODE_AVAILABLE:
-				self.dummy_mode = Params.eye_tracker_available if self.dummy_mode is None else self.dummy_mode is True
+				self.dummy_mode = Params.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
 			else:
 				self.dummy_mode = False
 
@@ -45,7 +44,6 @@ try:
 		def within_boundary(self, boundary, point=None, shape=None):
 			try:
 				boundary_dict = self.__gaze_boundaries[boundary]
-				print boundary_dict
 				boundary = boundary_dict["bounds"]
 				shape = boundary_dict['shape']
 			except:
@@ -147,14 +145,17 @@ try:
 		def tracker_init(self):
 			if not self.dummy_mode:
 				pylink.flushGetkeyQueue()
-				self.setOfflineMode()
-				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
-				self.sendMessage("link_event_filter = SACCADE")
-				self.sendMessage("link_event_data = SACCADE")
-				self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
-				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
-				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
-				self.setMotionThreshold(Params.saccadic_motion_threshold)
+				try:
+					self.setOfflineMode()
+					self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
+					self.sendMessage("link_event_filter = SACCADE")
+					self.sendMessage("link_event_data = SACCADE")
+					self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
+					self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
+					self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
+					self.setMotionThreshold(Params.saccadic_motion_threshold)
+				except:
+					print "Warning: could not connect to tracker..."
 				return True
 			return True
 
@@ -177,7 +178,7 @@ try:
 
 		@dummy_mode.setter
 		def dummy_mode(self, status):
-				self.__dummy_mode = True
+				self.__dummy_mode = status
 except:
 	PYLINK_AVAILABLE = False
 	print "Warning: Pylink library not found; eye tracking will not be available."

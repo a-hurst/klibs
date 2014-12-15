@@ -26,6 +26,8 @@ import sdl2.ext
 # string constants, included for tidyness below basically
 from constants import *
 import params as Params
+from AudioClip import AudioClip
+from EyeLinkCoreGraphicsKL import EyeLinkCoreGraphicsKL
 from utility_functions import *
 from numpy_surface import NumpySurface
 from database import Database

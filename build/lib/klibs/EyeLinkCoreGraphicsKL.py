@@ -43,6 +43,7 @@ class EyeLinkCoreGraphicsKL(pylink.EyeLinkCustomDisplay):
 			self.__target_beep__error__ = None
 
 		self.imagebuffer = array.array('L')
+
 		"""
 		unknown var
 		"""

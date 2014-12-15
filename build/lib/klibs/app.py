@@ -18,6 +18,7 @@ from eyelink import *
 import params as Params
 import utility_functions
 from constants import *
+from EyeLinkCoreGraphicsKL import EyeLinkCoreGraphicsKL
 
 
 class TrialIterator(object):
@@ -66,6 +67,7 @@ class App(object):
 	execute = True
 	eyelink = None
 	wrong_key_message = None
+	core_graphics = None
 
 	def __init__(self, project_name, el=None, asset_path="ExpAssets"):
 		if not Params.setup(project_name, asset_path):
@@ -73,6 +75,11 @@ class App(object):
 
 		Params.key_maps["*"] = KeyMap("*", [], [], [])
 		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
+		Params.key_maps["eyelink"] = KeyMap("eyelink",
+										["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
+										[sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
+										sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT, sdl2.SDLK_RIGHT],
+										["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 
 		# this is silly but it makes importing from the params file work smoothly with rest of App
 		self.event_code_generator = None
@@ -81,9 +88,7 @@ class App(object):
 		self.__database_init()
 
 		# initialize screen surface and screen parameters
-		self.display_init(Params.view_distance, flags=SCREEN_FLAGS)
-
-		# Type(self.window) = sdl2.ext.window.Window
+		self.display_init(Params.view_distance)
 
 		# initialize the self.text layer for the app
 		self.text_layer = TextLayer(Params.screen_x_y, Params.screen_x_y, Params.ppi)
@@ -95,10 +100,9 @@ class App(object):
 			if el:
 				self.eyelink = el
 			else:
-				self.eyelink = EyeLink(self)
-				print self.eyelink.dummy_mode
+				self.eyelink = EyeLink()
+			self.eyelink.core_graphics = EyeLinkCoreGraphicsKL(self, self.eyelink)
 			self.eyelink.dummy_mode = Params.eye_tracker_available is False
-			print self.eyelink.dummy_mode
 
 	def __trial_func(self, *args, **kwargs):
 		"""
@@ -215,18 +219,11 @@ class App(object):
 			stroke = 1
 		return stroke
 
-	def display_init(self, view_distance, flags=None, ppi="crt"):
+	def display_init(self, view_distance, ppi="crt"):
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		Params.screen_x_y = [Params.screen_x, Params.screen_y]
-		window_flags = False
-		if flags:
-			window_flags = utility_functions.safe_flag_string(flags, 'sdl2')
-		if window_flags:
-			self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), window_flags)
-		else:
-			self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0))
-		# self.window.show()
+		self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), SCREEN_FLAGS)
 		Params.screen_c = (Params.screen_x / 2, Params.screen_y / 2)
 		Params.diagonal_px = int(math.sqrt(Params.screen_x * Params.screen_x + Params.screen_y * Params.screen_y))
 

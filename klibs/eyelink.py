@@ -18,13 +18,14 @@ try:
 
 	PYLINK_AVAILABLE = True
 
-	class EyeLink(pylink.EyeLinkListener):
+	class EyeLink(pylink.EyeLink):
 		__dummy_mode = None
 		__app_instance = None
 		__gaze_boundaries = {}
 		core_graphics = None
 
 		def __init__(self):
+			pylink.EyeLink.__init__(self)
 			if DUMMY_MODE_AVAILABLE:
 				self.dummy_mode = Params.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
 			else:
@@ -79,7 +80,7 @@ try:
 			elif samples:
 				result = self.doDriftCorrect(location[0], location[1], 0, 1)
 			else:
-				result = self.el.doDriftCorrect(location[0], location[1], 0, 0)
+				result = self.doDriftCorrect(location[0], location[1], 0, 0)
 			# if attempts < maxAttempts:
 			# 	return self.drift(loc, events, samples, maxAttempts-1)
 			# else:
@@ -124,9 +125,19 @@ try:
 				self.openGraphics(Params.screen_x_y)
 			else:
 				pylink.openGraphicsEx(self.core_graphics)
-			self.doTrackerSetup()
-			self.filename = exp_file_name(EDF_FILE)
-			self.openDataFile()
+			if not self.dummy_mode:
+				pylink.flushGetkeyQueue()
+				self.setOfflineMode()
+				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
+				self.setLinkEventFilter("SACCADE,BLINK")
+				self.filename = exp_file_name(EDF_FILE)
+				self.openDataFile(self.filename)
+				self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
+				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
+				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
+				self.setMotionThreshold(Params.saccadic_motion_threshold)
+				self.doTrackerSetup()
+				self.sendCommand("doCalibration")
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 			# ToDo: put some exceptions n here
@@ -145,23 +156,6 @@ try:
 		def stop(self):
 			self.stopRecording()
 
-		def tracker_init(self):
-			if not self.dummy_mode:
-				pylink.flushGetkeyQueue()
-				try:
-					self.setOfflineMode()
-					self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
-					self.sendMessage("link_event_filter = SACCADE")
-					self.sendMessage("link_event_data = SACCADE")
-					self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
-					self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
-					self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
-					self.setMotionThreshold(Params.saccadic_motion_threshold)
-				except:
-					print "Warning: could not connect to tracker..."
-				return True
-			return True
-
 		def shut_down_eyelink(self):
 			self.stopRecording()
 			self.setOfflineMode()
@@ -169,7 +163,6 @@ try:
 			self.closeDataFile()  # tell eyelink to close_data_file()
 			self.receiveDataFile(self.filename, Params.edf_path + self.filename)  # copy pa.EDF
 			self.close()
-
 
 		@abc.abstractmethod
 		def listen(self, **kwargs):

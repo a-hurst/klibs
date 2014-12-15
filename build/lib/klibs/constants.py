@@ -2,7 +2,8 @@ __author__ = 'jono'
 import sdl2
 
 DB = ".db"
-EDF = ".EDF"
+EDF = "EDF"
+EDF_EXT = ".EDF"
 DATA = ".txt"
 BACK = ".backup"
 LOG = "_log.txt"
@@ -14,6 +15,9 @@ NS_BACKGROUND = 0  # NumpySurface background layer
 MAX_WAIT = 9999999
 TIMEOUT = "TIMEOUT"
 NO_RESPONSE = "NO_RESPONSE"
+
+ON = 1
+OFF = 0
 
 PARTICIPANT_FILE = 1
 EDF_FILE = 0
@@ -30,11 +34,10 @@ MAX_DRIFT_DEG = 3
 INIT_SAC_DIST = 3  # Min. distance (degrees) before eye movement == initiating saccade for response direction
 EL_TEMP_FILE = "temp_participant{0}".format(EDF)
 # lists of sdl2 key representations needed by klibs
-MOD_KEYS = {"Left Shift": 1, "Right Shift": 2, "Left Ctrl": 64, "Rigth Ctrl": 128,  # todo: make __mod_keysyms
+MOD_KEYS = {"Left Shift": 1, "Right Shift": 2, "Left Ctrl": 64, "Right Ctrl": 128,  # todo: make __mod_keysyms
 			"Left Alt": 256, "Right Alt": 512, "Left Command": 1024, "Right Command": 2048}
 UI_METHOD_KEYSYMS = [sdl2.SDLK_q, sdl2.SDLK_c, sdl2.SDLK_p]
 
-SCREEN_FLAGS = ["sdl_window_opengl", "sdl_window_shown", "sdl_window_fullscreen_desktop", "sdl_renderer_accelerated",
-				"sdl_renderer_presentvsync"]
+SCREEN_FLAGS = sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP | sdl2.SDL_RENDERER_ACCELERATED | sdl2.SDL_RENDERER_PRESENTVSYNC
 RECT = 0
 CIRCLE = 1

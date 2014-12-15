@@ -122,7 +122,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 		else:
 			file_path = Params.data_path
 	else:
-		file_extension = EDF
+		file_extension = EDF_EXT
 		file_path = Params.edf_path
 
 	file_name = file_name_str.format(participant_id, date, file_extension)  # second format arg = date sliced from date-time

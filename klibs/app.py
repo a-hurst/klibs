@@ -88,9 +88,7 @@ class App(object):
 		self.__database_init()
 
 		# initialize screen surface and screen parameters
-		self.display_init(Params.view_distance, flags=SCREEN_FLAGS)
-
-		# Type(self.window) = sdl2.ext.window.Window
+		self.display_init(Params.view_distance)
 
 		# initialize the self.text layer for the app
 		self.text_layer = TextLayer(Params.screen_x_y, Params.screen_x_y, Params.ppi)
@@ -102,10 +100,9 @@ class App(object):
 			if el:
 				self.eyelink = el
 			else:
-				self.eyelink = EyeLink(self)
+				self.eyelink = EyeLink()
 			self.eyelink.core_graphics = EyeLinkCoreGraphicsKL(self, self.eyelink)
 			self.eyelink.dummy_mode = Params.eye_tracker_available is False
-
 
 	def __trial_func(self, *args, **kwargs):
 		"""
@@ -222,18 +219,11 @@ class App(object):
 			stroke = 1
 		return stroke
 
-	def display_init(self, view_distance, flags=None, ppi="crt"):
+	def display_init(self, view_distance, ppi="crt"):
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		Params.screen_x_y = [Params.screen_x, Params.screen_y]
-		window_flags = False
-		if flags:
-			window_flags = utility_functions.safe_flag_string(flags, 'sdl2')
-		if window_flags:
-			self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), window_flags)
-		else:
-			self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0))
-		# self.window.show()
+		self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), SCREEN_FLAGS)
 		Params.screen_c = (Params.screen_x / 2, Params.screen_y / 2)
 		Params.diagonal_px = int(math.sqrt(Params.screen_x * Params.screen_x + Params.screen_y * Params.screen_y))
 

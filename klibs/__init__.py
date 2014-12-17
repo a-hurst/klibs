@@ -24,18 +24,18 @@ import sdl2.ext
 # import pylink
 
 # string constants, included for tidyness below basically
-from constants import *
-import params as Params
+from KLConstants import *
+import Params
 from AudioClip import AudioClip
-from EyeLinkCoreGraphicsKL import EyeLinkCoreGraphicsKL
-from utility_functions import *
-from numpy_surface import NumpySurface
-from database import Database
-from textlayer import TextLayer
-from keymap import KeyMap
-from eyelink import *
-from eeg import *
-from app import App
+from KLELCustomDisplay import KLELCustomDisplay
+from UtilityFunctions import *
+from NumpySurface import NumpySurface
+from Database import Database
+from KLText import TextLayer
+from KeyMap import KeyMap
+from KLEyeLink import *
+from EEG import *
+from Experiment import Experiment
 
 #####################################################
 #

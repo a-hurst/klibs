@@ -9,16 +9,16 @@ from copy import copy
 import OpenGL.GL as gl
 import sdl2.ext
 import aggdraw
-from klibs_exceptions import *
-from numpy_surface import *
-from database import Database
-from keymap import KeyMap
-from textlayer import TextLayer
-from eyelink import *
-import params as Params
-import utility_functions
-from constants import *
-from EyeLinkCoreGraphicsKL import EyeLinkCoreGraphicsKL
+from KLExceptions import *
+from NumpySurface import *
+from Database import Database
+from KeyMap import KeyMap
+from KLText import TextLayer
+from KLEyeLink import *
+import Params
+import UtilityFunctions
+from KLConstants import *
+from KLELCustomDisplay import KLELCustomDisplay
 
 
 class TrialIterator(object):
@@ -54,7 +54,7 @@ class TrialIterator(object):
 		self.length += 1
 
 
-class App(object):
+class Experiment(object):
 	__completion_message = "thanks for participating; please have the researcher return to the room."
 	trial_number = 0
 	block_number = 0
@@ -101,7 +101,7 @@ class App(object):
 				self.eyelink = el
 			else:
 				self.eyelink = EyeLink()
-			self.eyelink.core_graphics = EyeLinkCoreGraphicsKL(self, self.eyelink)
+			self.eyelink.custom_display = KLELCustomDisplay(self, self.eyelink)
 			self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
 	def __trial_func(self, *args, **kwargs):
@@ -263,9 +263,9 @@ class App(object):
 
 		# TODO: THIS IS BROKEN. PPI needs to be calculated diagonally, this is using horizontal math only.
 		# http://en.wikipedia.org/wiki/Pixel_density
-		if utility_functions.equiv(ppi, "CRT"):
+		if UtilityFunctions.equiv(ppi, "CRT"):
 			Params.ppi = 72
-		elif utility_functions.equiv(ppi, "LCD"):
+		elif UtilityFunctions.equiv(ppi, "LCD"):
 			Params.ppi = 96
 		elif type(ppi) is int:
 			Params.ppi = ppi
@@ -336,7 +336,7 @@ class App(object):
 
 		# convert english location strings to x,y coordinates of destination surface
 		if type(position) is str:
-			position = utility_functions.absolute_position(position, Params.screen_x_y)
+			position = UtilityFunctions.absolute_position(position, Params.screen_x_y)
 
 		# define boundaries coordinates of region being blit to
 		x_bounds = [position[0], position[0] + width]
@@ -349,7 +349,7 @@ class App(object):
 		# 7--8--9  ie. Given an object of width = 3, height = 3, with registration 9 being blit to (5,5) of some
 		#          surface, the default blit behavior (placing the  top-left coordinate at 5,5) would result in
 		#          the top-left corner being blit to (2,2), such that the bottom-right corner would be at (5,5)
-		registrations = utility_functions.build_registrations(height, width)
+		registrations = UtilityFunctions.build_registrations(height, width)
 
 		if 0 < registration & registration < 10:
 			x_bounds[0] += int(registrations[registration][0])
@@ -1113,7 +1113,7 @@ class App(object):
 			color = Params.default_fill_color
 
 		if len(color) == 3:
-			color = utility_functions.rgb_to_rgba(color)
+			color = UtilityFunctions.rgb_to_rgba(color)
 		try:
 			context.fill(color)
 		# todo need a registry of all NumpySurfaces so they can be erased by name

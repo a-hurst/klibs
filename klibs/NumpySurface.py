@@ -2,8 +2,8 @@ import os
 import numpy
 from copy import copy
 from PIL import Image
-from utility_functions import *
-from constants import *
+from UtilityFunctions import *
+from KLConstants import *
 import aggdraw
 
 

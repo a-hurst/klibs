@@ -1,11 +1,11 @@
 __author__ = 'jono'
 import os, math, numpy
-from  numpy_surface import  NumpySurface
+from  NumpySurface import  NumpySurface
 from PIL import ImageFont
-from utility_functions import *
+from UtilityFunctions import *
 
-from constants import *
-import params as Params
+from KLConstants import *
+import Params as Params
 
 
 class TextLayer(object):

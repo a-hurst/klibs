@@ -5,10 +5,10 @@ try:
 	import abc
 	import time
 	import pylink
-	import params as Params
+	import Params
 	import sdl2
-	from constants import *
-	from utility_functions import *
+	from KLConstants import *
+	from UtilityFunctions import *
 
 	try:
 		from pymouse import PyMouse
@@ -22,7 +22,7 @@ try:
 		__dummy_mode = None
 		__app_instance = None
 		__gaze_boundaries = {}
-		core_graphics = None
+		custom_display = None
 
 		def __init__(self):
 			pylink.EyeLink.__init__(self)
@@ -121,10 +121,10 @@ try:
 			return True
 
 		def setup(self):
-			if self.core_graphics is None:
+			if self.custom_display is None:
 				self.openGraphics(Params.screen_x_y)
 			else:
-				pylink.openGraphicsEx(self.core_graphics)
+				pylink.openGraphicsEx(self.custom_display)
 			if not self.dummy_mode:
 				pylink.flushGetkeyQueue()
 				self.setOfflineMode()

@@ -7,8 +7,8 @@ import sdl2
 import sdl2.ext
 from sdl2 import sdlmixer
 import os
-import params as Params
-from constants import *
+import Params
+from KLConstants import *
 
 if Params.audio_initialized is False:
 	sdl2.SDL_Init(sdl2.SDL_INIT_AUDIO)

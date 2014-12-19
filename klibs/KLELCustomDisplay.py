@@ -20,7 +20,7 @@ class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		"space": sdl2.SDLK_SPACE,
 		"a": sdl2.SDLK_a,
 		"c": pylink.EL_CALIBRATE_MODE,
-		"o": sdl2.SDLK_o,
+		"o": pylink.EL_OUTPUT_MENU_MODE,
 		"v": pylink.EL_VALIDATE_MODE
 	}
 
@@ -113,11 +113,11 @@ class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 			self.__target_beep__done__.play()
 
 	def get_input_key(self):
-		print "get_input_key()"
 		key = self.experiment.listen(MAX_WAIT, "eyelink", flip=False)[0]
-		input_key = self.__eyelink_key_translations[key] if key in self.__eyelink_key_translations else 0
-		print "Input Key: {0}".format(input_key)
-		return input_key
+		if key in self.__eyelink_key_translations:
+			return pylink.KeyInput(self.__eyelink_key_translations[key], False)
+		else:
+			return pylink.KeyInput(self.__eyelink_key_translations[pylink.JUNK_KEY], False)
 
 	def get_mouse_state(self):
 		print "get_mouse_state()"

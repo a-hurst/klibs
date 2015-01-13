@@ -25,15 +25,15 @@ import sdl2.ext
 
 # string constants, included for tidyness below basically
 from KLConstants import *
-import Params
+import KLParams as Params
 from AudioClip import AudioClip
-from KLELCustomDisplay import KLELCustomDisplay
-from UtilityFunctions import *
+from KLUtilities import *
 from NumpySurface import NumpySurface
 from Database import Database
 from KLText import TextLayer
-from KeyMap import KeyMap
+from KeyMap import *
 from KLEyeLink import *
+from KLELCustomDisplay import KLELCustomDisplay
 from EEG import *
 from Experiment import Experiment
 

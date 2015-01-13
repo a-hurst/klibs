@@ -9,14 +9,14 @@ from copy import copy
 import OpenGL.GL as gl
 import sdl2.ext
 import aggdraw
+from KLEyeLink import *
 from KLExceptions import *
 from NumpySurface import *
 from Database import Database
 from KeyMap import KeyMap
 from KLText import TextLayer
-from KLEyeLink import *
-import Params
-import UtilityFunctions
+from KLUtilities import *
+import KLParams as Params
 from KLConstants import *
 from KLELCustomDisplay import KLELCustomDisplay
 
@@ -100,7 +100,7 @@ class Experiment(object):
 			if el:
 				self.eyelink = el
 			else:
-				self.eyelink = EyeLink()
+				self.eyelink = KLEyeLink()
 			self.eyelink.custom_display = KLELCustomDisplay(self, self.eyelink)
 			self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
@@ -263,9 +263,9 @@ class Experiment(object):
 
 		# TODO: THIS IS BROKEN. PPI needs to be calculated diagonally, this is using horizontal math only.
 		# http://en.wikipedia.org/wiki/Pixel_density
-		if UtilityFunctions.equiv(ppi, "CRT"):
+		if equiv(ppi, "CRT"):
 			Params.ppi = 72
-		elif UtilityFunctions.equiv(ppi, "LCD"):
+		elif equiv(ppi, "LCD"):
 			Params.ppi = 96
 		elif type(ppi) is int:
 			Params.ppi = ppi
@@ -304,7 +304,7 @@ class Experiment(object):
 		else:
 			self.listen()  # remember that listen calls flip() be default
 
-	def blit(self, source, registration=7, position=(0, 0)):
+	def blit(self, source, registration=7, position=(0, 0), context=None):
 		height = None
 		width = None
 		content = None
@@ -336,7 +336,7 @@ class Experiment(object):
 
 		# convert english location strings to x,y coordinates of destination surface
 		if type(position) is str:
-			position = UtilityFunctions.absolute_position(position, Params.screen_x_y)
+			position = absolute_position(position, Params.screen_x_y)
 
 		# define boundaries coordinates of region being blit to
 		x_bounds = [position[0], position[0] + width]
@@ -349,7 +349,7 @@ class Experiment(object):
 		# 7--8--9  ie. Given an object of width = 3, height = 3, with registration 9 being blit to (5,5) of some
 		#          surface, the default blit behavior (placing the  top-left coordinate at 5,5) would result in
 		#          the top-left corner being blit to (2,2), such that the bottom-right corner would be at (5,5)
-		registrations = UtilityFunctions.build_registrations(height, width)
+		registrations = build_registrations(height, width)
 
 		if 0 < registration & registration < 10:
 			x_bounds[0] += int(registrations[registration][0])
@@ -474,46 +474,46 @@ class Experiment(object):
 				time.sleep(2)
 				self.quit()
 
-	def drift_correct(self):
-		if self.eyelink:
-			if self.eyelink.dummy_mode is False:
-				print "here son"
-				return self.eyelink.drift_correct()
-			else:
-				self.fill()
-				sdl2.mouse.SDL_ShowCursor(1)
-				dc_length = Params.screen_x // 50
-				color = []
-				for channel in Params.default_fill_color:
-					color.append(255 - channel)
-				color[3] = 255
-				brush = aggdraw.Brush(tuple(color))
-				pen = aggdraw.Pen(Params.default_fill_color, dc_length // 10)
-				draw_context = aggdraw.Draw("RGBA", [dc_length, dc_length], (0, 0, 0, 0))
-				draw_context.ellipse([0, 0, dc_length, dc_length], brush)
-				x1 = dc_length // 2
-				y1 = dc_length // 5
-				x2 = x1
-				y2 = dc_length - y1
-				stroke = dc_length // 5
-				draw_context.line([x1, y1, x2, y2], pen)
-				draw_context.line([y1, x1, y2, x2], pen)
-				self.blit(from_aggdraw_context(draw_context), 5, "center")
-				x_min = Params.screen_c[0] - dc_length // 2
-				x_max = Params.screen_c[0] + dc_length // 2
-				y_min = Params.screen_c[1] - dc_length // 2
-				y_max = Params.screen_c[1] + dc_length // 2
-				x_range = range(x_min, x_max)
-				y_range = range(y_min, y_max)
-				self.flip()
-				mouse_in_bounds = False
-				while not mouse_in_bounds:
-					self.listen(MAX_WAIT, "drift_correct", flip=False)
-					pos = mouse_pos()
-					if pos[0] in x_range and pos[1] in y_range:
-						mouse_in_bounds = True
-				sdl2.mouse.SDL_ShowCursor(0)
-				return True
+	def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
+		# try:
+			self.clear()
+			dc = self.eyelink.drift_correct(location, events, samples)
+			print dc
+		# except:
+		# 	self.fill()
+		# 	sdl2.mouse.SDL_ShowCursor(1)
+		# 	dc_length = Params.screen_x // 50
+		# 	color = []
+		# 	for channel in Params.default_fill_color:
+		# 		color.append(255 - channel)
+		# 	color[3] = 255
+		# 	brush = aggdraw.Brush(tuple(color))
+		# 	pen = aggdraw.Pen(Params.default_fill_color, dc_length // 10)
+		# 	draw_context = aggdraw.Draw("RGBA", [dc_length, dc_length], (0, 0, 0, 0))
+		# 	draw_context.ellipse([0, 0, dc_length, dc_length], brush)
+		# 	x1 = dc_length // 2
+		# 	y1 = dc_length // 5
+		# 	x2 = x1
+		# 	y2 = dc_length - y1
+		# 	stroke = dc_length // 5
+		# 	draw_context.line([x1, y1, x2, y2], pen)
+		# 	draw_context.line([y1, x1, y2, x2], pen)
+		# 	self.blit(from_aggdraw_context(draw_context), 5, "center")
+		# 	x_min = Params.screen_c[0] - dc_length // 2
+		# 	x_max = Params.screen_c[0] + dc_length // 2
+		# 	y_min = Params.screen_c[1] - dc_length // 2
+		# 	y_max = Params.screen_c[1] + dc_length // 2
+		# 	x_range = range(x_min, x_max)
+		# 	y_range = range(y_min, y_max)
+		# 	self.flip()
+		# 	mouse_in_bounds = False
+		# 	while not mouse_in_bounds:
+		# 		self.listen(MAX_WAIT, "drift_correct", flip=False)
+		# 		pos = mouse_pos()
+		# 		if pos[0] in x_range and pos[1] in y_range:
+		# 			mouse_in_bounds = True
+		# 	sdl2.mouse.SDL_ShowCursor(0)
+		# 	return True
 
 	def exempt(self, index, state=True):
 		if index in self.exemptions.keys():
@@ -522,13 +522,17 @@ class Experiment(object):
 			if state == 'off' or False:
 				self.exemptions[index] = False
 
-	def flip(self, duration=0):
+	def flip(self, duration=0, window=None):
 		"""
 		Flip the window and wait for an optional duration
 		:param duration: The duration to wait in ms
 		:return: :raise: AttributeError, TypeError, GenError
 		"""
-		sdl2.SDL_GL_SwapWindow(self.window.window)
+		try:
+			sdl2.SDL_GL_SwapWindow(window.window)
+		except:
+			sdl2.SDL_GL_SwapWindow(self.window.window)
+
 		if duration == 0:
 			return
 		if type(duration) is int:
@@ -570,15 +574,14 @@ class Experiment(object):
 		self.message(text, location="center", flip=True)
 		self.listen()
 
-	def ui_request(self, request, execute=False):
-		if request[1] in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
-			if request[0] in UI_METHOD_KEYSYMS:
-				if request[0] == sdl2.SDLK_q:
+	def ui_request(self, key_press, execute=False):
+		if key_press.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
+			if key_press.sym in UI_METHOD_KEYSYMS:
+				if key_press.sym == sdl2.SDLK_q:
 					quit()
-				elif request[0] == sdl2.SDLK_c:
-					# self.calibrate()  # todo: uhh... write... this?
-					return True
-				elif request[0] == sdl2.SDLK_p:
+				elif key_press.sym in [sdl2.SDLK_c, sdl2.SDLK_s]:
+					return key_press.sym
+				elif key_press.sym == sdl2.SDLK_p:
 					if not self.paused:
 						self.paused = True
 						self.pause()
@@ -803,6 +806,7 @@ class Experiment(object):
 		input_collected = False
 		repumping = False  # only repump once else holding a modifier key down can keep overwatch running forever
 		keysym = None
+		sym = None
 		mod_name = None
 		key_name = None
 		event_stack = None
@@ -817,8 +821,9 @@ class Experiment(object):
 		while not input_collected:
 			event = event_stack.pop()
 			if event.type in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
-				keysym = event.key.keysym.sym  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
-				key_name = sdl2.keyboard.SDL_GetKeyName(keysym)
+				keysym = event.key.keysym
+				sym = keysym.sym  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
+				key_name = sdl2.keyboard.SDL_GetKeyName(sym)
 				if event.type == sdl2.SDL_KEYUP:  # modifier or no, a key up event implies user decision; exit loop
 					input_collected = True
 				if key_name not in MOD_KEYS:  # if event key isn't a modifier: get key info & exit loop
@@ -839,7 +844,7 @@ class Experiment(object):
 			else:
 				return False   # event argument was no good; just bail
 
-		self.ui_request((keysym, mod_name))
+		self.ui_request(keysym)
 		return False
 
 	def pause(self):
@@ -1089,15 +1094,15 @@ class Experiment(object):
 			self.database.db.commit()
 		except:  # TODO: Determine exception type
 			print "Commit() to self.database failed."
-			pass
 		try:
 			self.database.db.close()
 		except:  # TODO: Determine exception tpye
-			print "Database close() unsuccessful."
-			pass
-		if not self.no_tracker:
-			if self.eyelink.el.isRecording():
-				self.eyelink.el.stopRecording()
+			print "Database.close() unsuccessful."
+		try:
+			self.eyelink.stopRecording()
+		except:
+			print "EyeLink.stopRecording()  unsuccessful.\n ****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******"
+
 		sdl2.SDL_Quit()
 		sys.exit()
 
@@ -1113,16 +1118,13 @@ class Experiment(object):
 			color = Params.default_fill_color
 
 		if len(color) == 3:
-			color = UtilityFunctions.rgb_to_rgba(color)
-		try:
-			context.fill(color)
-		# todo need a registry of all NumpySurfaces so they can be erased by name
-		except:
-			gl_color = [0] * 4
-			for i in range(0, 4):
-				gl_color[i] = 0 if color[i] == 0 else color[i] / 255.0
-			gl.glClearColor(gl_color[0], gl_color[1], gl_color[2], gl_color[3])
-			gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+			color = rgb_to_rgba(color)
+
+		gl_color = [0] * 4
+		for i in range(0, 4):
+			gl_color[i] = 0 if color[i] == 0 else color[i] / 255.0
+		gl.glClearColor(gl_color[0], gl_color[1], gl_color[2], gl_color[3])
+		gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
 	def clear(self, color=(255, 255, 255)):
 		self.fill(color)

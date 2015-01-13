@@ -3,7 +3,7 @@ __author__ = 'jono'
 import os
 import shutil
 import sqlite3
-import params as Params
+import KLParams as Params
 
 
 class EntryTemplate(object):

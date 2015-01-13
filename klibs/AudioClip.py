@@ -6,8 +6,7 @@ originally by mike lawrence (github.com/mike-lawrence)
 import sdl2
 import sdl2.ext
 from sdl2 import sdlmixer
-import os
-import Params
+import KLParams as Params
 from KLConstants import *
 
 if Params.audio_initialized is False:

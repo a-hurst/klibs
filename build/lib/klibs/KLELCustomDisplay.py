@@ -12,6 +12,7 @@ class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 	experiment = None
 	tracker = None
 	size = [None, None]
+	setup_complete = False
 
 	def __init__(self, experiment, tracker):
 		self.experiment = experiment  # a reference to the instance of the "experiment class" where most of the
@@ -88,7 +89,16 @@ class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 				if ui_request:
 					if ui_request == sdl2.SDLK_c and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
 						return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
-				return [pylink.KeyInput(keysym.sym, keysym.mod)]
+				if keysym.sym == sdl2.SDLK_o:
+					if not self.setup_complete:
+						self.setup_complete = True
+					else:
+						self.tracker.exitCalibration()
+
+				key = [pylink.KeyInput(keysym.sym, keysym.mod)]
+				if len(key) > 0:
+					print string_at(0x117c93bd8)
+				return key
 
 
 

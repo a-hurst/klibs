@@ -3,7 +3,7 @@ __author__ = 'jono'
 import math
 import sys
 import os
-import Params
+import KLParams as Params
 from KLConstants import *
 import datetime
 import sdl2

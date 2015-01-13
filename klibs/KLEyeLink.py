@@ -1,14 +1,14 @@
 __author__ = 'jono'
-
+PYLINK_AVAILABLE = False
 try:
 	import os
 	import abc
 	import time
 	import pylink
-	import Params
+	import KLParams as Params
 	import sdl2
 	from KLConstants import *
-	from UtilityFunctions import *
+	from KLUtilities import *
 
 	try:
 		from pymouse import PyMouse
@@ -17,8 +17,9 @@ try:
 		DUMMY_MODE_AVAILABLE = False
 
 	PYLINK_AVAILABLE = True
+	print "Pylink library found! EyeTracking available!"
 
-	class EyeLink(pylink.EyeLink):
+	class KLEyeLink(pylink.EyeLink):
 		__dummy_mode = None
 		__app_instance = None
 		__gaze_boundaries = {}
@@ -37,7 +38,7 @@ try:
 
 		def add_gaze_boundary(self, name, bounds, shape=RECT):  # todo: make this bad boy take more than bounding rects
 			if shape not in [RECT, CIRCLE]:
-				raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+				raise ValueError("Argument 'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
 			self.__gaze_boundaries[name] = {"shape": shape, "bounds": bounds}
 			return True
 
@@ -52,10 +53,13 @@ try:
 				if shape not in [RECT, CIRCLE]:
 					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
 			if point is None:
-				if self.dummy_mode:
-					point = mouse_pos()
-				else:
+				try:
 					point = self.gaze()
+				except:
+					try:
+						point = mouse_pos()
+					except:
+						raise EnvironmentError("Nothing to track! One of either eye or mouse tracking required.")
 			if shape == RECT:
 				x_range = range(boundary[0][0], boundary[1][0])
 				y_range = range(boundary[0][1], boundary[1][1])
@@ -63,62 +67,49 @@ try:
 			if shape == CIRCLE:
 				return boundary[0] <= math.sqrt((point[0] - boundary[1][0]) ** 2 + (point[1] - boundary[1][1]) ** 2)
 
-		def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE, max_attempts=1):
+		def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
 			location = Params.screen_c if location is None else location
-			attempts = 1
-			result = None
 			try:
 				iter(location)
 			except:
 				raise ValueError("Argument 'location' wasn't understood; must be a x, y location.")
 
-			if events == EL_TRUE:
-				if samples == EL_TRUE:
-					result = self.doDriftCorrect(location[0], location[1], 1, 1)
-				else:
-					result = self.doDriftCorrect(location[0], location[1], 1, 0)
-			elif samples:
-				result = self.doDriftCorrect(location[0], location[1], 0, 1)
-			else:
-				result = self.doDriftCorrect(location[0], location[1], 0, 0)
-			# if attempts < maxAttempts:
-			# 	return self.drift(loc, events, samples, maxAttempts-1)
-			# else:
-			# 	return False
-			# if result == 27 and attempts < maxAttempts:
-			# 	return self.drift(loc, events, samples, maxAttempts-1)
-			# elif result == 27 and attempts > maxAttempts:
-			# 	return False
-			# else:
-			# 	return True
-			return True
+			events = EL_TRUE if events in [EL_TRUE, True] else EL_FALSE
+			samples = EL_TRUE if samples in [EL_TRUE, True] else EL_FALSE
+			drift_correct_result = self.doDriftCorrect(location[0], location[1], events, samples)
 
-		def gaze(self, eye_required=None):
+			return drift_correct_result
+
+		def gaze(self, eye_required=None, return_integers=True):
 			if self.dummy_mode:
-				return self.mouse_pos()
+				try:
+					return mouse_pos()
+				except:
+					raise EnvironmentError("No gaze (or simulation) to report; both eye & mouse tracking unavailable.")
+			sample = []
 			if self.sample():
 				if not eye_required:
 					right_sample = self.__current_sample.isRightSample()
 					left_sample = self.__current_sample.isLeftSample()
 					if self.eye == EL_RIGHT_EYE and right_sample:
-						return self.__current_sample.getRightEye().getGaze()
+						sample = self.__current_sample.getRightEye().getGaze()
 					if self.eye == EL_LEFT_EYE and left_sample:
-						gaze = self.__current_sample.getLeftEye().getGaze()
-						print gaze
-						return gaze
+						sample = self.__current_sample.getLeftEye().getGaze()
 					if self.eye == EL_BOTH_EYES:
-						return self.__current_sample.getLeftEye().getGaze()
+						sample = self.__current_sample.getLeftEye().getGaze()
 				else:
 					if eye_required == EL_LEFT_EYE:
-						return self.__current_sample.getLeftEye().getGaze()
+						sample = self.__current_sample.getLeftEye().getGaze()
 					if eye_required == EL_RIGHT_EYE:
-						return self.__current_sample.getLeftEye().getGaze()
+						sample = self.__current_sample.getLeftEye().getGaze()
 			else:
 				raise ValueError("Unable to collect a sample from the EyeLink.")
 
+			return [int(sample[0]), int(sample[1])] if return_integers else sample
+
 		def sample(self):
 			self.__current_sample = self.getNewestSample()
-			return True
+			return self.__current_sample
 
 		def setup(self):
 			if self.custom_display is None:
@@ -137,9 +128,10 @@ try:
 				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
 				self.setMotionThreshold(Params.saccadic_motion_threshold)
 				self.doTrackerSetup()
-				self.sendCommand("doCalibration")
+
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
+			start = time.time()
 			# ToDo: put some exceptions n here
 			start = self.startRecording(samples, events, link_samples, link_events)
 			if start == 0:
@@ -147,7 +139,7 @@ try:
 					self.sendMessage("TRIAL_ID {0}".format(str(trial_number)))
 					self.sendMessage("TRIAL_START")
 					self.sendMessage("SYNCTIME {0}".format('0.0'))
-					return True
+					return start - time.time()  # ie. delay spent initializing the recording
 				else:
 					return False
 			else:
@@ -176,5 +168,4 @@ try:
 		def dummy_mode(self, status):
 				self.__dummy_mode = status
 except:
-	PYLINK_AVAILABLE = False
 	print "Warning: Pylink library not found; eye tracking will not be available."

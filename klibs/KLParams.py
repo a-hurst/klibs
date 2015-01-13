@@ -1,7 +1,7 @@
 author = 'jono'
 
-from constants import *
-from utility_functions import *
+from KLConstants import *
+from KLUtilities import *
 import os
 
 #  project structure; default paths & filenames

@@ -16,9 +16,8 @@ class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		"right": pylink.CURS_RIGHT,
 		"up": pylink.CURS_UP,
 		"down": pylink.CURS_DOWN,
-		"return": pylink.EL_IMAGE_MODE,
-		"space": sdl2.SDLK_SPACE,
-		"a": sdl2.SDLK_a,
+		"return": pylink.ENTER_KEY,
+		"space":pylink.SDLK_SPACE,
 		"c": pylink.EL_CALIBRATE_MODE,
 		"o": pylink.EL_OUTPUT_MENU_MODE,
 		"v": pylink.EL_VALIDATE_MODE

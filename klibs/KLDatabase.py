@@ -90,7 +90,7 @@ class EntryTemplate(object):
 		print self.schema
 
 
-class Database(object):
+class KLDatabase(object):
 	__default_table = None
 	__open_entries = {}
 	__current_entry = None

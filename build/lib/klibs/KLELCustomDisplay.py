@@ -2,17 +2,16 @@ __author__ = 'jono'
 import pylink
 
 #  these are all from our framework but shouldn't be the source of any interference here
-from AudioClip import AudioClip  # just a simple class for playing sdl2 sounds we made
-from NumpySurface import *  # a class for easily moving between numpy pixel arrays and sdl2/openGL
+from KLAudioClip import AudioClip  # just a simple class for playing sdl2 sounds we made
+from KLNumpySurface import *  # a class for easily moving between numpy pixel arrays and sdl2/openGL
 import KLParams as Params  # a list of program-wide settings like screen dimensions, colors, etc.
-from ctypes import string_at
 
 class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
+
 	window = None
 	experiment = None
 	tracker = None
 	size = [None, None]
-	setup_complete = False
 
 	def __init__(self, experiment, tracker):
 		self.experiment = experiment  # a reference to the instance of the "experiment class" where most of the
@@ -29,10 +28,6 @@ class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 			self.__target_beep__ = None
 			self.__target_beep__done__ = None
 			self.__target_beep__error__ = None
-		#
-		# self.pal = None
-		# self.width = Params.screen_x
-		# self.height = Params.screen_y
 
 	def setup_cal_display(self):
 		self.window = self.experiment.window
@@ -89,16 +84,7 @@ class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 				if ui_request:
 					if ui_request == sdl2.SDLK_c and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
 						return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
-				if keysym.sym == sdl2.SDLK_o:
-					if not self.setup_complete:
-						self.setup_complete = True
-					else:
-						self.tracker.exitCalibration()
-
-				key = [pylink.KeyInput(keysym.sym, keysym.mod)]
-				if len(key) > 0:
-					print string_at(0x117c93bd8)
-				return key
+				return [pylink.KeyInput(keysym.sym, keysym.mod)]
 
 
 

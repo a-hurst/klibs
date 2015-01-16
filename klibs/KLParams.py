@@ -22,6 +22,9 @@ global initialized
 initialized = False
 audio_initialized = False
 
+skeleton_mode = False
+debug_mode = False  # not implemented yet
+
 calibrate_with_audio = True
 calibrate_targets = 9
 

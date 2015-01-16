@@ -1,6 +1,6 @@
 __author__ = 'jono'
 import os, math, numpy
-from NumpySurface import NumpySurface
+from KLNumpySurface import NumpySurface
 from PIL import ImageFont
 from KLUtilities import *
 

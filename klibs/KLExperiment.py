@@ -11,14 +11,15 @@ import sdl2.ext
 import aggdraw
 from KLEyeLink import *
 from KLExceptions import *
-from NumpySurface import *
-from Database import Database
-from KeyMap import KeyMap
+from KLNumpySurface import *
+from KLDatabase import *
+from KLKeyMap import KeyMap
 from KLText import TextLayer
 from KLUtilities import *
 import KLParams as Params
 from KLConstants import *
 from KLELCustomDisplay import KLELCustomDisplay
+from KLDraw import *
 
 
 class TrialIterator(object):
@@ -153,7 +154,7 @@ class Experiment(object):
 		self.database.db.close()
 
 	def __database_init(self):
-		self.database = Database()
+		self.database = KLDatabase()
 		# Params.database = self.database
 
 	def __generate_trials(self, practice=False, event_code_generator=None):
@@ -236,8 +237,12 @@ class Experiment(object):
 		gl.glDisable(gl.GL_DEPTH_TEST)
 		self.clear()
 		sdl2.SDL_PumpEvents()
+
 		self.fill()
-		self.blit(NumpySurface("splash.png"), 5, 'center')
+		try:
+			self.blit(NumpySurface("splash.png"), 5, 'center')
+		except:
+			print "splash.png not found; splash screen not presented"
 		self.flip(1)
 
 		# this error message can be used in three places below, it's easier set it here
@@ -515,6 +520,18 @@ class Experiment(object):
 		# 	sdl2.mouse.SDL_ShowCursor(0)
 		# 	return True
 
+	def draw_fixation(self, width=None, stroke=None, color=None, fill=None, flip=False):
+		if not width:
+			width = Params.screen_y // 50
+		if not stroke:
+			stroke = width // 5
+		cross = FixationCross(width, stroke, color, fill).draw()
+
+		self.blit(cross, 5, Params.screen_c)
+		if flip:
+			self.flip()
+		return True
+
 	def exempt(self, index, state=True):
 		if index in self.exemptions.keys():
 			if state == 'on' or True:
@@ -522,20 +539,18 @@ class Experiment(object):
 			if state == 'off' or False:
 				self.exemptions[index] = False
 
-	def flip(self, duration=0, window=None):
+	def flip(self, duration=0):
 		"""
 		Flip the window and wait for an optional duration
 		:param duration: The duration to wait in ms
 		:return: :raise: AttributeError, TypeError, GenError
 		"""
-		try:
-			sdl2.SDL_GL_SwapWindow(window.window)
-		except:
-			sdl2.SDL_GL_SwapWindow(self.window.window)
+
+		sdl2.SDL_GL_SwapWindow(self.window.window)
 
 		if duration == 0:
 			return
-		if type(duration) is int:
+		if type(duration) in (int, float):
 			if duration > 0:
 				start = time.time()
 				while time.time() - start < duration:
@@ -1126,7 +1141,9 @@ class Experiment(object):
 		gl.glClearColor(gl_color[0], gl_color[1], gl_color[2], gl_color[3])
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
-	def clear(self, color=(255, 255, 255)):
+	def clear(self, color=None):
+		if color is None:
+			color = Params.default_fill_color
 		self.fill(color)
 		self.flip()
 		self.fill(color)

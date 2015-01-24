@@ -71,6 +71,7 @@ class Experiment(object):
 	core_graphics = None
 
 	def __init__(self, project_name, el=None, asset_path="ExpAssets"):
+		print "here"
 		if not Params.setup(project_name, asset_path):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 
@@ -95,7 +96,6 @@ class Experiment(object):
 		self.text_layer = TextLayer(Params.screen_x_y, Params.screen_x_y, Params.ppi)
 		if Params.default_font_size:
 			self.text_layer.default_font_size = Params.default_font_size
-
 		# initialize eyelink
 		if PYLINK_AVAILABLE and Params.eye_tracking:
 			if el:

@@ -95,10 +95,9 @@ class Experiment(object):
 		self.text_layer = TextLayer(Params.screen_x_y, Params.screen_x_y, Params.ppi)
 		if Params.default_font_size:
 			self.text_layer.default_font_size = Params.default_font_size
-
 		# initialize eyelink
 		if PYLINK_AVAILABLE and Params.eye_tracking:
-			if el:
+			if Params.eye_tracker_available and el:
 				self.eyelink = el
 			else:
 				self.eyelink = KLEyeLink()

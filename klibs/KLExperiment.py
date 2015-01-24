@@ -207,8 +207,8 @@ class Experiment(object):
 		#  todo: move this to a DB function.... :/
 		if auto_id:
 			if Params.testing or not Params.collect_demographics:
-				self.participant_id = -1
-			trial_data[Params.id_field_name] = self.participant_id
+				Params.participant_id = -1
+			trial_data[Params.id_field_name] = Params.participant_id
 		for attr in trial_data:
 			self.database.log(attr, trial_data[attr])
 		self.database.insert()

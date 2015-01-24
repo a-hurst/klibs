@@ -5,7 +5,7 @@
     <ignored path="klibs.iws" />
     <ignored path=".idea/workspace.xml" />
     <file path="/KLELCustomDisplay.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421176354706" ignored="false" />
-    <file path="$PROJECT_DIR$/../../RSVP/experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421170386104" ignored="false" />
+    <file path="$PROJECT_DIR$/../../RSVP/experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422126268997" ignored="false" />
     <file path="/__init__.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421161041083" ignored="false" />
     <file path="/UtilityFunctions.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1420747537052" ignored="false" />
     <file path="/AudioClip.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1420747567647" ignored="false" />
@@ -13,8 +13,10 @@
     <file path="/Experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421173515924" ignored="false" />
     <file path="/usr/local/lib/python2.7/site-packages/klibs/KLELCustomDisplay.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421089124499" ignored="false" />
     <file path="/usr/local/lib/python2.7/site-packages/klibs/Experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421173668211" ignored="false" />
-    <file path="/experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421169208438" ignored="false" />
+    <file path="/experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422126268613" ignored="false" />
     <file path="/usr/local/lib/python2.7/site-packages/klibs/KLEyeLink.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421092109486" ignored="false" />
+    <file path="/a.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422125845200" ignored="false" />
+    <file path="/KLExperiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422126436944" ignored="false" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,9 +40,7 @@
         <entry file="file://$USER_HOME$/Library/Caches/PyCharm20/python_stubs/-1199944087/pylink/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
             <state line="123" column="0" selection-start="3278" selection-end="3296" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="e#22964#22968#0" expanded="true" />
-              </folding>
+              <folding />
             </state>
           </provider>
         </entry>
@@ -48,76 +48,8 @@
       <file leaf-file-name="__init__.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="36" column="0" selection-start="734" selection-end="734" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="e#0#10#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Experiment.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Experiment.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="78" column="39" selection-start="1774" selection-end="1774" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="e#20#33#0" expanded="true" />
-                <element signature="e#518#564#0" expanded="true" />
-                <element signature="e#589#600#0" expanded="true" />
-                <element signature="e#624#642#0" expanded="true" />
-                <element signature="e#673#689#0" expanded="true" />
-                <element signature="e#723#736#0" expanded="true" />
-                <element signature="e#757#857#0" expanded="true" />
-                <element signature="e#881#1006#0" expanded="true" />
-                <element signature="e#2947#3180#0" expanded="true" />
-                <element signature="e#3234#4832#0" expanded="true" />
-                <element signature="e#4864#4890#0" expanded="true" />
-                <element signature="e#5003#6658#0" expanded="true" />
-                <element signature="e#6712#7008#0" expanded="true" />
-                <element signature="e#7037#7139#0" expanded="true" />
-                <element signature="e#7194#9704#0" expanded="true" />
-                <element signature="e#9769#10705#0" expanded="true" />
-                <element signature="e#10781#13706#0" expanded="true" />
-                <element signature="e#13760#13764#0" expanded="true" />
-                <element signature="e#13821#14706#0" expanded="true" />
-                <element signature="e#14764#15264#0" expanded="true" />
-                <element signature="e#15301#17294#0" expanded="true" />
-                <element signature="e#17382#17468#0" expanded="true" />
-                <element signature="e#18808#18972#0" expanded="true" />
-                <element signature="e#19018#19672#0" expanded="true" />
-                <element signature="e#19752#20227#0" expanded="true" />
-                <element signature="e#20277#20767#0" expanded="true" />
-                <element signature="e#20820#21272#0" expanded="true" />
-                <element signature="e#21630#25576#0" expanded="true" />
-                <element signature="e#25782#28855#0" expanded="true" />
-                <element signature="e#28875#28951#0" expanded="true" />
-                <element signature="e#29077#29307#0" expanded="true" />
-                <element signature="e#29346#31135#0" expanded="true" />
-                <element signature="e#31157#31438#0" expanded="true" />
-                <element signature="e#31587#32312#0" expanded="true" />
-                <element signature="e#32336#32450#0" expanded="true" />
-                <element signature="e#32611#40527#0" expanded="true" />
-                <element signature="e#40548#40981#0" expanded="true" />
-                <element signature="e#41018#41060#0" expanded="true" />
-                <element signature="e#41082#41111#0" expanded="true" />
-                <element signature="e#41158#41558#0" expanded="true" />
-                <element signature="e#41603#41666#0" expanded="true" />
-                <element signature="e#41701#41722#0" expanded="true" />
-                <element signature="e#41772#41796#0" expanded="true" />
-                <element signature="e#41844#41877#0" expanded="true" />
-                <element signature="e#41965#42213#0" expanded="true" />
-                <element signature="e#42251#42275#0" expanded="true" />
-                <element signature="e#42334#42466#0" expanded="true" />
-                <element signature="e#42518#42522#0" expanded="true" />
-                <element signature="e#42597#42633#0" expanded="true" />
-                <element signature="e#42727#42847#0" expanded="true" />
-                <element signature="e#42893#42899#0" expanded="true" />
-                <element signature="e#42942#42946#0" expanded="true" />
-                <element signature="e#43015#43019#0" expanded="true" />
-                <element signature="e#43067#43071#0" expanded="true" />
-                <element signature="e#43123#43127#0" expanded="true" />
-                <element signature="e#43188#43192#0" expanded="true" />
-              </folding>
+            <state line="36" column="0" selection-start="698" selection-end="698" vertical-scroll-proportion="0.0">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -131,47 +63,27 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="KLExperiment.py" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/KLExperiment.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="210" column="53" selection-start="6955" selection-end="6955" vertical-scroll-proportion="0.94174755">
+              <folding>
+                <element signature="e#2999#3232#0" expanded="true" />
+                <element signature="e#3286#4884#0" expanded="true" />
+                <element signature="e#15439#17432#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="KLEyeLink.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/KLEyeLink.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="78" column="97" selection-start="2616" selection-end="2616" vertical-scroll-proportion="0.0">
+            <state line="97" column="64" selection-start="3273" selection-end="3273" vertical-scroll-proportion="0.0">
               <folding>
-                <element signature="e#550#760#0" expanded="true" />
-                <element signature="e#784#847#0" expanded="true" />
-                <element signature="e#966#1179#0" expanded="true" />
-                <element signature="e#1247#2132#0" expanded="true" />
-                <element signature="e#2712#3729#0" expanded="true" />
-                <element signature="e#3754#3832#0" expanded="true" />
-                <element signature="e#3856#4619#0" expanded="true" />
-                <element signature="e#4734#5190#0" expanded="true" />
-                <element signature="e#5213#5233#0" expanded="true" />
-                <element signature="e#5269#5497#0" expanded="true" />
-                <element signature="e#5554#5558#0" expanded="true" />
-                <element signature="e#5599#5623#0" expanded="true" />
-                <element signature="e#5682#5708#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Database.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Database.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="5" column="0" selection-start="60" selection-end="85" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="e#265#806#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="AudioClip.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/AudioClip.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="1" column="0" selection-start="24" selection-end="24" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="e#24#86#1" expanded="true" />
-                <element signature="e#88#99#0" expanded="true" />
+                <element signature="e#1627#2512#0" expanded="true" />
+                <element signature="e#3277#4294#0" expanded="true" />
+                <element signature="e#4319#4397#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -186,45 +98,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLELCustomDisplay.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="KLELCustomDisplay.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/KLELCustomDisplay.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="13" column="23" selection-start="562" selection-end="562" vertical-scroll-proportion="0.18932039">
-              <folding>
-                <element signature="e#608#1228#0" expanded="true" />
-                <element signature="e#1262#1325#0" expanded="true" />
-                <element signature="e#1358#1362#0" expanded="true" />
-                <element signature="e#1396#1400#0" expanded="true" />
-                <element signature="e#1434#1481#0" expanded="true" />
-                <element signature="e#1514#1538#0" expanded="true" />
-                <element signature="e#1576#2380#0" expanded="true" />
-                <element signature="e#2412#2655#0" expanded="true" />
-                <element signature="e#2685#3400#0" expanded="true" />
-                <element signature="e#3434#3452#0" expanded="true" />
-                <element signature="e#3487#3511#0" expanded="true" />
-                <element signature="e#3549#3662#0" expanded="true" />
-                <element signature="e#3713#3744#0" expanded="true" />
-                <element signature="e#3778#3782#0" expanded="true" />
-                <element signature="e#3843#4102#0" expanded="true" />
-                <element signature="e#4164#4168#0" expanded="true" />
-                <element signature="e#4222#4226#0" expanded="true" />
-                <element signature="e#4269#4273#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="NumpySurface.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/NumpySurface.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="4" column="25" selection-start="92" selection-end="92" vertical-scroll-proportion="0.0">
-              <folding>
-                <element signature="e#177#332#0" expanded="true" />
-                <element signature="e#600#3135#0" expanded="true" />
-                <element signature="e#5143#5932#0" expanded="true" />
-                <element signature="e#5974#6157#0" expanded="true" />
-                <element signature="e#11394#13698#0" expanded="true" />
-              </folding>
+            <state line="13" column="18" selection-start="518" selection-end="518" vertical-scroll-proportion="0.0">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -239,7 +117,6 @@
   <component name="IdeDocumentHistory">
     <option name="changedFiles">
       <list>
-        <option value="$PROJECT_DIR$/eyelink.py" />
         <option value="$PROJECT_DIR$/textlayer.py" />
         <option value="$PROJECT_DIR$/utility_functions.py" />
         <option value="$PROJECT_DIR$/app.py" />
@@ -255,6 +132,7 @@
         <option value="$PROJECT_DIR$/KLEyeLink.py" />
         <option value="$PROJECT_DIR$/Experiment.py" />
         <option value="$PROJECT_DIR$/KLELCustomDisplay.py" />
+        <option value="$PROJECT_DIR$/KLExperiment.py" />
       </list>
     </option>
   </component>
@@ -318,8 +196,8 @@
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="options.lastSelected" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/.." />
-    <property name="options.searchVisible" value="true" />
     <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="options.searchVisible" value="true" />
   </component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
@@ -520,8 +398,8 @@
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21069519" sideWeight="0.67001545" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.17593583" sideWeight="0.67001545" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.21283422" sideWeight="0.67001545" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.17593583" sideWeight="0.67001545" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
@@ -602,32 +480,12 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/KLConstants.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/KLExceptions.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/EEG.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="e#0#11#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/KeyMap.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="110" column="17" selection-start="3392" selection-end="3392" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/KLText.py">
@@ -637,16 +495,35 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/NumpySurface.py">
+    <entry file="file://$PROJECT_DIR$/KLELCustomDisplay.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="4" column="25" selection-start="92" selection-end="92" vertical-scroll-proportion="0.0">
+        <state line="13" column="18" selection-start="518" selection-end="518" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLEyeLink.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="97" column="64" selection-start="3273" selection-end="3273" vertical-scroll-proportion="0.0">
           <folding>
-            <element signature="e#177#332#0" expanded="true" />
-            <element signature="e#600#3135#0" expanded="true" />
-            <element signature="e#5143#5932#0" expanded="true" />
-            <element signature="e#5974#6157#0" expanded="true" />
-            <element signature="e#11394#13698#0" expanded="true" />
+            <element signature="e#1627#2512#0" expanded="true" />
+            <element signature="e#3277#4294#0" expanded="true" />
+            <element signature="e#4319#4397#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Library/Caches/PyCharm20/python_stubs/-1199944087/pylink/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="123" column="0" selection-start="3278" selection-end="3296" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="36" column="0" selection-start="698" selection-end="698" vertical-scroll-proportion="0.0">
+          <folding />
         </state>
       </provider>
     </entry>
@@ -657,150 +534,13 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Database.py">
+    <entry file="file://$PROJECT_DIR$/KLExperiment.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="5" column="0" selection-start="60" selection-end="85" vertical-scroll-proportion="0.0">
+        <state line="210" column="53" selection-start="6955" selection-end="6955" vertical-scroll-proportion="0.94174755">
           <folding>
-            <element signature="e#265#806#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/AudioClip.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="1" column="0" selection-start="24" selection-end="24" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="e#24#86#1" expanded="true" />
-            <element signature="e#88#99#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="36" column="0" selection-start="734" selection-end="734" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="e#0#10#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Library/Caches/PyCharm20/python_stubs/-1199944087/pylink/__init__.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="123" column="0" selection-start="3278" selection-end="3296" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="e#22964#22968#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Experiment.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="78" column="39" selection-start="1774" selection-end="1774" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="e#20#33#0" expanded="true" />
-            <element signature="e#518#564#0" expanded="true" />
-            <element signature="e#589#600#0" expanded="true" />
-            <element signature="e#624#642#0" expanded="true" />
-            <element signature="e#673#689#0" expanded="true" />
-            <element signature="e#723#736#0" expanded="true" />
-            <element signature="e#757#857#0" expanded="true" />
-            <element signature="e#881#1006#0" expanded="true" />
-            <element signature="e#2947#3180#0" expanded="true" />
-            <element signature="e#3234#4832#0" expanded="true" />
-            <element signature="e#4864#4890#0" expanded="true" />
-            <element signature="e#5003#6658#0" expanded="true" />
-            <element signature="e#6712#7008#0" expanded="true" />
-            <element signature="e#7037#7139#0" expanded="true" />
-            <element signature="e#7194#9704#0" expanded="true" />
-            <element signature="e#9769#10705#0" expanded="true" />
-            <element signature="e#10781#13706#0" expanded="true" />
-            <element signature="e#13760#13764#0" expanded="true" />
-            <element signature="e#13821#14706#0" expanded="true" />
-            <element signature="e#14764#15264#0" expanded="true" />
-            <element signature="e#15301#17294#0" expanded="true" />
-            <element signature="e#17382#17468#0" expanded="true" />
-            <element signature="e#18808#18972#0" expanded="true" />
-            <element signature="e#19018#19672#0" expanded="true" />
-            <element signature="e#19752#20227#0" expanded="true" />
-            <element signature="e#20277#20767#0" expanded="true" />
-            <element signature="e#20820#21272#0" expanded="true" />
-            <element signature="e#21630#25576#0" expanded="true" />
-            <element signature="e#25782#28855#0" expanded="true" />
-            <element signature="e#28875#28951#0" expanded="true" />
-            <element signature="e#29077#29307#0" expanded="true" />
-            <element signature="e#29346#31135#0" expanded="true" />
-            <element signature="e#31157#31438#0" expanded="true" />
-            <element signature="e#31587#32312#0" expanded="true" />
-            <element signature="e#32336#32450#0" expanded="true" />
-            <element signature="e#32611#40527#0" expanded="true" />
-            <element signature="e#40548#40981#0" expanded="true" />
-            <element signature="e#41018#41060#0" expanded="true" />
-            <element signature="e#41082#41111#0" expanded="true" />
-            <element signature="e#41158#41558#0" expanded="true" />
-            <element signature="e#41603#41666#0" expanded="true" />
-            <element signature="e#41701#41722#0" expanded="true" />
-            <element signature="e#41772#41796#0" expanded="true" />
-            <element signature="e#41844#41877#0" expanded="true" />
-            <element signature="e#41965#42213#0" expanded="true" />
-            <element signature="e#42251#42275#0" expanded="true" />
-            <element signature="e#42334#42466#0" expanded="true" />
-            <element signature="e#42518#42522#0" expanded="true" />
-            <element signature="e#42597#42633#0" expanded="true" />
-            <element signature="e#42727#42847#0" expanded="true" />
-            <element signature="e#42893#42899#0" expanded="true" />
-            <element signature="e#42942#42946#0" expanded="true" />
-            <element signature="e#43015#43019#0" expanded="true" />
-            <element signature="e#43067#43071#0" expanded="true" />
-            <element signature="e#43123#43127#0" expanded="true" />
-            <element signature="e#43188#43192#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/KLEyeLink.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="78" column="97" selection-start="2616" selection-end="2616" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="e#550#760#0" expanded="true" />
-            <element signature="e#784#847#0" expanded="true" />
-            <element signature="e#966#1179#0" expanded="true" />
-            <element signature="e#1247#2132#0" expanded="true" />
-            <element signature="e#2712#3729#0" expanded="true" />
-            <element signature="e#3754#3832#0" expanded="true" />
-            <element signature="e#3856#4619#0" expanded="true" />
-            <element signature="e#4734#5190#0" expanded="true" />
-            <element signature="e#5213#5233#0" expanded="true" />
-            <element signature="e#5269#5497#0" expanded="true" />
-            <element signature="e#5554#5558#0" expanded="true" />
-            <element signature="e#5599#5623#0" expanded="true" />
-            <element signature="e#5682#5708#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/KLELCustomDisplay.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="13" column="23" selection-start="562" selection-end="562" vertical-scroll-proportion="0.18932039">
-          <folding>
-            <element signature="e#608#1228#0" expanded="true" />
-            <element signature="e#1262#1325#0" expanded="true" />
-            <element signature="e#1358#1362#0" expanded="true" />
-            <element signature="e#1396#1400#0" expanded="true" />
-            <element signature="e#1434#1481#0" expanded="true" />
-            <element signature="e#1514#1538#0" expanded="true" />
-            <element signature="e#1576#2380#0" expanded="true" />
-            <element signature="e#2412#2655#0" expanded="true" />
-            <element signature="e#2685#3400#0" expanded="true" />
-            <element signature="e#3434#3452#0" expanded="true" />
-            <element signature="e#3487#3511#0" expanded="true" />
-            <element signature="e#3549#3662#0" expanded="true" />
-            <element signature="e#3713#3744#0" expanded="true" />
-            <element signature="e#3778#3782#0" expanded="true" />
-            <element signature="e#3843#4102#0" expanded="true" />
-            <element signature="e#4164#4168#0" expanded="true" />
-            <element signature="e#4222#4226#0" expanded="true" />
-            <element signature="e#4269#4273#0" expanded="true" />
+            <element signature="e#2999#3232#0" expanded="true" />
+            <element signature="e#3286#4884#0" expanded="true" />
+            <element signature="e#15439#17432#0" expanded="true" />
           </folding>
         </state>
       </provider>

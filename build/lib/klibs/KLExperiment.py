@@ -71,7 +71,6 @@ class Experiment(object):
 	core_graphics = None
 
 	def __init__(self, project_name, el=None, asset_path="ExpAssets"):
-		print "here"
 		if not Params.setup(project_name, asset_path):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 
@@ -98,7 +97,7 @@ class Experiment(object):
 			self.text_layer.default_font_size = Params.default_font_size
 		# initialize eyelink
 		if PYLINK_AVAILABLE and Params.eye_tracking:
-			if el:
+			if Params.eye_tracker_available and el:
 				self.eyelink = el
 			else:
 				self.eyelink = KLEyeLink()
@@ -208,8 +207,8 @@ class Experiment(object):
 		#  todo: move this to a DB function.... :/
 		if auto_id:
 			if Params.testing or not Params.collect_demographics:
-				self.participant_id = -1
-			trial_data[Params.id_field_name] = self.participant_id
+				Params.participant_id = -1
+			trial_data[Params.id_field_name] = Params.participant_id
 		for attr in trial_data:
 			self.database.log(attr, trial_data[attr])
 		self.database.insert()

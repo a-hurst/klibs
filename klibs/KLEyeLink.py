@@ -1,5 +1,7 @@
 __author__ = 'jono'
 PYLINK_AVAILABLE = False
+import ctypes
+
 try:
 	import os
 	import abc
@@ -11,8 +13,9 @@ try:
 	from KLUtilities import *
 
 	try:
-		from pymouse import PyMouse
-		DUMMY_MODE_AVAILABLE = True
+		mouse = mouse_pos(True)
+		if (type(x) is int for x in mouse):
+			DUMMY_MODE_AVAILABLE = True
 	except ImportError:
 		DUMMY_MODE_AVAILABLE = False
 
@@ -26,11 +29,18 @@ try:
 		custom_display = None
 
 		def __init__(self):
-			pylink.EyeLink.__init__(self)
+			try:
+				pylink.EyeLink.__init__(self)
+			except:
+				Params.eye_tracker_available = False
 			if DUMMY_MODE_AVAILABLE:
 				self.dummy_mode = Params.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
 			else:
 				self.dummy_mode = False
+			dc_width = Params.screen_y // 60
+			dc_tl = [Params.screen_x // 2 - dc_width // 2, Params.screen_y // 2 - dc_width //2]
+			dc_br = [Params.screen_x // 2 + dc_width // 2, Params.screen_y // 2 + dc_width //2]
+			self.add_gaze_boundary("drift_correct", [dc_tl, dc_br])
 
 		def __eye(self):
 			self.eye = self.eyeAvailable()
@@ -76,7 +86,12 @@ try:
 
 			events = EL_TRUE if events in [EL_TRUE, True] else EL_FALSE
 			samples = EL_TRUE if samples in [EL_TRUE, True] else EL_FALSE
-			drift_correct_result = self.doDriftCorrect(location[0], location[1], events, samples)
+			if not self.dummy_mode:
+				drift_correct_result = self.doDriftCorrect(location[0], location[1], events, samples)
+			else:
+				drift_correct_result = False
+				while not drift_correct_result:
+					drift_correct_result = self.within_boundary('drift_correct', self.gaze())
 
 			return drift_correct_result
 
@@ -128,7 +143,6 @@ try:
 				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
 				self.setMotionThreshold(Params.saccadic_motion_threshold)
 				self.doTrackerSetup()
-
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 			start = time.time()

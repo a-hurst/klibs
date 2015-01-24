@@ -6,6 +6,7 @@ from KLAudioClip import AudioClip  # just a simple class for playing sdl2 sounds
 from KLNumpySurface import *  # a class for easily moving between numpy pixel arrays and sdl2/openGL
 import KLParams as Params  # a list of program-wide settings like screen dimensions, colors, etc.
 
+
 class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 
 	window = None
@@ -85,8 +86,6 @@ class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 					if ui_request == sdl2.SDLK_c and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
 						return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
 				return [pylink.KeyInput(keysym.sym, keysym.mod)]
-
-
 
 	def get_mouse_state(self):
 		return mouse_pos()

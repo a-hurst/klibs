@@ -7,12 +7,7 @@ import KLParams as Params
 from KLConstants import *
 import datetime
 import sdl2
-try:
-	from pymouse import PyMouse
-	PYMOUSE_AVAILABLE = True
-except ImportError:
-	PYMOUSE_AVAILABLE = False
-	print "PyMouse is not available; dummy mode for EyeLink is not available."
+import ctypes
 
 def absolute_position(position, destination):
 	height = None
@@ -152,12 +147,12 @@ def log(msg, priority):
 	return True
 
 
-def mouse_pos():
-	if PYMOUSE_AVAILABLE:
-		pos = PyMouse().position()
-		return [int(pos[0]), int(pos[1])]
-	else:
-		return False
+def mouse_pos(pump=True):
+	if pump:
+		sdl2.SDL_PumpEvents()
+	x, y = ctypes.c_int(0), ctypes.c_int(0)
+	sdl2.mouse.SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
+	return [x.value, y.value]
 
 
 def peak(v1, v2):

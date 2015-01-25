@@ -206,9 +206,15 @@ class Experiment(object):
 	def __log_trial(self, trial_data, auto_id=True):
 		#  todo: move this to a DB function.... :/
 		if auto_id:
-			if Params.testing or not Params.collect_demographics:
+			if Params.testing is True or not Params.collect_demographics is False:
 				Params.participant_id = -1
-			trial_data[Params.id_field_name] = Params.participant_id
+			try:
+				trial_data[Params.id_field_name] = Params.participant_id
+			except TypeError:
+				print "Warning: Params.participant_id not int at __log_trial(): {0}".format(Params.participant_id)
+				Params.participant_id = -1
+				trial_data[Params.id_field_name] = Params.participant_id
+
 		for attr in trial_data:
 			self.database.log(attr, trial_data[attr])
 		self.database.insert()

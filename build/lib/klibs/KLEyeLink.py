@@ -53,6 +53,7 @@ try:
 			return True
 
 		def within_boundary(self, boundary, point=None, shape=None):
+			print "within_boundary(boundary={0}, point={1}, shape={2}".format(boundary, point, shape)
 			try:
 				boundary_dict = self.__gaze_boundaries[boundary]
 				boundary = boundary_dict["bounds"]
@@ -65,7 +66,10 @@ try:
 			if point is None:
 				try:
 					point = self.gaze()
-				except:
+					print "POINT: {0}".format(point)
+				except Exception as e:
+					print e.message
+					print "Using mouse_pos()"
 					try:
 						point = mouse_pos()
 					except:
@@ -73,7 +77,10 @@ try:
 			if shape == RECT:
 				x_range = range(boundary[0][0], boundary[1][0])
 				y_range = range(boundary[0][1], boundary[1][1])
+				ret_val = point[0] in x_range and point[1] in y_range
+				print "POINT: {0}, X_RANGE: {1}, Y_RANGE: {2}, RET_VAL:{3}".format(point, (x_range[0], x_range[-1]),(y_range[0], y_range[-1]), ret_val )
 				return point[0] in x_range and point[1] in y_range
+
 			if shape == CIRCLE:
 				return boundary[0] <= math.sqrt((point[0] - boundary[1][0]) ** 2 + (point[1] - boundary[1][1]) ** 2)
 
@@ -96,7 +103,9 @@ try:
 			return drift_correct_result
 
 		def gaze(self, eye_required=None, return_integers=True):
+			print "gaze(eye_required={0}, return_integers={1}".format(eye_required, return_integers)
 			if self.dummy_mode:
+				print "self.dummy_mode = True"
 				try:
 					return mouse_pos()
 				except:

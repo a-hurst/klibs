@@ -5,18 +5,19 @@
     <ignored path="klibs.iws" />
     <ignored path=".idea/workspace.xml" />
     <file path="/KLELCustomDisplay.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421176354706" ignored="false" />
-    <file path="$PROJECT_DIR$/../../RSVP/experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422126268997" ignored="false" />
+    <file path="$PROJECT_DIR$/../../RSVP/experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422129486768" ignored="false" />
     <file path="/__init__.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421161041083" ignored="false" />
     <file path="/UtilityFunctions.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1420747537052" ignored="false" />
     <file path="/AudioClip.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1420747567647" ignored="false" />
-    <file path="/KLEyeLink.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421166085993" ignored="false" />
+    <file path="/KLEyeLink.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422129377265" ignored="false" />
     <file path="/Experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421173515924" ignored="false" />
     <file path="/usr/local/lib/python2.7/site-packages/klibs/KLELCustomDisplay.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421089124499" ignored="false" />
     <file path="/usr/local/lib/python2.7/site-packages/klibs/Experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421173668211" ignored="false" />
-    <file path="/experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422126268613" ignored="false" />
-    <file path="/usr/local/lib/python2.7/site-packages/klibs/KLEyeLink.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1421092109486" ignored="false" />
+    <file path="/experiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422129485335" ignored="false" />
+    <file path="/usr/local/lib/python2.7/site-packages/klibs/KLEyeLink.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422129300599" ignored="false" />
     <file path="/a.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422125845200" ignored="false" />
-    <file path="/KLExperiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422126436944" ignored="false" />
+    <file path="/KLExperiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422128231574" ignored="false" />
+    <file path="/usr/local/lib/python2.7/site-packages/klibs/KLExperiment.py" changelist="42746df1-b0f0-4f70-bdcc-8edceba0d6c2" time="1422128240671" ignored="false" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,15 +38,6 @@
   <component name="FileEditorManager">
     <leaf>
       <file leaf-file-name="__init__.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/Library/Caches/PyCharm20/python_stubs/-1199944087/pylink/__init__.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="123" column="0" selection-start="3278" selection-end="3296" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="__init__.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
             <state line="36" column="0" selection-start="698" selection-end="698" vertical-scroll-proportion="0.0">
@@ -57,33 +49,39 @@
       <file leaf-file-name="KLParams.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/KLParams.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="3" column="25" selection-start="68" selection-end="68" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="KLExperiment.py" pinned="false" current="true" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/KLExperiment.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="210" column="53" selection-start="6955" selection-end="6955" vertical-scroll-proportion="0.94174755">
+            <state line="30" column="0" selection-start="572" selection-end="572" vertical-scroll-proportion="0.0">
               <folding>
-                <element signature="e#2999#3232#0" expanded="true" />
-                <element signature="e#3286#4884#0" expanded="true" />
-                <element signature="e#15439#17432#0" expanded="true" />
+                <element signature="e#17#42#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLEyeLink.py" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="KLExperiment.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/KLExperiment.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="209" column="42" selection-start="6927" selection-end="6927" vertical-scroll-proportion="-17.6">
+              <folding>
+                <element signature="e#2999#3232#0" expanded="true" />
+                <element signature="e#3286#4884#0" expanded="true" />
+                <element signature="e#4916#4944#0" expanded="true" />
+                <element signature="e#7338#7440#0" expanded="true" />
+                <element signature="e#7495#10085#0" expanded="true" />
+                <element signature="e#15682#17675#0" expanded="true" />
+                <element signature="e#22264#26210#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="KLEyeLink.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/KLEyeLink.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="97" column="64" selection-start="3273" selection-end="3273" vertical-scroll-proportion="0.0">
+            <state line="133" column="25" selection-start="4849" selection-end="4849" vertical-scroll-proportion="0.88349515">
               <folding>
-                <element signature="e#1627#2512#0" expanded="true" />
-                <element signature="e#3277#4294#0" expanded="true" />
-                <element signature="e#4319#4397#0" expanded="true" />
+                <element signature="e#1627#2919#0" expanded="true" />
+                <element signature="e#3684#4828#0" expanded="true" />
+                <element signature="e#4853#4931#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -129,10 +127,10 @@
         <option value="$PROJECT_DIR$/KLParams.py" />
         <option value="$PROJECT_DIR$/AudioClip.py" />
         <option value="$PROJECT_DIR$/__init__.py" />
-        <option value="$PROJECT_DIR$/KLEyeLink.py" />
         <option value="$PROJECT_DIR$/Experiment.py" />
         <option value="$PROJECT_DIR$/KLELCustomDisplay.py" />
         <option value="$PROJECT_DIR$/KLExperiment.py" />
+        <option value="$PROJECT_DIR$/KLEyeLink.py" />
       </list>
     </option>
   </component>
@@ -480,7 +478,9 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/KLConstants.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" />
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/KLExceptions.py">
@@ -495,27 +495,9 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/KLELCustomDisplay.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="13" column="18" selection-start="518" selection-end="518" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/KLEyeLink.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="97" column="64" selection-start="3273" selection-end="3273" vertical-scroll-proportion="0.0">
-          <folding>
-            <element signature="e#1627#2512#0" expanded="true" />
-            <element signature="e#3277#4294#0" expanded="true" />
-            <element signature="e#4319#4397#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/Library/Caches/PyCharm20/python_stubs/-1199944087/pylink/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="123" column="0" selection-start="3278" selection-end="3296" vertical-scroll-proportion="0.0">
+        <state line="123" column="0" selection-start="3278" selection-end="3296" vertical-scroll-proportion="0.014563107">
           <folding />
         </state>
       </provider>
@@ -527,20 +509,44 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/KLELCustomDisplay.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="13" column="18" selection-start="518" selection-end="518" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/KLParams.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="3" column="25" selection-start="68" selection-end="68" vertical-scroll-proportion="0.0">
-          <folding />
+        <state line="30" column="0" selection-start="572" selection-end="572" vertical-scroll-proportion="0.0">
+          <folding>
+            <element signature="e#17#42#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/KLExperiment.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="210" column="53" selection-start="6955" selection-end="6955" vertical-scroll-proportion="0.94174755">
+        <state line="209" column="42" selection-start="6927" selection-end="6927" vertical-scroll-proportion="-17.6">
           <folding>
             <element signature="e#2999#3232#0" expanded="true" />
             <element signature="e#3286#4884#0" expanded="true" />
-            <element signature="e#15439#17432#0" expanded="true" />
+            <element signature="e#4916#4944#0" expanded="true" />
+            <element signature="e#7338#7440#0" expanded="true" />
+            <element signature="e#7495#10085#0" expanded="true" />
+            <element signature="e#15682#17675#0" expanded="true" />
+            <element signature="e#22264#26210#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLEyeLink.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="133" column="25" selection-start="4849" selection-end="4849" vertical-scroll-proportion="0.88349515">
+          <folding>
+            <element signature="e#1627#2919#0" expanded="true" />
+            <element signature="e#3684#4828#0" expanded="true" />
+            <element signature="e#4853#4931#0" expanded="true" />
           </folding>
         </state>
       </provider>

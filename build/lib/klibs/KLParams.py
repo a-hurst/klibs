@@ -45,7 +45,7 @@ testing = False
 default_alert_duration = 1
 
 #  todo: add a lot more default colors, a default font, etc.
-default_fill_color = (255, 255, 255)
+default_fill_color = [45, 45, 45, 255]
 monitor_x = None
 monitor_y = None
 diagonal_px = None

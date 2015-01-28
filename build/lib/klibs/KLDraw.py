@@ -8,6 +8,23 @@ from KLNumpySurface import *
 from KLUtilities import *
 import abc
 
+def cursor():
+		dc =  aggdraw.Draw("RGBA", [32, 32], (0, 0, 0, 0))
+		cursor_color = []
+		for c in Params.default_fill_color:
+			cursor_color.append(abs(c - 255))
+		cursor_color = cursor_color[0:3]
+		# coordinate tuples are easier to read/modify but aggdraw needs a stupid x,y,x,y,x,y list, so... :S
+		cursor_coords = [(6, 0), (6, 27), (12, 21), (18, 32), (20, 30), (15, 20), (23, 20), (6, 0)]
+		cursor_xy_list = []
+		for point in cursor_coords:
+			cursor_xy_list.append(point[0])
+			cursor_xy_list.append(point[1])
+		brush = aggdraw.Brush(tuple(cursor_color), 255)
+		pen = aggdraw.Pen((255,255,255), 1, 255)
+		dc.polygon(cursor_xy_list, pen, brush)
+		cursor_surface = from_aggdraw_context(dc)
+		return cursor_surface
 
 class Drawbject(object):
 	surface = None

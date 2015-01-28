@@ -47,7 +47,11 @@ class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 	def erase_cal_target(self):
 		self.clear_cal_display()
 
-	def draw_cal_target(self, x, y):
+	def draw_cal_target(self, x, y=None, pump_events=True, flip=True):
+		if pump_events: sdl2.SDL_PumpEvents()
+		if y is None:
+			y = x[1]
+			x = x[0]
 		draw_context_length = Params.screen_y // 60
 		while draw_context_length % 3 != 0:  # center-dot is 1/3 of parent; offset unequal if parent not divisible by 3
 			draw_context_length += 1
@@ -58,9 +62,8 @@ class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		wd_top = draw_context_length // 3  #ie. white_dot_top, the inner white dot of the calibration point
 		wd_bot = 2 * draw_context_length // 3
 		draw_context.ellipse([wd_top, wd_top, wd_bot, wd_bot], white_brush)
-		self.experiment.blit(from_aggdraw_context(draw_context), 5, [x, y])
-		self.experiment.flip()
-		sdl2.SDL_PumpEvents()
+		self.experiment.blit(from_aggdraw_context(draw_context), 5, [int(x), int(y)])
+		if flip: self.experiment.flip()
 
 	def play_beep(self, clip):
 		if clip == pylink.DC_TARG_BEEP or clip == pylink.CAL_TARG_BEEP:

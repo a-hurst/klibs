@@ -70,11 +70,12 @@ class Experiment(object):
 	wrong_key_message = None
 	core_graphics = None
 
-	def __init__(self, project_name, el=None, asset_path="ExpAssets"):
+	def __init__(self, project_name, asset_path="ExpAssets"):
 		if not Params.setup(project_name, asset_path):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 
 		Params.key_maps["*"] = KeyMap("*", [], [], [])
+		Params.key_maps["over_watch"] = KeyMap("over_watch", [], [], [])
 		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
 		Params.key_maps["eyelink"] = KeyMap("eyelink",
 										["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
@@ -96,13 +97,10 @@ class Experiment(object):
 		if Params.default_font_size:
 			self.text_layer.default_font_size = Params.default_font_size
 		# initialize eyelink
-		if PYLINK_AVAILABLE and Params.eye_tracking:
-			if Params.eye_tracker_available and el:
-				self.eyelink = el
-			else:
-				self.eyelink = KLEyeLink()
-			self.eyelink.custom_display = KLELCustomDisplay(self, self.eyelink)
-			self.eyelink.dummy_mode = Params.eye_tracker_available is False
+#		if PYLINK_AVAILABLE and Params.eye_tracking:
+		self.eyelink = KLEyeLink(self)
+		self.eyelink.custom_display = KLELCustomDisplay(self, self.eyelink)
+		self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
 	def __trial_func(self, *args, **kwargs):
 		"""
@@ -612,7 +610,7 @@ class Experiment(object):
 		return False
 
 	# todo: listen is not a method; it should be a class, "listener", that gets configured
-	def listen(self, max_wait=MAX_WAIT, key_map_name="*", wait_callback=None, wait_cb_args=None, wait_cb_kwargs=None,
+	def listen(self, max_wait=MAX_WAIT, key_map_name="*", wait_callback=None, wait_cb_args={}, wait_cb_kwargs={},
 			el_args=None, null_response=None, time_out_message=None, response_count=None, response_map=None,
 			interrupt=True, quick_return=False, flip=True):
 		# TODO: have customizable wrong key & time-out behaviors
@@ -655,20 +653,19 @@ class Experiment(object):
 			# 	print str(int((now - then) * 1000)) + "ms"
 			# 	# print "%f" % (now - then)
 			# then = now
+			try:
+				self.eyelink.listen(**el_args)
+			except TypeError:
+				self.eyelink.listen()
 
-			if el_args:
-				if type(el_args) is dict:
-					self.eyelink_response = self.eyelink.listen(**el_args)
-				else:
-					raise TypeError("Argument 'el_args' must be a dict.")
-			if wait_callback is not None and type(wait_callback).__name__ == 'instancemethod':  # todo: fix second cond.
-				if wait_cb_args is None:
-					wait_callback()
-				elif type(wait_cb_args) is dict:
-					# abstract method, allows for blits, flips and other changes during a listen() call
-					wait_callback(*wait_cb_args, **wait_cb_kwargs)
-				else:
-					raise TypeError("Argument 'wait_cb_args' must be a dict.")
+			if wait_callback:
+				try:
+					wait_response = wait_callback(*wait_cb_args, **wait_cb_kwargs)
+					if wait_response:
+						return [wait_response, time.time() - start_time]
+				except Exception as e:
+					raise RuntimeError("Wait_callback failed with following message: {0}".format(e.message))
+
 			sdl2.SDL_PumpEvents()
 			for event in sdl2.ext.get_events():
 				if event.type == sdl2.SDL_KEYDOWN:
@@ -902,6 +899,10 @@ class Experiment(object):
 	def pre_bug(self):
 		#todo: will be a screen that's shown before anything happens in the program to quickly tweak debug settings
 		pass
+
+	def track_mouse(self):
+		self.blit(cursor(), 7, mouse_pos())
+		return True
 
 	def query(self, query=None, as_password=False, font=None, font_size=None, color=None,
 				locations=None, registration=5, return_type=None, accepted=None):

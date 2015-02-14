@@ -202,7 +202,7 @@ class Experiment(object):
 	def __log_trial(self, trial_data, auto_id=True):
 		#  todo: move this to a DB function.... :/
 		if auto_id:
-			if Params.testing is True or not Params.collect_demographics is False:
+			if Params.testing is True or Params.collect_demographics is False:
 				Params.participant_id = -1
 			try:
 				trial_data[Params.id_field_name] = Params.participant_id

@@ -41,10 +41,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLExperiment.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="KLExperiment.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/KLExperiment.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="949" column="96" selection-start="34838" selection-end="34838" vertical-scroll-proportion="0.278826" vertical-offset="6172" max-vertical-offset="8749">
+            <state line="949" column="96" selection-start="34838" selection-end="34838" vertical-scroll-proportion="0.0" vertical-offset="6172" max-vertical-offset="8749">
               <folding>
                 <element signature="e#2984#3217#0" expanded="true" />
                 <element signature="e#3271#4869#0" expanded="true" />
@@ -96,11 +96,15 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLUtilities.py" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="KLUtilities.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/KLUtilities.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="309" column="0" selection-start="8222" selection-end="8753" vertical-scroll-proportion="0.0" vertical-offset="39" max-vertical-offset="1105">
-              <folding />
+            <state line="288" column="5" selection-start="8222" selection-end="8227" vertical-scroll-proportion="0.26415095" vertical-offset="628" max-vertical-offset="1105">
+              <folding>
+                <element signature="e#8431#8578#0" expanded="true" />
+                <element signature="e#8614#8713#0" expanded="true" />
+                <marker date="1423943555000" expanded="true" signature="8222:8713" placeholder="..." />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -129,8 +133,8 @@
         <option value="$PROJECT_DIR$/KLNumpySurface.py" />
         <option value="$PROJECT_DIR$/KLParams.py" />
         <option value="$PROJECT_DIR$/KLConstants.py" />
-        <option value="$PROJECT_DIR$/KLUtilities.py" />
         <option value="$PROJECT_DIR$/KLExperiment.py" />
+        <option value="$PROJECT_DIR$/KLUtilities.py" />
       </list>
     </option>
   </component>
@@ -548,13 +552,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/KLUtilities.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="309" column="0" selection-start="8222" selection-end="8753" vertical-scroll-proportion="0.0" vertical-offset="39" max-vertical-offset="1105">
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="36" column="0" selection-start="698" selection-end="698" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="4004">
@@ -564,7 +561,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/KLExperiment.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="949" column="96" selection-start="34838" selection-end="34838" vertical-scroll-proportion="0.278826" vertical-offset="6172" max-vertical-offset="8749">
+        <state line="949" column="96" selection-start="34838" selection-end="34838" vertical-scroll-proportion="0.0" vertical-offset="6172" max-vertical-offset="8749">
           <folding>
             <element signature="e#2984#3217#0" expanded="true" />
             <element signature="e#3271#4869#0" expanded="true" />
@@ -580,6 +577,17 @@
             <element signature="e#42017#42137#0" expanded="true" />
             <marker date="1423942669000" expanded="true" signature="1054:7218" placeholder="..." />
             <marker date="1423942669000" expanded="true" signature="6676:7121" placeholder="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLUtilities.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="288" column="5" selection-start="8222" selection-end="8227" vertical-scroll-proportion="0.26415095" vertical-offset="628" max-vertical-offset="1105">
+          <folding>
+            <element signature="e#8431#8578#0" expanded="true" />
+            <element signature="e#8614#8713#0" expanded="true" />
+            <marker date="1423943555000" expanded="true" signature="8222:8713" placeholder="..." />
           </folding>
         </state>
       </provider>

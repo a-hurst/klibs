@@ -286,24 +286,24 @@ def quit(msg=None):
 	sys.exit()
 
 
-class RGBCLI:
-	col = {"@P": '\033[95m', # purple
-		   "@B": '\033[94m', # blue
-		   "@R": '\033[91m', # red
-		   "@T": '\033[1m',  # teal
-		   "@E": '\033[0m'   # return to normal
-	}
-
-	def pr(self, string):
-		string = "{0}".format(string)
-		for col in self.col:
-			string = string.replace(col, self.col[col])
-		print "{0}{1}".format(string, self.col["@E"])
-
-
-def pr(string, priority=False):
-	if priority is False:
-		return
-	rgb = RGBCLI()
-	if priority >= Params.debug_level:
-		rgb.pr(string)
+# class RGBCLI:
+# 	col = {"@P": '\033[95m', # purple
+# 		   "@B": '\033[94m', # blue
+# 		   "@R": '\033[91m', # red
+# 		   "@T": '\033[1m',  # teal
+# 		   "@E": '\033[0m'   # return to normal
+# 	}
+#
+# 	def pr(self, string):
+# 		string = "{0}".format(string)
+# 		for col in self.col:
+# 			string = string.replace(col, self.col[col])
+# 		print "{0}{1}".format(string, self.col["@E"])
+#
+#
+# def pr(string, priority=False):
+# 	if priority is False:
+# 		return
+# 	rgb = RGBCLI()
+# 	if priority >= Params.debug_level:
+# 		rgb.pr(string)

@@ -956,7 +956,7 @@ class Experiment(object):
 			query_location = [horizontal_center, query_baseline]
 			input_location = [horizontal_center, input_baseline]
 
-		self.fill((255, 255, 255))
+		self.fill(Params.default_fill_color)
 		self.blit(query_surface, query_registration, query_location)
 		self.flip()
 

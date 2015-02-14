@@ -44,7 +44,7 @@
       <file leaf-file-name="KLExperiment.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/KLExperiment.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="958" column="0" selection-start="35151" selection-end="35151" vertical-scroll-proportion="0.524109" vertical-offset="6172" max-vertical-offset="8749">
+            <state line="949" column="96" selection-start="34838" selection-end="34838" vertical-scroll-proportion="0.278826" vertical-offset="6172" max-vertical-offset="8749">
               <folding>
                 <element signature="e#2984#3217#0" expanded="true" />
                 <element signature="e#3271#4869#0" expanded="true" />
@@ -395,7 +395,7 @@
     <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32934928" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" x="23" y="335" width="593" height="248" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32934928" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" x="23" y="335" width="593" height="248" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21090387" sideWeight="0.6706507" order="1" side_tool="false" content_ui="tabs" />
@@ -564,7 +564,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/KLExperiment.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="958" column="0" selection-start="35151" selection-end="35151" vertical-scroll-proportion="0.524109" vertical-offset="6172" max-vertical-offset="8749">
+        <state line="949" column="96" selection-start="34838" selection-end="34838" vertical-scroll-proportion="0.278826" vertical-offset="6172" max-vertical-offset="8749">
           <folding>
             <element signature="e#2984#3217#0" expanded="true" />
             <element signature="e#3271#4869#0" expanded="true" />

@@ -73,19 +73,28 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLExperiment.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="KLExperiment.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/KLExperiment.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="200" column="0" selection-start="6626" selection-end="6626" vertical-scroll-proportion="1.341719" vertical-offset="1089" max-vertical-offset="4615">
+            <state line="227" column="93" selection-start="7633" selection-end="7633" vertical-scroll-proportion="0.0" vertical-offset="1687" max-vertical-offset="4667">
               <folding>
                 <element signature="e#2984#3217#0" expanded="true" />
                 <element signature="e#3271#4869#0" expanded="true" />
                 <element signature="e#4901#4929#0" expanded="true" />
                 <element signature="e#5006#6625#0" expanded="true" />
-                <element signature="e#7408#9998#0" expanded="true" />
+                <element signature="e#7251#7353#0" expanded="true" />
                 <element signature="e#15595#17660#0" expanded="true" />
                 <element signature="e#17738#17813#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="KLConstants.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/KLConstants.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="33" column="3" selection-start="611" selection-end="611" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="728">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -110,11 +119,14 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLParams.py" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="KLParams.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/KLParams.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="32" column="0" selection-start="622" selection-end="622" vertical-scroll-proportion="0.0" vertical-offset="202" max-vertical-offset="1196">
-              <folding />
+            <state line="115" column="44" selection-start="3257" selection-end="3257" vertical-scroll-proportion="0.836478" vertical-offset="1070" max-vertical-offset="1612">
+              <folding>
+                <element signature="e#2252#3211#0" expanded="true" />
+                <element signature="e#3259#3382#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -155,11 +167,11 @@
         <option value="$PROJECT_DIR$/Experiment.py" />
         <option value="$PROJECT_DIR$/KLELCustomDisplay.py" />
         <option value="$PROJECT_DIR$/KLEyeLink.py" />
-        <option value="$PROJECT_DIR$/KLConstants.py" />
         <option value="$PROJECT_DIR$/KLUtilities.py" />
         <option value="$PROJECT_DIR$/KLNumpySurface.py" />
         <option value="$PROJECT_DIR$/KLParams.py" />
         <option value="$PROJECT_DIR$/KLExperiment.py" />
+        <option value="$PROJECT_DIR$/KLConstants.py" />
       </list>
     </option>
   </component>
@@ -538,13 +550,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/KLConstants.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="50" column="0" selection-start="1336" selection-end="1336" vertical-scroll-proportion="0.0" vertical-offset="238" max-vertical-offset="728">
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="36" column="0" selection-start="698" selection-end="698" vertical-scroll-proportion="0.0" vertical-offset="150" max-vertical-offset="4004">
@@ -622,24 +627,34 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/KLParams.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="32" column="0" selection-start="622" selection-end="622" vertical-scroll-proportion="0.0" vertical-offset="202" max-vertical-offset="1196">
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/KLExperiment.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="200" column="0" selection-start="6626" selection-end="6626" vertical-scroll-proportion="1.341719" vertical-offset="1089" max-vertical-offset="4615">
+        <state line="227" column="93" selection-start="7633" selection-end="7633" vertical-scroll-proportion="0.0" vertical-offset="1687" max-vertical-offset="4667">
           <folding>
             <element signature="e#2984#3217#0" expanded="true" />
             <element signature="e#3271#4869#0" expanded="true" />
             <element signature="e#4901#4929#0" expanded="true" />
             <element signature="e#5006#6625#0" expanded="true" />
-            <element signature="e#7408#9998#0" expanded="true" />
+            <element signature="e#7251#7353#0" expanded="true" />
             <element signature="e#15595#17660#0" expanded="true" />
             <element signature="e#17738#17813#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLConstants.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="33" column="3" selection-start="611" selection-end="611" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="728">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLParams.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="115" column="44" selection-start="3257" selection-end="3257" vertical-scroll-proportion="0.836478" vertical-offset="1070" max-vertical-offset="1612">
+          <folding>
+            <element signature="e#2252#3211#0" expanded="true" />
+            <element signature="e#3259#3382#0" expanded="true" />
           </folding>
         </state>
       </provider>

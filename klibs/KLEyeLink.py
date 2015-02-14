@@ -67,7 +67,6 @@ try:
 			if point is None:
 				try:
 					point = self.gaze()
-					print "POINT: {0}".format(point)
 				except Exception as e:
 					print e.message
 					print "Warning: Using mouse_pos()"
@@ -118,20 +117,17 @@ try:
 			if not self.dummy_mode:
 				return self.doDriftCorrect(location[0], location[1], events, samples)
 			else:
-				# sdl2.mouse.SDL_ShowCursor(sdl2.SDL_ENABLE)
 				def dc(dc_location, dc_gaze_boundary):
-					print "loc: {0}, boundary: {1}".format(dc_location, self.__gaze_boundaries[dc_gaze_boundary])
+					hide_mouse_cursor()
 					pump()
 					self.experiment.fill()
 					self.custom_display.draw_cal_target(dc_location, flip=False)
 					self.experiment.track_mouse()
 					self.experiment.flip()
 					in_bounds = self.within_boundary(dc_gaze_boundary, self.gaze())
-					print "in bounds: {0}".format(in_bounds)
 					return  in_bounds
-				response = self.experiment.listen(MAX_WAIT, OVER_WATCH, wait_callback=dc, wait_cb_args=[location, gaze_boundary])
-				# sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
-				return response
+				return self.experiment.listen(MAX_WAIT, OVER_WATCH, wait_callback=dc, wait_cb_args=[location, gaze_boundary])
+
 
 		def gaze(self, eye_required=None, return_integers=True):
 			debug = False

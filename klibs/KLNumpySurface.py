@@ -6,11 +6,41 @@ from KLUtilities import *
 from KLConstants import *
 import aggdraw
 
+"""
+These next few functions just wrap aggdraw's stupid API :S
+"""
+
+
+def canvas(width, height, mode='RGBA', background=(0, 0, 0, 0)):
+	bg = []
+	bg.append(n for n in background)
+	if len(bg) == 3: bg.append(0)
+	return aggdraw.Draw(mode, (width, height), tuple(background))
+
+def ad_fill(color, opacity=255):
+	col = list()
+	col.append(n for n in color)
+	if len(col) == 4:
+		opacity = col[3]
+		col = col[0:2]
+	else:
+		col = color
+	pr("@T\tcol: {0}, opacity:{1}".format(col, opacity))
+	return aggdraw.Brush(tuple(col), opacity)
+
+
+def ad_stroke(color, width=1, opacity=255):
+	col = list().append(n for n in color)
+	if len(col) == 4:
+		opacity = col[3]
+		col = col[0:3]
+	return aggdraw.Pen(color, width, opacity)
+
+
 
 def from_aggdraw_context(draw_context):
 	draw_context_bytes = Image.frombytes(draw_context.mode, draw_context.size, draw_context.tostring())
 	return NumpySurface(numpy.asarray(draw_context_bytes))
-
 
 class NumpySurface(object):
 	# todo: save states! save diffs between operations! so cool and unnecessary!
@@ -244,6 +274,7 @@ class NumpySurface(object):
 		if layer == NS_FOREGROUND:
 			self.__foreground_unmask = copy(self.foreground)
 			self.__foreground_mask = mask
+			self.__ensure_writeable(NS_FOREGROUND)
 			if auto_truncate:
 				position = [position[0], position[1]]  # todo: use duck typing properly so this can arrive as a list
 				# layer_yx = self.foreground.shape
@@ -301,7 +332,10 @@ class NumpySurface(object):
 			fg_y1 = position[1]
 			fg_y2 = alpha_map.shape[0] + position[1]
 
-			self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3] = alpha_map
+			self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3] = numpy.asarray([min(x, y) for x, y in
+																			zip(alpha_map.flatten(),
+																				self.foreground[fg_y1: fg_y2,
+																				fg_x1: fg_x2, 3].flatten())]).reshape(alpha_map.shape)
 
 	def prerender(self):
 		return self.render(True)

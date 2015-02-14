@@ -8,6 +8,7 @@ from KLConstants import *
 import datetime
 import sdl2
 import ctypes
+import time
 
 def absolute_position(position, destination):
 	height = None
@@ -154,6 +155,13 @@ def mouse_pos(pump=True):
 	sdl2.mouse.SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
 	return [x.value, y.value]
 
+def hide_mouse_cursor():
+	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
+	return True
+
+def show_mouse_cursor():
+	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_ENABLE)
+	return True
 
 def peak(v1, v2):
 	if v1 > v2:
@@ -267,9 +275,35 @@ def safe_flag_string(flags, prefix=None, uc=True):
 	return eval(flag_string)
 
 
+def now():
+	return time.time()
+
 def quit(msg=None):
 	if msg:
 		print msg
 	print "Exiting..."
 	sdl2.SDL_Quit()
 	sys.exit()
+
+
+class RGBCLI:
+	col = {"@P": '\033[95m', # purple
+		   "@B": '\033[94m', # blue
+		   "@R": '\033[91m', # red
+		   "@T": '\033[1m',  # teal
+		   "@E": '\033[0m'   # return to normal
+	}
+
+	def pr(self, string):
+		string = "{0}".format(string)
+		for col in self.col:
+			string = string.replace(col, self.col[col])
+		print "{0}{1}".format(string, self.col["@E"])
+
+
+def pr(string, priority=False):
+	if priority is False:
+		return
+	rgb = RGBCLI()
+	if priority >= Params.debug_level:
+		rgb.pr(string)

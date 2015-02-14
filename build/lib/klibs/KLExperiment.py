@@ -152,7 +152,6 @@ class Experiment(object):
 
 	def __database_init(self):
 		self.database = KLDatabase()
-		# Params.database = self.database
 
 	def __generate_trials(self, practice=False, event_code_generator=None):
 		"""
@@ -189,7 +188,6 @@ class Experiment(object):
 				trials = temp[:]
 		for element in eval_queue:
 			factors.append(element[0][:-5])
-			# print "element: " + element[1]
 			operands = re.split('[=>!<]+', str(element[1]).strip())
 			operator = re.search('[=<!>]+', str(element[1])).group()
 			for t in trials:
@@ -200,6 +198,8 @@ class Experiment(object):
 			for t in trials:
 				t.append(event_code_generator(t))
 		Params.trials = trials
+		print trials
+		exit();
 
 	def __log_trial(self, trial_data, auto_id=True):
 		#  todo: move this to a DB function.... :/
@@ -469,6 +469,7 @@ class Experiment(object):
 				raise DatabaseException("Database.insert(), which failed for unknown reasons.")
 			self.database.cursor.execute("SELECT `id` FROM `participants` WHERE `userhash` = '{0}'".format(name))
 			Params.participant_id = self.database.cursor.fetchall()[0][0]
+			print "Participant id after demo: {0}".format(Params.participant_id)
 			if not Params.participant_id:
 				raise ValueError("For unknown reasons, 'participant_id' couldn't be set or retrieved from self.database.")
 		else:
@@ -483,45 +484,8 @@ class Experiment(object):
 				self.quit()
 
 	def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
-		# try:
-			self.clear()
-			dc = self.eyelink.drift_correct(location, events, samples)
-			print dc
-		# except:
-		# 	self.fill()
-		# 	sdl2.mouse.SDL_ShowCursor(1)
-		# 	dc_length = Params.screen_x // 50
-		# 	color = []
-		# 	for channel in Params.default_fill_color:
-		# 		color.append(255 - channel)
-		# 	color[3] = 255
-		# 	brush = aggdraw.Brush(tuple(color))
-		# 	pen = aggdraw.Pen(Params.default_fill_color, dc_length // 10)
-		# 	draw_context = aggdraw.Draw("RGBA", [dc_length, dc_length], (0, 0, 0, 0))
-		# 	draw_context.ellipse([0, 0, dc_length, dc_length], brush)
-		# 	x1 = dc_length // 2
-		# 	y1 = dc_length // 5
-		# 	x2 = x1
-		# 	y2 = dc_length - y1
-		# 	stroke = dc_length // 5
-		# 	draw_context.line([x1, y1, x2, y2], pen)
-		# 	draw_context.line([y1, x1, y2, x2], pen)
-		# 	self.blit(from_aggdraw_context(draw_context), 5, "center")
-		# 	x_min = Params.screen_c[0] - dc_length // 2
-		# 	x_max = Params.screen_c[0] + dc_length // 2
-		# 	y_min = Params.screen_c[1] - dc_length // 2
-		# 	y_max = Params.screen_c[1] + dc_length // 2
-		# 	x_range = range(x_min, x_max)
-		# 	y_range = range(y_min, y_max)
-		# 	self.flip()
-		# 	mouse_in_bounds = False
-		# 	while not mouse_in_bounds:
-		# 		self.listen(MAX_WAIT, "drift_correct", flip=False)
-		# 		pos = mouse_pos()
-		# 		if pos[0] in x_range and pos[1] in y_range:
-		# 			mouse_in_bounds = True
-		# 	sdl2.mouse.SDL_ShowCursor(0)
-		# 	return True
+		self.clear()
+		return self.eyelink.drift_correct(location, events, samples)
 
 	def draw_fixation(self, width=None, stroke=None, color=None, fill=None, flip=False):
 		if not width:
@@ -617,6 +581,7 @@ class Experiment(object):
 		# TODO: make RT & Response part of a customizable ResponseMap object
 		# TODO: start_time should be optionally predefined and/or else add a latency param to be added onto starTime
 		# TODO: make it possible to pass the parameters of a new KeyMap directly to listen()
+		# TODO: add functionality for wait_callback() to exit the loop
 		# TODO: add functionality for wait_callback() to exit the loop
 		# establish an interval for which to listen for responding
 		key_map = None

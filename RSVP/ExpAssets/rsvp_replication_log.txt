@@ -1,6 +1,0 @@
-rsvp_keymap_ui_labels = [A, C, B, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z]
-rsvp_keymap_data_labels = [A, C, B, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z],
-rsvp_keymap_sdl_keysyms = [sdl2.SDLK_a,  sdl2.SDLK_b,  sdl2.SDLK_c,  sdl2.SDLK_d,  sdl2.SDLK_e,  sdl2.SDLK_f,  sdl2.SDLK_g,  sdl2.SDLK_h,  sdl2.SDLK_i,  sdl2.SDLK_j,  sdl2.SDLK_k,  sdl2.SDLK_l,  sdl2.SDLK_m,  sdl2.SDLK_n,  sdl2.SDLK_o,  sdl2.SDLK_p,  sdl2.SDLK_q,  sdl2.SDLK_r,  sdl2.SDLK_s,  sdl2.SDLK_t,  sdl2.SDLK_u,  sdl2.SDLK_v,  sdl2.SDLK_w,  sdl2.SDLK_x,  sdl2.SDLK_y,  sdl2.SDLK_z]
-
-
-

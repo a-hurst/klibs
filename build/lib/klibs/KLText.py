@@ -128,7 +128,7 @@ class TextLayer(object):
 			bg_color = (0, 0, 0, 0)
 
 		rendering_font = self.__compile_font(font_name=font, font_size=font_size)
-		glyph_bitmap = rendering_font.getmask(string, mode=1)  # L = antialiasing mode
+		glyph_bitmap = rendering_font.getmask(string, mode="L")  # L = antialiasing mode
 		bitmap_as_1d_array = numpy.asarray(glyph_bitmap)
 		bitmap_as_2d_array = numpy.reshape(bitmap_as_1d_array, (glyph_bitmap.size[1], glyph_bitmap.size[0]), order='C')
 		rendered_text = numpy.zeros((glyph_bitmap.size[1], glyph_bitmap.size[0], 4))

@@ -23,89 +23,27 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="__init__.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/__init__.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="36" column="0" selection-start="698" selection-end="698" vertical-scroll-proportion="0.0" vertical-offset="468" max-vertical-offset="4277">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="KLNumpySurface.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/KLNumpySurface.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="32" column="16" selection-start="716" selection-end="716" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1196">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="KLExperiment.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/KLExperiment.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="920" column="42" selection-start="33757" selection-end="33757" vertical-scroll-proportion="0.0" vertical-offset="3702" max-vertical-offset="5837">
-              <folding>
-                <element signature="e#5006#6625#0" expanded="true" />
-                <element signature="e#15591#17656#0" expanded="true" />
-                <marker date="1423975475000" expanded="true" signature="1054:7218" placeholder="..." />
-                <marker date="1423975475000" expanded="true" signature="6676:7121" placeholder="..." />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="KLText.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="KLText.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/KLText.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="127" column="35" selection-start="4776" selection-end="4776" vertical-scroll-proportion="0.21802935" vertical-offset="754" max-vertical-offset="2054">
+            <state line="111" column="67" selection-start="4232" selection-end="4265" vertical-scroll-proportion="-50.5" vertical-offset="575" max-vertical-offset="2054">
               <folding>
                 <element signature="e#20#42#0" expanded="true" />
                 <element signature="e#3665#4265#0" expanded="true" />
+                <element signature="e#4529#5944#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLConstants.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/KLConstants.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="33" column="26" selection-start="634" selection-end="634" vertical-scroll-proportion="0.0" vertical-offset="429" max-vertical-offset="728">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="KLDatabase.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/KLDatabase.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="198" column="20" selection-start="6624" selection-end="6624" vertical-scroll-proportion="0.0" vertical-offset="2574" max-vertical-offset="6084">
-              <folding>
-                <marker date="1421181739000" expanded="true" signature="4648:4697" placeholder="SELECT name ..sqlite_master..." />
-                <marker date="1421181739000" expanded="true" signature="5432:5489" placeholder="SELECT `name..sqlite_master..." />
-                <marker date="1421181739000" expanded="true" signature="6648:6705" placeholder="SELECT `name..sqlite_master..." />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="KLParams.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/KLParams.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="48" column="35" selection-start="1107" selection-end="1107" vertical-scroll-proportion="0.0" vertical-offset="355" max-vertical-offset="1222">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="KLUtilities.py" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="KLUtilities.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/KLUtilities.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="288" column="5" selection-start="8222" selection-end="8227" vertical-scroll-proportion="0.0" vertical-offset="611" max-vertical-offset="1105">
+            <state line="311" column="0" selection-start="8730" selection-end="8730" vertical-scroll-proportion="0.93858266" vertical-offset="483" max-vertical-offset="1157">
               <folding>
-                <element signature="e#8431#8578#0" expanded="true" />
-                <element signature="e#8614#8713#0" expanded="true" />
-                <marker date="1423943555000" expanded="true" signature="8222:8713" placeholder="..." />
+                <element signature="e#4348#4512#0" expanded="true" />
+                <element signature="e#4818#4846#0" expanded="true" />
+                <element signature="e#8610#8729#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -132,11 +70,11 @@
         <option value="$PROJECT_DIR$/KLELCustomDisplay.py" />
         <option value="$PROJECT_DIR$/KLEyeLink.py" />
         <option value="$PROJECT_DIR$/KLConstants.py" />
-        <option value="$PROJECT_DIR$/KLUtilities.py" />
         <option value="$PROJECT_DIR$/KLNumpySurface.py" />
         <option value="$PROJECT_DIR$/KLExperiment.py" />
         <option value="$PROJECT_DIR$/KLParams.py" />
         <option value="$PROJECT_DIR$/KLText.py" />
+        <option value="$PROJECT_DIR$/KLUtilities.py" />
       </list>
     </option>
   </component>
@@ -195,14 +133,14 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="full.screen.before.presentation.mode" value="false" />
     <property name="options.splitter.main.proportions" value="0.3" />
+    <property name="full.screen.before.presentation.mode" value="false" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="options.lastSelected" value="reference.settingsdialog.IDE.editor.colors.General" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../../FigureGroundSearch" />
     <property name="FullScreen" value="false" />
-    <property name="options.searchVisible" value="true" />
     <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="options.searchVisible" value="true" />
   </component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
@@ -299,9 +237,6 @@
       <option name="PARAMETERS" value="" />
       <method />
     </configuration>
-    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug" singleton="true">
-      <method />
-    </configuration>
     <configuration default="true" type="tests" factoryName="Unittests">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -323,6 +258,9 @@
       <option name="PUREUNITTEST" value="true" />
       <option name="PARAMS" value="" />
       <option name="USE_PARAM" value="false" />
+      <method />
+    </configuration>
+    <configuration default="true" type="JavascriptDebugType" factoryName="JavaScript Debug" singleton="true">
       <method />
     </configuration>
     <configuration default="true" type="tests" factoryName="Doctests">
@@ -401,20 +339,20 @@
     <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32934928" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" x="23" y="335" width="593" height="248" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.119521916" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" x="23" y="335" width="593" height="248" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32998455" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.21377331" sideWeight="0.6706507" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.1814921" sideWeight="0.6706507" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21377331" sideWeight="0.8804781" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.19010043" sideWeight="0.880141" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="8" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="9" side_tool="true" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32998455" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
@@ -435,9 +373,9 @@
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21520804" sideWeight="0.6706507" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.1814921" sideWeight="0.6706507" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
     </layout-to-restore>
   </component>
   <component name="VcsContentAnnotationSettings">
@@ -465,10 +403,8 @@
       <provider selected="true" editor-type-id="text-editor">
         <state line="209" column="42" selection-start="6951" selection-end="6951" vertical-scroll-proportion="0.0" vertical-offset="3135" max-vertical-offset="18450">
           <folding>
-            <element signature="e#5006#6625#0" expanded="true" />
-            <element signature="e#15591#17656#0" expanded="true" />
-            <marker date="1423975475000" expanded="true" signature="1054:7218" placeholder="..." />
-            <marker date="1423975475000" expanded="true" signature="6676:7121" placeholder="..." />
+            <marker date="1423975475000" expanded="true" signature="-1:-1" placeholder="..." />
+            <marker date="1423975475000" expanded="true" signature="-1:-1" placeholder="..." />
           </folding>
         </state>
       </provider>
@@ -484,6 +420,7 @@
           <folding>
             <element signature="e#20#42#0" expanded="true" />
             <element signature="e#3665#4265#0" expanded="true" />
+            <element signature="e#4529#5944#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -512,16 +449,16 @@
       <provider selected="true" editor-type-id="text-editor">
         <state line="198" column="20" selection-start="6624" selection-end="6624" vertical-scroll-proportion="0.0" vertical-offset="680" max-vertical-offset="1157">
           <folding>
-            <marker date="1421181739000" expanded="true" signature="4648:4697" placeholder="SELECT name ..sqlite_master..." />
-            <marker date="1421181739000" expanded="true" signature="5432:5489" placeholder="SELECT `name..sqlite_master..." />
-            <marker date="1421181739000" expanded="true" signature="6648:6705" placeholder="SELECT `name..sqlite_master..." />
+            <marker date="1421181739000" expanded="true" signature="-1:-1" placeholder="SELECT name ..sqlite_master..." />
+            <marker date="1421181739000" expanded="true" signature="-1:-1" placeholder="SELECT `name..sqlite_master..." />
+            <marker date="1421181739000" expanded="true" signature="-1:-1" placeholder="SELECT `name..sqlite_master..." />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/KLConstants.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="33" column="26" selection-start="634" selection-end="634" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="728">
+        <state line="33" column="26" selection-start="634" selection-end="634" vertical-scroll-proportion="0.5098361" vertical-offset="118" max-vertical-offset="728">
           <folding />
         </state>
       </provider>
@@ -544,21 +481,8 @@
       <provider selected="true" editor-type-id="text-editor">
         <state line="920" column="42" selection-start="33757" selection-end="33757" vertical-scroll-proportion="0.0" vertical-offset="3702" max-vertical-offset="5837">
           <folding>
-            <element signature="e#5006#6625#0" expanded="true" />
-            <element signature="e#15591#17656#0" expanded="true" />
-            <marker date="1423975475000" expanded="true" signature="1054:7218" placeholder="..." />
-            <marker date="1423975475000" expanded="true" signature="6676:7121" placeholder="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/KLUtilities.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="288" column="5" selection-start="8222" selection-end="8227" vertical-scroll-proportion="0.0" vertical-offset="611" max-vertical-offset="1105">
-          <folding>
-            <element signature="e#8431#8578#0" expanded="true" />
-            <element signature="e#8614#8713#0" expanded="true" />
-            <marker date="1423943555000" expanded="true" signature="8222:8713" placeholder="..." />
+            <marker date="1423975475000" expanded="true" signature="-1:-1" placeholder="..." />
+            <marker date="1423975475000" expanded="true" signature="-1:-1" placeholder="..." />
           </folding>
         </state>
       </provider>
@@ -572,10 +496,22 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/KLText.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="127" column="35" selection-start="4776" selection-end="4776" vertical-scroll-proportion="0.21802935" vertical-offset="754" max-vertical-offset="2054">
+        <state line="111" column="67" selection-start="4232" selection-end="4265" vertical-scroll-proportion="-50.5" vertical-offset="575" max-vertical-offset="2054">
           <folding>
             <element signature="e#20#42#0" expanded="true" />
             <element signature="e#3665#4265#0" expanded="true" />
+            <element signature="e#4529#5944#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLUtilities.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="311" column="0" selection-start="8730" selection-end="8730" vertical-scroll-proportion="0.93858266" vertical-offset="483" max-vertical-offset="1157">
+          <folding>
+            <element signature="e#4348#4512#0" expanded="true" />
+            <element signature="e#4818#4846#0" expanded="true" />
+            <element signature="e#8610#8729#0" expanded="true" />
           </folding>
         </state>
       </provider>

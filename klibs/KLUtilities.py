@@ -301,9 +301,11 @@ class RGBCLI:
 		print "{0}{1}".format(string, self.col["@E"])
 
 
-def pr(string, priority=False):
-	if priority is False:
-		return
-	rgb = RGBCLI()
-	if priority >= Params.debug_level:
-		rgb.pr(string)
+def pr(string, priority=0):
+	try:
+		rgb = RGBCLI()
+		if priority >= Params.debug_level:
+			rgb.pr(string)
+	except:
+		if priority is False:
+			return

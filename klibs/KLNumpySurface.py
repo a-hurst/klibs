@@ -263,7 +263,18 @@ class NumpySurface(object):
 		#
 		# destination[position]
 
-	def mask(self, mask, position, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
+	def grey_scale_to_alpha(self, img):
+		if type(img) is NumpySurface:
+			mask = img.render()
+		elif type(img) is str:
+			mask = self.__import_image_file(img)
+		elif type(img) is not numpy.ndarray:
+			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
+
+		mask.foreground[0: mask.height, 0: mask.width, 3] = mask.foreground[0: mask.height, 0: mask.width, 1]
+		return mask
+
+	def mask(self, mask, position, grey_scale=False, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
 		if type(mask) is NumpySurface:
 			mask = mask.render()
 		elif type(mask) is str:

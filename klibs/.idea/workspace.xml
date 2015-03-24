@@ -26,24 +26,119 @@
       <file leaf-file-name="KLText.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/KLText.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="111" column="67" selection-start="4232" selection-end="4265" vertical-scroll-proportion="-50.5" vertical-offset="575" max-vertical-offset="2054">
+            <state line="111" column="67" selection-start="4265" selection-end="4265" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1710">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="KLNumpySurface.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/KLNumpySurface.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="348" column="27" selection-start="12499" selection-end="12499" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="4635">
               <folding>
-                <element signature="e#20#42#0" expanded="true" />
-                <element signature="e#3665#4265#0" expanded="true" />
-                <element signature="e#4529#5944#0" expanded="true" />
+                <element signature="e#704#844#0" expanded="true" />
+                <element signature="e#888#1043#0" expanded="true" />
+                <element signature="e#1310#3845#0" expanded="true" />
+                <element signature="e#5498#5614#0" expanded="true" />
+                <element signature="e#5853#6642#0" expanded="true" />
+                <element signature="e#6684#6867#0" expanded="true" />
+                <element signature="e#9318#9642#0" expanded="true" />
+                <element signature="e#12899#12923#0" expanded="true" />
+                <element signature="e#15324#16459#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLUtilities.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="KLExperiment.py" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/KLExperiment.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="674" column="26" selection-start="24985" selection-end="24985" vertical-scroll-proportion="1.607874" vertical-offset="5234" max-vertical-offset="9300">
+              <folding>
+                <element signature="e#20#33#0" expanded="true" />
+                <element signature="e#3271#4869#0" expanded="true" />
+                <element signature="e#7404#10018#0" expanded="true" />
+                <element signature="e#11095#14020#0" expanded="true" />
+                <element signature="e#15615#17680#0" expanded="true" />
+                <element signature="e#20140#20592#0" expanded="true" />
+                <element signature="e#20969#24648#0" expanded="true" />
+                <element signature="e#27947#28023#0" expanded="true" />
+                <element signature="e#28149#28379#0" expanded="true" />
+                <element signature="e#30229#30511#0" expanded="true" />
+                <element signature="e#30660#31386#0" expanded="true" />
+                <element signature="e#31552#31601#0" expanded="true" />
+                <element signature="e#42321#42325#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="KLKeyMap.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/KLKeyMap.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="25" column="50" selection-start="769" selection-end="769" vertical-scroll-proportion="0.0" vertical-offset="15" max-vertical-offset="1140">
+              <folding>
+                <element signature="e#134#416#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="KLDatabase.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/KLDatabase.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="307" column="66" selection-start="10398" selection-end="10398" vertical-scroll-proportion="0.0" vertical-offset="385" max-vertical-offset="2085">
+              <folding>
+                <marker date="1427202334000" expanded="true" signature="4648:4697" placeholder="SELECT name ..sqlite_master..." />
+                <marker date="1427202334000" expanded="true" signature="5432:5489" placeholder="SELECT `name..sqlite_master..." />
+                <marker date="1427202334000" expanded="true" signature="6648:6705" placeholder="SELECT `name..sqlite_master..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="KLEyeLink.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/KLEyeLink.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="125" column="42" selection-start="4519" selection-end="4519" vertical-scroll-proportion="0.0" vertical-offset="1410" max-vertical-offset="2955">
+              <folding>
+                <element signature="e#638#1220#0" expanded="true" />
+                <element signature="e#1244#1307#0" expanded="true" />
+                <element signature="e#1426#1639#0" expanded="true" />
+                <element signature="e#1707#3015#0" expanded="true" />
+                <element signature="e#3058#3121#0" expanded="true" />
+                <element signature="e#6071#6834#0" expanded="true" />
+                <element signature="e#6948#7439#0" expanded="true" />
+                <element signature="e#7462#7482#0" expanded="true" />
+                <element signature="e#7518#7746#0" expanded="true" />
+                <element signature="e#7803#7807#0" expanded="true" />
+                <element signature="e#7848#7872#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="KLConstants.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/KLConstants.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="24" column="0" selection-start="419" selection-end="419" vertical-scroll-proportion="0.0" vertical-offset="398" max-vertical-offset="840">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="KLUtilities.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/KLUtilities.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="311" column="0" selection-start="8730" selection-end="8730" vertical-scroll-proportion="0.93858266" vertical-offset="483" max-vertical-offset="1157">
+            <state line="161" column="24" selection-start="4639" selection-end="4639" vertical-scroll-proportion="0.0" vertical-offset="510" max-vertical-offset="1905">
               <folding>
+                <element signature="e#2593#3833#0" expanded="true" />
                 <element signature="e#4348#4512#0" expanded="true" />
-                <element signature="e#4818#4846#0" expanded="true" />
-                <element signature="e#8610#8729#0" expanded="true" />
+                <element signature="e#4540#4613#0" expanded="true" />
+                <element signature="e#4641#4713#0" expanded="true" />
+                <element signature="e#4852#4880#0" expanded="true" />
+                <element signature="e#8644#8763#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -59,8 +154,6 @@
   <component name="IdeDocumentHistory">
     <option name="changedFiles">
       <list>
-        <option value="$PROJECT_DIR$/numpy_surface.py" />
-        <option value="$PROJECT_DIR$/params.py" />
         <option value="$PROJECT_DIR$/UtilityFunctions.py" />
         <option value="$PROJECT_DIR$/Database.py" />
         <option value="$PROJECT_DIR$/NumpySurface.py" />
@@ -68,13 +161,15 @@
         <option value="$PROJECT_DIR$/__init__.py" />
         <option value="$PROJECT_DIR$/Experiment.py" />
         <option value="$PROJECT_DIR$/KLELCustomDisplay.py" />
-        <option value="$PROJECT_DIR$/KLEyeLink.py" />
         <option value="$PROJECT_DIR$/KLConstants.py" />
-        <option value="$PROJECT_DIR$/KLNumpySurface.py" />
-        <option value="$PROJECT_DIR$/KLExperiment.py" />
         <option value="$PROJECT_DIR$/KLParams.py" />
         <option value="$PROJECT_DIR$/KLText.py" />
+        <option value="$PROJECT_DIR$/KLDatabase.py" />
+        <option value="$PROJECT_DIR$/KLNumpySurface.py" />
         <option value="$PROJECT_DIR$/KLUtilities.py" />
+        <option value="$PROJECT_DIR$/KLKeyMap.py" />
+        <option value="$PROJECT_DIR$/KLEyeLink.py" />
+        <option value="$PROJECT_DIR$/KLExperiment.py" />
       </list>
     </option>
   </component>
@@ -339,12 +434,12 @@
     <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.119521916" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" x="23" y="335" width="593" height="248" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.119521916" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" x="23" y="335" width="593" height="248" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32998455" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32934928" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21377331" sideWeight="0.8804781" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.19010043" sideWeight="0.880141" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21305595" sideWeight="0.8804781" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.20157818" sideWeight="0.8804781" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="9" side_tool="true" content_ui="tabs" />
@@ -385,6 +480,7 @@
     <option name="myTodoPanelSettings">
       <TodoPanelSettings />
     </option>
+    <option name="SHOW_VCS_ERROR_NOTIFICATIONS" value="false" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -392,23 +488,6 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/KLParams.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="30" column="0" selection-start="572" selection-end="572" vertical-scroll-proportion="0.0" vertical-offset="450" max-vertical-offset="1890">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/KLExperiment.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="209" column="42" selection-start="6951" selection-end="6951" vertical-scroll-proportion="0.0" vertical-offset="3135" max-vertical-offset="18450">
-          <folding>
-            <marker date="1423975475000" expanded="true" signature="-1:-1" placeholder="..." />
-            <marker date="1423975475000" expanded="true" signature="-1:-1" placeholder="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/KLEyeLink.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="133" column="25" selection-start="5000" selection-end="5000" vertical-scroll-proportion="0.0" vertical-offset="1560" max-vertical-offset="1560" />
@@ -417,11 +496,7 @@
     <entry file="file://$PROJECT_DIR$/KLText.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="2" column="25" selection-start="68" selection-end="68" vertical-scroll-proportion="0.0" vertical-offset="30" max-vertical-offset="6330">
-          <folding>
-            <element signature="e#20#42#0" expanded="true" />
-            <element signature="e#3665#4265#0" expanded="true" />
-            <element signature="e#4529#5944#0" expanded="true" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -440,78 +515,124 @@
         <state line="13" column="18" selection-start="518" selection-end="518" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="0" />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/KLEyeLink.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="120" column="20" selection-start="4331" selection-end="4350" vertical-scroll-proportion="0.0" vertical-offset="1380" max-vertical-offset="2964" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/KLDatabase.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="198" column="20" selection-start="6624" selection-end="6624" vertical-scroll-proportion="0.0" vertical-offset="680" max-vertical-offset="1157">
-          <folding>
-            <marker date="1421181739000" expanded="true" signature="-1:-1" placeholder="SELECT name ..sqlite_master..." />
-            <marker date="1421181739000" expanded="true" signature="-1:-1" placeholder="SELECT `name..sqlite_master..." />
-            <marker date="1421181739000" expanded="true" signature="-1:-1" placeholder="SELECT `name..sqlite_master..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/KLConstants.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="33" column="26" selection-start="634" selection-end="634" vertical-scroll-proportion="0.5098361" vertical-offset="118" max-vertical-offset="728">
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="36" column="0" selection-start="698" selection-end="698" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="4004">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/KLNumpySurface.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="32" column="16" selection-start="716" selection-end="716" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1196">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/KLExperiment.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="920" column="42" selection-start="33757" selection-end="33757" vertical-scroll-proportion="0.0" vertical-offset="3702" max-vertical-offset="5837">
-          <folding>
-            <marker date="1423975475000" expanded="true" signature="-1:-1" placeholder="..." />
-            <marker date="1423975475000" expanded="true" signature="-1:-1" placeholder="..." />
-          </folding>
-        </state>
+        <state line="36" column="0" selection-start="698" selection-end="698" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="4004" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/KLParams.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="48" column="35" selection-start="1107" selection-end="1107" vertical-scroll-proportion="0.0" vertical-offset="355" max-vertical-offset="1222">
+        <state line="48" column="35" selection-start="1107" selection-end="1107" vertical-scroll-proportion="0.0" vertical-offset="355" max-vertical-offset="1222" />
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/lib/python2.7/site-packages/PIL/Image.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="-0.02047244" vertical-offset="13" max-vertical-offset="7423">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/KLText.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="111" column="67" selection-start="4232" selection-end="4265" vertical-scroll-proportion="-50.5" vertical-offset="575" max-vertical-offset="2054">
+        <state line="111" column="67" selection-start="4265" selection-end="4265" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1710">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLConstants.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="24" column="0" selection-start="419" selection-end="419" vertical-scroll-proportion="0.0" vertical-offset="80" max-vertical-offset="728">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLDatabase.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="307" column="66" selection-start="10398" selection-end="10398" vertical-scroll-proportion="0.0" vertical-offset="385" max-vertical-offset="2085">
           <folding>
-            <element signature="e#20#42#0" expanded="true" />
-            <element signature="e#3665#4265#0" expanded="true" />
-            <element signature="e#4529#5944#0" expanded="true" />
+            <marker date="1427202334000" expanded="true" signature="4648:4697" placeholder="SELECT name ..sqlite_master..." />
+            <marker date="1427202334000" expanded="true" signature="5432:5489" placeholder="SELECT `name..sqlite_master..." />
+            <marker date="1427202334000" expanded="true" signature="6648:6705" placeholder="SELECT `name..sqlite_master..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLKeyMap.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="25" column="50" selection-start="769" selection-end="769" vertical-scroll-proportion="0.0" vertical-offset="15" max-vertical-offset="1140">
+          <folding>
+            <element signature="e#134#416#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLNumpySurface.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="348" column="27" selection-start="12499" selection-end="12499" vertical-scroll-proportion="0.0" vertical-offset="2970" max-vertical-offset="4635">
+          <folding>
+            <element signature="e#704#844#0" expanded="true" />
+            <element signature="e#888#1043#0" expanded="true" />
+            <element signature="e#1310#3845#0" expanded="true" />
+            <element signature="e#5498#5614#0" expanded="true" />
+            <element signature="e#5853#6642#0" expanded="true" />
+            <element signature="e#6684#6867#0" expanded="true" />
+            <element signature="e#9318#9642#0" expanded="true" />
+            <element signature="e#12899#12923#0" expanded="true" />
+            <element signature="e#15324#16459#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/KLUtilities.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="311" column="0" selection-start="8730" selection-end="8730" vertical-scroll-proportion="0.93858266" vertical-offset="483" max-vertical-offset="1157">
+        <state line="161" column="24" selection-start="4639" selection-end="4639" vertical-scroll-proportion="0.0" vertical-offset="510" max-vertical-offset="1905">
           <folding>
+            <element signature="e#2593#3833#0" expanded="true" />
             <element signature="e#4348#4512#0" expanded="true" />
-            <element signature="e#4818#4846#0" expanded="true" />
-            <element signature="e#8610#8729#0" expanded="true" />
+            <element signature="e#4540#4613#0" expanded="true" />
+            <element signature="e#4641#4713#0" expanded="true" />
+            <element signature="e#4852#4880#0" expanded="true" />
+            <element signature="e#8644#8763#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLEyeLink.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="125" column="42" selection-start="4519" selection-end="4519" vertical-scroll-proportion="0.0" vertical-offset="1410" max-vertical-offset="2955">
+          <folding>
+            <element signature="e#638#1220#0" expanded="true" />
+            <element signature="e#1244#1307#0" expanded="true" />
+            <element signature="e#1426#1639#0" expanded="true" />
+            <element signature="e#1707#3015#0" expanded="true" />
+            <element signature="e#3058#3121#0" expanded="true" />
+            <element signature="e#6071#6834#0" expanded="true" />
+            <element signature="e#6948#7439#0" expanded="true" />
+            <element signature="e#7462#7482#0" expanded="true" />
+            <element signature="e#7518#7746#0" expanded="true" />
+            <element signature="e#7803#7807#0" expanded="true" />
+            <element signature="e#7848#7872#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/KLExperiment.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="674" column="26" selection-start="24985" selection-end="24985" vertical-scroll-proportion="1.607874" vertical-offset="5234" max-vertical-offset="9300">
+          <folding>
+            <element signature="e#20#33#0" expanded="true" />
+            <element signature="e#3271#4869#0" expanded="true" />
+            <element signature="e#7404#10018#0" expanded="true" />
+            <element signature="e#11095#14020#0" expanded="true" />
+            <element signature="e#15615#17680#0" expanded="true" />
+            <element signature="e#20140#20592#0" expanded="true" />
+            <element signature="e#20969#24648#0" expanded="true" />
+            <element signature="e#27947#28023#0" expanded="true" />
+            <element signature="e#28149#28379#0" expanded="true" />
+            <element signature="e#30229#30511#0" expanded="true" />
+            <element signature="e#30660#31386#0" expanded="true" />
+            <element signature="e#31552#31601#0" expanded="true" />
+            <element signature="e#42321#42325#0" expanded="true" />
           </folding>
         </state>
       </provider>

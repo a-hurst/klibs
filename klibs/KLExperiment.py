@@ -224,6 +224,7 @@ class Experiment(object):
 	def display_init(self, view_distance, ppi="crt"):
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
+		sdl2.SDL_PumpEvents()
 		Params.screen_x_y = [Params.screen_x, Params.screen_y]
 		self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), SCREEN_FLAGS)
 		Params.screen_c = (Params.screen_x / 2, Params.screen_y / 2)
@@ -572,7 +573,7 @@ class Experiment(object):
 		return False
 
 	# todo: listen is not a method; it should be a class, "listener", that gets configured
-	def listen(self, max_wait=MAX_WAIT, key_map_name="*", wait_callback=None, wait_cb_args={}, wait_cb_kwargs={},
+	def listen(self, max_wait=MAX_WAIT, key_map_name="*", wait_callback=None, wait_cb_args={}, wait_cb_kwargs={}, wait_cb_returns=False,
 			el_args=None, null_response=None, time_out_message=None, response_count=None, response_map=None,
 			interrupt=True, quick_return=False, flip=True):
 		# TODO: have customizable wrong key & time-out behaviors
@@ -612,9 +613,7 @@ class Experiment(object):
 		# then = time.time()
 		while waiting:
 			# now = time.time()
-			# if print_interval:  # todo: this was once an argument; should be a component of verbosity once implemented
-			# 	print str(int((now - then) * 1000)) + "ms"
-			# 	# print "%f" % (now - then)
+			# pr("\t@TListen Loop Time: {0}ms".format(int((now - then) * 1000)), 1)
 			# then = now
 			try:
 				self.eyelink.listen(**el_args)
@@ -623,9 +622,9 @@ class Experiment(object):
 
 			if wait_callback:
 				try:
-					wait_response = wait_callback(*wait_cb_args, **wait_cb_kwargs)
-					if wait_response:
-						return [wait_response, time.time() - start_time]
+					wait_resp = wait_callback(*wait_cb_args, **wait_cb_kwargs)
+					if wait_resp:
+						return [wait_resp, time.time() - start_time]
 				except Exception as e:
 					raise RuntimeError("Wait_callback failed with following message: {0}".format(e.message))
 
@@ -833,7 +832,7 @@ class Experiment(object):
 			self.message('PAUSED', fullscreen=True, location='center', font_size=96, color=(255, 0, 0, 255),
 						registration=5, blit=False)
 			self.over_watch()
-			self.flip_callback()
+			self.listen_refresh()
 
 	def pre_blit(self, source, start_time, end_time, registration=7, pos=(0, 0), destination=None, flags=None, area=None,
 				interim_action=None):
@@ -856,7 +855,7 @@ class Experiment(object):
 			if interim_action is not None:
 				interim_action()
 			now = time.time()
-		self.flip_callback()
+		self.listen_refresh()
 		return now - start_time + end_time
 
 	def pre_bug(self):
@@ -1181,8 +1180,4 @@ class Experiment(object):
 
 	@abc.abstractmethod
 	def trial_clean_up(self):
-		pass
-
-	@abc.abstractmethod
-	def flip_callback(self, **kwargs):
 		pass

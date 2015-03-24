@@ -126,7 +126,7 @@ try:
 					self.experiment.flip()
 					in_bounds = self.within_boundary(dc_gaze_boundary, self.gaze())
 					return  in_bounds
-				return self.experiment.listen(MAX_WAIT, OVER_WATCH, wait_callback=dc, wait_cb_args=[location, gaze_boundary])
+				return self.experiment.listen(MAX_WAIT, OVER_WATCH, wait_callback=dc, wait_cb_args=[location, gaze_boundary], wait_cb_returns=True)
 
 
 		def gaze(self, eye_required=None, return_integers=True):

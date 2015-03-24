@@ -311,7 +311,7 @@ class KLDatabase(object):
 			data = self.entry(current)
 			if not data:
 				raise AttributeError("No data was provided and a Database.__currentEntry is not set.")
-		data_is_entry_template = False # expected use is to insert from an EntryTemplate object, but raw data is also allowed
+		data_is_entry_template = False  # expected use is to insert from an EntryTemplate object, but raw data is also allowed
 		if data.__class__.__name__ == 'EntryTemplate':
 			data_is_entry_template = True
 			query = data.build_query('insert')
@@ -334,13 +334,13 @@ class KLDatabase(object):
 			clean_data = [None, ] * field_count
 			insert_template = [None, ] * field_count
 			if len(data) == field_count:
-				for fieldName in template:
-					field = template[fieldName]
+				for field_name in template:
+					field = template[field_name]
 					order = field['order']
 					if template['id']:
 						order -= 1
 					if type(data[order]).__name__ == field['type']:
-						insert_template[order] = fieldName
+						insert_template[order] = field_name
 						if field['type'] == ('int' or 'float'):
 							clean_data[order] = str(data[order])
 						else:
@@ -348,6 +348,7 @@ class KLDatabase(object):
 			else:
 				raise AttributeError('Length of data list exceeds number of table columns.')
 			query = "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, ",".join(insert_template), ",".join(clean_data))
+			print query
 		self.cursor.execute(query)
 		self.db.commit()
 		if tidy_execute and data_is_entry_template:

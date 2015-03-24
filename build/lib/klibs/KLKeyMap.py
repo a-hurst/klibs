@@ -10,7 +10,7 @@ class KeyMap(object):
 		else:
 			raise TypeError("Argument 'name' must be a string.")
 
-		self.__register(ui_labels, sdl_keysyms, data_labels)
+		self.__register(ui_labels, data_labels, sdl_keysyms)
 
 	def __str__(self):
 		map_string = ""
@@ -45,10 +45,10 @@ class KeyMap(object):
 		else:
 			raise TypeError("All elements of 'data_labels' must be of type 'int' or 'str'.")
 
-		if all(type(sdl_keysym) is int for sdl_keysym in sdl_keysyms):
+		if all(type(sdl_keysym) in (int, str) for sdl_keysym in sdl_keysyms):
 			self.map[2] = sdl_keysyms
 		else:
-			raise TypeError("All elements of 'sdl_keysyms' argument must be of type 'int'.")
+			raise TypeError("All elements of 'sdl_keysyms' argument must be of an SDL2_KeyCode Value.")
 
 	def validate(self, sdl_keysym):
 		if type(sdl_keysym) is int:

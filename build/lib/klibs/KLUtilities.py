@@ -157,11 +157,11 @@ def mouse_pos(pump=True):
 
 def hide_mouse_cursor():
 	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
-	return True
+	return sdl2.SDL_PumpEvents()
 
 def show_mouse_cursor():
 	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_ENABLE)
-	return True
+	return sdl2.SDL_PumpEvents()
 
 def peak(v1, v2):
 	if v1 > v2:
@@ -304,7 +304,7 @@ class RGBCLI:
 def pr(string, priority=0):
 	try:
 		rgb = RGBCLI()
-		if priority >= Params.debug_level:
+		if priority <= Params.debug_level:
 			rgb.pr(string)
 	except:
 		if priority is False:

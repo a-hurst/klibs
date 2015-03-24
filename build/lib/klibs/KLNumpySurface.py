@@ -263,20 +263,35 @@ class NumpySurface(object):
 		#
 		# destination[position]
 
-	def mask(self, mask, position, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
+	def grey_scale_to_alpha(self, img):
+		if type(img) is NumpySurface:
+			img = img.render()
+		elif type(img) is str:
+			img = self.__import_image_file(img)
+		elif type(img) is not numpy.ndarray:
+			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
+		img[0: -1, 0: -1, 3] = img[0: -1, 0: -1, 0]
+		return img
+
+	def mask(self, mask, position, grey_scale=False, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
 		if type(mask) is NumpySurface:
 			mask = mask.render()
 		elif type(mask) is str:
 			mask = self.__import_image_file(mask)
 		elif type(mask) is not numpy.ndarray:
 			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
-
+		if grey_scale:
+			mask = self.grey_scale_to_alpha(mask)
 		if layer == NS_FOREGROUND:
 			self.__foreground_unmask = copy(self.foreground)
 			self.__foreground_mask = mask
 			self.__ensure_writeable(NS_FOREGROUND)
 			if auto_truncate:
-				position = [position[0], position[1]]  # todo: use duck typing properly so this can arrive as a list
+				try:
+					iter_pos = iter(position)
+					position = [position[0], position[1]]
+				except:
+					print "Argument 'position' must be iterable set of polar coordinates."
 				# layer_yx = self.foreground.shape
 				# mask_height = self.foreground.shape[0] - mask.shape[0] + -1 * position[1]
 				# mask_width = self.foreground.shape[1] - mask.shape[1] + -1 * position[0]
@@ -286,10 +301,12 @@ class NumpySurface(object):
 				mask_x2 = 0
 				mask_y1 = 0
 				mask_y2 = 0
-
 				# make sure position isn't impossible (ie. not off right-hand or bottom edge)
 				if position[0] >= 0:
-					mask_x1 = position[0]
+					if (mask.shape[0] + position[1]) > self.foreground.shape[0]:
+						mask_x1 = self.foreground.shape[0] - position[1]
+					else:
+						mask_x1 = 0
 					if mask.shape[1] + position[0] > self.foreground.shape[1]:
 						mask_x2 = self.foreground.shape[1] - position[0]
 					else:
@@ -302,6 +319,7 @@ class NumpySurface(object):
 					else:
 						mask_x2 = self.foreground.shape[1] - (abs(position[0]) + mask.shape[1])
 					new_pos[0] = 0
+
 
 				if position[1] >= 0:
 					mask_y1 = position[1]
@@ -317,9 +335,10 @@ class NumpySurface(object):
 					else:
 						mask_y2 = self.foreground.shape[0] - (abs(position[1]) + mask.shape[0])
 					new_pos[1] = 0
-				mask = mask[mask_y1: mask_y2, mask_x1: mask_x2]
+
+				# mask = mask[mask_y1: mask_y2, mask_x1: mask_x2]
 				position = new_pos
-				# print "Mask Shape: {0}, Position: {1}, FG Shape: {2}".format(mask.shape, position, self.foreground.shape)
+				pr("\t@TMask Shape: {0}, Position: {1}, FG Shape: {2}".format(mask.shape, position, self.foreground.shape), 2)
 
 			elif self.region_in_layer_bounds(mask, position, NS_FOREGROUND):
 				self.__fg_mask_position = position

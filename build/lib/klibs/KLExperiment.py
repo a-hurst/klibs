@@ -573,14 +573,13 @@ class Experiment(object):
 		return False
 
 	# todo: listen is not a method; it should be a class, "listener", that gets configured
-	def listen(self, max_wait=MAX_WAIT, key_map_name="*", wait_callback=None, wait_cb_args={}, wait_cb_kwargs={}, wait_cb_returns=False,
-			el_args=None, null_response=None, time_out_message=None, response_count=None, response_map=None,
-			interrupt=True, quick_return=False, flip=True):
+	def listen(self, max_wait=MAX_WAIT, key_map_name="*", el_args=None, null_response=None, response_count=None,
+			   interrupt=True, flip=True, wait_callback=None, *wait_args, **wait_kwargs ):
+		# TODO: response_count should be a real thing
 		# TODO: have customizable wrong key & time-out behaviors
 		# TODO: make RT & Response part of a customizable ResponseMap object
 		# TODO: start_time should be optionally predefined and/or else add a latency param to be added onto starTime
 		# TODO: make it possible to pass the parameters of a new KeyMap directly to listen()
-		# TODO: add functionality for wait_callback() to exit the loop
 		# TODO: add functionality for wait_callback() to exit the loop
 		# establish an interval for which to listen for responding
 		key_map = None
@@ -622,9 +621,8 @@ class Experiment(object):
 
 			if wait_callback:
 				try:
-					wait_resp = wait_callback(*wait_cb_args, **wait_cb_kwargs)
+					wait_resp = wait_callback(*wait_args, **wait_kwargs)
 					if wait_resp:
-						print "poo"
 						return [wait_resp, time.time() - start_time]
 				except Exception as e:
 					raise RuntimeError("Wait_callback failed with following message: {0}".format(e.message))

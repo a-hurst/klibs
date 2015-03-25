@@ -27,9 +27,10 @@ class TextLayer(object):
 	__default_bg_color = (255, 255, 255)
 	__default_font_size = None
 	__default_font = None
-	__print_locations = {'query': None, 'response': None}
-	__default_strings = {'query': None, 'response': None}
+	__print_locations = {'query': None, 'response': None, 'timeout':None }
+	__default_strings = {'query': None, 'response': None, 'timeout':None }
 	__default_message_duration = 1
+
 
 	def __init__(self, window_dimensions, monitor_dimensions, dpi, default_font=None, default_font_size="18pt",
 					asset_path=None, fonts_directory_path=None, default_query_string=None, default_response_string=None,
@@ -284,12 +285,12 @@ class TextLayer(object):
 	def default_query_location(self, query_location):
 		"""
 		Set the default screen locations for prompts and responses
-		:param query: Set the location of questions to the user.
 		"""
-		if type(query_location) is tuple:
+		try:
+			query_iter = iter(query_location)
 			self.__print_locations['query'] = query_location
-		else:
-			raise TypeError("query_location must be a tuple of integers reflecting x and y coordinates.")
+		except:
+			raise TypeError("query_location must be an iterable object containing a pair of x,y integers .")
 
 	@property
 	def default_response_location(self):
@@ -299,12 +300,29 @@ class TextLayer(object):
 	def default_response_location(self, response_location):
 		"""
 		Set the default screen locations for prompts and responses
-		:param response: Set the location of user input for responding to a query
 		"""
-		if type(response_location) is tuple:
+		try:
+			response_iter = iter(response_location)
 			self.__print_locations['response'] = response_location
-		else:
-			raise TypeError("response_location must be a tuple of integers reflecting x and y coordinates.")
+		except:
+			raise TypeError("response_location must be an iterable object containing a pair of x,y integers .")
+
+
+	@property
+	def default_timeout_location(self):
+		return self.__print_locations['timeout']
+
+	@default_timeout_location.setter
+	def default_timeout_location(self, timeout_location):
+		"""
+		Set the default screen locations for prompts and responses
+		"""
+		try:
+			timeout_iter = iter(timeout_location)
+			self.__print_locations['timeout'] = timeout_location
+		except:
+			raise TypeError("timeout_location must be an iterable object containing a pair of x,y integers .")
+
 
 	@property
 	def default_query_string(self):
@@ -325,6 +343,17 @@ class TextLayer(object):
 	def default_response_string(self, response_string):
 		if type(response_string) is str:
 			self.__default_string['response'] = response_string
+		else:
+			raise TypeError("'response_string' must be a string.")
+
+	@property
+	def default_timeout_string(self):
+		return self.__default_strings['timeout']
+
+	@default_timeout_string.setter
+	def default_timeout_string(self, timeout_string):
+		if type(timeout_string) is str:
+			self.__default_string['timeout'] = timeout_string
 		else:
 			raise TypeError("'response_string' must be a string.")
 

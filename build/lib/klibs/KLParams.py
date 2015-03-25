@@ -48,6 +48,7 @@ default_alert_duration = 1
 default_fill_color = [45, 45, 45, 255]
 default_response_color = [41,28, 70, 255]
 default_input_color = [45, 25, 28, 255]
+default_timeout_message = "Too slow!"
 monitor_x = None
 monitor_y = None
 diagonal_px = None

@@ -575,6 +575,7 @@ class Experiment(object):
 	# todo: listen is not a method; it should be a class, "listener", that gets configured
 	def listen(self, max_wait=MAX_WAIT, key_map_name="*", el_args=None, null_response=None, response_count=None,
 			   interrupt=True, flip=True, wait_callback=None, *wait_args, **wait_kwargs ):
+		pr("@PKLExperiment.listen() reached", 1)
 		# TODO: response_count should be a real thing
 		# TODO: have customizable wrong key & time-out behaviors
 		# TODO: make RT & Response part of a customizable ResponseMap object
@@ -619,15 +620,17 @@ class Experiment(object):
 			except TypeError:
 				self.eyelink.listen()
 
+			sdl2.SDL_PumpEvents()
 			if wait_callback:
 				try:
 					wait_resp = wait_callback(*wait_args, **wait_kwargs)
 					if wait_resp:
+						waiting = False
 						return [wait_resp, time.time() - start_time]
 				except Exception as e:
-					raise RuntimeError("Wait_callback failed with following message: {0}".format(e.message))
+					err_message = "wait callback failed with following message: {0}".format(e.message)
+					raise RuntimeError(err_message)
 
-			sdl2.SDL_PumpEvents()
 			for event in sdl2.ext.get_events():
 				if event.type == sdl2.SDL_KEYDOWN:
 					rt = time.time() - start_time
@@ -639,6 +642,7 @@ class Experiment(object):
 						if valid:  # a KeyMap with name "*" (ie. any key) returns self.ANY_KEY
 							response = key_map.read(sdl_keysym, "data")
 							if interrupt:  # ONLY for TIME SENSITIVE reactions to participant response; this flag voids overwatch()
+								pr("@BKLExperiment.listen() exiting", 1)
 								return [response, rt]
 						else:
 							wrong_key = True
@@ -646,8 +650,10 @@ class Experiment(object):
 						self.over_watch(event)  # ensure the 'wrong key' wasn't a call to quit or pause
 						if interrupt:    # returns response immediately; else waits for maxWait to elapse
 							if response:
+								pr("@BKLExperiment.listen() exiting", 1)
 								return [response, rt]
 							elif key_map.any_key:
+								pr("@BKLExperiment.listen() exiting", 1)
 								return [key_map.any_key_string, rt]
 						if wrong_key is True:  # flash an error for an actual wrong key
 							pass
@@ -657,15 +663,18 @@ class Experiment(object):
 							# wrong_key = False
 			if (time.time() - start_time) > max_wait:
 				waiting = False
-				if time_out_message:
-					self.alert(time_out_message, display_for=Params.default_alert_duration)
-					return [TIMEOUT, -1]
+				# self.alert(Params.default_timeout_message, display_for=Params.default_alert_duration)
+				pr("@BKLExperiment.listen() exiting", 1)
+				return [TIMEOUT, -1]
 		if not response:
 			if null_response:
+				pr("@BKLExperiment.listen() exiting", 1)
 				return [null_response, rt]
 			else:
+				pr("@BKLExperiment.listen() exiting", 1)
 				return [NO_RESPONSE, rt]
 		else:
+			pr("@BKLExperiment.listen() exiting", 1)
 			return [response, rt]
 
 	def message(self, message, font=None, font_size=None, color=None, bg_color=None, location=None, registration=None,

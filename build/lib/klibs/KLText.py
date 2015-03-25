@@ -45,6 +45,8 @@ class TextLayer(object):
 			self.default_response_string = default_response_string
 		if default_query_string:
 			self.default_query_string = default_query_string
+		self.default_timeout_string = "Too slow!"
+		self.default_timeout_location = "center"
 
 		if type(default_locations) is list and len(default_locations) == 2:  # query & response exist by default
 			self.default_query_location = default_locations[0]
@@ -342,7 +344,7 @@ class TextLayer(object):
 	@default_response_string.setter
 	def default_response_string(self, response_string):
 		if type(response_string) is str:
-			self.__default_string['response'] = response_string
+			self.__default_strings['response'] = response_string
 		else:
 			raise TypeError("'response_string' must be a string.")
 
@@ -353,9 +355,9 @@ class TextLayer(object):
 	@default_timeout_string.setter
 	def default_timeout_string(self, timeout_string):
 		if type(timeout_string) is str:
-			self.__default_string['timeout'] = timeout_string
+			self.__default_strings['timeout'] = timeout_string
 		else:
-			raise TypeError("'response_string' must be a string.")
+			raise TypeError("'timeout_string' must be a string.")
 
 	@property
 	def default_color(self):

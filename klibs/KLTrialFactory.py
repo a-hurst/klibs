@@ -2,9 +2,11 @@ __author__ = 'jono'
 
 import random
 import re
+import os
 import KLParams as Params
 from collections import OrderedDict
 
+FACTORIZE = 0
 
 
 class TrialIterator(object):
@@ -52,7 +54,7 @@ class TrialFactory(object):
 	excluded_practice_factors = None
 
 	# Behaviors
-	trial_generation = FACTOR
+	trial_generation = FACTORIZE
 
 	def __init__(self, factors):
 		self.factors = OrderedDict(factors)
@@ -60,7 +62,8 @@ class TrialFactory(object):
 	def define_trial(self, rule, quantity):
 		pass
 
-	def import_stim_file(self, path, delimeter):
+	def import_stim_file(self, path, delimeter, trials_per_row=1, trial_count_column=None):
+		os
 		pass
 
 	def add_inferred_factor(self, factor_name, generator, argument_list):
@@ -119,8 +122,8 @@ class TrialFactory(object):
 		self.executed_trials.append(trial)
 		return trial
 
-	def recycle(self):
-		recycled_trial = self.executed_trials.pop()
+	def recycle(self, trial_number=None):
+		recycled_trial = self.executed_trials.pop() if trial_number is None else self.executed_trials[trial_number]
 		if self.recycle_behavior is "shuffle":
 			self.trials.append(recycled_trial)
 			random.shuffle(self.trials)

@@ -3,6 +3,7 @@ __author__ = 'jono'
 import random
 import re
 import os
+import csv
 import KLParams as Params
 from collections import OrderedDict
 
@@ -62,9 +63,12 @@ class TrialFactory(object):
 	def define_trial(self, rule, quantity):
 		pass
 
-	def import_stim_file(self, path, delimeter, trials_per_row=1, trial_count_column=None):
-		os
-		pass
+	def import_stim_file(self, path, delimeter=",", trials_per_row=1, trial_count_column=None):
+		if os.path.exists(path):
+			stim_file = csv.reader(open(path, 'rb'), delimeter=delimeter)
+			headers = stim_file[0].split()
+
+
 
 	def add_inferred_factor(self, factor_name, generator, argument_list):
 			self.factors[factor_name] = {"f": generator, "arg_list": argument_list}

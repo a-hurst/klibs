@@ -17,6 +17,8 @@ global schema_file_path
 global schema_filename
 global data_path
 global incomplete_data_path
+global config_filename
+global config_file_path
 global initialized
 
 initialized = False
@@ -86,6 +88,8 @@ block_number = 0
 blocks_per_experiment = 0
 practice_blocks_per_experiment = 0
 
+#data
+data_columns = None
 
 def init_project():
 	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
@@ -101,11 +105,14 @@ def init_project():
 	global schema_filename
 	global data_path
 	global incomplete_data_path
+	global config_filename
+	global config_file_path
 	global initialized
 
 	database_filename = project_name + DB
 	schema_filename = project_name + SCHEMA
 	log_filename = project_name + LOG
+	config_filename = project_name + CONFIG
 	edf_path = os.path.join(asset_path, EDF)  # todo: write edf management
 	log_file_path = os.path.join(asset_path, log_filename)
 	schema_file_path = os.path.join(asset_path, schema_filename)
@@ -113,6 +120,7 @@ def init_project():
 	database_backup_path = database_path + BACK
 	data_path = os.path.join(asset_path, "Data")
 	incomplete_data_path = os.path.join(data_path, "incomplete")
+	config_file_path = os.path.join(asset_path, config_filename)
 	initialized = True
 	return True
 

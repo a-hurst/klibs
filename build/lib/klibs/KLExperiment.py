@@ -20,6 +20,7 @@ import KLParams as Params
 from KLConstants import *
 from KLELCustomDisplay import KLELCustomDisplay
 from KLDraw import *
+from KLTrialFactory import KLTrialFactory
 
 
 class TrialIterator(object):
@@ -83,6 +84,9 @@ class Experiment(object):
 										sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT, sdl2.SDLK_RIGHT],
 										["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 
+		self.trial_factory = KLTrialFactory()
+		pr("@PParams.data_columns = {0}".format(Params.data_columns))
+		exit()
 		# this is silly but it makes importing from the params file work smoothly with rest of App
 		self.event_code_generator = None
 
@@ -663,7 +667,6 @@ class Experiment(object):
 							# wrong_key = False
 			if (time.time() - start_time) > max_wait:
 				waiting = False
-				# self.alert(Params.default_timeout_message, display_for=Params.default_alert_duration)
 				pr("@BKLExperiment.listen() exiting", 1)
 				return [TIMEOUT, -1]
 		if not response:

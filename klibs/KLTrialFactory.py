@@ -5,9 +5,11 @@ import re
 import os
 import csv
 import KLParams as Params
+import re
 from collections import OrderedDict
+from KLUtilities import *
 
-FACTORIZE = 0
+
 
 
 class TrialIterator(object):
@@ -43,37 +45,71 @@ class TrialIterator(object):
 		self.length += 1
 
 
-class TrialFactory(object):
+class KLTrialFactory(object):
 	trials = None
 	executed_trials = None
-	factors = None
 	meta_factors = None
-	factorization_rules = None
+	exp_parameters = []
 	max_trials = None
 	trials_per_block = None
 	practice_trials = None
 	excluded_practice_factors = None
+	config_file_rows = []
 
 	# Behaviors
-	trial_generation = FACTORIZE
+	trial_generation = None
+	event_code_generator = None
 
-	def __init__(self, factors):
-		self.factors = OrderedDict(factors)
+	def __init__(self):
+		self.param_weight_search = re.compile("^.*[ ]{0,}\[([0-9]{1,3})\]$")
+		self.param_label_search = re.compile("^(.*)([ ]{0,}\[[0-9]{1,3}\])$")
+		self.import_stim_file(Params.config_file_path)
 
 	def define_trial(self, rule, quantity):
 		pass
 
-	def import_stim_file(self, path, delimeter=",", trials_per_row=1, trial_count_column=None):
+	def import_stim_file(self, path):
+		pr("KLTrialFactory.import_stim_file(self, path)", 3, ENTERING)
+		data_columns = []
+		parameters = []
 		if os.path.exists(path):
-			stim_file = csv.reader(open(path, 'rb'), delimeter=delimeter)
-			headers = stim_file[0].split()
+			config_file = csv.reader(open(path, 'rb'))
+			row_count = 0
+			for row in config_file:
+				self.config_file_rows.append(row)
+				self.__parse_parameters_row(row, header=row_count == 0)
+				row_count += 1
+		self.__generate_trials()
+		pr("@T\tself.parameters: {0}".format(self.exp_parameters), 1)
+		pr("KLTrialFactory.import_stim_file(self, path)\n", 3, EXITING)
+		return True
 
-
+	def __parse_parameters_row(self, row, header=False):
+		pr("KLTrialFactory.__parse_parameters_row(self, row, header)", 1, ENTERING)
+		pr("\t@Theader: {0}".format(header))
+		col = 0
+		for el in row:
+			if header:
+				column_name = el.split(".")
+				try:
+					if column_name[1] == TF_PARAM: self.exp_parameters.append([column_name[0], []])
+				except:
+					continue
+			else:
+				if len(el) > 0:
+					weight = self.param_weight_search.match(el)
+					param_label = self.param_label_search.match(el).group(1) if weight is not None else el
+					pr("\t@Tweight:{0}, param_label: {1}".format(weight, param_label), 1)
+					self.exp_parameters[col][1].append((param_label, 1 if weight is None else int(weight.group(1))))
+			col += 1
+		if self.exp_parameters[-1][0] in [TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC]: self.trial_generation = TF_STIM_FILE
+		pr("KLTrialFactory.__parse_parameters_row(self, row)", 1, EXITING)
+		return None
 
 	def add_inferred_factor(self, factor_name, generator, argument_list):
-			self.factors[factor_name] = {"f": generator, "arg_list": argument_list}
+		self.exp_parameters[factor_name] = {"f": generator, "arg_list": argument_list}
 
-	def __generate_trials(self, practice=False, event_code_generator=None):
+	def __generate_trials(self):
 		"""
 		Example usage:
 		Jono: event_code_gen: literally creates an event code, as per some rule, that will be in the trial_factors list
@@ -88,17 +124,26 @@ class TrialFactory(object):
 		:param event_code_generator:
 		:return:
 		"""
-		trials = [[practice]]
-		factors = ['practice']
+		trials = [[Params.practicing]]
+		exp_params = ['practice']
+		if self.trial_generation == TF_STIM_FILE:
+			for row in self.exp_parameters:
+				trial = []
+				for el in row:
+					if el[0] in [TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC]:
+
+					else:
+						trial.append(el[0])
+
 		eval_queue = list()
-		for factor in Params.exp_factors:
+		for factor in self.exp_parameters:
 			label = factor[0]
 			elements = factor[1]
 			temp = list()
 			if label[-5:] == '_bool':
 				eval_queue.append([label, elements])
 			else:
-				factors.append(label)
+				exp_params.append(label)
 				for element in trials:
 					if element:
 						for v in elements:
@@ -107,18 +152,21 @@ class TrialFactory(object):
 							temp.append(te)
 				trials = temp[:]
 		for element in eval_queue:
-			factors.append(element[0][:-5])
+			exp_params.append(element[0][:-5])
 			# print "element: " + element[1]
 			operands = re.split('[=>!<]+', str(element[1]).strip())
 			operator = re.search('[=<!>]+', str(element[1])).group()
 			for t in trials:
 				t.append(
-					eval('t[factors.index(\'' + operands[0] + '\')]' + operator + 't[factors.index(\'' + operands[
+					eval('t[exp_params.index(\'' + operands[0] + '\')]' + operator + 't[exp_params.index(\'' + operands[
 						1] + '\')]'))
-		if event_code_generator is not None and type(event_code_generator).__name__ == 'function':
-			factors.append('code')
-			for t in trials:
-				t.append(event_code_generator(t))
+		try:
+			if self.event_code_generator is not None:
+				exp_params.append('code')
+				for t in trials:
+					t.append(self.event_code_generator(t))
+		except:
+			pass
 		Params.trials = trials
 
 	def pop(self):
@@ -132,5 +180,3 @@ class TrialFactory(object):
 			self.trials.append(recycled_trial)
 			random.shuffle(self.trials)
 		return True
-
-

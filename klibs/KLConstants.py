@@ -4,10 +4,11 @@ import sdl2
 DB = ".db"
 EDF = "EDF"
 EDF_EXT = ".EDF"
-DATA = ".txt"
+TF_DATA = ".txt"
 BACK = ".backup"
 LOG = "_log.txt"
 SCHEMA = "_schema.sql"
+CONFIG = "_config.csv"
 INCH = "in"
 CM = "cm"
 NS_FOREGROUND = 1  # NumpySurface foreground layer
@@ -45,6 +46,17 @@ RECT = 0
 CIRCLE = 1
 
 # TrialFactory Constants
-TF_FACTOR = 0
-TF_STIMFILE = 0
-TF_RULES = 0
+TF_FACTORS = 0
+TF_WEIGHTED_FACTORS = 1
+TF_STIM_FILE = 2
+TF_TRIAL_DATA = "Data"
+TF_TRIAL_PARAMETERS = "Parameters"
+TF_DATA = "data"
+TF_PARAM = "param"
+TF_TRIAL_COUNT = "trial_count"
+TF_TRIAL_COUNT_UC = "Trial_Count"
+
+# Utilities Constants
+ENTERING = 1
+EXITING = 2
+EXCEPTION = 3

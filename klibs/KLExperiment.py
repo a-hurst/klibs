@@ -464,6 +464,7 @@ class Experiment(object):
 			self.database.log('handedness', self.query(handedness, accepted=('r', 'R', 'l', 'L', 'a', 'A')))
 			self.database.log('age', self.query('What is  your age?', return_type='int'))
 			self.database.log('created', self.now())
+			self.database.log('modified', self.now())
 			if not self.database.insert():
 				raise DatabaseException("Database.insert(), which failed for unknown reasons.")
 			self.database.cursor.execute("SELECT `id` FROM `participants` WHERE `userhash` = '{0}'".format(name))
@@ -575,7 +576,8 @@ class Experiment(object):
 	# todo: listen is not a method; it should be a class, "listener", that gets configured
 	def listen(self, max_wait=MAX_WAIT, key_map_name="*", el_args=None, null_response=None, response_count=None,
 			   interrupt=True, flip=True, wait_callback=None, *wait_args, **wait_kwargs ):
-		pr("@PKLExperiment.listen() reached", 1)
+		pr("@PKLExperiment.listen() reached", 2)
+		exit_msg_thresh = 2
 		# TODO: response_count should be a real thing
 		# TODO: have customizable wrong key & time-out behaviors
 		# TODO: make RT & Response part of a customizable ResponseMap object
@@ -642,7 +644,7 @@ class Experiment(object):
 						if valid:  # a KeyMap with name "*" (ie. any key) returns self.ANY_KEY
 							response = key_map.read(sdl_keysym, "data")
 							if interrupt:  # ONLY for TIME SENSITIVE reactions to participant response; this flag voids overwatch()
-								pr("@BKLExperiment.listen() exiting", 1)
+								pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 								return [response, rt]
 						else:
 							wrong_key = True
@@ -650,10 +652,10 @@ class Experiment(object):
 						self.over_watch(event)  # ensure the 'wrong key' wasn't a call to quit or pause
 						if interrupt:    # returns response immediately; else waits for maxWait to elapse
 							if response:
-								pr("@BKLExperiment.listen() exiting", 1)
+								pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 								return [response, rt]
 							elif key_map.any_key:
-								pr("@BKLExperiment.listen() exiting", 1)
+								pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 								return [key_map.any_key_string, rt]
 						if wrong_key is True:  # flash an error for an actual wrong key
 							pass
@@ -663,17 +665,17 @@ class Experiment(object):
 							# wrong_key = False
 			if (time.time() - start_time) > max_wait:
 				waiting = False
-				pr("@BKLExperiment.listen() exiting", 1)
+				pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 				return [TIMEOUT, -1]
 		if not response:
 			if null_response:
-				pr("@BKLExperiment.listen() exiting", 1)
+				pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 				return [null_response, rt]
 			else:
-				pr("@BKLExperiment.listen() exiting", 1)
+				pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 				return [NO_RESPONSE, rt]
 		else:
-			pr("@BKLExperiment.listen() exiting", 1)
+			pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 			return [response, rt]
 
 	def message(self, message, font=None, font_size=None, color=None, bg_color=None, location=None, registration=None,

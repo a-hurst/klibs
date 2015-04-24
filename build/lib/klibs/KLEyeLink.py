@@ -49,6 +49,7 @@ try:
 		def add_gaze_boundary(self, name, bounds, shape=RECT):  # todo: make this bad boy take more than bounding rects
 			if shape not in [RECT, CIRCLE]:
 				raise ValueError("Argument 'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+			# TODO:  handling for when a extant boundary would be over-written
 			self.__gaze_boundaries[name] = {"shape": shape, "bounds": bounds}
 			return True
 

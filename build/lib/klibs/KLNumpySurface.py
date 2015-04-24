@@ -350,7 +350,7 @@ class NumpySurface(object):
 			fg_x2 = alpha_map.shape[1] + position[0]
 			fg_y1 = position[1]
 			fg_y2 = alpha_map.shape[0] + position[1]
-
+			pump()
 			self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3] = numpy.asarray([min(x, y) for x, y in
 																			zip(alpha_map.flatten(),
 																				self.foreground[fg_y1: fg_y2,

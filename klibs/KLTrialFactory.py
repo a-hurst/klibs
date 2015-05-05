@@ -10,8 +10,6 @@ from collections import OrderedDict
 from KLUtilities import *
 
 
-
-
 class TrialIterator(object):
 	def __init__(self, l):
 		self.l = l
@@ -109,6 +107,16 @@ class KLTrialFactory(object):
 	def add_inferred_factor(self, factor_name, generator, argument_list):
 		self.exp_parameters[factor_name] = {"f": generator, "arg_list": argument_list}
 
+	def __generate_trials_from_stimfile(self):
+		for row in self.exp_parameters:
+			trial = []
+			for el in row:
+				if el[0] in [TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC]:
+					pass
+				else:
+					trial.append(el[0])
+		#  not finished, just cramemd it here when talking with ross
+
 	def __generate_trials(self):
 		"""
 		Example usage:
@@ -124,17 +132,12 @@ class KLTrialFactory(object):
 		:param event_code_generator:
 		:return:
 		"""
-		trials = [[Params.practicing]]
+		trials = []
+		#								i intuited									ross proposed
+		#  think about: practices as subset of generated trials vs practice as trial generation via subset of factors
+
 		exp_params = ['practice']
-		if self.trial_generation == TF_STIM_FILE:
-			for row in self.exp_parameters:
-				trial = []
-				for el in row:
-					if el[0] in [TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC]:
-
-					else:
-						trial.append(el[0])
-
+		#  [['Mask', [('Full ', 4), ('Central ', 1), ('Peripheral', 2)]]
 		eval_queue = list()
 		for factor in self.exp_parameters:
 			label = factor[0]
@@ -144,12 +147,9 @@ class KLTrialFactory(object):
 				eval_queue.append([label, elements])
 			else:
 				exp_params.append(label)
-				for element in trials:
-					if element:
-						for v in elements:
-							te = element[:]
-							te.append(v)
-							temp.append(te)
+				for el in elements:
+					trials.append(el)
+					temp.append(trials)
 				trials = temp[:]
 		for element in eval_queue:
 			exp_params.append(element[0][:-5])

@@ -304,7 +304,7 @@ class RGBCLI:
 def pr(string, priority=0, signature=False):
 	try:
 		rgb = RGBCLI()
-		if priority <= Params.debug_level:
+		if priority >= Params.debug_level:
 			if signature == ENTERING: string = "\nEntering @P" + string
 			if signature == EXITING: string = "@RExiting @P" + string + "\n"
 			if signature == EXCEPTION: string = "\t@RERROR:" + string

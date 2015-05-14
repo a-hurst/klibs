@@ -4,15 +4,18 @@ import os
 import shutil
 import sqlite3
 import KLParams as Params
+from KLUtilities import *
 
 
-class EntryTemplate(object):
+class KLEntryTemplate(object):
 	null_field = "DELETE_THIS_FIELD"
 	sql_field_delimiter = "`,`"
 	table_name = None
+	name = None
+	scheme = None
+	data = None
 
 	def __init__(self, table_name, table_schema, instance_name):
-
 		if type(table_schema) is dict:
 			self.schema = table_schema
 		else:
@@ -21,14 +24,15 @@ class EntryTemplate(object):
 			self.table_name = table_name
 		else:
 			raise TypeError
-		try:
-			self.name = instance_name
-			if not self.name:
-				raise AttributeError(
-					'InstanceName could not be set, ensure parameter is passed during initialization and is a string.')
-		except AttributeError as e:
-			self.err(e, 'EntryTemplate', '__init__', kill=True)
+		self.name = instance_name
+		if not self.name:
+			err_str = 'InstanceName could not be set, ensure parameter is passed during initialization and is a string.'
+			raise AttributeError(err_str)
 		self.data = ['null', ] * len(table_schema)  # create an empty tuple of appropriate length
+
+	def __str__(self):
+		pr_str = "klibs.KLDatabase.KLEntryTemplate object ('{0}' for table '{1}' at {2})"
+		return pr_str.format(self.name, self.table_name, hex(id(self)))
 
 	def pr_schema(self):
 		schema_str = "{\n"
@@ -245,17 +249,15 @@ class KLDatabase(object):
 				print self.err() + "Database\n\tentry(): No currently open entries named '" + instance + "' exist."
 
 	def init_entry(self, table_name, instance_name=None, set_current=True):
-		if type(table_name) is str:
-			if self.table_schemas[table_name]:
-				if instance_name is None:
-					instance_name = table_name
-				self.__open_entries[instance_name] = EntryTemplate(table_name, self.table_schemas[table_name], instance_name)
-				if set_current:
-					self.current(instance_name)
-			else:
-				print "No table with the name '" + table_name + "' was found in the Database.tableSchemas."
-		else:
-			raise ValueError("tableName must be a string.")
+		try:
+			if instance_name is None:
+				instance_name = table_name
+			self.__open_entries[instance_name] = KLEntryTemplate(table_name, self.table_schemas[table_name], instance_name)
+			if set_current:
+				self.current(instance_name)
+		except IndexError:
+			print "Table {0} not found in the KLDatabase.table_schemas.".format(table_name)
+
 
 	def empty(self, table):
 		pass
@@ -306,55 +308,58 @@ class KLDatabase(object):
 
 	def insert(self, data=None, table=None, tidy_execute=True):
 		# todo: check if the table uses participant_id column; if no id in data, add it
+		pr("KLDatabase.insert(self, data, table, tidy_execute)", 3, ENTERING)
+		pr("\t@Tdata: {0} table: {1} tidy_execute: {2}".format(data, table, tidy_execute), 3)
+
+		data_is_entry_template = False  # KLEntryTemplate object expected, but raw data also allowed
+		template = None
+		query = None
 		if data is None:
 			current = self.current('return')
 			data = self.entry(current)
 			if not data:
 				raise AttributeError("No data was provided and a Database.__currentEntry is not set.")
-		data_is_entry_template = False  # expected use is to insert from an EntryTemplate object, but raw data is also allowed
-		if data.__class__.__name__ == 'EntryTemplate':
-			data_is_entry_template = True
+			if not table: table = data.table_name
+
+		try:
 			query = data.build_query('insert')
-		else:
-			# this else statement may be broken as of Aug 2013 (ie. since Ross was involved, it's not been returned to)
-			template = None
-			if table:
-				if not self.__default_table:
-					raise AttributeError(
-						"Either provide a table when calling insert() or set a defaultTable with App.Database.setDefaultTable().")
-				else:
-					table = self.__default_table
-				template = self.table_schemas[table]
-			if not template:
-				raise AttributeError(
-					"The supplied table name, '{0}' was not found in Database.tableSchemas".format(table))
-			field_count = len(template)
-			if template['id']:
-				field_count -= 1  # id will be supplied by database automatically on cursor.execute()
-			clean_data = [None, ] * field_count
-			insert_template = [None, ] * field_count
-			if len(data) == field_count:
-				for field_name in template:
-					field = template[field_name]
-					order = field['order']
-					if template['id']:
-						order -= 1
-					if type(data[order]).__name__ == field['type']:
-						insert_template[order] = field_name
-						if field['type'] == ('int' or 'float'):
-							clean_data[order] = str(data[order])
-						else:
-							clean_data[order] = "'" + str(data[order]) + "'"
-			else:
-				raise AttributeError('Length of data list exceeds number of table columns.')
-			query = "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, ",".join(insert_template), ",".join(clean_data))
-			print query
+			data_is_entry_template = True
+		except ValueError:
+			query = self.query_str_from_raw_data(table, data)
 		self.cursor.execute(query)
 		self.db.commit()
 		if tidy_execute and data_is_entry_template:
 			if self.__current_entry == data.name:
 				self.current()  # when called without a parameter current() clears the current entry
 		return True
+
+	def query_str_from_raw_data(self, table, data):
+		try:
+			template = self.table_schemas[table]
+		except KeyError:
+			try:
+				template = self.table_schemas[self.__default_table]
+			except:
+				raise AttributeError("Argument 'table' or KLDatabase.__default_table must be set.")
+		field_count = len(template)
+		if template['id']:
+			field_count -= 1  # id will be supplied by database automatically on cursor.execute()
+		clean_data = [None, ] * field_count
+		insert_template = [None, ] * field_count
+		if len(data) == field_count:
+			for field_name in template:
+				field = template[field_name]
+				order = field['order']
+				if template['id']: order -= 1
+				if type(data[order]).__name__ == field['type']:
+					insert_template[order] = field_name
+					if field['type'] == ('int' or 'float'):
+						clean_data[order] = str(data[order])
+					else:
+						clean_data[order] = "'" + str(data[order]) + "'"
+		else:
+			raise AttributeError('Length of data list exceeds number of table columns.')
+		return "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, ",".join(insert_template), ",".join(clean_data))
 
 	def query(self, query, do_return=True):
 		result = self.cursor.execute(query)

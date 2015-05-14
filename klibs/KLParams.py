@@ -25,7 +25,7 @@ initialized = False
 audio_initialized = False
 
 skeleton_mode = False
-debug_level = 0
+debug_level = 3
 
 calibrate_with_audio = True
 calibrate_targets = 9
@@ -79,14 +79,13 @@ cue_size = 1  # deg of visual angle
 cue_back_size = 1  # deg of visual angle
 verbosity = -1  # 0-10, with 0 being no errors and 10 being all errors todo: actually implement this hahaha so fail
 
-trials = []
 trial_number = 0
 trials_per_block = 0
 trials_per_practice_block = 0
-blocks = []
 block_number = 0
 blocks_per_experiment = 0
 practice_blocks_per_experiment = 0
+trials_per_participant = 0
 
 #data
 data_columns = None

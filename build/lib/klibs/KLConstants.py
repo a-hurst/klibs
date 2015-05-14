@@ -55,6 +55,7 @@ TF_DATA = "data"
 TF_PARAM = "param"
 TF_TRIAL_COUNT = "trial_count"
 TF_TRIAL_COUNT_UC = "Trial_Count"
+TF_NAS = ["na", "n/a", "NA", "N/A", "nA", "Na", "n/A", "N/a"]
 
 # Utilities Constants
 ENTERING = 1

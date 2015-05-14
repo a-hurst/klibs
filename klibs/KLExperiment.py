@@ -87,7 +87,6 @@ class Experiment(object):
 										["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 
 		self.trial_factory = KLTrialFactory(self)
-		pr("@PParams.data_columns = {0}".format(Params.data_columns))
 
 		self.event_code_generator = None
 
@@ -109,13 +108,13 @@ class Experiment(object):
 
 	def __execute_experiment(self, *args, **kwargs):
 		phases = 2 if Params.practicing else 1
-		for i in phases:
+		for i in range(phases):
 			practicing = phases == 2 and i == 1
 			for block in self.trial_factory.export_trials(practicing):
-				self.block(block[0])  # ie. block number
+				self.block(block[0])  	# ie. block number
 				for trial in block[1]:  # ie. list of trials
 					self.__trial(trial)
-				self.__block_break()  # todo: this method has functionality that needs to be exposed to the user or removed
+				self.__block_break()  	# todo: this method has functionality that needs to be exposed to the user or removed
 		self.clean_up()
 		self.database.db.commit()
 		self.database.db.close()
@@ -123,12 +122,14 @@ class Experiment(object):
 	def __trial(self, *args, **kwargs):
 		"""
 		Manages a trial.
+		args = [trial_number, [practicing, param_1, param_2...]]
 		"""
+		args = args[0]
 		# try:
 		Params.trial_number = args[0]
 
-		self.trial_prep(*args[1:], **kwargs)
-		trial_data = self.trial(*args[1:], **kwargs)
+		self.trial_prep(*args, **kwargs)
+		trial_data = self.trial(*args, **kwargs)
 		# except:
 		# 	raise
 		# finally:
@@ -387,6 +388,7 @@ class Experiment(object):
 		"""
 		# TODO: this function should have default questions/answers but should also be able to read from a
 		# CSV or array for custom Q&A
+		if not Params.collect_demographics: return
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
 		name_query_string = self.query(
 			"What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.",
@@ -403,7 +405,6 @@ class Experiment(object):
 			self.database.log('handedness', self.query(handedness, accepted=('r', 'R', 'l', 'L', 'a', 'A')))
 			self.database.log('age', self.query('What is  your age?', return_type='int'))
 			self.database.log('created', self.now())
-			self.database.log('modified', self.now())
 			if not self.database.insert():
 				raise DatabaseException("Database.insert(), which failed for unknown reasons.")
 			self.database.cursor.execute("SELECT `id` FROM `participants` WHERE `userhash` = '{0}'".format(name))
@@ -1040,7 +1041,8 @@ class Experiment(object):
 
 	def run(self, *args, **kwargs):
 		self.setup()
-		self.run(*args, **kwargs)
+		self.__execute_experiment(*args, **kwargs)
+
 
 	def start(self):
 		self.start_time = time.time()
@@ -1121,7 +1123,7 @@ class Experiment(object):
 		pass
 
 	@abc.abstractmethod
-	def trial(self, trial_factors, trial_num):
+	def trial(self, trial_num, trial_factors):
 		pass
 
 	@abc.abstractmethod

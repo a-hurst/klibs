@@ -15,7 +15,7 @@ from math import ceil
 
 class KLBlockIterator(object):
 	def __init__(self, blocks):
-		self.l = blocks
+		self.blocks = blocks
 		self.length = len(blocks)
 		self.i = 0
 
@@ -26,23 +26,24 @@ class KLBlockIterator(object):
 		return self.length
 
 	def __getitem__(self, i):
-		return self.l[i]
+		return self.blocks[i]
 
 	def __setitem__(self, i, x):
-		self.l[i] = x
+		self.blocks[i] = x
 
 	def next(self):
 		if self.i >= self.length:
 			raise StopIteration
 		else:
 			self.i += 1
-			return [self.i, KLTrialIterator(self.l[self.i - 1])]
+			trials = KLTrialIterator(self.blocks[self.i - 1])
+			return [self.i, trials]
 
 
 class KLTrialIterator(KLBlockIterator):
 
 	def __init__(self, block_of_trials):
-		self.l = block_of_trials
+		self.trials = block_of_trials
 		self.length = len(block_of_trials)
 		self.i = 0
 
@@ -51,13 +52,13 @@ class KLTrialIterator(KLBlockIterator):
 			raise StopIteration
 		else:
 			self.i += 1
-			return [self.i, self.l[self.i - 1]]
+			return [self.i, self.trials[self.i - 1]]
 
 	def recycle(self):
-		self.l.append(self.l[self.i - 1])
+		self.trials.append(self.trials[self.i - 1])
 		temp = self.l[self.i:]
 		random.shuffle(temp)
-		self.l[self.i:] = temp
+		self.trials[self.i:] = temp
 		self.length += 1
 
 
@@ -122,8 +123,11 @@ class KLTrialFactory(object):
 		if total_trials < trial_set_count:
 			while len(trials) > total_trials:
 				trials.pop()
-
-		return np.array_split(trials, block_count)
+		blocks = []
+		np_blocks = np.array_split(trials, block_count)
+		for block in np_blocks:
+			blocks.append(block.tolist())
+		return blocks
 
 	def __generate_trials_from_stimfile(self):
 		pr("KLTrialFactory.__generate_trials_from_stimfile(self)", 2, ENTERING)
@@ -162,13 +166,11 @@ class KLTrialFactory(object):
 			self.blocks = self.__generate_trials()
 			if Params.practicing:
 				self.practice_blocks = self.__generate_trials(True)
-		pr("@T\tself.parameters: {0}".format(self.exp_parameters), 1)
 		pr("KLTrialFactory.import_stim_file(self, path)", 2, EXITING)
 		return True
 
 	def __parse_parameters_row(self, row, header=False):
 		pr("KLTrialFactory.__parse_parameters_row(self, row, header)", 2, ENTERING)
-		pr("\t@Theader: {0}".format(header), 1)
 		col = 0
 		for el in row:
 			if header:
@@ -182,8 +184,14 @@ class KLTrialFactory(object):
 				if len(el) > 0:
 					weight = self.param_weight_search.match(el)
 					param_label = self.param_label_search.match(el).group(1) if weight is not None else el
+					try:
+						param_label = int(param_label)
+					except ValueError:
+						try:
+							param_label = float(param_label)
+						except ValueError:
+							pass
 					weight_val = 1 if weight is None else int(weight.group(1))
-					pr("\t@Tweight:{0}, param_label: {1}".format(weight, param_label), 1)
 					for i in range(weight_val):
 						self.exp_parameters[col][1].append(param_label)
 			col += 1

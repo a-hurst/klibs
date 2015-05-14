@@ -8,7 +8,7 @@ from KLConstants import *
 import KLParams as Params
 
 
-class TextLayer(object):
+class TextManager(object):
 	asset_path = "ExpAssets"
 	alert_color = (255, 0, 0, 255)
 	fonts_directory_path = "/Library/Fonts"

@@ -110,11 +110,11 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 			date = datetime.datetime.now()[:10]
 
 	if file_type == PARTICIPANT_FILE:
-		file_extension = DATA
+		file_extension = TF_DATA
 		if incomplete:
 			file_path = Params.incomplete_data_path
 			file_name_str = "p{0}_{1}_incomplete.txt"
-			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + DATA
+			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + TF_DATA
 		else:
 			file_path = Params.data_path
 	else:
@@ -287,11 +287,11 @@ def quit(msg=None):
 
 
 class RGBCLI:
-	col = {"@P": '\033[95m', # purple
-		   "@B": '\033[94m', # blue
-		   "@R": '\033[91m', # red
-		   "@T": '\033[1m',  # teal
-		   "@E": '\033[0m'   # return to normal
+	col = {"@P": '\033[95m',  # purple
+		   "@B": '\033[94m',  # blue
+		   "@R": '\033[91m',  # red
+		   "@T": '\033[1m',   # teal
+		   "@E": '\033[0m'    # return to normal
 	}
 
 	def pr(self, string):
@@ -301,10 +301,13 @@ class RGBCLI:
 		print "{0}{1}".format(string, self.col["@E"])
 
 
-def pr(string, priority=0):
+def pr(string, priority=0, signature=False):
 	try:
 		rgb = RGBCLI()
-		if priority <= Params.debug_level:
+		if priority >= Params.debug_level:
+			if signature == ENTERING: string = "\nEntering @P" + string
+			if signature == EXITING: string = "@RExiting @P" + string + "\n"
+			if signature == EXCEPTION: string = "\t@RERROR:" + string
 			rgb.pr(string)
 	except:
 		if priority is False:

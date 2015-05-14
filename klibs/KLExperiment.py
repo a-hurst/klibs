@@ -14,12 +14,13 @@ from KLExceptions import *
 from KLNumpySurface import *
 from KLDatabase import *
 from KLKeyMap import KeyMap
-from KLText import TextLayer
+from KLTextManager import TextManager
 from KLUtilities import *
 import KLParams as Params
 from KLConstants import *
 from KLELCustomDisplay import KLELCustomDisplay
 from KLDraw import *
+from KLTrialFactory import KLTrialFactory
 
 
 class TrialIterator(object):
@@ -57,9 +58,9 @@ class TrialIterator(object):
 
 class Experiment(object):
 	__completion_message = "thanks for participating; please have the researcher return to the room."
+	__wrong_key_msg = None
 	trial_number = 0
 	block_number = 0
-	__wrong_key_msg = None
 
 	logged_fields = list()
 
@@ -67,8 +68,10 @@ class Experiment(object):
 	paused = False
 	execute = True
 	eyelink = None
-	wrong_key_message = None
-	core_graphics = None
+	text_manager = None
+
+	# runtime KLIBS modules
+	trial_factory = None  # ie. KLTrialFactory object
 
 	def __init__(self, project_name, asset_path="ExpAssets"):
 		if not Params.setup(project_name, asset_path):
@@ -83,7 +86,9 @@ class Experiment(object):
 										sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT, sdl2.SDLK_RIGHT],
 										["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 
-		# this is silly but it makes importing from the params file work smoothly with rest of App
+		self.trial_factory = KLTrialFactory(self)
+		pr("@PParams.data_columns = {0}".format(Params.data_columns))
+
 		self.event_code_generator = None
 
 		#initialize the self.database instance
@@ -93,111 +98,45 @@ class Experiment(object):
 		self.display_init(Params.view_distance)
 
 		# initialize the self.text layer for the app
-		self.text_layer = TextLayer(Params.screen_x_y, Params.screen_x_y, Params.ppi)
+		self.text_manager = TextManager(Params.screen_x_y, Params.screen_x_y, Params.ppi)
 		if Params.default_font_size:
-			self.text_layer.default_font_size = Params.default_font_size
+			self.text_manager.default_font_size = Params.default_font_size
 		# initialize eyelink
 #		if PYLINK_AVAILABLE and Params.eye_tracking:
 		self.eyelink = KLEyeLink(self)
 		self.eyelink.custom_display = KLELCustomDisplay(self, self.eyelink)
 		self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
-	def __trial_func(self, *args, **kwargs):
+	def __execute_experiment(self, *args, **kwargs):
+		phases = 2 if Params.practicing else 1
+		for i in phases:
+			practicing = phases == 2 and i == 1
+			for block in self.trial_factory.export_trials(practicing):
+				self.block(block[0])  # ie. block number
+				for trial in block[1]:  # ie. list of trials
+					self.__trial(trial)
+				self.__block_break()  # todo: this method has functionality that needs to be exposed to the user or removed
+		self.clean_up()
+		self.database.db.commit()
+		self.database.db.close()
+
+	def __trial(self, *args, **kwargs):
 		"""
 		Manages a trial.
 		"""
 		# try:
-		Params.trial_number += 1
-		self.trial_prep(*args, **kwargs)
-		trial_data = self.trial(*args, **kwargs)
+		Params.trial_number = args[0]
+
+		self.trial_prep(*args[1:], **kwargs)
+		trial_data = self.trial(*args[1:], **kwargs)
 		# except:
 		# 	raise
 		# finally:
 		self.__log_trial(trial_data)
 		self.trial_clean_up()
 
-	def __experiment_manager(self, *args, **kwargs):
-		"""
-		Manages an experiment using the schema and factors.
-		"""
-		self.setup()
-		for i in range(Params.practice_blocks_per_experiment):
-			self.__generate_trials(practice=True, event_code_generator=self.__event_code_function)
-			if Params.trials_per_practice_block % len(Params.trials):
-				if Params.trials_per_practice_block < len(Params.trials):
-					Params.trials = Params.trials[:Params.trials_per_practice_block]
-				else:
-					e_str = "The desired number of trials in the practice block, \
-							{0}, is not a multiple of the minimum number of trials, {1}."
-					raise ValueError(e_str.format(Params.trials_per_practice_block, len(Params.trials)))
-			else:
-				Params.trials *= (Params.trials_per_practice_block / len(Params.trials))
-			self.__trial_func(*args, **kwargs)
-		for i in range(Params.blocks_per_experiment):
-			Params.block_number = i + 1  # added this for data-out aesthetics more than use in program logic
-			self.block(Params.block_number)
-			self.__generate_trials(practice=False, event_code_generator=self.__event_code_function)
-			if Params.trials_per_block % len(Params.trials):
-				e = "The desired number of trials in the block, {0}, is not a multiple of the minimum number of trials, {1}."
-				raise ValueError(e.format(Params.trials_per_block, len(Params.trials)))
-			else:
-				Params.trials *= (Params.trials_per_block / len(Params.trials))
-				random.shuffle(Params.trials)
-			for trial_factors in Params.trials:
-				self.__trial_func(trial_factors, Params.trial_number)
-			self.block_break()
-		self.clean_up()
-		self.database.db.commit()
-		self.database.db.close()
-
 	def __database_init(self):
 		self.database = KLDatabase()
-
-	def __generate_trials(self, practice=False, event_code_generator=None):
-		"""
-		Example usage:
-		Jono: event_code_gen: literally creates an event code, as per some rule, that will be in the trial_factors list
-		passed to trial() for use with EEG bidnis
-		event_code_generator = self.event_code_generator, cue=['right', 'left'], target=['right', 'left'],
-		type=['word', 'nonword'], cued_bool='cue==target'
-		To create an expression, simply pass a named string ending in _bool with a logical expression inside:
-		cued_bool='peripheral==cue'
-		Do not include other expression variables in an expression.
-		They are evaluated in arbitrary order and may not yet exist.
-		:param practice:
-		:param event_code_generator:
-		:return:
-		"""
-		trials = [[practice]]
-		factors = ['practice']
-		eval_queue = list()
-		for factor in Params.exp_factors:
-			label = factor[0]
-			elements = factor[1]
-			temp = list()
-			if label[-5:] == '_bool':
-				eval_queue.append([label, elements])
-			else:
-				factors.append(label)
-				for element in trials:
-					if element:
-						for v in elements:
-							te = element[:]
-							te.append(v)
-							temp.append(te)
-				trials = temp[:]
-		for element in eval_queue:
-			factors.append(element[0][:-5])
-			operands = re.split('[=>!<]+', str(element[1]).strip())
-			operator = re.search('[=<!>]+', str(element[1])).group()
-			for t in trials:
-				t.append(eval('t[factors.index(\'' + operands[0] + '\')]' + operator + 't[factors.index(\'' + operands[
-					1] + '\')]'))
-		if event_code_generator is not None and type(event_code_generator).__name__ == 'function':
-			factors.append('code')
-			for t in trials:
-				t.append(event_code_generator(t))
-		Params.trials = trials
 
 	def __log_trial(self, trial_data, auto_id=True):
 		#  todo: move this to a DB function.... :/
@@ -301,7 +240,7 @@ class Experiment(object):
 		self.clear()
 		self.fill(Params.default_fill_color)
 		self.message(alert_string, color=(255, 0, 0, 255), location='center', registration=5,
-							font_size=self.text_layer.default_font_size * 2, blit=True)
+							font_size=self.text_manager.default_font_size * 2, blit=True)
 		if display_for > 0:
 			start = time.time()
 			self.flip()
@@ -387,7 +326,7 @@ class Experiment(object):
 	def block(self, block_num):
 		pass
 
-	def block_break(self, message=None, is_path=False):
+	def __block_break(self, message=None, is_path=False):
 		"""
 		Display a break message between blocks
 
@@ -450,7 +389,7 @@ class Experiment(object):
 		# CSV or array for custom Q&A
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
 		name_query_string = self.query(
-			"What is your full name, banner number or e-mail address? Your answer will be encrypted and cannot be read later.",
+			"What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.",
 			as_password=True)
 		name_hash = hashlib.sha1(name_query_string)
 		name = name_hash.hexdigest()
@@ -458,8 +397,8 @@ class Experiment(object):
 
 		# names must be unique; returns True if unique, False otherwise
 		if self.database.is_unique(name, 'userhash', 'participants'):
-			gender = "What is your gender? Answer with:  (m)ale,(f)emale or (o)ther)"
-			handedness = "Are right-handed, left-handed or ambidextrous? Answer with (r)ight, (l)eft or (a)mbidextrous."
+			gender = "What is your gender? \nAnswer with:  (m)ale,(f)emale or (o)ther)"
+			handedness = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
 			self.database.log('gender', self.query(gender, accepted=('m', 'M', 'f', 'F', 'o', 'O')))
 			self.database.log('handedness', self.query(handedness, accepted=('r', 'R', 'l', 'L', 'a', 'A')))
 			self.database.log('age', self.query('What is  your age?', return_type='int'))
@@ -685,17 +624,17 @@ class Experiment(object):
 		message_surface = None  # unless wrap is true, will remain empty
 
 		if font is None:
-			font = self.text_layer.default_font
+			font = self.text_manager.default_font
 
 		if font_size is None:
-			font_size = self.text_layer.default_font_size
+			font_size = self.text_manager.default_font_size
 
 		if color is None:
-			if self.text_layer.default_color:
-				color = self.text_layer.default_color
+			if self.text_manager.default_color:
+				color = self.text_manager.default_color
 
 		if bg_color is None:
-			bg_color = self.text_layer.default_bg_color
+			bg_color = self.text_manager.default_bg_color
 
 		# if wrap:
 		# 	print "Wrapped text is not currently implemented. This feature is pending."
@@ -747,7 +686,7 @@ class Experiment(object):
 			if wrap:
 				return message_surface
 			else:
-				message_surface = self.text_layer.render_text(message, render_config)
+				message_surface = self.text_manager.render_text(message, render_config)
 				#check for single lines that extend beyond the app area and wrap if need be
 				# if message_surface.shape[1] > self.screen_x:
 				# 	return self.message(message, wrap=True)
@@ -758,7 +697,7 @@ class Experiment(object):
 			if wrap:
 				self.blit(message_surface, registration, Params.screen_c)
 			else:
-				message_surface = self.text_layer.render_text(message, font, font_size, color, bg_color)
+				message_surface = self.text_manager.render_text(message, font, font_size, color, bg_color)
 				# if message_surface.shape[1] > self.screen_x:
 				# 	wrap = True
 				# 	return self.message(message, font, font_size, color, bg_color, location, registration,
@@ -877,6 +816,7 @@ class Experiment(object):
 
 	def query(self, query=None, as_password=False, font=None, font_size=None, color=None,
 				locations=None, registration=5, return_type=None, accepted=None):
+		# TODO: 'accepted' might be better as a KLKeyMap object? Or at least more robust than a list of letters?
 		input_config = [None, None, None, None]  # font, font_size, color, bg_color
 		query_config = [None, None, None, None]
 		vertical_padding = None
@@ -890,19 +830,19 @@ class Experiment(object):
 		if font_size is not None:
 			if type(font_size) is (tuple or list):
 				if len(font_size) == 2:
-					input_config[1] = self.text_layer.font_sizes[font_size[0]]
-					query_config[1] = self.text_layer.font_sizes[font_size[1]]
+					input_config[1] = self.text_manager.font_sizes[font_size[0]]
+					query_config[1] = self.text_manager.font_sizes[font_size[1]]
 					vertical_padding = query_config[1]
 					if input_config[1] < query_config[1]:  # smallest  size =  vertical padding from midline
 						vertical_padding = input_config[1]
 			else:
-				input_config[1] = self.text_layer.font_sizes[font_size]
-				query_config[1] = self.text_layer.font_sizes[font_size]
-				vertical_padding = self.text_layer.font_sizes[font_size]
+				input_config[1] = self.text_manager.font_sizes[font_size]
+				query_config[1] = self.text_manager.font_sizes[font_size]
+				vertical_padding = self.text_manager.font_sizes[font_size]
 		else:
-			input_config[1] = self.text_layer.default_font_size
-			query_config[1] = self.text_layer.default_font_size
-			vertical_padding = self.text_layer.default_font_size
+			input_config[1] = self.text_manager.default_font_size
+			query_config[1] = self.text_manager.default_font_size
+			vertical_padding = self.text_manager.default_font_size
 
 		if registration is not None:
 			if type(registration) is (tuple or list):
@@ -920,8 +860,8 @@ class Experiment(object):
 			input_config[0] = font
 			query_config[0] = font
 		else:
-			input_config[0] = self.text_layer.default_font
-			query_config[0] = self.text_layer.default_font
+			input_config[0] = self.text_manager.default_font
+			query_config[0] = self.text_manager.default_font
 
 		# process the possibility of different query/input colors
 		if color is not None:
@@ -939,8 +879,8 @@ class Experiment(object):
 		generate_locations = False
 		if locations is not None:
 			if None in (locations.get('query'), locations.get('input')):
-				query_location = self.text_layer.fetch_print_location('query')
-				input_location = self.text_layer.fetch_print_location('response')
+				query_location = self.text_manager.fetch_print_location('query')
+				input_location = self.text_manager.fetch_print_location('response')
 			else:
 				query_location = locations['query']
 				input_location = locations['input']
@@ -950,10 +890,10 @@ class Experiment(object):
 		# Note: input_surface not declared until user input received, see while loop below
 		query_surface = None
 		if query is None:
-			query = self.text_layer.fetch_string('query')
+			query = self.text_manager.fetch_string('query')
 
 		if query:
-			query_surface = self.text_layer.render_text(query, *query_config)
+			query_surface = self.text_manager.render_text(query, *query_config)
 		else:
 			raise ValueError("A default query string was not set and argument 'query' was not provided")
 
@@ -1005,7 +945,7 @@ class Experiment(object):
 								render_string = input_string
 
 							if len(render_string) > 0:
-								input_surface = self.text_layer.render_text(render_string, *input_config)
+								input_surface = self.text_manager.render_text(render_string, *input_config)
 								self.fill()
 								self.blit(query_surface, query_registration, query_location)
 								self.blit(input_surface, input_registration, input_location)
@@ -1034,8 +974,8 @@ class Experiment(object):
 							else:
 								error_string = no_answer_string
 							error_config = copy(input_config)
-							error_config[2] = self.text_layer.alert_color
-							input_surface = self.text_layer.render_text(error_string, *error_config)
+							error_config[2] = self.text_manager.alert_color
+							input_surface = self.text_manager.render_text(error_string, *error_config)
 							self.fill()
 							self.blit(query_surface, query_registration, query_location)
 							self.blit(input_surface, input_registration, input_location)
@@ -1043,7 +983,7 @@ class Experiment(object):
 							input_string = ""
 					elif sdl_keysym == sdl2.SDLK_ESCAPE:  # if escape, erase the string
 						input_string = ''
-						input_surface = self.text_layer.render_text(input_string, *input_config)
+						input_surface = self.text_manager.render_text(input_string, *input_config)
 						self.fill()
 						self.blit(query_surface, query_registration, query_location)
 						self.blit(input_surface, input_registration, input_location)
@@ -1058,11 +998,11 @@ class Experiment(object):
 							if as_password:
 								if as_password is True and len(input_string) != 0:
 									password_string = '' + len(input_string) * '*'
-									input_surface = self.text_layer.render_text(password_string, *input_config)
+									input_surface = self.text_manager.render_text(password_string, *input_config)
 								else:
-									input_surface = self.text_layer.render_text(input_string, *input_config)
+									input_surface = self.text_manager.render_text(input_string, *input_config)
 							else:
-								input_surface = self.text_layer.render_text(input_string, *input_config)
+								input_surface = self.text_manager.render_text(input_string, *input_config)
 							self.fill()
 							self.blit(query_surface, query_registration, query_location)
 							self.blit(input_surface, input_registration, input_location)
@@ -1099,7 +1039,8 @@ class Experiment(object):
 		sys.exit()
 
 	def run(self, *args, **kwargs):
-		self.__experiment_manager(*args, **kwargs)
+		self.setup()
+		self.run(*args, **kwargs)
 
 	def start(self):
 		self.start_time = time.time()

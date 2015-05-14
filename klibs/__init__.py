@@ -31,7 +31,7 @@ from KLUtilities import *
 from KLNumpySurface import *
 from KLDraw import *
 from KLDatabase import KLDatabase
-from KLText import TextLayer
+from KLTextManager import TextManager
 from KLKeyMap import *
 from KLEyeLink import *
 from KLELCustomDisplay import KLELCustomDisplay

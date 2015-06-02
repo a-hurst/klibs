@@ -30,7 +30,7 @@ debug_level = 3
 calibrate_with_audio = True
 calibrate_targets = 9
 
-participant_id = -1  # default for testing, debugging, etc.
+participant_id = None
 database = None
 
 key_maps = dict()  # todo: create a class, KeyMapper, to manage key maps
@@ -54,7 +54,7 @@ default_timeout_message = "Too slow!"
 monitor_x = None
 monitor_y = None
 diagonal_px = None
-ppi = 96  # pixels-per-inch, varies between CRT & LCD screens
+ppi = None  # pixels-per-inch, varies between CRT & LCD screens
 dpi = ppi  # todo: this is broken and totally wrong
 pixels_per_degree = None  # pixels-per-degree, ie. degree of visual angle
 ppd = None  # pixels-per-degree, ie. degree of visual angle
@@ -66,7 +66,7 @@ screen_x_y = None
 screen_degrees_x = None
 screen_degrees_y = None
 view_unit = "in"  # inch, not the preposition
-view_distance = 56  # in centimeters, 56cm = in 1deg of visual angle per horizontal cm of screen
+view_distance = 67  # in centimeters, 56cm = in 1deg of visual angle per horizontal cm of screen
 
 saccadic_velocity_threshold = 20
 saccadic_acceleration_threshold = 5000
@@ -87,8 +87,11 @@ blocks_per_experiment = 0
 practice_blocks_per_experiment = 0
 trials_per_participant = 0
 
-#data
+# database
 data_columns = None
+default_participant_fields = [["userhash", "participant"], "gender", "age", "handedness"]
+default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
+
 
 def init_project():
 	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
@@ -108,15 +111,15 @@ def init_project():
 	global config_file_path
 	global initialized
 
-	database_filename = project_name + DB
-	schema_filename = project_name + SCHEMA
-	log_filename = project_name + LOG
-	config_filename = project_name + CONFIG
+	database_filename = project_name + DB_EXT
+	schema_filename = project_name + SCHEMA_EXT
+	log_filename = project_name + LOG_EXT
+	config_filename = project_name + CONFIG_EXT
 	edf_path = os.path.join(asset_path, EDF)  # todo: write edf management
 	log_file_path = os.path.join(asset_path, log_filename)
 	schema_file_path = os.path.join(asset_path, schema_filename)
 	database_path = os.path.join(asset_path, database_filename)
-	database_backup_path = database_path + BACK
+	database_backup_path = database_path + BACK_EXT
 	data_path = os.path.join(asset_path, "Data")
 	incomplete_data_path = os.path.join(data_path, "incomplete")
 	config_file_path = os.path.join(asset_path, config_filename)

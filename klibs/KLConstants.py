@@ -1,16 +1,44 @@
 __author__ = 'jono'
 import sdl2
 
-DB = ".db"
+DB_EXT = ".db"
 EDF = "EDF"
 EDF_EXT = ".EDF"
-TF_DATA = ".txt"
-BACK = ".backup"
-LOG = "_log.txt"
-SCHEMA = "_schema.sql"
-CONFIG = "_config.csv"
+DATA_EXT = ".txt"
+BACK_EXT = ".backup"
+LOG_EXT = "_log.txt"
+SCHEMA_EXT = "_schema.sql"
+CONFIG_EXT = "_config.csv"
 INCH = "in"
 CM = "cm"
+TAB = "\t"
+
+# Display Constants
+PPI_CRT = 72
+PPI_LCD = 96
+BL_CENTER = 5
+BL_TOP = 8
+BL_TOP_LEFT = 7
+BL_TOP_RIGHT = 9
+BL_LEFT = 4
+BL_RIGHT = 6
+BL_BOTTOM = 2
+BL_BOTTOM_LEFT = 1
+BL_BOTTOM_RIGHT = 3
+
+LEGACY_LOCATIONS = {
+		'center': BL_CENTER,
+		'topLeft': BL_TOP_LEFT,
+		'top': BL_TOP,
+		'topRight': BL_TOP_RIGHT,
+		'left': BL_TOP_LEFT,
+		'right': BL_RIGHT,
+		'bottomLeft': BL_BOTTOM_LEFT,
+		'bottom': BL_BOTTOM,
+		'bottomRight': BL_BOTTOM_RIGHT
+	}
+
+
 NS_FOREGROUND = 1  # NumpySurface foreground layer
 NS_BACKGROUND = 0  # NumpySurface background layer
 MAX_WAIT = 9999999
@@ -25,6 +53,30 @@ OFF = 0
 PARTICIPANT_FILE = 1
 EDF_FILE = 0
 
+# KLDatabase
+PY_FLOAT = 'float'
+PY_STR = 'str'
+PY_BOOL = 'bool'
+PY_INT = 'int'
+PY_BIN = 'binary'
+SQL_FLOAT = 'float'
+SQL_REAL = 'real'
+SQL_BIN = 'blob'
+SQL_KEY = 'integer key'
+SQL_INT = 'integer'
+SQL_NULL = 'null'
+SQL_STR = 'text'
+SQL_COL_DELIM_STR = "`, `"
+ID = "id"
+DB_SUPPLY_PATH = "s"
+DB_CREATE = "c"
+QUERY_INS = "insert"
+QUERY_UPD = "update"
+QUERY_DEL = "delete"
+QUERY_SEL = "select"
+
+
+
 # EyeSome definitions for visually clean interaction with the EyeLink C++ libraries
 EL_LEFT_EYE = 0
 EL_RIGHT_EYE = 1
@@ -32,7 +84,7 @@ EL_BOTH_EYES = 2
 EL_NO_EYES = -1
 EL_TRUE = 1
 EL_FALSE = 0
-PARALELL_AVAILABLE = False
+PARALLEL_AVAILABLE = False
 MAX_DRIFT_DEG = 3
 INIT_SAC_DIST = 3  # Min. distance (degrees) before eye movement == initiating saccade for response direction
 EL_TEMP_FILE = "temp_participant{0}".format(EDF)

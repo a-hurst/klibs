@@ -1,6 +1,7 @@
 __author__ = 'jono'
 
 import os
+import hashlib
 import shutil
 import sqlite3
 import KLParams as Params
@@ -12,27 +13,17 @@ class KLEntryTemplate(object):
 	sql_field_delimiter = "`,`"
 	table_name = None
 	name = None
-	scheme = None
+	schema = None
 	data = None
 
 	def __init__(self, table_name, table_schema, instance_name):
-		if type(table_schema) is dict:
-			self.schema = table_schema
-		else:
-			raise TypeError
-		if type(table_name) is str:
-			self.table_name = table_name
-		else:
-			raise TypeError
+		self.schema = table_schema
+		self.table_name = table_name
 		self.name = instance_name
-		if not self.name:
-			err_str = 'InstanceName could not be set, ensure parameter is passed during initialization and is a string.'
-			raise AttributeError(err_str)
-		self.data = ['null', ] * len(table_schema)  # create an empty tuple of appropriate length
+		self.data = [None] * len(table_schema)  # create an empty tuple of appropriate length
 
 	def __str__(self):
-		pr_str = "klibs.KLDatabase.KLEntryTemplate object ('{0}' for table '{1}' at {2})"
-		return pr_str.format(self.name, self.table_name, hex(id(self)))
+		return "<klibs.KLDatabase.KLEntryTemplate[{0}, {1}] object at {2}>".format(self.table_name, self.name, hex(id(self)))
 
 	def pr_schema(self):
 		schema_str = "{\n"
@@ -42,53 +33,70 @@ class KLEntryTemplate(object):
 		return schema_str
 
 	def build_query(self, query_type):
-		insert_template = ['null', ] * len(self.schema)
-		for field_name in self.schema:
-			field_params = self.schema[field_name]
-			column_order = field_params['order']
-			insert_template[column_order] = field_name
-			if self.data[column_order] == self.null_field:
-				if field_params['allow_null']:
-					insert_template[column_order] = self.null_field
-				elif query_type == 'insert' and field_name == 'id':
-					self.data[0] = self.null_field
-					insert_template[0] = self.null_field
-				else:
-					raise ValueError("No data for the required (ie. not null) column '{0}'.".format(field_name))
+		insert_template = [SQL_NULL, ] * len(self.schema)
 
-		insert_template = self.__tidy_nulls(insert_template)
-		self.data = self.__tidy_nulls(self.data)
-		if query_type == 'insert':
-			fields = "`{0}`".format(self.sql_field_delimiter.join(insert_template))
-			vals = ",".join(self.data)
-			query_string = "INSERT INTO `{0}` ({1}) VALUES ({2})".format(self.table_name, fields, vals)
+		for column in self.schema:
+			if self.data[self.index_of(column[0])] == SQL_NULL or not self.data[self.index_of(column[0])]:
+				if self.allow_null(column[0]):
+					insert_template[self.index_of(column)] = SQL_NULL
+					self.data[self.index_of(column)] = SQL_NULL
+				elif query_type == QUERY_INS and column[0] == ID:
+					self.data[0] = SQL_NULL
+					insert_template[0] = SQL_NULL
+				else:
+					raise ValueError("Column '{0}' may not be null.".format(column))
+			else:
+				insert_template[self.index_of(column[0])] = column[0]
+
+		columns, values = self.format_insert_strings(insert_template, self.data)
+		if query_type == QUERY_INS:
+			query_string = "INSERT INTO `{0}` ({1}) VALUES ({2})".format(self.table_name, columns, values)
 			return query_string
-		elif query_type == 'update':
+		elif query_type == QUERY_UPD:
 			pass
 		#TODO: build logic for update statements as well (as against only insert statements)
 
-	def __tidy_nulls(self, data):
-		return filter(lambda column: column != self.null_field, data)
+	def format_insert_strings(self, template, data):
+		data = [str(i) for i in data]
+		template = "`{0}`".format(SQL_COL_DELIM_STR.join(filter(lambda column: column != SQL_NULL, template)))
+		data = ",".join(filter(lambda column: column != SQL_NULL, data))
+		return [template, data]
+
+	def index_of(self, field):
+		index = 0
+		for col in self.schema:
+			if col[0] == field:
+				return index
+			else:
+				index += 1
+		raise IndexError("Field '{0}' not found in table '{1}'".format(field, self.table_name))
+
+	def type_of(self, field):
+		for col in self.schema:
+			if col[0] == field:
+				return col[1]['type']
+		raise IndexError("Field '{0}' not found in table '{1}'".format(field, self.table_name))
+
+	def allow_null(self, field):
+		for col in self.schema:
+			if col[0] == field:
+				return col[1]['allow_null']
+		raise IndexError("Field '{0}' not found in table '{1}'".format(field, self.table_name))
 
 	def log(self, field, value):
-		# TODO: Add some basic logic for making type conversions where possible (ie. if expecting a float
-		# but an int arrives, try to cast it as a float before giving up
-		column_order = self.schema[field]['order']
-		column_type = self.schema[field]['type']
-		if field not in self.schema:
-			raise ValueError("No field named '{0}' exists in the table '{1}'".format(field, self.table_name))
-		# SQLite has no bool data type; conversion happens now b/c the value/field comparison below can't handle a bool
-		if value is True:
-			value = 1
-		elif value is False:
-			value = 0
-		# all values must be strings entering db; values enterting string columns must be single-quote wrapped as well
-		if (self.schema[field]['allow_null'] is True) and value is None:
-			self.data[column_order] = self.null_field
-		elif column_type == 'str':
-			self.data[column_order] = "'{0}'".format(str(value))
-		else:
-			self.data[column_order] = str(value)
+		try:
+			value = str(bool_to_int(value))
+		except ValueError:
+			if self.type_of(field) == PY_FLOAT:
+				value = float(value)
+			else:
+				value = str(value)
+			if self.type_of(field) == PY_STR:
+				value = "'{0}'".format(value)
+			if not value:
+				value = SQL_NULL
+
+		self.data[self.index_of(field)] = value
 
 	def report(self):
 		print self.schema
@@ -114,10 +122,10 @@ class KLDatabase(object):
 		self.schema = None
 		err_string = "No database file was present at '{0}'. \nYou can (c)reate it, (s)upply a different path or (q)uit."
 		user_action = raw_input(err_string.format(Params.database_path))
-		if user_action == "s":
+		if user_action ==DB_SUPPLY_PATH:
 			Params.database_path = raw_input("Great. Where might it be?")
 			self.__init_db()
-		elif user_action == "c":
+		elif user_action == DB_CREATE:
 			f = open(Params.database_path, "a").close()
 			self.__init_db()
 		else:
@@ -172,32 +180,26 @@ class KLDatabase(object):
 		for table in self.cursor.fetchall():
 			table = str(table[0])  # unicode value
 			if table != "sqlite_sequence":  # a table internal to the database structure
-				table_cols = {}
-				self.cursor.execute("PRAGMA table_info(" + table + ")")
+				table_cols = []
+				self.cursor.execute("PRAGMA table_info({0})".format(table))
 				columns = self.cursor.fetchall()
 
 				# convert sqlite3 types to python types
 				for col in columns:
-					if col[2] == 'text':
-						col_type = 'str'
-					elif col[2] == 'blob':
-						col_type = 'binary'
-					elif col[2] in ('integer', 'integer key'):
-						col_type = 'int'
-					elif col[2] in ('float', 'real'):
-						col_type = 'float'
+					if col[2] == SQL_STR:
+						col_type = PY_STR
+					elif col[2] == SQL_BIN:
+						col_type = PY_BIN
+					elif col[2] in (SQL_INT, SQL_KEY):
+						col_type = PY_INT
+					elif col[2] in (SQL_FLOAT, SQL_REAL):
+						col_type = PY_FLOAT
 					else:
-						col_type = 'unknown'
-						e_str = "column '{0}' of table '{1}' has type '{2}' on the database but was assigned a type of \
-								'unknown' during schema building'"
-						self.warn(e_str.format(col[1], table, col[2]), "Database", "build_table_schemas")
-					allow_null = False
-					if col[3] == 0:
-						allow_null = True
-					table_cols[str(col[1])] = {'order': int(col[0]), 'type': col_type, 'allow_null': allow_null}
+						raise ValueError("Invalid or unsupported type ({0}) for {1}.{2}'".format(col[2], table, col[1]))
+					allow_null = col[3] == 0
+					table_cols.append([str(col[1]), {'type': col_type, 'allow_null': allow_null}])
 				tables[table] = table_cols
 		self.table_schemas = tables
-
 		return True
 
 	def flush(self):
@@ -229,109 +231,90 @@ class KLDatabase(object):
 
 		if self.build_table_schemas():
 			self.__open_entries = {}
-			self.__current_entry = 'None'
+			self.__current_entry = None
 			print  "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
 			# TODO: Make this call App.message() somehow so as to be clearer.Or better, relaunch the app somehow!!
 			# m = "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
 			# App.message(m, location="center", fullscreen=True, fontSize=48, color=(0,255,0))
 			quit()
 
-	def entry(self, instance=None):
-		if instance is None:
-			try:
-				return self.__open_entries[self.__current_entry]
-			except:
-				print self.err() + "Database\n\tentry(): A specific instance name was not provided and there is no current entry set.\n"
-		else:
-			try:
-				return self.__open_entries[instance]
-			except:
-				print self.err() + "Database\n\tentry(): No currently open entries named '" + instance + "' exist."
+	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
 
 	def init_entry(self, table_name, instance_name=None, set_current=True):
 		try:
-			if instance_name is None:
-				instance_name = table_name
+			if instance_name is None: instance_name = table_name
 			self.__open_entries[instance_name] = KLEntryTemplate(table_name, self.table_schemas[table_name], instance_name)
-			if set_current:
-				self.current(instance_name)
+			if set_current: self.current(self.__open_entries[instance_name])
 		except IndexError:
-			print "Table {0} not found in the KLDatabase.table_schemas.".format(table_name)
-
+			raise IndexError("Table {0} not found in the KLDatabase.table_schemas.".format(table_name))
 
 	def empty(self, table):
 		pass
 
-	def log(self, field, value, instance=None):
-		if instance is not None and self.__open_entries[instance]:
-			self.__current_entry = instance
-		elif instance is None and self.__current_entry != 'None':
-			instance = self.__current_entry
-		else:
-			raise ValueError("No default entry is set and no instance was passed.")
-		self.__open_entries[instance].log(field, value)
+	def log(self, field, value, instance=None, set_to_current=True):
+		try:
+			instance.log(field, value)
+		except AttributeError:
+			try:
+				self.__open_entries[instance].log(field, value)
+			except KeyError:
+				entry = self.current()
+				entry.log(field, value)
+		if set_to_current:
+			self.current(instance)
 
-	def current(self, verbose=False):
-		if verbose == (0 or None or 'None' or False):
-			self.__current_entry = 'None'
-			return True
-		if verbose == 'return':
+	def current(self, instance=None):
+		if instance is False:
+			self.__current_entry = None
+			return
+		if instance is None:
 			return self.__current_entry
-		if type(verbose) is str:
-			if self.__open_entries[verbose]:
-				self.__current_entry = verbose
-				return True
-			return False
-		if self.__current_entry != 'None':
-			if verbose:
-				return self.__current_entry
-			else:
-				return True
-		else:
-			if verbose:
-				return 'None'
-			else:
-				return False
+		try:
+			self.__current_entry = instance
+			return self.__current_entry.name
+		except AttributeError:
+			self.__current_entry = self.__open_entries[instance]
+			return instance
 
-	def is_unique(self, value, field, table):
-		query = "SELECT * FROM `{0}` WHERE `{1}` = '{2}'".format(table, field, value)
-		self.cursor.execute(query)
-		result = self.cursor.fetchall()
-		if len(result) > 0:
-			return False
+
+	def is_unique(self, table, column, value, value_type=SQL_STR):
+		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL]:
+			query_str = "SELECT * FROM `{0}` WHERE `{1}` = {2}".format(table, column, value)
 		else:
-			return True
+			query_str = "SELECT * FROM `{0}` WHERE `{1}` = '{2}'".format(table, column, value)
+		return len(self.query(query_str, QUERY_SEL, True).fetchall()) == 0
+
+
+	def exists(self, table, column, value, value_type=SQL_STR):
+		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL]:
+			query_str = "SELECT * FROM `{0}` WHERE `{1}` = {2}".format(table, column, value)
+		else:
+			query_str = "SELECT * FROM `{0}` WHERE `{1}` = '{2}'".format(table, column, value)
+		return len(self.query(query_str, QUERY_SEL, True).fetchall()) > 0
 
 	def test_data(self, table):
 		# TODO: allow rules per column such as length
 		pass
 
-	def insert(self, data=None, table=None, tidy_execute=True):
+	def insert(self, data=None, table=None, clear_current=True):
 		# todo: check if the table uses participant_id column; if no id in data, add it
-		pr("KLDatabase.insert(self, data, table, tidy_execute)", 3, ENTERING)
-		pr("\t@Tdata: {0} table: {1} tidy_execute: {2}".format(data, table, tidy_execute), 3)
+		pr("KLDatabase.insert(self, data, table, clear_current)", 3, ENTERING)
+		pr("\t@Tdata: {0} table: {1} clear_current: {2}".format(data, table, clear_current), 3)
 
-		data_is_entry_template = False  # KLEntryTemplate object expected, but raw data also allowed
-		template = None
-		query = None
-		if data is None:
-			current = self.current('return')
-			data = self.entry(current)
-			if not data:
-				raise AttributeError("No data was provided and a Database.__currentEntry is not set.")
+		if not data:
+			try:
+				data = self.current()
+			except RuntimeError:  # exception below is a more informative account of the current problem
+				raise RuntimeError("No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
 			if not table: table = data.table_name
 
 		try:
-			query = data.build_query('insert')
-			data_is_entry_template = True
-		except ValueError:
-			query = self.query_str_from_raw_data(table, data)
-		self.cursor.execute(query)
+			self.cursor.execute(data.build_query(QUERY_INS))
+			if clear_current and self.current().name == data.name: self.current(False)
+		except AttributeError:
+			self.cursor.execute(self.query_str_from_raw_data(table, data))
 		self.db.commit()
-		if tidy_execute and data_is_entry_template:
-			if self.__current_entry == data.name:
-				self.current()  # when called without a parameter current() clears the current entry
-		return True
+		return self.cursor.lastrowid
 
 	def query_str_from_raw_data(self, table, data):
 		try:
@@ -340,125 +323,101 @@ class KLDatabase(object):
 			try:
 				template = self.table_schemas[self.__default_table]
 			except:
-				raise AttributeError("Argument 'table' or KLDatabase.__default_table must be set.")
-		field_count = len(template)
-		if template['id']:
-			field_count -= 1  # id will be supplied by database automatically on cursor.execute()
-		clean_data = [None, ] * field_count
-		insert_template = [None, ] * field_count
-		if len(data) == field_count:
-			for field_name in template:
-				field = template[field_name]
-				order = field['order']
-				if template['id']: order -= 1
-				if type(data[order]).__name__ == field['type']:
-					insert_template[order] = field_name
-					if field['type'] == ('int' or 'float'):
-						clean_data[order] = str(data[order])
+				raise RuntimeError("Table not found; provide table reference or ensure KLDatabase.__default_table is set.")
+		insert_template = [None, ] * (len(template) - 1) if template[0][0] == ID else [None, ] * len(template)
+		try:
+			column_index = 0
+			for column in template:
+				if type_str(data[column_index]) == column[1]['type']:
+					insert_template.append(column)
+					if column[1]['type'] in (PY_INT, PY_FLOAT):
+						data[column_index] =  str(data[column_index])
 					else:
-						clean_data[order] = "'" + str(data[order]) + "'"
-		else:
-			raise AttributeError('Length of data list exceeds number of table columns.')
-		return "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, ",".join(insert_template), ",".join(clean_data))
+						data[column_index] = "'{0}'".format(data[column_index])
+				else:
+					error_data = [column[1]['type'], column[0], type_str(data[column_index])]
+					raise TypeError("Expected '{0}' for column '{1}', got '{2}'.".format(*error_data))
+				column_index += 1
+			if column_index + 1 > len(data):
+				raise AttributeError('Cannot map data to table: more data elements than columns.')
+		except IndexError:
+			raise AttributeError('Cannot map data to table: fewer data elements than columns.')
 
-	def query(self, query, do_return=True):
+		return "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, ",".join(insert_template), ",".join(data))
+
+	def query(self, query, query_type=QUERY_SEL, return_result=True):
 		result = self.cursor.execute(query)
-		self.db.commit()
-		if result and do_return:
-			return result
-		#add in error handling for SQL errors
+		if query_type != QUERY_SEL: self.db.commit()
+		return result if return_result else True
 
-	def table_headers(self, table, join_with=[], as_string=False):
-		# try:
-			table = self.table_schemas[table]
-			table_headers_list = [None] * len(table)
-			participant_headers_list = None
-			for column in table:
-				table_headers_list[table[column]['order']] = column
-			table_headers_list = table_headers_list[1:]  # remove id column
+	def p_filename_str(self, participant_id, multi_file=False, incomplete=False, duplicate_count=None):
+			if multi_file:
+		 		created = str(self.query("SELECT `created` FROM `participants` WHERE `id` = {0}".format(1)).fetchone()[0][:10])
+			fname = "p{0}.{1}".format(participant_id, created) if multi_file else "{0}_all_trials".format(Params.project_name)
+			if duplicate_count: fname += "_{0}".format(duplicate_count)
+			if incomplete: fname += "_incomplete"
+			fname += DATA_EXT
+			if incomplete:
+				return [fname, os.path.join(Params.incomplete_data_path, fname)]
+			else:
+				return [fname, os.path.join(Params.data_path, fname)]
 
-			table_indeces_map = {}  # keeps track of original table column indeces for multiple joins
-			for i in range(0, len(table_headers_list)):
-				table_indeces_map[str(i)] = i
+	def __collect_export_data(self, multi_file=True):
+		participant_ids = self.query("SELECT `id`, `userhash` FROM `participants`").fetchall()
+		participant_ids.insert(0, (-1,))  # testing id
+		data = []
+		p_field_str = ""
+		t_field_str = ""
+		for field in Params.default_participant_fields:
+			if iterable(field):
+				p_field_str += "`participants`.`{0}` AS `{1}`, ".format(*field)
+			else:
+				p_field_str += "`participants`.`{0}`, ".format(field)
+		for field in self.table_schemas['trials']:
+			if field[0] not in [ID, Params.id_field_name]:
+				t_field_str += "`trials`.`{0}`, ".format(field[0])
+		t_field_str = t_field_str[:-2]
 
-			# try:
-			for join in join_with:
-		# 		try:
-				print join
-				join_headers = self.table_schemas[join[0]]
-				excluded_columns = join[2] if len(join) == 3 else []
-				join_headers_list = [None] * len(join_headers)
-				print join_headers_list
-				for column in join_headers:
-					if column not in excluded_columns:
-						index = join_headers[column]['order']
-						join_headers_list[index] = column
-				join_headers_list = [col for col in join_headers_list if col is not None]
-				join_headers_list = join_headers_list[1:]
-							# try:
-				print table_indeces_map
-				index = table_indeces_map[str(join[1])]
-				table_headers_list[index:index] = join_headers_list
-				table_indeces_map[str(join[1])] += len(join_headers_list)
-				if len(table_indeces_map) < len(table_headers_list):
-					table_indeces_map[str(len(table_headers_list))] = len(table_headers_list)
-			# 			except Exception as e:
-			# 				raise Exception(e)
-			# 				raise ValueError("Second element of join_with tables must be a index in range of 'table'")
-			# 		except Exception as e:
-			# 			raise Exception(e)
-			# 			raise ValueError("Table in argument 'join_with' was not found in in Database.tables dict ")
-			# except Exception as e:
-			# 	raise Exception(e)
-#				raise TypeError("Argument 'join_with' must be iterable.")
+		for p in participant_ids:
+			if p[0] == -1:  # for legacy data, ie. prior to implementing anonymous_user argument of collect_demographics()
+				q = "SELECT {0} FROM `trials` WHERE `trials`.`participant_id` = -1".format(t_field_str)
+			else:
+				q = "SELECT {0} {1} FROM `trials` JOIN `participants` ON `trials`.`participant_id` = {2} WHERE `participant` = '{3}'".format(p_field_str, t_field_str, p[0], p[1])
+			print q
+			p_data = []
+			for trial in self.query(q).fetchall():
+				row_str = TAB.join(str(col) for col in trial)
+				if p[0] == -1: row_str = TAB.join([Params.default_demo_participant_str, row_str])
+				p_data.append(row_str) if multi_file else data.append(row_str)
+			if multi_file: data.append([p[0], p_data])
+		return data if multi_file else [data]
 
-			return table_headers_list if not as_string else "{0}\n".format("\t ".join(table_headers_list))
-		# except:
-		# 	raise ValueError("Value for argument 'table' was not found in Database.tables dict.")
+	def export(self, multi_file=True, join_tables=None):
+		table_header = []
+		for field in Params.default_participant_fields:
+			table_header.append(field[1]) if iterable(field) else table_header.append(field)
 
-	def export(self, path=None, multi_file=True, join_tables=None):
-		# todo: write stuff for joining tables
-		# todo: add behaviors for how to deal with multiple files with the same participant id (ie. append, overwrite, etc.)
-		participants = self.query("SELECT * FROM `participants`").fetchall()
-		table_header = self.table_headers("trials", [["participants", 1, ['userhash']]], True)
-		# table_header = self.table_headers("trials", as_string=True)
-		for p in participants:
-			block_num = 1
-			trials_this_block = 0
-			trials = self.query("SELECT * FROM `trials` WHERE `participant_id` = {0}".format(p[0])).fetchall()
-			file_name_str = "p{0}_{1}.txt"
-			duplicate_file_name_str = "p{0}.{1}_{2}.txt"
-			file_path = Params.data_path
-			if len(trials) != Params.trials_per_block * Params.blocks_per_experiment:
-				file_path = Params.incomplete_data_path
-				file_name_str = "p{0}_{1}_incomplete.txt"
-				duplicate_file_name_str = "p{0}.{1}_{2}_incomplete.txt"
-			file_name = file_name_str.format(p[0], str(p[5])[:10])  # second format arg = date sliced from date-time
-			if os.path.isfile(os.path.join(file_path, file_name)):
-				unique_file = False
-				append = 1
-				while not unique_file:
-					file_name = duplicate_file_name_str.format(p[0], append, str(p[5])[:10])
-					if not os.path.isfile(os.path.join(file_path, file_name)):
-						unique_file = True
-					else:
-						append += 1
-			participant_file = open(os.path.join(file_path, file_name), "w+")
-			participant_file.write(table_header)
-			for trial in trials:
-				trial = trial[1:]
-				if trials_this_block == 120:
-					block_num += 1
-					trials_this_block = 0
-				trials_this_block += 1
-				trial = list(trial)
-				trial[1:1] = p[2:]
-				trial[5] = block_num
-				row_string = "\t".join([str(col) for col in trial])
-				participant_file.write("{0}\n".format(row_string))
-			participant_file.close()
-
-
+		for field in self.table_schemas['trials']:
+			if field[0][-2:] != "id": table_header.append(field[0])
+		table_header = TAB.join(table_header)
+		data = self.__collect_export_data(multi_file)
+		print data
+		for data_set in data:
+			p_id = data_set[0]
+			if multi_file:
+				incomplete = multi_file and len(data_set[1]) != Params.trials_per_block * Params.blocks_per_experiment
+			else:
+				incomplete = False
+			file_strings = self.p_filename_str(multi_file, True) if incomplete else self.p_filename_str(p_id, multi_file)
+			if os.path.isfile(file_strings[1]):
+				duplicate_count = 1
+				while os.path.isfile(os.path.join(file_strings[1])):
+					file_strings = self.p_filename_str(p_id, multi_file, incomplete, duplicate_count)
+					duplicate_count += 1
+			data_file = open(os.path.join(file_strings[1]), "w+")
+			data_file.write(table_header + "\n")
+			data_file.write("\n".join(data_set[1]))
+			data_file.close()
 
 	@property
 	def default_table(self):

@@ -22,76 +22,54 @@ from KLELCustomDisplay import KLELCustomDisplay
 from KLDraw import *
 from KLTrialFactory import KLTrialFactory
 
-
-class TrialIterator(object):
-	def __init__(self, l):
-		self.l = l
-		self.length = len(l)
-		self.i = 0
-
-	def __iter__(self):
-		return self
-
-	def __len__(self):
-		return self.length
-
-	def __getitem__(self, i):
-		return self.l[i]
-
-	def __setitem__(self, i, x):
-		self.l[i] = x
-
-	def next(self):
-		if self.i >= self.length:
-			raise StopIteration
-		else:
-			self.i += 1
-			return self.l[self.i - 1]
-
-	def recycle(self):
-		self.l.append(self.l[self.i - 1])
-		temp = self.l[self.i:]
-		random.shuffle(temp)
-		self.l[self.i:] = temp
-		self.length += 1
-
+#  TODO: Pull all the interface commands, keymaps, overwatch, etc. into KLInterface and stick it on a separate process
+#  TODO: Multiprocessing
 
 class Experiment(object):
 	__completion_message = "thanks for participating; please have the researcher return to the room."
 	__wrong_key_msg = None
-	trial_number = 0
-	block_number = 0
-
-	logged_fields = list()
-
-	testing = True
+	window = None
 	paused = False
-	execute = True
-	eyelink = None
-	text_manager = None
 
 	# runtime KLIBS modules
-	trial_factory = None  # ie. KLTrialFactory object
+	eyelink = None          # KLEyeLink instance
+	database = None      # KLDatabase instance
+	trial_factory = None  # KLTrialFactory instance
+	text_manager = None   # KLTextManager instance
 
-	def __init__(self, project_name, asset_path="ExpAssets"):
+	def __init__(self, project_name, asset_path="ExpAssets", export=False):
+		"""
+		Initializes a KLExperiment Object
+
+		:param project_name: Project title, used in creating filenames and instance variables.
+		:param asset_path: (optional) Path to assets directory if assets directory is not in default location.
+		:param export: (optional) bool or list of bools providing instructions to export current data instead of
+		running the experiment as normal
+		:raise EnvironmentError:
+		"""
 		if not Params.setup(project_name, asset_path):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
+
+		#initialize the self.database instance
+		try:
+			iterable = iter(export)
+		except:
+			export = [export]
+		self.__database_init(*export)
 
 		Params.key_maps["*"] = KeyMap("*", [], [], [])
 		Params.key_maps["over_watch"] = KeyMap("over_watch", [], [], [])
 		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
 		Params.key_maps["eyelink"] = KeyMap("eyelink",
-										["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
-										[sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
-										sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT, sdl2.SDLK_RIGHT],
-										["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
+											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
+											[sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
+											 sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
+											 sdl2.SDLK_RIGHT],
+											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 
 		self.trial_factory = KLTrialFactory(self)
 
 		self.event_code_generator = None
-
-		#initialize the self.database instance
-		self.__database_init()
 
 		# initialize screen surface and screen parameters
 		self.display_init(Params.view_distance)
@@ -101,67 +79,77 @@ class Experiment(object):
 		if Params.default_font_size:
 			self.text_manager.default_font_size = Params.default_font_size
 		# initialize eyelink
-#		if PYLINK_AVAILABLE and Params.eye_tracking:
+		#		if PYLINK_AVAILABLE and Params.eye_tracking:
 		self.eyelink = KLEyeLink(self)
 		self.eyelink.custom_display = KLELCustomDisplay(self, self.eyelink)
 		self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
 	def __execute_experiment(self, *args, **kwargs):
+		"""
+		Private method, launches and manages the experiment after KLExperiment object's run() method is called.
+		:param args:
+		:param kwargs:
+		"""
 		phases = 2 if Params.practicing else 1
 		for i in range(phases):
 			practicing = phases == 2 and i == 1
 			for block in self.trial_factory.export_trials(practicing):
-				self.block(block[0])  	# ie. block number
+				self.block(block[0])    # ie. block number
 				for trial in block[1]:  # ie. list of trials
 					self.__trial(trial)
-				self.__block_break()  	# todo: this method has functionality that needs to be exposed to the user or removed
 		self.clean_up()
 		self.database.db.commit()
 		self.database.db.close()
 
 	def __trial(self, *args, **kwargs):
 		"""
-		Manages a trial.
-		args = [trial_number, [practicing, param_1, param_2...]]
+		Private method; manages a trial. Expected *args = [trial_number, [practicing, param_1, param_2...]]
 		"""
-		args = args[0]
+		# args = args[0]
 		# try:
 		Params.trial_number = args[0]
 
 		self.trial_prep(*args, **kwargs)
-		trial_data = self.trial(*args, **kwargs)
 		# except:
 		# 	raise
 		# finally:
-		self.__log_trial(trial_data)
+		self.__log_trial(self.trial(*args[0], **kwargs))
 		self.trial_clean_up()
 
-	def __database_init(self):
+	def __database_init(self, *args):
+		"""
+		Initializes the project database; if export instructions are provided, also exports data and exits program.
+
+		:param args:
+		"""
 		self.database = KLDatabase()
+		if args[0]:
+			self.database.export(*args[1:])
+			exit()
 
 	def __log_trial(self, trial_data, auto_id=True):
-		#  todo: move this to a DB function.... :/
-		if auto_id:
-			if Params.testing is True or Params.collect_demographics is False:
-				Params.participant_id = -1
-			try:
-				trial_data[Params.id_field_name] = Params.participant_id
-			except TypeError:
-				print "Warning: Params.participant_id not int at __log_trial(): {0}".format(Params.participant_id)
-				Params.participant_id = -1
-				trial_data[Params.id_field_name] = Params.participant_id
+		"""
+		Private method, should not be called by user; use KLExperiment.log()
 
-		for attr in trial_data:
-			self.database.log(attr, trial_data[attr])
+		:param trial_data:
+		:param auto_id:
+		"""
+		if auto_id: trial_data[Params.id_field_name] = Params.participant_id
+		if self.database.current() is None: self.database.init_entry('trials', "trial_{0}".format(Params.trial_number))
+		for attr in trial_data: self.database.log(attr, trial_data[attr])
 		self.database.insert()
 
-	def __set_stroke(self):
-		stroke = int(1 * math.floor(Params.screen_y / 500.0))
-		if (stroke < 1):
-			stroke = 1
-		return stroke
+	def display_init(self, view_distance, ppi=PPI_CRT):
+		"""
+		Creates the SDL2 display object in which the project runs. This is also the display object passed to
+		KLCustomDisplay.
 
-	def display_init(self, view_distance, ppi="crt"):
+		:param view_distance: Distance from participant's eyes to display, measured in degrees of visual angle. By
+		default will be passed KLPrams.view_distance
+		:param ppi: !NOT IMPLEMENTED! Pixels-per-inch of the monitor used for displaying the experiment. Accepts an
+		integer value or  either of
+		:raise TypeError:
+		"""
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()
@@ -187,8 +175,6 @@ class Experiment(object):
 			print "splash.png not found; splash screen not presented"
 		self.flip(1)
 
-		# this error message can be used in three places below, it's easier set it here
-
 		# interpret view_distance
 		if type(view_distance) is tuple and type(view_distance[0]) is int:
 			if equiv('inch', view_distance[1]):
@@ -197,9 +183,8 @@ class Experiment(object):
 			elif equiv('cm', view_distance[1]):
 				Params.view_distance = view_distance[0]
 				Params.view_unit = 'cm'
-				#convert physical screen measurements to cm
-				Params.monitor_x *= 2.55
-				Params.monitor_y *= 2.55
+				Params.monitor_x *= 2.55  #convert physical screen measurements to cm
+				Params.monitor_y *= 2.55  #convert physical screen measurements to cm
 			else:
 				raise TypeError("view_distance must be int (inches) or a tuple containing (int, str).")
 		elif type(view_distance) is int:
@@ -208,32 +193,29 @@ class Experiment(object):
 		else:
 			raise TypeError("view_distance must be int (inches) or a tuple containing (int,str).")
 
-		# TODO: THIS IS BROKEN. PPI needs to be calculated diagonally, this is using horizontal math only.
+		# TODO: The following params are broken; PPI calculation is wrong
 		# http://en.wikipedia.org/wiki/Pixel_density
-		if equiv(ppi, "CRT"):
-			Params.ppi = 72
-		elif equiv(ppi, "LCD"):
-			Params.ppi = 96
-		elif type(ppi) is int:
-			Params.ppi = ppi
-		else:
-			raise TypeError("ppi must be either an integer or a string representing monitor type (CRT/LCD).")
+		# Params.ppi = ppi
 		# Params.monitor_x = Params.screen_x / Params.ppi
 		# Params.monitor_y = Params.screen_y / Params.ppi
-		Params.monitor_x = 23.3
-		Params.monitor_y = Params.screen_y / Params.ppi
-		Params.screen_degrees_x = math.degrees(math.atan((Params.monitor_x / 2.0) / Params.view_distance) * 2)
-		Params.pixels_per_degree = int(Params.screen_x / Params.screen_degrees_x)
-		Params.ppd = Params.pixels_per_degree  # alias for convenience
+		# Params.monitor_x = 23.3
+		# Params.monitor_y = Params.screen_y / Params.ppi
+		# Params.screen_degrees_x = math.degrees(math.atan((Params.monitor_x / 2.0) / Params.view_distance) * 2)
+		# Params.pixels_per_degree = int(Params.screen_x / Params.screen_degrees_x)
+		# Params.ppd = Params.pixels_per_degree  # alias for convenience
 
-	def alert(self, alert_string, urgent=False, display_for=0):
+	def alert(self, alert_string, blit=True, display_for=0):
 		# TODO: address the absence of default colors
-		# todo: instead hard-fill, "separate screen" flag; copy current surface, blit over it, reblit surf or fresh surf
+		# todo: instead hard-fill, "separate screen" flag; copy current surface, blit over it, reblit surf or fresh
+		# surf
 		"""
 		Display an alert
 
-		:param alert_string: - Message to display
-		:param urgent: - Boolean, returns alert surface for manual handling rather waiting for 'any key' response
+		:param alert_string: Message to display as alert.
+		:param blit: (optional) When false returns rendered alert surface for manual blitting. By default (ie. False),
+		automatically blits alert to screen and awaits 'any key' response.
+		:param display_for: (optional) Number of seconds to display the alert message for (overrides 'any key'
+		dismissal).
 		"""
 		# if urgent:
 		# 	return self.message(alert_string, color=(255, 0, 0, 255), location='topRight', registration=9,
@@ -241,7 +223,7 @@ class Experiment(object):
 		self.clear()
 		self.fill(Params.default_fill_color)
 		self.message(alert_string, color=(255, 0, 0, 255), location='center', registration=5,
-							font_size=self.text_manager.default_font_size * 2, blit=True)
+					 font_size=self.text_manager.default_font_size * 2, blit=True)
 		if display_for > 0:
 			start = time.time()
 			self.flip()
@@ -252,6 +234,17 @@ class Experiment(object):
 			self.listen()  # remember that listen calls flip() be default
 
 	def blit(self, source, registration=7, position=(0, 0), context=None):
+		"""
+		Draws passed surface to image buffer.
+		:param source: KLNumpySurface or numpy array of image data (see manual for more information).
+		:param registration: (optional) Location on perimeter of surface that will be aligned to position (see manual
+		for more information).
+		:param position: (optional) Location on screen to place source, either pixel cooridinates or location string (
+		ie. "center", "top_left")
+		:param context: !NOT IMPLEMENTED! (optional) A destination surface or display object for images built
+		gradually. Preferred means of achieving this is the use of KLNumpySurface objects.
+		:raise TypeError:
+		"""
 		height = None
 		width = None
 		content = None
@@ -323,95 +316,59 @@ class Experiment(object):
 		del id
 		gl.glDisable(gl.GL_TEXTURE_2D)
 
-	@abc.abstractmethod
-	def block(self, block_num):
-		pass
-
-	def __block_break(self, message=None, is_path=False):
+	def block_break(self, message=None):
 		"""
-		Display a break message between blocks
-
-		:param message: A message string or path to a file containing a message string
-		:param is_path:
+		Display a break message between blocks [HEAVY MODIFICATION PLANNED][REMOVAL POSSIBLE]
+		:param message:
 		:raise:
 		"""
 		default = "You've completed block {0} of {1}. When you're ready to continue, press any key.".format(
-			Params.block_number, Params.blocks)
-		if is_path:
-			try:
-				path_exists = os.path.exists(message)
-				if path_exists:
-					with open(message, "r") as f:
-						message = f.read().replace("\n", '')
-				else:
-					e = "'isPath' parameter was True but '{0}' was not a valid path. Using default message".format(
-						message)
-					raise IOError(e)
-			except IOError as e:
-				self.warn(e, 'App', 'blockBreak')
-				message = default
-		if self.testing:
-			pass
-		else:
-			if type(message) is str:
-				if message is None:
-					message = default
-				self.message(message, location='center', registration=5)
-				self.listen()
+			Params.block_number, Params.blocks_per_experiment)
+		if Params.testing: return
+		if not message: message = default
+		self.message(message, location='center', registration=5)
+		self.listen()
 
-	def bounded_by(self, pos, left, right, top, bottom):
-		xpos = int(pos[0])
-		ypos = int(pos[1])
-		# todo: tighten up that series of ifs into one statement
-		if all(type(val) is int for val in (left, right, top, bottom)) and type(pos) is tuple:
-			if xpos > left:
-				if xpos < right:
-					if ypos > top:
-						if ypos < bottom:
-							return True
-						else:
-							return False
-					else:
-						return False
-				else:
-					return False
-			else:
-				return False
-		else:
-			e ="Argument 'pos' must be a tuple, others must be integers."
-			raise TypeError()
-
-	def collect_demographics(self):
+	def collect_demographics(self, anonymous_user=False):
 		"""
-		Gather participant demographic information and enter it into the self.database
+		Gather participant demographic information and enter it into the project database. If not executed at runtime
+		will be automatically called before trials begin with a timestamp used in place of a participant name.  See
+		manual for detailed explanation.
 
+		:param anonymous_user: (optional)
 		"""
 		# TODO: this function should have default questions/answers but should also be able to read from a
 		# CSV or array for custom Q&A
-		if not Params.collect_demographics: return
+		if not Params.collect_demographics and not anonymous_user: return
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
-		name_query_string = self.query(
-			"What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.",
-			as_password=True)
-		name_hash = hashlib.sha1(name_query_string)
-		name = name_hash.hexdigest()
+		if anonymous_user:
+			name = "demo_user_{0}".format(now(True))
+		else:
+			name_query_string = self.query(
+				"What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot "
+				"be read later.",
+				as_password=True)
+			name_hash = hashlib.sha1(name_query_string)
+			name = name_hash.hexdigest()
 		self.database.log('userhash', name)
 
 		# names must be unique; returns True if unique, False otherwise
-		if self.database.is_unique(name, 'userhash', 'participants'):
-			gender = "What is your gender? \nAnswer with:  (m)ale,(f)emale or (o)ther)"
-			handedness = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
-			self.database.log('gender', self.query(gender, accepted=('m', 'M', 'f', 'F', 'o', 'O')))
-			self.database.log('handedness', self.query(handedness, accepted=('r', 'R', 'l', 'L', 'a', 'A')))
-			self.database.log('age', self.query('What is  your age?', return_type='int'))
-			self.database.log('created', self.now())
-			if not self.database.insert():
-				raise DatabaseException("Database.insert(), which failed for unknown reasons.")
-			self.database.cursor.execute("SELECT `id` FROM `participants` WHERE `userhash` = '{0}'".format(name))
-			Params.participant_id = self.database.cursor.fetchall()[0][0]
-			print "Participant id after demo: {0}".format(Params.participant_id)
-			if not Params.participant_id:
-				raise ValueError("For unknown reasons, 'participant_id' couldn't be set or retrieved from self.database.")
+		if self.database.is_unique('participants', 'userhash', name):
+			if anonymous_user:
+				gender = "o"
+				handedness = "a"
+				age = 0
+			else:
+				gender_str = "What is your gender? \nAnswer with:  (m)ale,(f)emale or (o)ther)"
+				gender = self.query(gender_str, accepted=('m', 'M', 'f', 'F', 'o', 'O'))
+				handedness_str = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
+				handedness = self.query(handedness_str, accepted=('r', 'R', 'l', 'L', 'a', 'A'))
+				age = self.query('What is  your age?', return_type='int')
+			self.database.log('gender', gender)
+			self.database.log('handedness', handedness)
+			self.database.log('age', age)
+			self.database.log('created', now(True))
+			Params.participant_id = self.database.insert()
 		else:
 			retry = self.query('That participant identifier has already been used. Do you wish to try another? (y/n) ')
 			if retry == 'y':
@@ -422,24 +379,43 @@ class Experiment(object):
 				self.window.refresh()
 				time.sleep(2)
 				self.quit()
+		self.database.current(False)
 
 	def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
+		"""
+		Performs a drift correction, or simulates one via the mouse if no eye tracker available. Wraps method of same name in KlEyeLink and original PyLink method; experimenters should use this method to ensure compatibility with future releases.
+		:param location: (optional) Location of drift correct target; if not provided, defaults to screen center.
+		:param events: (optional) see PyLink documentation
+		:param samples: (optional) see PyLink documentation
+		:return: see PyLink documentation
+		"""
 		self.clear()
 		return self.eyelink.drift_correct(location, events, samples)
 
-	def draw_fixation(self, width=None, stroke=None, color=None, fill=None, flip=False):
-		if not width:
-			width = Params.screen_y // 50
-		if not stroke:
-			stroke = width // 5
-		cross = FixationCross(width, stroke, color, fill).draw()
+	def draw_fixation(self, position=BL_CENTER, width=None, stroke=None, color=None, fill_color=None, flip=False):
+		"""
+		Creates and renders a KLFixationCross (KLDrawbject) inside an optional background circle  at provided or default location. [HEAVY MODIFICATION POSSIBLE]
 
-		self.blit(cross, 5, Params.screen_c)
-		if flip:
-			self.flip()
+		:param width: Width in pixels (and consequently height) of fixation cross.
+		:param stroke: Width in pixels of the fixation cross's horizontal & vertical bars.
+		:param color: Color of fixation cross as iterable rgb or rgba values (ie. (255, 0, 0) or (255, 0, 0, 125).
+		:param fill_color: Color of background circle as iterable rgb or rgba values; default is None.
+		:param flip:
+		:return:
+		"""
+		if not width: width = Params.screen_y // 50
+		if not stroke: stroke = width // 5
+		cross = FixationCross(width, stroke, color, fill_color).draw()
+		self.blit(cross, 5, absolute_position(position))
+		if flip: self.flip()
 		return True
 
 	def exempt(self, index, state=True):
+		"""
+		Legacy function; do not use, wil lbe removed in future updates. [DEPRECATED]
+		:param index:
+		:param state:
+		"""
 		if index in self.exemptions.keys():
 			if state == 'on' or True:
 				self.exemptions[index] = True
@@ -448,8 +424,9 @@ class Experiment(object):
 
 	def flip(self, duration=0):
 		"""
-		Flip the window and wait for an optional duration
-		:param duration: The duration to wait in ms
+		Renders contents of draw buffer to current display, then waits for either any key press OR an optionally specified duration.
+
+		:param duration: (optional) Duration in ms for which to display flipped buffer; KLExperiment.overwatch() called for duration.
 		:return: :raise: AttributeError, TypeError, GenError
 		"""
 
@@ -467,7 +444,17 @@ class Experiment(object):
 		else:
 			raise TypeError("Duration must be expressed as an integer, '{0}' was passed.".format(type(duration)))
 
-	def key_mapper(self, name, key_names=None, key_codes=None, key_vals=None):
+	def add_keymap(self, name, key_names=None, key_codes=None, key_vals=None):
+		"""
+		A convenience method that Creates a KlKeyMap instance from supplied information.
+		Equivalent to Params.key_maps['name'] = KLKeyMap(args)
+
+		:param name:
+		:param key_names:
+		:param key_codes:
+		:param key_vals:
+		:return: :raise TypeError:
+		"""
 		if type(name) is not str:
 			raise TypeError("Argument 'name' must be a string.")
 
@@ -481,22 +468,30 @@ class Experiment(object):
 		else:
 			return False
 
-	def instructions(self, text, is_path=False):
-		#  todo: remove arguments and use Params.instructions_file after you create it
-		if is_path:
-			if type(text) is str:
-				if os.path.exists(text):
-					f = open(text, 'rt')
-					text = f.read()
-				else:
-					raise IOError("Argument 'is_path' was true but path to instruction text does not exist.")
-			else:
-				raise TypeError("Argument 'text' must be of type 'str' but '{0}' was passed.".format(type(text)))
+	def instructions(self, instructions_text=None):
+		"""
+		Presents contents of instructions.txt to participant. [NOT IMPLEMENTED][HEAVY MODIFICATION PLANNED]
+
+		:param instructions_text: (optional) String of instructions text or path to file containing the same; defaults to contents of default instructions.txt file if it exists.
+		:raise TypeError:
+		"""
+		try:
+			self.message(open(instructions_text, 'rt').read(), location=BL_CENTER, flip=True)
+		except IOError:
+			self.message(instructions_text, location=BL_CENTER, flip=True)
 		self.fill()
-		self.message(text, location="center", flip=True)
+
 		self.listen()
 
 	def ui_request(self, key_press, execute=False):
+		"""
+		[EXTENSION PLANNED]
+		Inspects a keypress for interface commands like "quit", "pause", etc..
+		Primarily used by KLExperiment.overwatch; Currently only "quit" is implemented.
+		:param key_press:
+		:param execute:
+		:return:
+		"""
 		if key_press.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
 			if key_press.sym in UI_METHOD_KEYSYMS:
 				if key_press.sym == sdl2.SDLK_q:
@@ -513,11 +508,28 @@ class Experiment(object):
 						return False
 		return False
 
-	# todo: listen is not a method; it should be a class, "listener", that gets configured
 	def listen(self, max_wait=MAX_WAIT, key_map_name="*", el_args=None, null_response=None, response_count=None,
-			   interrupt=True, flip=True, wait_callback=None, *wait_args, **wait_kwargs ):
+			   interrupt=True, flip=True, wait_callback=None, *wait_args, **wait_kwargs):
+		"""
+		[RELOCATION PLANNED][HEAVY MODIFICATION PLANNED][BACKWARDS COMPATIBILITY PLANNED]
+		Note: This method will be replaced with a KLListener class with a more robust and user-friendly interface and its own API in a later release of KLIBs.
+		Used for interacting with the particpant via key presses; this is the primary method for collecting responses of any kind. See manual for extensive documentation.
+
+		:param max_wait: (optional) Maximum time in seconds to await participant response before declaring a "TIME_OUT" response. Default is an indefinite period.
+		:param key_map_name: (optional) Look-up name of the KLKeyMap instance to be used for handling participant responses. Default is 'any key'. Note: will accept a KLKeyMap object directly in future release.
+		:param el_args: (optional) Dictionary of keyword arguments to be passed to KlExperiment.KLEyeLink.listen().
+		:param null_response: (optional) String return on timeout, default is "NO_RESPONSE"
+		:param response_count: (optional)[NOT IMPLEMENTED] Number of responses to collect from participant. Default is 1.
+		:param interrupt: (optional) When True, response is returned as soon as it is collected, otherwise allows max_wait to elapse. Default is True. Note: When False, creates a very small performance loss (>1ms) as KLExperiment.overwatch() is called to inspect the response before it is evaluated by the supplied KLKeyMap.
+		:param flip: (optional) When True, KLExperiment.flip() is called immediately before initiating the listen() loop. Otherwise display buffer must be flipped (if need) manually called during the wait_callback
+		:param wait_callback: (optional) Function to execute between each loop of listen; used for updating the display or otherwise interacting with the user while listen() is running.
+		:param wait_args: (optional) A list of required arguments to be passed to the supplied wait_callback. [PYTHON SYNTAX CONCEPT:"splat operator"]
+		:param wait_kwargs: (optional) A dictionary of key word arguments to be passed to the supplied wait_callback. [PYTHON SYNTAX CONCEPT:"splat operator"]
+		:return: :raise RuntimeError:
+		"""
 		pr("@PKLExperiment.listen() reached", 2)
 		exit_msg_thresh = 2
+		# todo: listen is not a method; it should be a class, "listener", that gets configured
 		# TODO: response_count should be a real thing
 		# TODO: have customizable wrong key & time-out behaviors
 		# TODO: make RT & Response part of a customizable ResponseMap object
@@ -544,7 +556,8 @@ class Experiment(object):
 
 		# enter with a clean event queue
 		sdl2.SDL_PumpEvents()
-		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)  # upper/lower bounds of event queue,ie. flush all
+		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)  # upper/lower bounds of event queue,
+		# ie. flush all
 		if flip:
 			self.flip()  # executed as close to wait loop as possible for minimum delay between timing and presentation
 
@@ -583,7 +596,8 @@ class Experiment(object):
 						valid = key_map.validate(sdl_keysym)
 						if valid:  # a KeyMap with name "*" (ie. any key) returns self.ANY_KEY
 							response = key_map.read(sdl_keysym, "data")
-							if interrupt:  # ONLY for TIME SENSITIVE reactions to participant response; this flag voids overwatch()
+							if interrupt:  # ONLY for TIME SENSITIVE reactions to participant response; this flag
+							# voids overwatch()
 								pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 								return [response, rt]
 						else:
@@ -599,10 +613,10 @@ class Experiment(object):
 								return [key_map.any_key_string, rt]
 						if wrong_key is True:  # flash an error for an actual wrong key
 							pass
-							# todo: make wrong key message modifable; figure out how to turn off to not fuck with RTs
-							# wrong_key_message = "Please respond using '{0}'.".format(key_map.valid_keys())
-							# self.alert(wrong_key_message)
-							# wrong_key = False
+						# todo: make wrong key message modifable; figure out how to turn off to not fuck with RTs
+						# wrong_key_message = "Please respond using '{0}'.".format(key_map.valid_keys())
+						# self.alert(wrong_key_message)
+						# wrong_key = False
 			if (time.time() - start_time) > max_wait:
 				waiting = False
 				pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
@@ -619,8 +633,34 @@ class Experiment(object):
 			return [response, rt]
 
 	def message(self, message, font=None, font_size=None, color=None, bg_color=None, location=None, registration=None,
-				wrap=None, wrap_width=None, delimiter=None, blit=True, flip=False, padding=None):
+				wrap=None, wrap_width=None, line_delimiter=None, blit=True, flip=False, padding=None):
 		# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
+		"""
+		[HEAVY MODIFICATION PLANNED][BACKWARDS COMPATABILITY PLANNED]
+		Generates and optionally renders formatted text to the display.
+		Note:: Most of these key word arguments will be passed as single KLTextStyle object argument
+
+		:param message: Text to be displayed.
+		:param font: (optional) Name of font to be used. Default is Helvetica. Must be a font installed on the system;
+		non-system-default fonts should *not* be used.
+		:param font_size: (optional) Font size in points to be used for the message text; default is KLParams
+		.default_font_size, which is 28pt by default.
+		:param color: (optional) Color of message text; default is KLParams.default_color, which is black by default.
+		:param bg_color: (optional) Background color of message text; default is KLParams.default_bg_color,
+		which is None by default.
+		:param location: (optional) Pixel coordinates or location identifier where the message should be placed.
+		Default is screen center.
+		:param registration: (optional) Location on message surface perimeter to be placed at supplied location.
+		Default is 5, or the surface center.
+		:param wrap: (optional) When True, text will wrap when edge of screen is reached, or if line reaches
+		wrap_width. [NOT IMPLEMENTED]
+		:param wrap_width: (optional) Maximum width, in pixels, a line of text can be before commencing a new line.
+		:param line_delimiter: (optional) Symbol or string indicating a line break. Default is unix new line operator, ie. "\n".
+		:param blit: (optional) When True, blits the message surface to the display buffer, otherwise returns the surface; default is True.
+		:param flip: (optional) When True, flips the display buffer after blit. Default is False.
+		:param padding: (optional) Width of white space, in pixels, surrounding the message surface on all sides.
+		:return: :raise ValueError:
+		"""
 		render_config = {}
 		message_surface = None  # unless wrap is true, will remain empty
 
@@ -680,8 +720,8 @@ class Experiment(object):
 				if len(location) != 2:
 					raise ValueError()
 			except:
-				raise ValueError("Argument 'location' invalid; must be a location string, coordinate tuple, or NoneType")
-
+				raise ValueError(
+					"Argument 'location' invalid; must be a location string, coordinate tuple, or NoneType")
 
 		if not blit:
 			if wrap:
@@ -708,27 +748,26 @@ class Experiment(object):
 				self.flip()
 		return True
 
-	def now(self):
-		today = datetime.datetime
-		return today.now().strftime("%Y-%m-%d %H:%M:%S")
-
-	def numpy_surface(self, foreground=None, background=None, fg_position=None, bg_position=None, width=None, height=None):
-			"""
-			Factory method for klibs.NumpySurface
-			:param foreground:
-			:param background:
-			:param width:
-			:param height:
-			:return:
-			"""
-			return NumpySurface(foreground, background, fg_position, bg_position, width, height)
-
-	def over_watch(self, event=None):
+	def numpy_surface(self, foreground=None, background=None, fg_position=None, bg_position=None, width=None,
+					  height=None):
 		"""
-		Inspects keyboard events for app-wide functions calls like 'quit', 'calibrate', 'pause', etc.
-		When event argument is passed only that event in inspected.
-		When called without event argument, pumps and inspects the entire event queue.
-		:param event:
+		Factory method for klibs.NumpySurface; see KLNumpySurface.
+		:param fg_position: Pixel coordinates or location identifier of foreground content. Will non-destructively clip content it extends beyond surface edges.
+		:param bg_position: (see fg_position)
+		:param foreground: Foreground content; must be a path to an image file, a numpy array of pixel data or another KLNumpySurface.
+		:param background: (see foreground)
+		:param width: If provided manually sets the width in pixels of surface.
+		:param height: If provided manually sets the height in pixels of surface.
+		:return:
+		"""
+		return NumpySurface(foreground, background, fg_position, bg_position, width, height)
+
+	def over_watch(self, keypress_event=None):
+		"""
+		Inspects keypress events for interface requests (ie.  'quit', 'calibrate', 'pause', etc.) and executes them.
+		When called without event argument, pumps and inspects the entire event queue, otherwise inspects only the supplied event.
+
+		:param keypress_event: An sdl2.
 		:return:
 		"""
 		input_collected = False
@@ -738,26 +777,26 @@ class Experiment(object):
 		mod_name = None
 		key_name = None
 		event_stack = None
-		if event is None:
+		if keypress_event is None:
 			event_stack = sdl2.SDL_PumpEvents()
 			if type(event_stack) is list:
 				event_stack.reverse()
 			else:
 				return False  # ie. app is in a passive context and no input is happening
 		else:
-			event_stack = [event]
+			event_stack = [keypress_event]
 		while not input_collected:
-			event = event_stack.pop()
-			if event.type in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
-				keysym = event.key.keysym
+			keypress_event = event_stack.pop()
+			if keypress_event.type in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
+				keysym = keypress_event.key.keysym
 				sym = keysym.sym  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
 				key_name = sdl2.keyboard.SDL_GetKeyName(sym)
-				if event.type == sdl2.SDL_KEYUP:  # modifier or no, a key up event implies user decision; exit loop
+				if keypress_event.type == sdl2.SDL_KEYUP:  # modifier or no, a key up event implies user decision; exit loop
 					input_collected = True
 				if key_name not in MOD_KEYS:  # if event key isn't a modifier: get key info & exit loop
 					mod_name = sdl2.keyboard.SDL_GetModState()
 					input_collected = True
-				elif repumping and event.repeat != 0:  # user holding mod key; return control to calling method calling
+				elif repumping and keypress_event.repeat != 0:  # user holding mod key; return control to calling method calling
 					return False
 				elif len(event_stack) == 0:
 					sdl2.SDL_PumpEvents()
@@ -776,48 +815,68 @@ class Experiment(object):
 		return False
 
 	def pause(self):
-		time.sleep(0.2)  # to prevent unpausing immediately due to a key(still)down event
+		"""
+		[BROKEN][HEAVY MODIFICATION PLANNED][BACKWARDS COMPATIBILITY EXPECTED][INTERFACE COMMAND]
+		Pauses an experiment.
+
+		"""
+		pump()
 		while self.paused:
 			self.message('PAUSED', fullscreen=True, location='center', font_size=96, color=(255, 0, 0, 255),
-						registration=5, blit=False)
+						 registration=5, blit=False)
 			self.over_watch()
 			self.listen_refresh()
 
-	def pre_blit(self, source, start_time, end_time, registration=7, pos=(0, 0), destination=None, flags=None, area=None,
-				interim_action=None):
-		"""
-		Blit to the screen buffer, wait until endTime to flip. Check func often if set.
-		:type start_time: float
-		:param source:
-		:param start_time: Time trial began (from time.time())
-		:param end_time: The time post trial after which the screen should be flipped.
-		:param registration:
-		:param pos:
-		:param destination:
-		:param flags:
-		:param area:
-		:param interim_action: A function called repeatedly until the duration has passed. Don't make it long.
-		"""
-		self.blit(source, registration, pos, destination, flags, area)
-		now = time.time()
-		while now < start_time + end_time:
-			if interim_action is not None:
-				interim_action()
-			now = time.time()
-		self.listen_refresh()
-		return now - start_time + end_time
-
-	def pre_bug(self):
+	def project_config(self):
 		#todo: will be a screen that's shown before anything happens in the program to quickly tweak debug settings
+		"""
+		Not implemented. Slated for future release.
+
+		"""
 		pass
 
-	def track_mouse(self):
-		self.blit(cursor(), 7, mouse_pos())
-		return True
-
 	def query(self, query=None, as_password=False, font=None, font_size=None, color=None,
-				locations=None, registration=5, return_type=None, accepted=None):
+			  locations=None, registration=5, return_type=None, accepted=None):
 		# TODO: 'accepted' might be better as a KLKeyMap object? Or at least more robust than a list of letters?
+		"""
+		[MOVE PLANNED][BACKWARDS COMPATIBILITY PLANNED]
+		Convenience function for collecting participant input with visual feedback (ie. displaying the participant's text
+		as it's typed). Presents a string (ie. a question or response instruction) to the participant. Then listens for
+		keyboard input and displays the participant's response on screen in real time.
+
+		KLExperiment.query() makes two separate calls to `KLExperiment.message() <#message_def>`, which allows for query text and response text to be formatted independently. All of
+		the formatting arguments can optionally be length-2 lists of the usual parameters, where the first element
+		would be applied to the query string and the second to the response. If normal formatting values are supplied, they
+		are applied to both the query and response text.
+
+		Example:
+		========
+		This statement:
+		> KLExperiment::query("What is your name?", font="Helvetica", font_size=[24,16], color=[rgb(0,0,0), rgb(255,0,0)])
+		Displays text formatted like this:
+		query text:
+			- black
+			- 24pt
+			- Helvetica.
+		response text:
+			- red
+			- 16pt
+			- Helvetica
+
+		Note:: As with `KLExperiment.message() <#message_def>`, this method will eventually accept a
+		KLTextStyle object instead of the formatting arguments currently implemented
+
+		:param query: A string of text to present to the participant, usually a question or instruction about desired input.
+		:param as_password: When true, participant input will appear on screen in asterisks, though real keypresses are recorded.
+		:param font: See `KLExperiment.message() <#message_def>`
+		:param font_size: See `KLExperiment.message() <#message_def>`
+		:param color: See `KLExperiment.message() <#message_def>`
+		:param locations:
+		:param registration:
+		:param return_type:
+		:param accepted:
+		:return: :raise TypeError:
+		"""
 		input_config = [None, None, None, None]  # font, font_size, color, bg_color
 		query_config = [None, None, None, None]
 		vertical_padding = None
@@ -1023,6 +1082,10 @@ class Experiment(object):
 			return input_string
 
 	def quit(self):
+		"""
+		Safely exits the program, ensuring data has been saved and that any connected EyeLink unit's recording is stopped. experimenters should use this, not Python's exit().
+
+		"""
 		try:
 			self.database.db.commit()
 		except:  # TODO: Determine exception type
@@ -1040,11 +1103,23 @@ class Experiment(object):
 		sys.exit()
 
 	def run(self, *args, **kwargs):
+		"""
+		Executes the experiment. Experimenters should use this method to launch their program.
+
+		:param args:
+		:param kwargs:
+		"""
 		self.setup()
+		self.collect_demographics() if Params.collect_demographics else self.collect_demographics(True)
 		self.__execute_experiment(*args, **kwargs)
 
 
 	def start(self):
+		"""
+		[RELOCATION PLANNED][DEPRECATION POSSIBLE]
+		Sets KLExperiment.start_time to current time for tidily passing a trial's start time between methods.
+
+		"""
 		self.start_time = time.time()
 
 	def fill(self, color=None, context=None):
@@ -1120,6 +1195,10 @@ class Experiment(object):
 
 	@abc.abstractmethod
 	def setup(self):
+		pass
+
+	@abc.abstractmethod
+	def block(self, block_num):
 		pass
 
 	@abc.abstractmethod

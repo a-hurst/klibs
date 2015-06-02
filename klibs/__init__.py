@@ -38,6 +38,15 @@ from KLELCustomDisplay import KLELCustomDisplay
 from KLEEG import *
 from KLExperiment import Experiment
 
+def track_mouse():
+	"""
+	Utility method for
+
+	:return:
+	"""
+	KLExperiment.blit(cursor(), 7, mouse_pos())
+	return True
+
 #####################################################
 #
 # SDL Keycode Reference for creating KeyMaps (https://wiki.libsdl.org/SDL_Keycode)

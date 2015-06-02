@@ -9,8 +9,12 @@ import datetime
 import sdl2
 import ctypes
 import time
+import datetime
 
 def absolute_position(position, destination):
+	#  if pixel coordinates are supplied by accident or automatically
+	if iterable(position) and all(type(i) is int for i in position): return position
+
 	height = None
 	width = None
 	try:  # ie. a numpy array
@@ -39,21 +43,25 @@ def absolute_position(position, destination):
 		except:
 			raise TypeError("Argument 'destination' invalid; must be [x,y] iterable, numpy.ndarray or klibs.NumpySurface.")
 
+	#  Older version of KLIBs didn't use location constants; this converts old string-style location identifiers
+	if position in LEGACY_LOCATIONS: position = LEGACY_LOCATIONS[position]
+
 	locations = {
-		'center': [width // 2, height // 2],
-		'topLeft': [0, 0],
-		'top': [width // 2, 0],
-		'topRight': [width, 0],
-		'left': [0, height // 2],
-		'right': [0, height],
-		'bottomLeft': [0, height],
-		'bottom': [width // 2, height],
-		'bottomRight': [width, height]
+		BL_CENTER: [width // 2, height // 2],
+		BL_TOP_LEFT: [0, 0],
+		BL_TOP: [width // 2, 0],
+		BL_TOP_RIGHT: [width, 0],
+		BL_LEFT: [0, height // 2],
+		BL_RIGHT: [0, height],
+		BL_BOTTOM_LEFT: [0, height],
+		BL_BOTTOM: [width // 2, height],
+		BL_BOTTOM_RIGHT: [width, height]
 	}
+
 	try:
 		return locations[position]
 	except:
-		raise ValueError("Argument 'position'  was not a key in the locations dict.")
+		raise IndexError("Invalid position identifier.")
 
 
 def arg_error_str(arg_name, given, expected, kw=True):
@@ -62,6 +70,38 @@ def arg_error_str(arg_name, given, expected, kw=True):
 	else:
 		err_string = "The argument, '{0}', was expected to be of type '{1}' but '{2}' was given."
 	return err_string.format(arg_name, type(given), type(expected))
+
+def bounded_by(self, pos, left, right, top, bottom):
+		"""
+
+
+		:param pos:
+		:param left:
+		:param right:
+		:param top:
+		:param bottom:
+		:return: :raise TypeError:
+		"""
+		xpos = int(pos[0])
+		ypos = int(pos[1])
+		# todo: tighten up that series of ifs into one statement
+		if all(type(val) is int for val in (left, right, top, bottom)) and type(pos) is tuple:
+			if xpos > left:
+				if xpos < right:
+					if ypos > top:
+						if ypos < bottom:
+							return True
+						else:
+							return False
+					else:
+						return False
+				else:
+					return False
+			else:
+				return False
+		else:
+			e = "Argument 'pos' must be a tuple, others must be integers."
+			raise TypeError()
 
 
 def build_registrations(source_height, source_width):
@@ -136,11 +176,8 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 
 def log(msg, priority):
 	"""Log an event
-	:param msg: - a string to log
-	:param priority: - 	an integer from 1-10 specifying how important the event is,
-						1 being most critical and 10 being routine. If set to 0 it
-						will always be printed, regardless of what the user sets
-						verbosity to. You probably shouldn't do that.
+	:param msg: The string to log
+	:param priority: An integer from 1-10 specifying how important the event is, 1 being most critical and 10 being routine. If set to 0 it will always be printed, regardless of what the user sets verbosity to. You probably shouldn't do that.
 	"""
 	if priority <= Params.verbosity:
 		with open(Params.log_file_path, 'a') as log_file:
@@ -174,22 +211,39 @@ def pump():  # a silly wrapper because Jon always forgets the sdl2 call
 	return sdl2.SDL_PumpEvents()
 
 
-def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepend=None, before_last=None, each_n=None,
-				after_first=None, append=None):
+def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepend=None, before_last=None, each_n=None, after_first=None, append=None):
 	"""Automates string combination. Parameters:
-	:param array: - a list of strings to be joined
-	:param config: - a dict with any of the following keys:
-		'prepend':
-		'afterFirst':
-		'beforeLast':
-		'eachN':
-		'whitespace':	Whitespace to place between elements. Should be a positive integer, but can be a string if the number
-						is smaller than three and greater than zero. May also be the string None or False, but you should probably
-						just not set it if that's what you want.
-		'append':
-		'delimiter':
-		'delimitBehavior':
-		'delimitBehaviour':
+	:param array: A list of strings to be joined
+	:param config: A dict with any of the following keys:
+
+	**Config Keys**
+
+	+-------------------+---------------------------------------------------------------------------------------------------+
+	| **Key**           |     **Description**                                                                               |
+	+-------------------+---------------------------------------------------------------------------------------------------+
+	| prepend           |      [coming]                                                                                     |
+	+-------------------+---------------------------------------------------------------------------------------------------+
+	| afterFirst        |      [coming]                                                                                     |
+	+-------------------+---------------------------------------------------------------------------------------------------+
+	| beforeLast        |      [coming]                                                                                     |
+	+-------------------+---------------------------------------------------------------------------------------------------+
+	| eachN             |      [coming]                                                                                     |
+	+-------------------+---------------------------------------------------------------------------------------------------+
+	| whitespace        | Whitespace to place between elements. Should be a positive integer, but can be a string if the    |
+	|                   | number is smaller than three and greater than zero. May also be the string None or False, but     |
+	|                   | you should probably just not set it if that's what you want.                                      |
+	+-------------------+---------------------------------------------------------------------------------------------------+
+	| append            |      [coming]                                                                                     |
+	+-------------------+---------------------------------------------------------------------------------------------------+
+	| delimiter         |      [coming]                                                                                     |
+	+-------------------+---------------------------------------------------------------------------------------------------+
+	| delimitBehavior   |      [coming]                                                                                     |
+	+-------------------+---------------------------------------------------------------------------------------------------+
+	| delimitBehaviour  |      [coming]                                                                                     |
+	+-------------------+---------------------------------------------------------------------------------------------------+
+
+
+
 	"""
 	ws = str()
 	for n in range(whitespace):
@@ -232,6 +286,15 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepe
 
 	return output
 
+def iterable(obj, exclude_strings=True):
+	if exclude_strings:
+		return hasattr(obj, '__iter__')
+	else:
+		try:
+			iter(obj)
+			return True
+		except AttributeError:
+			return False
 
 def pt_to_px(pt_size):
 	if type(pt_size) is not int:
@@ -247,12 +310,20 @@ def pt_to_px(pt_size):
 
 
 def px_to_deg(length):  # length = px
-	return int(length / Params.ppd)    # todo: error checking?
+	return int(length / Params.ppd)
 
 
 def rgb_to_rgba(rgb):
-	return rgb[0], rgb[1], rgb[2], 1  # todo: error checking?
+	return rgb[0], rgb[1], rgb[2], 1
 
+def type_str(var):
+	return type(var).__name__
+
+
+def bool_to_int(boolean_val):
+	if boolean_val is False: return 0
+	if boolean_val is True: return 1
+	raise ValueError("Non-boolean value passed ('{0}')".format(type(boolean_val)))
 
 def safe_flag_string(flags, prefix=None, uc=True):
 	if prefix and type(prefix) is not str:
@@ -275,8 +346,17 @@ def safe_flag_string(flags, prefix=None, uc=True):
 	return eval(flag_string)
 
 
-def now():
-	return time.time()
+def now(as_timestamp=False):
+	time_str = time.time()
+	if as_timestamp:
+		try:
+			time_str = datetime.datetime.fromtimestamp(time_str).strftime(as_timestamp)
+		except:
+			time_str = datetime.datetime.fromtimestamp(time_str).strftime('%Y-%m-%d %H:%M:%S')
+	return time_str
+
+def track_mouse(self):
+	pass
 
 def quit(msg=None):
 	if msg:

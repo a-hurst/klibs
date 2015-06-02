@@ -129,7 +129,6 @@ try:
 					return  in_bounds
 				return self.experiment.listen(MAX_WAIT, OVER_WATCH, wait_callback=dc, dc_location=location, dc_gaze_boundary=gaze_boundary)
 
-
 		def gaze(self, eye_required=None, return_integers=True):
 			debug = False
 			if debug: print "gaze(eye_required={0}, return_integers={1}".format(eye_required, return_integers)

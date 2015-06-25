@@ -30,11 +30,11 @@ from KLAudioClip import *
 from KLUtilities import *
 from KLNumpySurface import *
 from KLDraw import *
-from KLDatabase import KLDatabase
+from KLDatabase import Database
 from KLTextManager import TextManager
 from KLKeyMap import *
 from KLEyeLink import *
-from KLELCustomDisplay import KLELCustomDisplay
+from KLELCustomDisplay import ELCustomDisplay
 from KLEEG import *
 from KLExperiment import Experiment
 

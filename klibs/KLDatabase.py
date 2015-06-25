@@ -8,7 +8,7 @@ import KLParams as Params
 from KLUtilities import *
 
 
-class KLEntryTemplate(object):
+class EntryTemplate(object):
 	null_field = "DELETE_THIS_FIELD"
 	sql_field_delimiter = "`,`"
 	table_name = None
@@ -102,7 +102,7 @@ class KLEntryTemplate(object):
 		print self.schema
 
 
-class KLDatabase(object):
+class Database(object):
 	__default_table = None
 	__open_entries = {}
 	__current_entry = None
@@ -113,6 +113,7 @@ class KLDatabase(object):
 	table_schemas = {}
 
 	def __init__(self):
+		pr("database init()")
 		self.__init_db()
 		self.build_table_schemas()
 
@@ -243,7 +244,7 @@ class KLDatabase(object):
 	def init_entry(self, table_name, instance_name=None, set_current=True):
 		try:
 			if instance_name is None: instance_name = table_name
-			self.__open_entries[instance_name] = KLEntryTemplate(table_name, self.table_schemas[table_name], instance_name)
+			self.__open_entries[instance_name] = EntryTemplate(table_name, self.table_schemas[table_name], instance_name)
 			if set_current: self.current(self.__open_entries[instance_name])
 		except IndexError:
 			raise IndexError("Table {0} not found in the KLDatabase.table_schemas.".format(table_name))
@@ -275,7 +276,6 @@ class KLDatabase(object):
 		except AttributeError:
 			self.__current_entry = self.__open_entries[instance]
 			return instance
-
 
 	def is_unique(self, table, column, value, value_type=SQL_STR):
 		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL]:

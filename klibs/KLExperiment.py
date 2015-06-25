@@ -18,9 +18,10 @@ from KLTextManager import TextManager
 from KLUtilities import *
 import KLParams as Params
 from KLConstants import *
-from KLELCustomDisplay import KLELCustomDisplay
+from KLELCustomDisplay import ELCustomDisplay
 from KLDraw import *
-from KLTrialFactory import KLTrialFactory
+from KLTrialFactory import TrialFactory
+import AppKit
 
 #  TODO: Pull all the interface commands, keymaps, overwatch, etc. into KLInterface and stick it on a separate process
 #  TODO: Multiprocessing
@@ -37,16 +38,17 @@ class Experiment(object):
 	trial_factory = None  # KLTrialFactory instance
 	text_manager = None   # KLTextManager instance
 
-	def __init__(self, project_name, asset_path="ExpAssets", export=False):
+	def __init__(self, project_name, display_diagonal_in, asset_path="ExpAssets", export=False):
 		"""
 		Initializes a KLExperiment Object
 
 		:param project_name: Project title, used in creating filenames and instance variables.
-		:param asset_path: (optional) Path to assets directory if assets directory is not in default location.
-		:param export: (optional) bool or list of bools providing instructions to export current data instead of
+		:param asset_path: Path to assets directory if assets directory is not in default location.
+		:param export: bool or list of bools providing instructions to export current data instead of
 		running the experiment as normal
 		:raise EnvironmentError:
 		"""
+
 		if not Params.setup(project_name, asset_path):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 
@@ -56,7 +58,6 @@ class Experiment(object):
 		except:
 			export = [export]
 		self.__database_init(*export)
-
 		Params.key_maps["*"] = KeyMap("*", [], [], [])
 		Params.key_maps["over_watch"] = KeyMap("over_watch", [], [], [])
 		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
@@ -67,12 +68,12 @@ class Experiment(object):
 											 sdl2.SDLK_RIGHT],
 											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 
-		self.trial_factory = KLTrialFactory(self)
+		self.trial_factory = TrialFactory(self)
 
 		self.event_code_generator = None
 
 		# initialize screen surface and screen parameters
-		self.display_init(Params.view_distance)
+		self.display_init(display_diagonal_in)
 
 		# initialize the self.text layer for the app
 		self.text_manager = TextManager(Params.screen_x_y, Params.screen_x_y, Params.ppi)
@@ -80,16 +81,19 @@ class Experiment(object):
 			self.text_manager.default_font_size = Params.default_font_size
 		# initialize eyelink
 		#		if PYLINK_AVAILABLE and Params.eye_tracking:
-		self.eyelink = KLEyeLink(self)
-		self.eyelink.custom_display = KLELCustomDisplay(self, self.eyelink)
+		self.eyelink = EyeLink(self)
+		self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
 		self.eyelink.dummy_mode = Params.eye_tracker_available is False
+
 
 	def __execute_experiment(self, *args, **kwargs):
 		"""
 		Private method, launches and manages the experiment after KLExperiment object's run() method is called.
+
 		:param args:
 		:param kwargs:
 		"""
+
 		phases = 2 if Params.practicing else 1
 		for i in range(phases):
 			practicing = phases == 2 and i == 1
@@ -104,7 +108,9 @@ class Experiment(object):
 	def __trial(self, *args, **kwargs):
 		"""
 		Private method; manages a trial. Expected *args = [trial_number, [practicing, param_1, param_2...]]
+
 		"""
+
 		# args = args[0]
 		# try:
 		Params.trial_number = args[0]
@@ -122,7 +128,7 @@ class Experiment(object):
 
 		:param args:
 		"""
-		self.database = KLDatabase()
+		self.database = Database()
 		if args[0]:
 			self.database.export(*args[1:])
 			exit()
@@ -134,29 +140,47 @@ class Experiment(object):
 		:param trial_data:
 		:param auto_id:
 		"""
+
 		if auto_id: trial_data[Params.id_field_name] = Params.participant_id
 		if self.database.current() is None: self.database.init_entry('trials', "trial_{0}".format(Params.trial_number))
 		for attr in trial_data: self.database.log(attr, trial_data[attr])
 		self.database.insert()
 
-	def display_init(self, view_distance, ppi=PPI_CRT):
+	def display_init(self, diagonal_in):
 		"""
-		Creates the SDL2 display object in which the project runs. This is also the display object passed to
-		KLCustomDisplay.
+		Creates the SDL2 display object in which the project runs. This is also the display object passed to CustomDisplay instance.
 
-		:param view_distance: Distance from participant's eyes to display, measured in degrees of visual angle. By
-		default will be passed KLPrams.view_distance
-		:param ppi: !NOT IMPLEMENTED! Pixels-per-inch of the monitor used for displaying the experiment. Accepts an
-		integer value or  either of
+		:param view_distance: Distance from participant's eyes to display, measured in degrees of visual angle. By default will be passed KLPrams.view_distance
+
+		.. rst-class:: not-implemented
+
+			:param ppi: Pixels-per-inch of the monitor used for displaying the experiment. Accepts an integer value or  either of
+
 		:raise TypeError:
 		"""
+
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()
-		Params.screen_x_y = [Params.screen_x, Params.screen_y]
+		screens = 0
+		for screen in AppKit.NSScreen.screens():
+			screens += 1
+			if screens > 1:
+				pass
+				# TODO: throw an error
+			else:
+				Params.screen_x = int(screen.frame().size.width)
+				Params.screen_y = int(screen.frame().size.height)
+				Params.screen_x_y = [Params.screen_x, Params.screen_y]
 		self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), SCREEN_FLAGS)
 		Params.screen_c = (Params.screen_x / 2, Params.screen_y / 2)
 		Params.diagonal_px = int(math.sqrt(Params.screen_x * Params.screen_x + Params.screen_y * Params.screen_y))
+		Params.ppi = Params.diagonal_px // diagonal_in
+		Params.monitor_x = Params.screen_x / Params.ppi
+		Params.monitor_y = Params.screen_y / Params.ppi
+		Params.screen_degrees_x = math.degrees(math.atan((2.55 * Params.monitor_x / 2.0) / Params.view_distance) * 2)
+		Params.pixels_per_degree = Params.screen_x // Params.screen_degrees_x
+		Params.ppd = Params.pixels_per_degree  # alias for convenience
 
 		# these next six lines essentially assert a 2d, pixel-based rendering context; copied-and-pasted from Mike!
 		gl_context = sdl2.SDL_GL_CreateContext(self.window.window)
@@ -171,55 +195,28 @@ class Experiment(object):
 		self.fill()
 		try:
 			self.blit(NumpySurface("splash.png"), 5, 'center')
-		except:
+		except :
 			print "splash.png not found; splash screen not presented"
 		self.flip(1)
 
-		# interpret view_distance
-		if type(view_distance) is tuple and type(view_distance[0]) is int:
-			if equiv('inch', view_distance[1]):
-				Params.view_distance = view_distance[0]
-				Params.view_unit = 'inch'
-			elif equiv('cm', view_distance[1]):
-				Params.view_distance = view_distance[0]
-				Params.view_unit = 'cm'
-				Params.monitor_x *= 2.55  #convert physical screen measurements to cm
-				Params.monitor_y *= 2.55  #convert physical screen measurements to cm
-			else:
-				raise TypeError("view_distance must be int (inches) or a tuple containing (int, str).")
-		elif type(view_distance) is int:
-			Params.view_distance = view_distance
-			Params.view_unit = INCH
-		else:
-			raise TypeError("view_distance must be int (inches) or a tuple containing (int,str).")
-
 		# TODO: The following params are broken; PPI calculation is wrong
 		# http://en.wikipedia.org/wiki/Pixel_density
-		# Params.ppi = ppi
-		# Params.monitor_x = Params.screen_x / Params.ppi
-		# Params.monitor_y = Params.screen_y / Params.ppi
-		# Params.monitor_x = 23.3
-		# Params.monitor_y = Params.screen_y / Params.ppi
-		# Params.screen_degrees_x = math.degrees(math.atan((Params.monitor_x / 2.0) / Params.view_distance) * 2)
-		# Params.pixels_per_degree = int(Params.screen_x / Params.screen_degrees_x)
-		# Params.ppd = Params.pixels_per_degree  # alias for convenience
+
+
 
 	def alert(self, alert_string, blit=True, display_for=0):
+		"""
+		Displays an alert.
+
+		:param alert_string: Message to display as alert.
+		:param blit: When false returns rendered alert surface for manual blitting. By default (ie. False), automatically blits alert to screen and awaits 'any key' response.
+		:param display_for: Number of seconds to display the alert message for (overrides 'any key' dismissal).
+		"""
+
 		# TODO: address the absence of default colors
 		# todo: instead hard-fill, "separate screen" flag; copy current surface, blit over it, reblit surf or fresh
 		# surf
-		"""
-		Display an alert
 
-		:param alert_string: Message to display as alert.
-		:param blit: (optional) When false returns rendered alert surface for manual blitting. By default (ie. False),
-		automatically blits alert to screen and awaits 'any key' response.
-		:param display_for: (optional) Number of seconds to display the alert message for (overrides 'any key'
-		dismissal).
-		"""
-		# if urgent:
-		# 	return self.message(alert_string, color=(255, 0, 0, 255), location='topRight', registration=9,
-		# 						font_size=text.default_font_size * 2, blit=True, flip=True)
 		self.clear()
 		self.fill(Params.default_fill_color)
 		self.message(alert_string, color=(255, 0, 0, 255), location='center', registration=5,
@@ -236,15 +233,15 @@ class Experiment(object):
 	def blit(self, source, registration=7, position=(0, 0), context=None):
 		"""
 		Draws passed surface to image buffer.
+
 		:param source: KLNumpySurface or numpy array of image data (see manual for more information).
-		:param registration: (optional) Location on perimeter of surface that will be aligned to position (see manual
-		for more information).
-		:param position: (optional) Location on screen to place source, either pixel cooridinates or location string (
-		ie. "center", "top_left")
-		:param context: !NOT IMPLEMENTED! (optional) A destination surface or display object for images built
-		gradually. Preferred means of achieving this is the use of KLNumpySurface objects.
+		:param registration: Location on perimeter of surface that will be aligned to position (see manual for more information).
+		:param position: Location on screen to place source, either pixel cooridinates or location string (ie. "center", "top_left")
+		:param context: :not_im:`not implemented` A destination surface or display object for images built gradually. Preferred means of achieving this is the use of KLNumpySurface objects.
+
 		:raise TypeError:
 		"""
+
 		height = None
 		width = None
 		content = None
@@ -318,10 +315,15 @@ class Experiment(object):
 
 	def block_break(self, message=None):
 		"""
-		Display a break message between blocks [HEAVY MODIFICATION PLANNED][REMOVAL POSSIBLE]
-		:param message:
-		:raise:
+		Display a break message between blocks
+
+		.. rst-class:: method-flags
+
+			heavy_modification-planned, removal-possible
+
+		:param message: Text to be displayed during break.
 		"""
+
 		default = "You've completed block {0} of {1}. When you're ready to continue, press any key.".format(
 			Params.block_number, Params.blocks_per_experiment)
 		if Params.testing: return
@@ -331,12 +333,11 @@ class Experiment(object):
 
 	def collect_demographics(self, anonymous_user=False):
 		"""
-		Gather participant demographic information and enter it into the project database. If not executed at runtime
-		will be automatically called before trials begin with a timestamp used in place of a participant name.  See
-		manual for detailed explanation.
+		Gather participant demographic information and enter it into the project database. If not executed at runtime will be automatically called before trials begin with a timestamp used in place of a participant name.  See manual for detailed explanation.
 
-		:param anonymous_user: (optional)
+		:param anonymous_user:
 		"""
+
 		# TODO: this function should have default questions/answers but should also be able to read from a
 		# CSV or array for custom Q&A
 		if not Params.collect_demographics and not anonymous_user: return
@@ -384,17 +385,23 @@ class Experiment(object):
 	def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
 		"""
 		Performs a drift correction, or simulates one via the mouse if no eye tracker available. Wraps method of same name in KlEyeLink and original PyLink method; experimenters should use this method to ensure compatibility with future releases.
-		:param location: (optional) Location of drift correct target; if not provided, defaults to screen center.
-		:param events: (optional) see PyLink documentation
-		:param samples: (optional) see PyLink documentation
-		:return: see PyLink documentation
+
+		:param location: Location of drift correct target; if not provided, defaults to screen center.
+		:param events: see PyLink documentation
+		:param samples: see PyLink documentation
+		:return see PyLink documentation:
 		"""
+
 		self.clear()
 		return self.eyelink.drift_correct(location, events, samples)
 
 	def draw_fixation(self, position=BL_CENTER, width=None, stroke=None, color=None, fill_color=None, flip=False):
 		"""
-		Creates and renders a KLFixationCross (KLDrawbject) inside an optional background circle  at provided or default location. [HEAVY MODIFICATION POSSIBLE]
+		Creates and renders a FixationCross (see KLDraw) inside an optional background circle at provided or default location.
+
+		.. rst-class: method-flags
+
+			heavy_modification-possible
 
 		:param width: Width in pixels (and consequently height) of fixation cross.
 		:param stroke: Width in pixels of the fixation cross's horizontal & vertical bars.
@@ -403,6 +410,7 @@ class Experiment(object):
 		:param flip:
 		:return:
 		"""
+
 		if not width: width = Params.screen_y // 50
 		if not stroke: stroke = width // 5
 		cross = FixationCross(width, stroke, color, fill_color).draw()
@@ -412,7 +420,12 @@ class Experiment(object):
 
 	def exempt(self, index, state=True):
 		"""
-		Legacy function; do not use, wil lbe removed in future updates. [DEPRECATED]
+		Legacy function; do not use, wil lbe removed in future updates.
+
+		.. rst-class: method-flags
+
+			deprecated
+
 		:param index:
 		:param state:
 		"""
@@ -426,7 +439,7 @@ class Experiment(object):
 		"""
 		Renders contents of draw buffer to current display, then waits for either any key press OR an optionally specified duration.
 
-		:param duration: (optional) Duration in ms for which to display flipped buffer; KLExperiment.overwatch() called for duration.
+		:param duration: Duration in ms for which to display flipped buffer; Experiment.overwatch() called for duration.
 		:return: :raise: AttributeError, TypeError, GenError
 		"""
 
@@ -446,8 +459,11 @@ class Experiment(object):
 
 	def add_keymap(self, name, key_names=None, key_codes=None, key_vals=None):
 		"""
-		A convenience method that Creates a KlKeyMap instance from supplied information.
-		Equivalent to Params.key_maps['name'] = KLKeyMap(args)
+		A convenience method that creates a ``KLKeyMap.KeyMap`` instance from supplied information.
+
+		Equivalent to::
+
+			Params.key_maps['name'] = KLKeyMap.KeyMap(*args, **kwargs)
 
 		:param name:
 		:param key_names:
@@ -455,6 +471,7 @@ class Experiment(object):
 		:param key_vals:
 		:return: :raise TypeError:
 		"""
+
 		if type(name) is not str:
 			raise TypeError("Argument 'name' must be a string.")
 
@@ -470,11 +487,16 @@ class Experiment(object):
 
 	def instructions(self, instructions_text=None):
 		"""
-		Presents contents of instructions.txt to participant. [NOT IMPLEMENTED][HEAVY MODIFICATION PLANNED]
+		Presents contents of instructions.txt to participant.
 
-		:param instructions_text: (optional) String of instructions text or path to file containing the same; defaults to contents of default instructions.txt file if it exists.
+		.. rst-class:: method-flags
+
+			not-implemented, heavy_modification-planned
+
+		:param instructions_text: String of instructions text or path to file containing the same; defaults to contents of default instructions.txt file if it exists.
 		:raise TypeError:
 		"""
+
 		try:
 			self.message(open(instructions_text, 'rt').read(), location=BL_CENTER, flip=True)
 		except IOError:
@@ -485,13 +507,17 @@ class Experiment(object):
 
 	def ui_request(self, key_press, execute=False):
 		"""
-		[EXTENSION PLANNED]
-		Inspects a keypress for interface commands like "quit", "pause", etc..
-		Primarily used by KLExperiment.overwatch; Currently only "quit" is implemented.
+		Inspects a keypress for interface commands like "quit", "pause", etc.. Primarily used by KLExperiment.overwatch; Currently only "quit" is implemented.
+
+		.. rst-class:: method-flags
+
+			extension-planned
+
 		:param key_press:
 		:param execute:
 		:return:
 		"""
+
 		if key_press.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
 			if key_press.sym in UI_METHOD_KEYSYMS:
 				if key_press.sym == sdl2.SDLK_q:
@@ -511,22 +537,29 @@ class Experiment(object):
 	def listen(self, max_wait=MAX_WAIT, key_map_name="*", el_args=None, null_response=None, response_count=None,
 			   interrupt=True, flip=True, wait_callback=None, *wait_args, **wait_kwargs):
 		"""
-		[RELOCATION PLANNED][HEAVY MODIFICATION PLANNED][BACKWARDS COMPATIBILITY PLANNED]
-		Note: This method will be replaced with a KLListener class with a more robust and user-friendly interface and its own API in a later release of KLIBs.
-		Used for interacting with the particpant via key presses; this is the primary method for collecting responses of any kind. See manual for extensive documentation.
+		Note: This method will be replaced with a KLListener class with a more robust and user-friendly interface and its own API in a later release of KLIBs. Used for interacting with the particpant via key presses; this is the primary method for collecting responses of any kind. See manual for extensive documentation.
 
-		:param max_wait: (optional) Maximum time in seconds to await participant response before declaring a "TIME_OUT" response. Default is an indefinite period.
-		:param key_map_name: (optional) Look-up name of the KLKeyMap instance to be used for handling participant responses. Default is 'any key'. Note: will accept a KLKeyMap object directly in future release.
-		:param el_args: (optional) Dictionary of keyword arguments to be passed to KlExperiment.KLEyeLink.listen().
-		:param null_response: (optional) String return on timeout, default is "NO_RESPONSE"
-		:param response_count: (optional)[NOT IMPLEMENTED] Number of responses to collect from participant. Default is 1.
-		:param interrupt: (optional) When True, response is returned as soon as it is collected, otherwise allows max_wait to elapse. Default is True. Note: When False, creates a very small performance loss (>1ms) as KLExperiment.overwatch() is called to inspect the response before it is evaluated by the supplied KLKeyMap.
-		:param flip: (optional) When True, KLExperiment.flip() is called immediately before initiating the listen() loop. Otherwise display buffer must be flipped (if need) manually called during the wait_callback
-		:param wait_callback: (optional) Function to execute between each loop of listen; used for updating the display or otherwise interacting with the user while listen() is running.
-		:param wait_args: (optional) A list of required arguments to be passed to the supplied wait_callback. [PYTHON SYNTAX CONCEPT:"splat operator"]
-		:param wait_kwargs: (optional) A dictionary of key word arguments to be passed to the supplied wait_callback. [PYTHON SYNTAX CONCEPT:"splat operator"]
+		.. rst-class: method-flags
+
+			relocation-planned, heavy_modification-planned, backwards_compatibility-planned
+
+		:param max_wait: Maximum time in seconds to await participant response before declaring a "TIME_OUT" response. Default is an indefinite period.
+		:param key_map_name: Look-up name of the KLKeyMap instance to be used for handling participant responses. Default is 'any key'. Note: will accept a KLKeyMap object directly in future release.
+		:param el_args: Dictionary of keyword arguments to be passed to KlExperiment.KLEyeLink.listen().
+		:param null_response: String return on timeout, default is "NO_RESPONSE"
+
+		.. rst-class: not-implemented
+
+			:param response_count: Number of responses to collect from participant. Default is 1.
+
+		:param interrupt: When True, response is returned as soon as it is collected, otherwise allows max_wait to elapse. Default is True. Note: When False, creates a very small performance loss (>1ms) as KLExperiment.overwatch() is called to inspect the response before it is evaluated by the supplied KLKeyMap.
+		:param flip: When True, KLExperiment.flip() is called immediately before initiating the listen() loop. Otherwise display buffer must be flipped (if need) manually called during the wait_callback
+		:param wait_callback: Function to execute between each loop of listen; used for updating the display or otherwise interacting with the user while listen() is running.
+		:param wait_args: A list of required arguments to be passed to the supplied wait_callback. [PYTHON SYNTAX CONCEPT:"splat operator"]
+		:param wait_kwargs: A dictionary of key word arguments to be passed to the supplied wait_callback. [PYTHON SYNTAX CONCEPT:"splat operator"]
 		:return: :raise RuntimeError:
 		"""
+
 		pr("@PKLExperiment.listen() reached", 2)
 		exit_msg_thresh = 2
 		# todo: listen is not a method; it should be a class, "listener", that gets configured
@@ -636,31 +669,31 @@ class Experiment(object):
 				wrap=None, wrap_width=None, line_delimiter=None, blit=True, flip=False, padding=None):
 		# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
 		"""
-		[HEAVY MODIFICATION PLANNED][BACKWARDS COMPATABILITY PLANNED]
 		Generates and optionally renders formatted text to the display.
-		Note:: Most of these key word arguments will be passed as single KLTextStyle object argument
+
+		*Note: Most of these key word arguments will be passed as single KLTextStyle object argument.*
+
+		.. rst-class:: method-flags
+
+			heavy_modification-planned, backwards_compatibility-planned
 
 		:param message: Text to be displayed.
-		:param font: (optional) Name of font to be used. Default is Helvetica. Must be a font installed on the system;
-		non-system-default fonts should *not* be used.
-		:param font_size: (optional) Font size in points to be used for the message text; default is KLParams
-		.default_font_size, which is 28pt by default.
-		:param color: (optional) Color of message text; default is KLParams.default_color, which is black by default.
-		:param bg_color: (optional) Background color of message text; default is KLParams.default_bg_color,
-		which is None by default.
-		:param location: (optional) Pixel coordinates or location identifier where the message should be placed.
-		Default is screen center.
-		:param registration: (optional) Location on message surface perimeter to be placed at supplied location.
-		Default is 5, or the surface center.
-		:param wrap: (optional) When True, text will wrap when edge of screen is reached, or if line reaches
-		wrap_width. [NOT IMPLEMENTED]
-		:param wrap_width: (optional) Maximum width, in pixels, a line of text can be before commencing a new line.
-		:param line_delimiter: (optional) Symbol or string indicating a line break. Default is unix new line operator, ie. "\n".
-		:param blit: (optional) When True, blits the message surface to the display buffer, otherwise returns the surface; default is True.
-		:param flip: (optional) When True, flips the display buffer after blit. Default is False.
-		:param padding: (optional) Width of white space, in pixels, surrounding the message surface on all sides.
-		:return: :raise ValueError:
+		:param font: Name of font to be used. Default is Helvetica. Must be a font installed on the system; non-system-default fonts should **not** be used.
+		:param font_size: Font size in points to be used for the message text; default is KLParams .default_font_size, which is 28pt by default.
+		:param color: Color of message text; default is KLParams.default_color, which is black by default.
+		:param bg_color: Background color of message text; default is KLParams.default_bg_color, which is None by default.
+		:param location: Pixel coordinates or location identifier where the message should be placed. Default is screen center.
+		:param registration: Location on message surface perimeter to be placed at supplied location. Default is 5, or the surface center.
+		:param wrap: When True, text will wrap when edge of screen is reached, or if line reaches wrap_width.
+		:param wrap_width: Maximum width, in pixels, a line of text can be before commencing a new line.
+		:param line_delimiter: Symbol or string indicating a line break. Default is unix new line operator, ie. "\\n".
+		:param blit: When True, blits the message surface to the display buffer, otherwise returns the surface; default is True.
+		:param flip: When True, flips the display buffer after blit. Default is False.
+		:param padding: Width of white space, in pixels, surrounding the message surface on all sides.
+		:return: Mixed (NumpySurface, boolean)
+		:raise ValueError:
 		"""
+
 		render_config = {}
 		message_surface = None  # unless wrap is true, will remain empty
 
@@ -751,7 +784,8 @@ class Experiment(object):
 	def numpy_surface(self, foreground=None, background=None, fg_position=None, bg_position=None, width=None,
 					  height=None):
 		"""
-		Factory method for klibs.NumpySurface; see KLNumpySurface.
+		Factory method for KLNumpySurface.NumpySurface; see KLNumpySurface.
+
 		:param fg_position: Pixel coordinates or location identifier of foreground content. Will non-destructively clip content it extends beyond surface edges.
 		:param bg_position: (see fg_position)
 		:param foreground: Foreground content; must be a path to an image file, a numpy array of pixel data or another KLNumpySurface.
@@ -760,16 +794,17 @@ class Experiment(object):
 		:param height: If provided manually sets the height in pixels of surface.
 		:return:
 		"""
+
 		return NumpySurface(foreground, background, fg_position, bg_position, width, height)
 
 	def over_watch(self, keypress_event=None):
 		"""
-		Inspects keypress events for interface requests (ie.  'quit', 'calibrate', 'pause', etc.) and executes them.
-		When called without event argument, pumps and inspects the entire event queue, otherwise inspects only the supplied event.
+		Inspects keypress events for interface requests (ie.  'quit', 'calibrate', 'pause', etc.) and executes them. When called without event argument, pumps and inspects the entire event queue, otherwise inspects only the supplied event.
 
 		:param keypress_event: An sdl2.
 		:return:
 		"""
+
 		input_collected = False
 		repumping = False  # only repump once else holding a modifier key down can keep overwatch running forever
 		keysym = None
@@ -816,10 +851,14 @@ class Experiment(object):
 
 	def pause(self):
 		"""
-		[BROKEN][HEAVY MODIFICATION PLANNED][BACKWARDS COMPATIBILITY EXPECTED][INTERFACE COMMAND]
 		Pauses an experiment.
 
+		.. rst-class:: method-flags
+
+			broken, heavy_modification-planned, backwards_compatibility-expected, interface-command
+
 		"""
+
 		pump()
 		while self.paused:
 			self.message('PAUSED', fullscreen=True, location='center', font_size=96, color=(255, 0, 0, 255),
@@ -828,55 +867,68 @@ class Experiment(object):
 			self.listen_refresh()
 
 	def project_config(self):
-		#todo: will be a screen that's shown before anything happens in the program to quickly tweak debug settings
 		"""
-		Not implemented. Slated for future release.
+		Global configuration of project settings. Slated for future release.
+
+		.. rst-class:: method-flags
+
+			not-implemented
 
 		"""
+
+		#todo: will be a screen that's shown before anything happens in the program to quickly tweak debug settings
 		pass
 
-	def query(self, query=None, as_password=False, font=None, font_size=None, color=None,
-			  locations=None, registration=5, return_type=None, accepted=None):
-		# TODO: 'accepted' might be better as a KLKeyMap object? Or at least more robust than a list of letters?
+	def query(self, query=None, as_password=False, font=None, font_size=None, color=None, locations=None, registration=5, return_type=None, accepted=None):
 		"""
-		[MOVE PLANNED][BACKWARDS COMPATIBILITY PLANNED]
-		Convenience function for collecting participant input with visual feedback (ie. displaying the participant's text
-		as it's typed). Presents a string (ie. a question or response instruction) to the participant. Then listens for
-		keyboard input and displays the participant's response on screen in real time.
+		Convenience function for collecting participant input with real-time visual feedback.
 
-		KLExperiment.query() makes two separate calls to `KLExperiment.message() <#message_def>`, which allows for query text and response text to be formatted independently. All of
-		the formatting arguments can optionally be length-2 lists of the usual parameters, where the first element
-		would be applied to the query string and the second to the response. If normal formatting values are supplied, they
-		are applied to both the query and response text.
+		Presents a string (ie. a question or response instruction) to the participant. Then listens for keyboard input and displays the participant's response on screen in real time.
 
-		Example:
-		========
-		This statement:
-		> KLExperiment::query("What is your name?", font="Helvetica", font_size=[24,16], color=[rgb(0,0,0), rgb(255,0,0)])
-		Displays text formatted like this:
-		query text:
-			- black
-			- 24pt
-			- Helvetica.
-		response text:
-			- red
-			- 16pt
-			- Helvetica
+		Experiment.query() makes two separate calls to Experiment.message(), which allows for query text and response text to be formatted independently. All of the formatting arguments can optionally be length-2 lists of the usual parameters, where the first element would be applied to the query string and the second to the response. If normal formatting values are supplied, they are applied to both the query and response text.
 
-		Note:: As with `KLExperiment.message() <#message_def>`, this method will eventually accept a
-		KLTextStyle object instead of the formatting arguments currently implemented
+		.. rst-class:: method-flags
 
-		:param query: A string of text to present to the participant, usually a question or instruction about desired input.
-		:param as_password: When true, participant input will appear on screen in asterisks, though real keypresses are recorded.
-		:param font: See `KLExperiment.message() <#message_def>`
-		:param font_size: See `KLExperiment.message() <#message_def>`
-		:param color: See `KLExperiment.message() <#message_def>`
+			relocation-planned, backwards_compatibility-planned
+
+		:param query: A string of text to present to the participant usually a question or instruction about desired input.
+		:param as_password: When true participant input will appear on screen in asterisks, though real key presses are recorded.
+		:param font: See Experiment.message()
+		:param font_size: See Experiment.message()
+		:param color: See Experiment.message()
 		:param locations:
 		:param registration:
 		:param return_type:
 		:param accepted:
-		:return: :raise TypeError:
+		:return: boolean
+		:raise TypeError:
+
+		**Example**
+		-----------
+
+		This statement::
+
+			question = "What is your name?"
+			font = "Helvetica"
+			sizes = [24,16]
+			colors = [rgb(0,0,0), rgb(255,0,0)]
+			self.query(question, font=font_name, font_size=sizes, color=colors)
+
+		Results in the following formatting structure:
+
+			+----------+-------------+---------+-----------+
+			|**string**|**font size**|**color**| **font**  |
+			+----------+-------------+---------+-----------+
+			| query    |     24pt    | black   | Helvetica |
+			+----------+-------------+---------+-----------+
+			| response |   16pt      | red     | Helvetica |
+			+----------+-------------+---------+-----------+
+
+		*Note: As with Experiment.message() <#message_def> this method will eventually accept a TextStyle object instead of the formatting arguments currently implemented.*
+
 		"""
+		# TODO: 'accepted' might be better as a KLKeyMap object? Or at least more robust than a list of letters?
+
 		input_config = [None, None, None, None]  # font, font_size, color, bg_color
 		query_config = [None, None, None, None]
 		vertical_padding = None
@@ -1113,16 +1165,31 @@ class Experiment(object):
 		self.collect_demographics() if Params.collect_demographics else self.collect_demographics(True)
 		self.__execute_experiment(*args, **kwargs)
 
-
 	def start(self):
 		"""
-		[RELOCATION PLANNED][DEPRECATION POSSIBLE]
 		Sets KLExperiment.start_time to current time for tidily passing a trial's start time between methods.
 
+		.. rst-class:: method-flags
+
+			relocation-planned, deprecation-possible
+
 		"""
+
 		self.start_time = time.time()
 
+	def track_mouse(self):
+		self.blit(cursor(), 7, mouse_pos())
+		return True
+
+
 	def fill(self, color=None, context=None):
+		"""
+		Clears display buffer to a single color.
+
+		:param color:
+		:param context:
+		"""
+
 		# todo: consider adding sdl2's "area" argument, to fill a subset of the surface
 		if color is None:
 			color = Params.default_fill_color
@@ -1137,6 +1204,12 @@ class Experiment(object):
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
 	def clear(self, color=None):
+		"""
+		Clears current display and display buffer with supplied color or else Params.default_fill_color.
+
+		:param color:
+		"""
+
 		if color is None:
 			color = Params.default_fill_color
 		self.fill(color)

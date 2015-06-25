@@ -355,9 +355,6 @@ def now(as_timestamp=False):
 			time_str = datetime.datetime.fromtimestamp(time_str).strftime('%Y-%m-%d %H:%M:%S')
 	return time_str
 
-def track_mouse(self):
-	pass
-
 def quit(msg=None):
 	if msg:
 		print msg

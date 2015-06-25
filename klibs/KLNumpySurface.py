@@ -12,12 +12,26 @@ These next few functions just wrap aggdraw's stupid API :S
 
 
 def canvas(width, height, mode='RGBA', background=(0, 0, 0, 0)):
+	"""
+
+	:param width:
+	:param height:
+	:param mode:
+	:param background:
+	:return:
+	"""
 	bg = []
 	bg.append(n for n in background)
 	if len(bg) == 3: bg.append(0)
 	return aggdraw.Draw(mode, (width, height), tuple(background))
 
 def ad_fill(color, opacity=255):
+	"""
+
+	:param color:
+	:param opacity:
+	:return:
+	"""
 	col = list()
 	col.append(n for n in color)
 	if len(col) == 4:
@@ -30,6 +44,13 @@ def ad_fill(color, opacity=255):
 
 
 def ad_stroke(color, width=1, opacity=255):
+	"""
+
+	:param color:
+	:param width:
+	:param opacity:
+	:return:
+	"""
 	col = list()
 	col.append(n for n in color)
 	if len(col) == 4:
@@ -39,6 +60,11 @@ def ad_stroke(color, width=1, opacity=255):
 
 
 def from_aggdraw_context(draw_context):
+	"""
+
+	:param draw_context:
+	:return:
+	"""
 	draw_context_bytes = Image.frombytes(draw_context.mode, draw_context.size, draw_context.tostring())
 	return NumpySurface(numpy.asarray(draw_context_bytes))
 
@@ -109,18 +135,28 @@ class NumpySurface(object):
 				raise TypeError("Argument 'background' must be either a string (path to image) or a numpy.ndarray.")
 
 		if foreground is not None:
-			if type(foreground) is numpy.ndarray:
+			try:
 				self.foreground = self.__ensure_alpha_channel(foreground)
-			elif type(foreground) is str:  # assume it's a path to an image file
+			except AttributeError:
 				self.layer_from_file(foreground, True, fg_position)
-			else:
-				raise TypeError("Argument 'foreground' must be either a string (path to image) or a numpy.ndarray.")
+
+			# elif type(foreground) is str:  # assume it's a path to an image file
+			# else:
+				# raise TypeError("Argument 'foreground' must be either a string (path to image) or a numpy.ndarray.")
 
 	def __str__(self):
 		return "klibs.NumpySurface, ({0} x {1}) at {2}".format(self.width, self.height, hex(id(self)))
 
 	def blit(self, source, layer=NS_FOREGROUND, registration=7, position=(0, 0)):
 		# todo: implement layer logic here
+		"""
+
+		:param source:
+		:param layer:
+		:param registration:
+		:param position:
+		:raise ValueError:
+		"""
 		source_height = None
 		source_width = None
 
@@ -173,13 +209,14 @@ class NumpySurface(object):
 
 	def layer_from_file(self, image, layer=NS_FOREGROUND, position=None):
 		# todo: better error handling; check if the file has a valid image extension, make sure path is a valid type
-		image_content = None
-		if type(image) is str:
-			image_content = self.__import_image_file(image)
-		elif isinstance(image, Image.Image):
-			image_content = self.__ensure_alpha_channel(numpy.array(Image.open(image)))
-		else:
-			raise TypeError("Argument 'image' must be either a path to an image file or a PIL Image object.")
+		"""
+
+		:param image:
+		:param layer:
+		:param position:
+		:return: :raise TypeError:
+		"""
+		image_content = self.__ensure_alpha_channel(numpy.array(Image.open(image)))
 
 		if layer == NS_FOREGROUND:
 			self.foreground = image_content
@@ -193,12 +230,15 @@ class NumpySurface(object):
 		return True
 
 	def __import_image_file(self, path):
-		if os.path.exists(path):
 			return self.__ensure_alpha_channel(numpy.array(Image.open(path)))
-		else:
-			ValueError("Argument 'path' was not a valid path on the current file system.")
 
 	def position_in_layer_bounds(self, position, layer=None):
+		"""
+
+		:param position:
+		:param layer:
+		:return: :raise ValueError:
+		"""
 		layer = NS_FOREGROUND if type(layer) is None else layer
 		target = self.__fetch_layer(layer)
 		try:
@@ -215,6 +255,13 @@ class NumpySurface(object):
 		return position[0] < target.shape[1] and position[1] < target.shape[0]
 
 	def region_in_layer_bounds(self, region, offset=0, layer=NS_FOREGROUND):
+		"""
+
+		:param region:
+		:param offset:
+		:param layer:
+		:return: :raise TypeError:
+		"""
 		bounding_coords = [0, 0, 0, 0]  # ie. x1, y1, x2, y2
 		target = self.__fetch_layer(layer)
 		if type(offset) is int:
@@ -252,6 +299,12 @@ class NumpySurface(object):
 			raise TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
 
 	def get_pixel_value(self, location, layer=NS_FOREGROUND):
+		"""
+
+		:param location:
+		:param layer:
+		:return:
+		"""
 		if self.position_in_layer_bounds(location, layer):
 			return self.__fetch_layer(layer)[location[1]][location[0]]
 		else:
@@ -264,6 +317,11 @@ class NumpySurface(object):
 		# destination[position]
 
 	def grey_scale_to_alpha(self, img):
+		"""
+
+		:param img:
+		:return: :raise TypeError:
+		"""
 		if type(img) is NumpySurface:
 			img = img.render()
 		elif type(img) is str:
@@ -274,6 +332,15 @@ class NumpySurface(object):
 		return img
 
 	def mask(self, mask, position, grey_scale=False, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
+		"""
+
+		:param mask:
+		:param position:
+		:param grey_scale:
+		:param layer:
+		:param auto_truncate:
+		:raise ValueError:
+		"""
 		if type(mask) is NumpySurface:
 			mask = mask.render()
 		elif type(mask) is str:
@@ -357,6 +424,11 @@ class NumpySurface(object):
 																				fg_x1: fg_x2, 3].flatten())]).reshape(alpha_map.shape)
 
 	def prerender(self):
+		"""
+
+
+		:return:
+		"""
 		return self.render(True)
 
 	def resize(self, dimensions, fill=(0, 0, 0, 0)):
@@ -425,6 +497,11 @@ class NumpySurface(object):
 
 	def render(self, prerendering=False):
 		# todo: add functionality for not using a copy, ie. permanently render
+		"""
+
+		:param prerendering:
+		:return: :raise ValueError:
+		"""
 		if self.__prerender is not None and prerendering is False:
 			return self.__prerender
 		render_surface = None
@@ -504,14 +581,12 @@ class NumpySurface(object):
 
 	@foreground.setter
 	def foreground(self, foreground_content):
-		if type(foreground_content) is numpy.ndarray:
-			if foreground_content.shape[1] > self.width:
-				self.width = foreground_content.shape[1]
-			if foreground_content.shape[0] > self.height:
-				self.height = foreground_content.shape[0]
-			self.__foreground = foreground_content
-		else:
-			raise TypeError("NumpySurface.foreground must be a numpy.ndarray.")
+		if foreground_content.shape[1] > self.width:
+			self.width = foreground_content.shape[1]
+		if foreground_content.shape[0] > self.height:
+			self.height = foreground_content.shape[0]
+		self.__foreground = foreground_content
+
 	
 	@property
 	def background(self):

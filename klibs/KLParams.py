@@ -54,8 +54,7 @@ default_timeout_message = "Too slow!"
 monitor_x = None
 monitor_y = None
 diagonal_px = None
-ppi = None  # pixels-per-inch, varies between CRT & LCD screens
-dpi = ppi  # todo: this is broken and totally wrong
+ppi = 0  # pixels-per-inch, varies between CRT & LCD screens
 pixels_per_degree = None  # pixels-per-degree, ie. degree of visual angle
 ppd = None  # pixels-per-degree, ie. degree of visual angle
 screen_c = (None, None)
@@ -65,8 +64,7 @@ screen_y = None
 screen_x_y = None
 screen_degrees_x = None
 screen_degrees_y = None
-view_unit = "in"  # inch, not the preposition
-view_distance = 67  # in centimeters, 56cm = in 1deg of visual angle per horizontal cm of screen
+view_distance = 57  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen
 
 saccadic_velocity_threshold = 20
 saccadic_acceleration_threshold = 5000

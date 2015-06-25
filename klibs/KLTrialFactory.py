@@ -13,7 +13,7 @@ import numpy as np
 from math import ceil
 
 
-class KLBlockIterator(object):
+class BlockIterator(object):
 	def __init__(self, blocks):
 		self.blocks = blocks
 		self.length = len(blocks)
@@ -36,11 +36,11 @@ class KLBlockIterator(object):
 			raise StopIteration
 		else:
 			self.i += 1
-			trials = KLTrialIterator(self.blocks[self.i - 1])
+			trials = TrialIterator(self.blocks[self.i - 1])
 			return [self.i, trials]
 
 
-class KLTrialIterator(KLBlockIterator):
+class TrialIterator(BlockIterator):
 
 	def __init__(self, block_of_trials):
 		self.trials = block_of_trials
@@ -62,7 +62,7 @@ class KLTrialIterator(KLBlockIterator):
 		self.length += 1
 
 
-class KLTrialFactory(object):
+class TrialFactory(object):
 	experiment = None  # parent KLExperiment object
 	blocks = None
 	practice_blocks = None
@@ -198,7 +198,7 @@ class KLTrialFactory(object):
 		pr("KLTrialFactory.__parse_parameters_row(self, row)", 2, EXITING)
 
 	def export_trials(self, practicing=False):
-		return KLBlockIterator(self.practice_blocks) if practicing else KLBlockIterator(self.blocks)
+		return BlockIterator(self.practice_blocks) if practicing else BlockIterator(self.blocks)
 
 	def add_inferred_factor(self, factor_name, generator, argument_list):
 		self.exp_parameters[factor_name] = {"f": generator, "arg_list": argument_list}

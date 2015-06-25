@@ -23,7 +23,7 @@ try:
 	PYLINK_AVAILABLE = True
 	print "Pylink library found! EyeTracking available!"
 
-	class KLEyeLink(pylink.EyeLink):
+	class EyeLink(pylink.EyeLink):
 		__dummy_mode = None
 		experiment = None
 		__gaze_boundaries = {}

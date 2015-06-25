@@ -7,7 +7,7 @@ from KLNumpySurface import *  # a class for easily moving between numpy pixel ar
 import KLParams as Params  # a list of program-wide settings like screen dimensions, colors, etc.
 
 
-class KLELCustomDisplay(pylink.EyeLinkCustomDisplay):
+class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 
 	window = None
 	experiment = None

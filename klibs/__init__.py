@@ -23,8 +23,9 @@ import sdl2.ext
 
 # import pylink
 
-# string constants, included for tidyness below basically
-from KLConstants import *
+
+from KLExceptions import *
+from KLConstants import * # string constants, included for tidyness below basically
 import KLParams as Params
 from KLAudioClip import *
 from KLUtilities import *

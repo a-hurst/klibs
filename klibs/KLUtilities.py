@@ -63,7 +63,6 @@ def absolute_position(position, destination):
 	except:
 		raise IndexError("Invalid position identifier.")
 
-
 def arg_error_str(arg_name, given, expected, kw=True):
 	if kw:
 		err_string = "The keyword argument, '{0}', was expected to be of type '{1}' but '{2}' was given."

@@ -113,7 +113,7 @@ def init_project():
 	schema_filename = project_name + SCHEMA_EXT
 	log_filename = project_name + LOG_EXT
 	config_filename = project_name + CONFIG_EXT
-	edf_path = os.path.join(asset_path, EDF)  # todo: write edf management
+	edf_path = os.path.join(asset_path, EDF_EXT)  # todo: write edf management
 	log_file_path = os.path.join(asset_path, log_filename)
 	schema_file_path = os.path.join(asset_path, schema_filename)
 	database_path = os.path.join(asset_path, database_filename)

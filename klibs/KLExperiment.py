@@ -32,7 +32,7 @@ class Experiment(object):
 	window = None
 	paused = False
 
-	# runtime KLIBS modules
+	# runtime KLIBS modules  
 	eyelink = None          # KLEyeLink instance
 	database = None      # KLDatabase instance
 	trial_factory = None  # KLTrialFactory instance

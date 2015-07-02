@@ -95,7 +95,7 @@ class TrialFactory(object):
 
 		trial_set_count = len(trial_set)
 		trials = copy(trial_set)
-		random.shuffle(trial_set)
+		random.shuffle(trials)
 
 		block_count = None
 		trial_count = None

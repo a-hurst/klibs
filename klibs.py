@@ -8,6 +8,7 @@ col = {"@P": '\033[95m',  # purple
 		   "@E": '\033[0m'    # return to normal
 	}
 try:
+	import klibs
 except ImportError:
 	#  todo: add in Ross's april fools idea
 	print "\n\033[91m*** Fatal Error: klibs not found ***\033[0m\n"
@@ -95,6 +96,8 @@ def update():
 	# 	rc = p.returncode
 
 
+
+
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers(title='subcommands',
 								   description='Valid arguments: project_name, destination',
@@ -104,6 +107,7 @@ create_parser = subparsers.add_parser('create')
 create_parser.add_argument('name', type=str)
 create_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='[If CREATE] Path where new project should be created; if empty, project will attempt to be created in current working directory.')
 create_parser.set_defaults(func=create)
+
 update_parser = subparsers.add_parser('update')
 update_parser.set_defaults(func=update)
 args = parser.parse_args()

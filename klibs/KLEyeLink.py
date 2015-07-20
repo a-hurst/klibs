@@ -200,12 +200,11 @@ try:
 			self.stopRecording()
 
 		def shut_down_eyelink(self):
-			self.stopRecording()
+			if self.eyelink.isRecording() == 0: self.eyelink.stopRecording()
 			self.setOfflineMode()
-			time.sleep(0.5)
-			self.closeDataFile()  # tell eyelink to close_data_file()
-			self.receiveDataFile(self.filename, Params.edf_path + self.filename)  # copy pa.EDF
-			self.close()
+			self.closeDataFile()
+			self.receiveDataFile(self.file_name, os.path.join(Params.edf_path, self.file_name))
+			return self.eyelink.close()
 
 		@abc.abstractmethod
 		def listen(self, **kwargs):

@@ -2,7 +2,12 @@ author = 'jono'
 
 from KLConstants import *
 from KLUtilities import *
+from KLTimeKeeper import TimeKeeper
 import os
+from random import seed
+from time import time
+from subprocess import PIPE, Popen
+klibs_version = "1.0a"
 
 #  project structure; default paths & filenames
 global project_name
@@ -20,6 +25,9 @@ global incomplete_data_path
 global config_filename
 global config_file_path
 global initialized
+global random_seed
+global time_keeper
+global tk
 
 initialized = False
 audio_initialized = False
@@ -35,7 +43,6 @@ database = None
 
 key_maps = dict()  # todo: create a class, KeyMapper, to manage key maps
 id_field_name = "participant_id"
-random_seed = None
 collect_demographics = True
 eye_tracking = False
 eye_tracker_available = False
@@ -59,6 +66,7 @@ pixels_per_degree = None  # pixels-per-degree, ie. degree of visual angle
 ppd = None  # pixels-per-degree, ie. degree of visual angle
 screen_c = (None, None)
 screen_ratio = None
+screen_diagonal_in = None
 screen_x = None
 screen_y = None
 screen_x_y = None
@@ -75,7 +83,7 @@ fixation_size = 1  # deg of visual angle
 box_size = 1  # deg of visual angle
 cue_size = 1  # deg of visual angle
 cue_back_size = 1  # deg of visual angle
-verbosity = -1  # 0-10, with 0 being no errors and 10 being all errors todo: actually implement this hahaha so fail
+verbosity = -1  # 0-10, with 0 being no errors and 10 being all errors todo: actually implement this hahaha, so fail
 
 trial_number = 0
 trials_per_block = 0
@@ -87,8 +95,10 @@ trials_per_participant = 0
 
 # database
 data_columns = None
-default_participant_fields = [["userhash", "participant"], "gender", "age", "handedness"]
+default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]
+default_participant_fields_sf = [["userhash", "participant"], "random_seed", "sex", "age", "handedness"]
 default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
+data_column_format = DB_COL_TITLE
 
 
 def init_project():
@@ -124,9 +134,19 @@ def init_project():
 	initialized = True
 	return True
 
-def setup(project_name_str, asset_path_str):
+def setup(project_name_str, asset_path_str, previous_random_seed):
 	global project_name
 	global asset_path
+	global random_seed
+	global time_keeper
+	global tk
+
+	time_keeper = TimeKeeper()
+	tk = time_keeper  # shorthand alias, just convenience
+
+	#  seed the experiment with either a passed random_seed or else the current unix time
+	random_seed = previous_random_seed if previous_random_seed else time()
+	seed(random_seed)
 	project_name = project_name_str
 	asset_path = asset_path_str
 	return init_project()

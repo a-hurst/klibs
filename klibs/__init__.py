@@ -26,6 +26,7 @@ import sdl2.ext
 
 from KLExceptions import *
 from KLConstants import * # string constants, included for tidyness below basically
+from KLTimeKeeper import TimeKeeper
 import KLParams as Params
 from KLAudioClip import *
 from KLUtilities import *

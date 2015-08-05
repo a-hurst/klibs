@@ -200,7 +200,7 @@ class TrialFactory(object):
 	def export_trials(self, practicing=False):
 		return BlockIterator(self.practice_blocks) if practicing else BlockIterator(self.blocks)
 
-	def add_inferred_factor(self, factor_name, generator, argument_list):
+	def add_factor_by_inference(self, factor_name, generator, argument_list):
 		self.exp_parameters[factor_name] = {"f": generator, "arg_list": argument_list}
 
  	def define_trial(self, rule, quantity):

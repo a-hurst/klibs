@@ -38,7 +38,7 @@ class Experiment(object):
 	trial_factory = None  # KLTrialFactory instance
 	text_manager = None   # KLTextManager instance
 
-	def __init__(self, project_name, display_diagonal_in, asset_path="ExpAssets", export=False):
+	def __init__(self, project_name, display_diagonal_in, random_seed=None, asset_path="ExpAssets", export=False):
 		"""
 		Initializes a KLExperiment Object
 
@@ -49,7 +49,7 @@ class Experiment(object):
 		:raise EnvironmentError:
 		"""
 
-		if not Params.setup(project_name, asset_path):
+		if not Params.setup(project_name, asset_path, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 
 		#initialize the self.database instance
@@ -67,8 +67,9 @@ class Experiment(object):
 											 sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
 											 sdl2.SDLK_RIGHT],
 											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
-
+		Params.time_keeper.start("Trial Generation")
 		self.trial_factory = TrialFactory(self)
+		Params.time_keeper.end("Trial Generation")
 
 		self.event_code_generator = None
 
@@ -79,8 +80,8 @@ class Experiment(object):
 		self.text_manager = TextManager(Params.screen_x_y, Params.screen_x_y, Params.ppi)
 		if Params.default_font_size:
 			self.text_manager.default_font_size = Params.default_font_size
+
 		# initialize eyelink
-		#		if PYLINK_AVAILABLE and Params.eye_tracking:
 		self.eyelink = EyeLink(self)
 		self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
 		self.eyelink.dummy_mode = Params.eye_tracker_available is False
@@ -95,15 +96,19 @@ class Experiment(object):
 		"""
 
 		phases = 2 if Params.practicing else 1
+		Params.time_keeper.start("trial_execution")
 		for i in range(phases):
 			practicing = phases == 2 and i == 1
 			for block in self.trial_factory.export_trials(practicing):
+				Params.block_number = block[0]
 				self.block(block[0])    # ie. block number
 				for trial in block[1]:  # ie. list of trials
 					self.__trial(trial)
+		Params.time_keeper.end("trial_execution");
 		self.clean_up()
 		self.database.db.commit()
 		self.database.db.close()
+
 
 	def __trial(self, *args, **kwargs):
 		"""
@@ -113,7 +118,10 @@ class Experiment(object):
 
 		# args = args[0]
 		# try:
-		Params.trial_number = args[0]
+		if args[1][0] is True:  # ie. if practicing
+			Params.trial_number = (Params.block_number * Params.trials_per_practice_block) + args[0]
+		else:
+			Params.trial_number = (Params.block_number * Params.trials_per_block) + args[0]
 
 		self.trial_prep(*args, **kwargs)
 		# except:
@@ -173,6 +181,7 @@ class Experiment(object):
 				Params.screen_y = int(screen.frame().size.height)
 				Params.screen_x_y = [Params.screen_x, Params.screen_y]
 		self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), SCREEN_FLAGS)
+		Params.screen_diagonal_in = diagonal_in
 		Params.screen_c = (Params.screen_x / 2, Params.screen_y / 2)
 		Params.diagonal_px = int(math.sqrt(Params.screen_x * Params.screen_x + Params.screen_y * Params.screen_y))
 		Params.ppi = Params.diagonal_px // diagonal_in
@@ -198,9 +207,6 @@ class Experiment(object):
 		except :
 			print "splash.png not found; splash screen not presented"
 		self.flip(1)
-
-		# TODO: The following params are broken; PPI calculation is wrong
-		# http://en.wikipedia.org/wiki/Pixel_density
 
 
 
@@ -338,10 +344,10 @@ class Experiment(object):
 		:param anonymous_user:
 		"""
 
-		# TODO: this function should have default questions/answers but should also be able to read from a
-		# CSV or array for custom Q&A
+		# TODO: this function should have default questions/answers but should also be able to read from a CSV or dict
 		if not Params.collect_demographics and not anonymous_user: return
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
+		self.database.log("random_seed", Params.random_seed)
 		if anonymous_user:
 			name = "demo_user_{0}".format(now(True))
 		else:
@@ -356,16 +362,16 @@ class Experiment(object):
 		# names must be unique; returns True if unique, False otherwise
 		if self.database.is_unique('participants', 'userhash', name):
 			if anonymous_user:
-				gender = "o"
+				sex = "m" if time.time() % 2 > 0  else "f"
 				handedness = "a"
 				age = 0
 			else:
-				gender_str = "What is your gender? \nAnswer with:  (m)ale,(f)emale or (o)ther)"
-				gender = self.query(gender_str, accepted=('m', 'M', 'f', 'F', 'o', 'O'))
+				sex_str = "What is your sex? \nAnswer with:  (m)ale,(f)emale"
+				sex = self.query(sex_str, accepted=('m', 'M', 'f', 'F'))
 				handedness_str = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
 				handedness = self.query(handedness_str, accepted=('r', 'R', 'l', 'L', 'a', 'A'))
 				age = self.query('What is  your age?', return_type='int')
-			self.database.log('gender', gender)
+			self.database.log('sex', sex)
 			self.database.log('handedness', handedness)
 			self.database.log('age', age)
 			self.database.log('created', now(True))
@@ -1150,8 +1156,12 @@ class Experiment(object):
 			self.eyelink.stopRecording()
 		except:
 			print "EyeLink.stopRecording()  unsuccessful.\n ****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******"
-
+		try:
+			Params.time_keeper.end("experiment")
+		except KeyError:
+			pass
 		sdl2.SDL_Quit()
+		Params.experiment_quit_time = time.time()
 		sys.exit()
 
 	def run(self, *args, **kwargs):
@@ -1161,9 +1171,11 @@ class Experiment(object):
 		:param args:
 		:param kwargs:
 		"""
+		Params.time_keeper.start("experiment")
 		self.setup()
 		self.collect_demographics() if Params.collect_demographics else self.collect_demographics(True)
 		self.__execute_experiment(*args, **kwargs)
+		self.quit()
 
 	def start(self):
 		"""
@@ -1180,7 +1192,6 @@ class Experiment(object):
 	def track_mouse(self):
 		self.blit(cursor(), 7, mouse_pos())
 		return True
-
 
 	def fill(self, color=None, context=None):
 		"""

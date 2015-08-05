@@ -102,6 +102,7 @@ class EntryTemplate(object):
 		print self.schema
 
 
+#TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
 class Database(object):
 	__default_table = None
 	__open_entries = {}
@@ -253,6 +254,8 @@ class Database(object):
 		pass
 
 	def log(self, field, value, instance=None, set_to_current=True):
+		# convert boolean strings/boolean literals to uppercase boolean strings for R
+		if boolean_to_logical(value): value = boolean_to_logical(value)
 		try:
 			instance.log(field, value)
 		except AttributeError:
@@ -284,7 +287,6 @@ class Database(object):
 			query_str = "SELECT * FROM `{0}` WHERE `{1}` = '{2}'".format(table, column, value)
 		return len(self.query(query_str, QUERY_SEL, True).fetchall()) == 0
 
-
 	def exists(self, table, column, value, value_type=SQL_STR):
 		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL]:
 			query_str = "SELECT * FROM `{0}` WHERE `{1}` = {2}".format(table, column, value)
@@ -309,6 +311,7 @@ class Database(object):
 			if not table: table = data.table_name
 
 		try:
+			query = data.build_query(QUERY_INS)
 			self.cursor.execute(data.build_query(QUERY_INS))
 			if clear_current and self.current().name == data.name: self.current(False)
 		except AttributeError:
@@ -362,28 +365,32 @@ class Database(object):
 			else:
 				return [fname, os.path.join(Params.data_path, fname)]
 
-	def __collect_export_data(self, multi_file=True):
+	def collect_export_data(self, multi_file=True):
 		participant_ids = self.query("SELECT `id`, `userhash` FROM `participants`").fetchall()
-		participant_ids.insert(0, (-1,))  # testing id
+		participant_ids.insert(0, (-1,))  # for test data collected before anonymous_user added to collect_demographics()
 		data = []
+
+		#  build query strings for retrieving data as/if configured by experimenter
 		p_field_str = ""
 		t_field_str = ""
-		for field in Params.default_participant_fields:
-			if iterable(field):
+
+		#  random_seed has to be added to every participant row when exporting to multi-file
+		default_fields = Params.default_participant_fields_sf if multi_file else Params.default_participant_fields
+		for field in default_fields:
+			if iterable(field):  # ie. the id/userhash field—id used internally, userhash for output
 				p_field_str += "`participants`.`{0}` AS `{1}`, ".format(*field)
 			else:
 				p_field_str += "`participants`.`{0}`, ".format(field)
 		for field in self.table_schemas['trials']:
 			if field[0] not in [ID, Params.id_field_name]:
 				t_field_str += "`trials`.`{0}`, ".format(field[0])
-		t_field_str = t_field_str[:-2]
+		t_field_str = t_field_str[:-2]  # remove additional comma & space
 
 		for p in participant_ids:
-			if p[0] == -1:  # for legacy data, ie. prior to implementing anonymous_user argument of collect_demographics()
+			if p[0] == -1:  # legacy test data collected before anonymous_user added to collect_demographics()
 				q = "SELECT {0} FROM `trials` WHERE `trials`.`participant_id` = -1".format(t_field_str)
 			else:
 				q = "SELECT {0} {1} FROM `trials` JOIN `participants` ON `trials`.`participant_id` = {2} WHERE `participant` = '{3}'".format(p_field_str, t_field_str, p[0], p[1])
-			print q
 			p_data = []
 			for trial in self.query(q).fetchall():
 				row_str = TAB.join(str(col) for col in trial)
@@ -392,32 +399,69 @@ class Database(object):
 			if multi_file: data.append([p[0], p_data])
 		return data if multi_file else [data]
 
-	def export(self, multi_file=True, join_tables=None):
-		table_header = []
+	def export_header(self, user_id=None):
+
+		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export—probably this should be added to the participant table at run time
+		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", Params.klibs_version], ["Display Diagonal Inches", Params.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*Params.screen_x_y)], ["Random Seed", random_seed]]
+		klibs_vars = [ "KLIBS INFO", ["KLIBs Version", Params.klibs_version]]
+		if user_id:  # if building a header for a single participant, include the random seed
+			q = "SELECT `random_seed` from `participants` WHERE `participants`.`id` = '{0}'".format(user_id)
+			klibs_vars.append(["random_seed", self.query(q).fetchall()[0][0]])
+		eyelink_vars = [ "EYELINK SETTINGS",
+						 ["Saccadic Velocity Threshold", Params.saccadic_velocity_threshold],
+						 ["Saccadic Acceleration Threshold", Params.saccadic_acceleration_threshold],
+						 ["Saccadic Motion Threshold", Params.saccadic_motion_threshold]]
+		exp_vars = [ "EXPERIMENT SETTINGS",
+					 ["Trials Per Block", Params.trials_per_block],
+					 ["Trials Per Practice Block", Params.trials_per_practice_block],
+					 ["Blocks Per Experiment", Params.blocks_per_experiment],
+					 ["Practice Blocks Per Experiment", Params.practice_blocks_per_experiment] ]
+		header = ""
+		for info in [klibs_vars, eyelink_vars, exp_vars]:
+			header += "# >>> {0}\n".format(info[0])
+			header += "\n".join(["# {0}: {1}".format(var[0], var[1]) for var in info[1:]])
+			header += "\n"
+			if info[0] != "EXPERIMENT SETTINGS": header += "#\n"
+
+		return header
+
+
+	def build_column_header(self):
+		column_names = []
 		for field in Params.default_participant_fields:
-			table_header.append(field[1]) if iterable(field) else table_header.append(field)
+			column_names.append(field[1]) if iterable(field) else column_names.append(field)
+		column_names = [snake_to_camel(col) for col in column_names]
 
 		for field in self.table_schemas['trials']:
-			if field[0][-2:] != "id": table_header.append(field[0])
-		table_header = TAB.join(table_header)
-		data = self.__collect_export_data(multi_file)
+			if field[0][-2:] != "id": column_names.append(field[0])
+		return  TAB.join(column_names)
+
+
+	def export(self, multi_file=True, join_tables=None):
+		column_names = self.build_column_header()
+		data = self.collect_export_data(multi_file)
 		print data
+
 		for data_set in data:
 			p_id = data_set[0]
-			if multi_file:
-				incomplete = multi_file and len(data_set[1]) != Params.trials_per_block * Params.blocks_per_experiment
+			if p_id == -1:
+				pass
 			else:
-				incomplete = False
-			file_strings = self.p_filename_str(multi_file, True) if incomplete else self.p_filename_str(p_id, multi_file)
-			if os.path.isfile(file_strings[1]):
-				duplicate_count = 1
-				while os.path.isfile(os.path.join(file_strings[1])):
-					file_strings = self.p_filename_str(p_id, multi_file, incomplete, duplicate_count)
-					duplicate_count += 1
-			data_file = open(os.path.join(file_strings[1]), "w+")
-			data_file.write(table_header + "\n")
-			data_file.write("\n".join(data_set[1]))
-			data_file.close()
+				header = self.export_header(p_id)
+				print header
+				if multi_file:
+					incomplete = multi_file and len(data_set[1]) != Params.trials_per_block * Params.blocks_per_experiment
+				else:
+					incomplete = False
+				file_strings = self.p_filename_str(multi_file, True) if incomplete else self.p_filename_str(p_id, multi_file)
+				if os.path.isfile(file_strings[1]):
+					duplicate_count = 1
+					while os.path.isfile(os.path.join(file_strings[1])):
+						file_strings = self.p_filename_str(p_id, multi_file, incomplete, duplicate_count)
+						duplicate_count += 1
+				data_file = open(os.path.join(file_strings[1]), "w+")
+				data_file.write("\n".join([header, column_names, "\n".join(data_set[1])]))
+				data_file.close()
 
 	@property
 	def default_table(self):

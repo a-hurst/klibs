@@ -10,6 +10,7 @@ import sdl2
 import ctypes
 import time
 import datetime
+import re
 
 def absolute_position(position, destination):
 	#  if pixel coordinates are supplied by accident or automatically
@@ -63,12 +64,14 @@ def absolute_position(position, destination):
 	except:
 		raise IndexError("Invalid position identifier.")
 
+
 def arg_error_str(arg_name, given, expected, kw=True):
 	if kw:
 		err_string = "The keyword argument, '{0}', was expected to be of type '{1}' but '{2}' was given."
 	else:
 		err_string = "The argument, '{0}', was expected to be of type '{1}' but '{2}' was given."
 	return err_string.format(arg_name, type(given), type(expected))
+
 
 def bounded_by(self, pos, left, right, top, bottom):
 		"""
@@ -191,13 +194,16 @@ def mouse_pos(pump=True):
 	sdl2.mouse.SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
 	return [x.value, y.value]
 
+
 def hide_mouse_cursor():
 	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 	return sdl2.SDL_PumpEvents()
 
+
 def show_mouse_cursor():
 	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_ENABLE)
 	return sdl2.SDL_PumpEvents()
+
 
 def peak(v1, v2):
 	if v1 > v2:
@@ -285,6 +291,7 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepe
 
 	return output
 
+
 def iterable(obj, exclude_strings=True):
 	if exclude_strings:
 		return hasattr(obj, '__iter__')
@@ -294,6 +301,7 @@ def iterable(obj, exclude_strings=True):
 			return True
 		except AttributeError:
 			return False
+
 
 def pt_to_px(pt_size):
 	if type(pt_size) is not int:
@@ -315,6 +323,7 @@ def px_to_deg(length):  # length = px
 def rgb_to_rgba(rgb):
 	return rgb[0], rgb[1], rgb[2], 1
 
+
 def type_str(var):
 	return type(var).__name__
 
@@ -323,6 +332,7 @@ def bool_to_int(boolean_val):
 	if boolean_val is False: return 0
 	if boolean_val is True: return 1
 	raise ValueError("Non-boolean value passed ('{0}')".format(type(boolean_val)))
+
 
 def safe_flag_string(flags, prefix=None, uc=True):
 	if prefix and type(prefix) is not str:
@@ -354,6 +364,7 @@ def now(as_timestamp=False):
 			time_str = datetime.datetime.fromtimestamp(time_str).strftime('%Y-%m-%d %H:%M:%S')
 	return time_str
 
+
 def quit(msg=None):
 	if msg:
 		print msg
@@ -370,7 +381,8 @@ class RGBCLI:
 		   "@E": '\033[0m'    # return to normal
 	}
 
-	def pr(self, string):
+
+def pr(self, string):
 		string = "{0}".format(string)
 		for col in self.col:
 			string = string.replace(col, self.col[col])
@@ -388,3 +400,27 @@ def pr(string, priority=0, signature=False):
 	except:
 		if priority is False:
 			return
+
+
+def camel_to_snake(string):
+	return re.sub('([a-z0-9])([A-Z])', r'\1_\2', re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)).lower()
+
+
+def snake_to_camel(string):
+	words = string.split('_')
+	return words[0] + "".join(x.title() for x in words[1:])
+
+
+def snake_to_title(string):
+	words = string.split('_')
+	return words[0] + "".join(x.title() for x in words)
+
+
+def boolean_to_logical(value, convert_integers=False):
+	if value in ["false", "False"] or value is False: return "FALSE"
+	if value in ["true", "True"] or value is True: return "TRUE"
+	if convert_integers is True:
+		if value in [1,"1"]: return "TRUE"
+		if value in [0,"0"]: return "FALSE"
+	return None
+

@@ -69,7 +69,7 @@ class Experiment(object):
 											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 		Params.time_keeper.start("Trial Generation")
 		self.trial_factory = TrialFactory(self)
-		Params.time_keeper.end("Trial Generation")
+		Params.time_keeper.stop("Trial Generation")
 
 		self.event_code_generator = None
 
@@ -104,7 +104,7 @@ class Experiment(object):
 				self.block(block[0])    # ie. block number
 				for trial in block[1]:  # ie. list of trials
 					self.__trial(trial)
-		Params.time_keeper.end("trial_execution");
+		Params.time_keeper.stop("trial_execution");
 		self.clean_up()
 		self.database.db.commit()
 		self.database.db.close()
@@ -116,7 +116,7 @@ class Experiment(object):
 
 		"""
 
-		# args = args[0]
+		args = args[0]
 		# try:
 		if args[1][0] is True:  # ie. if practicing
 			Params.trial_number = (Params.block_number * Params.trials_per_practice_block) + args[0]
@@ -127,7 +127,7 @@ class Experiment(object):
 		# except:
 		# 	raise
 		# finally:
-		self.__log_trial(self.trial(*args[0], **kwargs))
+		self.__log_trial(self.trial(*args, **kwargs))
 		self.trial_clean_up()
 
 	def __database_init(self, *args):
@@ -1157,11 +1157,11 @@ class Experiment(object):
 		except:
 			print "EyeLink.stopRecording()  unsuccessful.\n ****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******"
 		try:
-			Params.time_keeper.end("experiment")
+			Params.time_keeper.stop("experiment")
 		except KeyError:
 			pass
 		sdl2.SDL_Quit()
-		Params.experiment_quit_time = time.time()
+		Params.time_keeper.log("exit")
 		sys.exit()
 
 	def run(self, *args, **kwargs):

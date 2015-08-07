@@ -16,7 +16,7 @@ class TimeKeeper(object):
 	def start(self, label, time_value=None):
 		self.periods[label] = [time_value if time_value else time.time(), None]
 
-	def end(self, label, time_value=None):
+	def stop(self, label, time_value=None):
 		self.periods[label][1] = time_value if time_value else time.time()
 
 	def period(self, label):
@@ -42,5 +42,5 @@ class TimeKeeper(object):
 			except TypeError:
 				time.append(None)
 			output.append( "{0}: Start = {1}, End = {2}, Duration = {3}".format(*times))
-		return output.join("\n")
+		return "\n".join(output)
 

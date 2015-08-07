@@ -440,7 +440,6 @@ class Database(object):
 	def export(self, multi_file=True, join_tables=None):
 		column_names = self.build_column_header()
 		data = self.collect_export_data(multi_file)
-		print data
 
 		for data_set in data:
 			p_id = data_set[0]

@@ -15,6 +15,7 @@ class EntryTemplate(object):
 	name = None
 	schema = None
 	data = None
+	id = None
 
 	def __init__(self, table_name, table_schema, instance_name):
 		self.schema = table_schema
@@ -32,7 +33,28 @@ class EntryTemplate(object):
 		schema_str += "\t\t}"
 		return schema_str
 
-	def build_query(self, query_type):
+		#TODO: build logic for update statements as well (as against only insert statements)
+	def update_query(self, fields):
+		query = "UPDATE {0} SET ".format(self.table_name)
+		insert_template = []
+
+		for column in self.schema:
+			col_name = column[0]
+			col_value = SQL_NULL
+			try:
+				if col_name not in fields or col_name == ID: continue
+			except TypeError:  # ie. if fields is None update every field
+				pass
+			if self.data[self.index_of(col_name)] in [SQL_NULL, None]:
+				if not self.allow_null(col_name): raise ValueError("Column '{0}' may not be null.".format(column))
+				self.data[self.index_of(col_name)] = SQL_NULL
+			else:
+				col_value = self.data[self.index_of(col_name)]
+			insert_template.append("`{0}` = {1}".format(col_name, col_value))
+
+		return ", ".join(insert_template)
+
+	def insert_query(self):
 		insert_template = [SQL_NULL, ] * len(self.schema)
 
 		for column in self.schema:
@@ -40,7 +62,7 @@ class EntryTemplate(object):
 				if self.allow_null(column[0]):
 					insert_template[self.index_of(column)] = SQL_NULL
 					self.data[self.index_of(column)] = SQL_NULL
-				elif query_type == QUERY_INS and column[0] == ID:
+				elif column[0] == ID:
 					self.data[0] = SQL_NULL
 					insert_template[0] = SQL_NULL
 				else:
@@ -48,19 +70,12 @@ class EntryTemplate(object):
 			else:
 				insert_template[self.index_of(column[0])] = column[0]
 
-		columns, values = self.format_insert_strings(insert_template, self.data)
-		if query_type == QUERY_INS:
-			query_string = "INSERT INTO `{0}` ({1}) VALUES ({2})".format(self.table_name, columns, values)
-			return query_string
-		elif query_type == QUERY_UPD:
-			pass
-		#TODO: build logic for update statements as well (as against only insert statements)
+		values = ",".join(filter(lambda column: column != SQL_NULL, [str(i) for i in self.data]))
+		columns = "`{0}`".format(SQL_COL_DELIM_STR.join(filter(lambda column: column != SQL_NULL, insert_template)))
 
-	def format_insert_strings(self, template, data):
-		data = [str(i) for i in data]
-		template = "`{0}`".format(SQL_COL_DELIM_STR.join(filter(lambda column: column != SQL_NULL, template)))
-		data = ",".join(filter(lambda column: column != SQL_NULL, data))
-		return [template, data]
+		query_string = "INSERT INTO `{0}` ({1}) VALUES ({2})".format(self.table_name, columns, values)
+
+		return query_string
 
 	def index_of(self, field):
 		index = 0
@@ -311,8 +326,7 @@ class Database(object):
 			if not table: table = data.table_name
 
 		try:
-			query = data.build_query(QUERY_INS)
-			self.cursor.execute(data.build_query(QUERY_INS))
+			self.cursor.execute(data.insert_query())
 			if clear_current and self.current().name == data.name: self.current(False)
 		except AttributeError:
 			self.cursor.execute(self.query_str_from_raw_data(table, data))
@@ -365,6 +379,24 @@ class Database(object):
 			else:
 				return [fname, os.path.join(Params.data_path, fname)]
 
+	def update(self, record_id=None, data=None, fields=None, table=None, clear_current=True):
+		if not data:
+			try:
+				data = self.current()
+			except RuntimeError:  # exception below is a more informative account of the current problem
+				raise RuntimeError(
+					"No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
+			if not table: table = data.table_name
+			if not record_id and not data.id:
+				raise RuntimeError("No record to update; no record_id provided or present in KLEntryTemplate instance.")
+		try:
+			self.cursor.execute(data.update_query(fields))
+			if clear_current and self.current().name == data.name: self.current(False)
+		except AttributeError:
+			self.cursor.execute(self.query_str_from_raw_data(table, data))
+		self.db.commit()
+		return self.cursor.lastrowid
+
 	def collect_export_data(self, multi_file=True):
 		participant_ids = self.query("SELECT `id`, `userhash` FROM `participants`").fetchall()
 		participant_ids.insert(0, (-1,))  # for test data collected before anonymous_user added to collect_demographics()
@@ -400,7 +432,6 @@ class Database(object):
 		return data if multi_file else [data]
 
 	def export_header(self, user_id=None):
-
 		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export—probably this should be added to the participant table at run time
 		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", Params.klibs_version], ["Display Diagonal Inches", Params.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*Params.screen_x_y)], ["Random Seed", random_seed]]
 		klibs_vars = [ "KLIBS INFO", ["KLIBs Version", Params.klibs_version]]

@@ -21,7 +21,7 @@ try:
 		DUMMY_MODE_AVAILABLE = False
 
 	PYLINK_AVAILABLE = True
-	print "Pylink library found! EyeTracking available!"
+	print "\tPylink library found! EyeTracking available!"
 
 	class EyeLink(pylink.EyeLink):
 		__dummy_mode = None
@@ -32,7 +32,11 @@ try:
 		def __init__(self, experiment_instance):
 			self.experiment = experiment_instance
 			if Params.eye_tracker_available:
-				pylink.EyeLink.__init__(self)
+				try:
+					pylink.EyeLink.__init__(self)
+				except RuntimeError as e:
+					if e.message == "Could not connect to tracker at 100.1.1.1":
+						print "Could not connect to tracker at 100.1.1.1. If EyeLink machine is on, ready & connected try turning off the wifi on this machine."
 			if DUMMY_MODE_AVAILABLE:
 				self.dummy_mode = Params.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
 			else:
@@ -168,11 +172,12 @@ try:
 			else:
 				pylink.openGraphicsEx(self.custom_display)
 			if not self.dummy_mode:
+				self.filename = exp_file_name(EDF_FILE)
+				print self.filename
 				pylink.flushGetkeyQueue()
 				self.setOfflineMode()
 				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setLinkEventFilter("SACCADE,BLINK")
-				self.filename = exp_file_name(EDF_FILE)
 				self.openDataFile(self.filename)
 				self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)

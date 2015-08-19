@@ -145,12 +145,8 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 	duplicate_file_name_str = "p{0}.{1}_{2}{3}"
 
 	if date is None:
-		try:
-			date_query = "SELECT `created` FROM `participants` WHERE `id` = {0}".format(participant_id)
-			# date = str(Params.database.query(date_query).fetchall()[0][:10])
-		except:
-			date = datetime.datetime.now()[:10]
-
+		date_query = "SELECT `created` FROM `participants` WHERE `id` = {0}".format(participant_id)
+		date = Params.database.query(date_query).fetchall()[0][0][:10]
 	if file_type == PARTICIPANT_FILE:
 		file_extension = TF_DATA
 		if incomplete:

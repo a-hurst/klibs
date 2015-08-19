@@ -49,6 +49,9 @@ class Experiment(object):
 		:raise EnvironmentError:
 		"""
 
+
+
+
 		if not Params.setup(project_name, asset_path, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 
@@ -85,6 +88,8 @@ class Experiment(object):
 		self.eyelink = EyeLink(self)
 		self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
 		self.eyelink.dummy_mode = Params.eye_tracker_available is False
+
+		if not Params.collect_demographics: self.collect_demographics(True)
 
 
 	def __execute_experiment(self, *args, **kwargs):
@@ -136,7 +141,9 @@ class Experiment(object):
 
 		:param args:
 		"""
+		#  todo: probably, should just be a global variable called database, but I didn't want to implement just now
 		self.database = Database()
+		Params.database = self.database
 		if args[0]:
 			self.database.export(*args[1:])
 			exit()
@@ -346,10 +353,11 @@ class Experiment(object):
 
 		# TODO: this function should have default questions/answers but should also be able to read from a CSV or dict
 		if not Params.collect_demographics and not anonymous_user: return
+
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
 		self.database.log("random_seed", Params.random_seed)
 		if anonymous_user:
-			name = "demo_user_{0}".format(now(True))
+			name = Params.anonymous_username
 		else:
 			name_query_string = self.query(
 				"What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot "
@@ -375,7 +383,11 @@ class Experiment(object):
 			self.database.log('handedness', handedness)
 			self.database.log('age', age)
 			self.database.log('created', now(True))
-			Params.participant_id = self.database.insert()
+			if not Params.demographics_collected:
+				Params.participant_id = self.database.insert()
+			else:
+				#  The context for this is: collect_demographics is set to false but then explicitly called later
+				self.database.update(Params.participant_id)
 		else:
 			retry = self.query('That participant identifier has already been used. Do you wish to try another? (y/n) ')
 			if retry == 'y':

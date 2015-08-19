@@ -28,6 +28,7 @@ global initialized
 global random_seed
 global time_keeper
 global tk
+global anonymous_username
 
 initialized = False
 audio_initialized = False
@@ -44,6 +45,7 @@ database = None
 key_maps = dict()  # todo: create a class, KeyMapper, to manage key maps
 id_field_name = "participant_id"
 collect_demographics = True
+demographics_collected = False
 eye_tracking = False
 eye_tracker_available = False
 exp_factors = None
@@ -123,7 +125,7 @@ def init_project():
 	schema_filename = project_name + SCHEMA_EXT
 	log_filename = project_name + LOG_EXT
 	config_filename = project_name + CONFIG_EXT
-	edf_path = os.path.join(asset_path, EDF_EXT)  # todo: write edf management
+	edf_path = os.path.join(asset_path, "EDF")  # todo: write edf management
 	log_file_path = os.path.join(asset_path, log_filename)
 	schema_file_path = os.path.join(asset_path, schema_filename)
 	database_path = os.path.join(asset_path, database_filename)
@@ -140,7 +142,9 @@ def setup(project_name_str, asset_path_str, previous_random_seed):
 	global random_seed
 	global time_keeper
 	global tk
+	global anonymous_username
 
+	anonymous_username = "demo_user_{0}".format(now(True))
 	time_keeper = TimeKeeper()
 	tk = time_keeper  # shorthand alias, just convenience
 

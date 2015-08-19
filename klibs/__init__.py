@@ -20,9 +20,8 @@ from PIL import ImageFont
 from PIL import ImageOps
 import sdl2
 import sdl2.ext
-
+import AppKit
 # import pylink
-
 
 from KLExceptions import *
 from KLConstants import * # string constants, included for tidyness below basically
@@ -32,6 +31,11 @@ from KLAudioClip import *
 from KLUtilities import *
 from KLNumpySurface import *
 from KLDraw import *
+
+print "\n\n\033[92m*** Now loading KLIBS Environment ***\033[0m"
+print "\t\033[32mHint: if a bunch of SDL errors were just reported, this was expected—do not be " \
+	  "alarmed!)\033[0m"
+
 from KLDatabase import Database
 from KLTextManager import TextManager
 from KLKeyMap import *

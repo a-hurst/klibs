@@ -216,7 +216,6 @@ class Experiment(object):
 		self.flip(1)
 
 
-
 	def alert(self, alert_string, blit=True, display_for=0):
 		"""
 		Displays an alert.

@@ -156,8 +156,11 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 		else:
 			file_path = Params.data_path
 	else:
+		date = date[4:].replace("-", "_")
 		file_extension = EDF_EXT
 		file_path = Params.edf_path
+		file_name = file_name_str.format(participant_id, date, file_extension)
+		return [file_name, os.path.isfile(os.path.join(file_path, file_name))]
 
 	file_name = file_name_str.format(participant_id, date, file_extension)  # second format arg = date sliced from date-time
 	if os.path.isfile(os.path.join(file_path, file_name)):
@@ -169,6 +172,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 				unique_file = True
 			else:
 				append += 1
+
 	return os.path.join(file_path, file_name) if as_string else [file_path, file_name]
 
 

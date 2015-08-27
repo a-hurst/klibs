@@ -173,12 +173,11 @@ try:
 				pylink.openGraphicsEx(self.custom_display)
 			if not self.dummy_mode:
 				self.filename = exp_file_name(EDF_FILE)
-				print self.filename
 				pylink.flushGetkeyQueue()
 				self.setOfflineMode()
 				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setLinkEventFilter("SACCADE,BLINK")
-				self.openDataFile(self.filename)
+				self.openDataFile(self.filename[0])
 				self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
 				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)

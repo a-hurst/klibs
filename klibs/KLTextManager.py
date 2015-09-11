@@ -119,24 +119,24 @@ class TextManager(object):
 		rendering_font = ImageFont.truetype(self.default_font, self.__default_font_size)
 		return rendering_font.size()
 
-	def wrapped_text(self, text, width=None, font=None, font_size=None, color=None, bg_color=None):
+	def wrapped_text(self, text, width=None, font=None, font_size=None, color=None, bg_color=None, line_height=None):
 		lines = text.split("\n")
 		if (width):
 			pass  # test various lengths until you get a size that works, then re-populate lines
 		lines_surfs = [self.render_text(line, font, font_size, color, bg_color) for line in lines ]
 		text_dims = [0,0]
-		print text_dims
 		for line in lines_surfs:
-			text_dims[0] += line.width
-			text_dims[1] += line.height
+			if line.width > text_dims[0]: text_dims[0] = line.width
+			if line_height is None: line_height = 1.5 * line.height
+			text_dims[1] += line_height
+		print "Text Dimensions: {0}".format(text_dims)
 		y_pos = 0
 		text_surface = NumpySurface(width=text_dims[0], height=text_dims[1])
 		for line in lines_surfs:
-			text_surface.blit(line, position=[0, y_pos])
-			y_pos += line.height
+			text_surface.blit(line, position=[0, y_pos], behavior="extend")
+			y_pos += line_height
 
-		print lines_surfs
-		print text_dims
+		return text_surface
 
 
 	def render_text(self, string, font=None, font_size=None, color=None, bg_color=None):

@@ -138,10 +138,24 @@ class NumpySurface(object):
 				self.foreground = self.__ensure_alpha_channel(foreground)
 			except AttributeError:
 				self.layer_from_file(foreground, True, fg_position)
-			self.__update_shape()
-		for layer in [self.background, self.foreground]:
-			if layer is None:
-				layer = numpy.zeros((self.width, self.height, 4))
+			# self.__update_shape()
+
+		if all([self.background, self.foreground, width, height]) is None:
+			return
+		else:
+			if foreground is None:
+				try:
+					fg_width = self.background.shape[1] if self.background.shape[1] > width else width
+				except AttributeError:
+					fg_width = width
+				try:
+					fg_height = self.background.shape[0] if self.background.shape[0] > height else height
+				except AttributeError:
+					fg_height = height
+
+				self.foreground = numpy.zeros((fg_height, fg_width, 4))
+				self.__update_shape()
+
 
 			# elif type(foreground) is str:  # assume it's a path to an image file
 			# else:
@@ -150,7 +164,7 @@ class NumpySurface(object):
 	def __str__(self):
 		return "klibs.NumpySurface, ({0} x {1}) at {2}".format(self.width, self.height, hex(id(self)))
 
-	def blit(self, source, layer=NS_FOREGROUND, registration=7, position=(0, 0)):
+	def blit(self, source, layer=NS_FOREGROUND, registration=7, position=(0, 0), behavior=None):
 		# todo: implement layer logic here
 		"""
 
@@ -182,17 +196,27 @@ class NumpySurface(object):
 		position = (position[0] + registration[0], position[1] + registration[1])
 
 		# don't attempt the blit if source can't fit
-		if source_height > self.height or source_width > self.width:
-			raise ValueError("Source is larger than destination in one or more dimensions.")
-		elif source_height + position[1] > self.height or source_width + position[0] > self.width:
-			raise ValueError("Source cannot be blit to position; destination bounds exceeded.")
+		if behavior is None:
+			if source_height > self.height or source_width > self.width:
+				raise ValueError("Source is larger than destination in one or more dimensions.")
+			elif source_height + position[1] > self.height or source_width + position[0] > self.width:
+				raise ValueError("Source cannot be blit to position; destination bounds exceeded.")
 		x1 = position[0]
 		x2 = position[0] + source_width
 		y1 = position[1]
 		y2 = position[1] + source_height
+		print "Position: {0}: ".format(position)
+		print "Blit Coords: {0}: ".format([y1,y2,x1,x2])
 
 		self.__ensure_writeable(layer)
 		# todo: find out why this won't accept a 3rd dimension (ie. color)
+		if behavior == "resize":
+			if source_width > self.width: self.resize([self.height, source_width])
+			if source_height > self.height: self.resize([self.width, source_height])
+		# todo: make a "clip" behavior
+		print "ForegroundShape: {0}, SourceShape: {1}".format(self.foreground.shape, source.shape)
+		blit_region = self.foreground[y1: y2, x1: x2]
+		print "Blit_region of fg: {0}".format(blit_region.shape)
 		if layer == NS_FOREGROUND:
 			self.foreground[y1: y2, x1: x2] = source
 		else:

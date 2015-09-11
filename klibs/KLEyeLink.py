@@ -207,7 +207,7 @@ try:
 			if self.eyelink.isRecording() == 0: self.eyelink.stopRecording()
 			self.setOfflineMode()
 			self.closeDataFile()
-			self.receiveDataFile(self.file_name, os.path.join(Params.edf_path, self.file_name))
+			self.receiveDataFile(self.file_name[0], self.file_name[1])
 			return self.eyelink.close()
 
 		@abc.abstractmethod

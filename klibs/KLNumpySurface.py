@@ -92,10 +92,8 @@ class NumpySurface(object):
 		self.bg_xy = None
 		self.fg_xy = None
 
-		if width:
-			self.width = width
-		if height:
-			self.height = height
+		self.width = width
+		self.height = height
 
 		# do positions first in case a resize is required during bg & fg processing
 		if fg_position is not None:
@@ -133,12 +131,17 @@ class NumpySurface(object):
 				self.layer_from_file(background, False, bg_position)
 			else:
 				raise TypeError("Argument 'background' must be either a string (path to image) or a numpy.ndarray.")
+			self.__update_shape()
 
 		if foreground is not None:
 			try:
 				self.foreground = self.__ensure_alpha_channel(foreground)
 			except AttributeError:
 				self.layer_from_file(foreground, True, fg_position)
+			self.__update_shape()
+		for layer in [self.background, self.foreground]:
+			if layer is None:
+				layer = numpy.zeros((self.width, self.height, 4))
 
 			# elif type(foreground) is str:  # assume it's a path to an image file
 			# else:
@@ -203,9 +206,17 @@ class NumpySurface(object):
 
 	def __ensure_writeable(self, layer=NS_FOREGROUND):
 		if layer == NS_FOREGROUND:
-			self.foreground.setflags(write=1)
+			try:
+				self.foreground.setflags(write=1)
+			except AttributeError:
+				self.foreground = numpy.zeros((self.width, self.height, 4))
+				self.__ensure_writeable(NS_FOREGROUND)
 		else:
-			self.background.setflags(write=1)
+			try:
+				self.background.setflags(write=1)
+			except AttributeError:
+				self.background = numpy.zeros((self.width, self.height, 4))
+				self.__ensure_writeable(NS_BACKGROUND)
 
 	def layer_from_file(self, image, layer=NS_FOREGROUND, position=None):
 		# todo: better error handling; check if the file has a valid image extension, make sure path is a valid type
@@ -559,10 +570,10 @@ class NumpySurface(object):
 
 	@height.setter
 	def height(self, height_value):
-		if type(height_value) is int > 0:
+		if type(height_value) is int and height_value > 0:
 			self.__height = height_value
 		else:
-			raise TypeError("NumpySurface.height must be a positive integer.")
+			self.__height = 0
 
 	@property
 	def width(self):
@@ -570,10 +581,10 @@ class NumpySurface(object):
 
 	@width.setter
 	def width(self, width_value):
-		if type(width_value) is int > 0:
+		if type(width_value) is int and width_value > 0:
 			self.__width = width_value  # todo: extend a numpy array with empty pixels?
 		else:
-			raise TypeError("NumpySurface.width must be a positive integer.")
+			self.__width = 0
 
 	@property
 	def foreground(self):

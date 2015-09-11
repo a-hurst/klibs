@@ -89,7 +89,8 @@ class Experiment(object):
 		self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
 		self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
-		if not Params.collect_demographics: self.collect_demographics(True)
+		if not Params.collect_demographics:
+			self.collect_demographics(True)
 
 
 	def __execute_experiment(self, *args, **kwargs):
@@ -351,6 +352,7 @@ class Experiment(object):
 		"""
 
 		# TODO: this function should have default questions/answers but should also be able to read from a CSV or dict
+		print [Params.collect_demographics, anonymous_user]
 		if not Params.collect_demographics and not anonymous_user: return
 
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
@@ -359,8 +361,7 @@ class Experiment(object):
 			name = Params.anonymous_username
 		else:
 			name_query_string = self.query(
-				"What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot "
-				"be read later.",
+				'What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.',
 				as_password=True)
 			name_hash = hashlib.sha1(name_query_string)
 			name = name_hash.hexdigest()
@@ -368,6 +369,7 @@ class Experiment(object):
 
 		# names must be unique; returns True if unique, False otherwise
 		if self.database.is_unique('participants', 'userhash', name):
+			print "was unique"
 			if anonymous_user:
 				sex = "m" if time.time() % 2 > 0  else "f"
 				handedness = "a"
@@ -382,8 +384,10 @@ class Experiment(object):
 			self.database.log('handedness', handedness)
 			self.database.log('age', age)
 			self.database.log('created', now(True))
+			print "Params.demographics_collected: {0}".format(Params.demographics_collected)
 			if not Params.demographics_collected:
 				Params.participant_id = self.database.insert()
+				Params.demographics_collected = True
 			else:
 				#  The context for this is: collect_demographics is set to false but then explicitly called later
 				self.database.update(Params.participant_id)
@@ -1184,7 +1188,11 @@ class Experiment(object):
 		"""
 		Params.time_keeper.start("experiment")
 		self.setup()
-		self.collect_demographics() if Params.collect_demographics else self.collect_demographics(True)
+		if Params.collect_demographics:
+			if not Params.demographics_collected:
+				self.collect_demographics()
+		elif not Params.demographics_collected:
+			self.collect_demographics(True)
 		self.__execute_experiment(*args, **kwargs)
 		self.quit()
 

@@ -144,6 +144,9 @@ def setup(project_name_str, asset_path_str, previous_random_seed):
 	global tk
 	global anonymous_username
 
+	wd = os.getcwd()
+	print "WORKING DIRECTORY: {0}".format(wd)
+
 	anonymous_username = "demo_user_{0}".format(now(True))
 	time_keeper = TimeKeeper()
 	tk = time_keeper  # shorthand alias, just convenience

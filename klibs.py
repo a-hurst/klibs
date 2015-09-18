@@ -9,6 +9,7 @@ col = {"@P": '\033[95m',  # purple
 	}
 try:
 	import klibs
+	import imp
 except ImportError:
 	#  todo: add in Ross's april fools idea
 	print "\n\033[91m*** Fatal Error: klibs not found ***\033[0m\n"
@@ -33,35 +34,32 @@ from subprocess import Popen, PIPE
 def create(name, path):
 	# Adding author details and loop to confirm before execution, was in a rush,  will return later
 	# Basically got stick on feeding raw_input() into arg_parse, seems to take each letter as an argument
-	#
-	# if not name or not path:
-	# 	proj_parser = argparse.ArgumentParser()
-	# 	proj_parser.add_argument('name', type=str)
-	# 	proj_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-	# 							   help='[If CREATE] Path where new project should be created; if empty, project will attempt to be created in current working directory.')
-	# 	proj_args = proj_parser.parse_args(raw_input("Provide project name and path  (ie. NewProject ~/Desktop):"))
-	# 	name, path = [proj_args.name, proj_args.path]
-	# auth_parse = argparse.ArgumentParser()
-	# auth_parse.add_argument('name', type=str, nargs=2)
-	# auth_args = auth_parse.parse_args(raw_input("Provide your first and last name:"))
+	# Upadte #2:  moved on to using just raw_input() until help with how to do this turns up
+	# http://stackoverflow.com/questions/32659345/how-to-use-argparse-during-runtime-to-conditionally-get-further-input
+
+	auth_parse = argparse.ArgumentParser()
+	auth_parse.add_argument('name', type=str, nargs=2)
+	auth_args = auth_parse.parse_args(raw_input("Provide your first and last name:").split())
+
 	source = "/usr/local/klibs/template"
 	project_path = os.path.join(path, name)
-	#
-	# correct = None
-	# while not correct:
-	# 	print "Confirm project details:"
-	# 	print "\n\033[96mPROJECT AUTHOR: \033[94m{0}\033[0m\n".format(auth_args.name)
-	print "\n\033[96mPROJECT PATH: \033[94m{0}\033[0m\n".format(project_path)
-	# 	confirm_parser = argparse.ArgumentParser()
-	# 	confirm_parser.add_argument('confirmed')
-	# 	confirm_args = confirm_parser.parse_args(raw_input("Is this correct?").lower(), type=str, choices=['y', 'n'])
-	# 	if confirm_args.confirmed == "n":
-	# 		return create()
+
+	correct = False
+	while not correct:
+		print "Confirm project details:"
+		print "\n\033[96mPROJECT AUTHOR: \033[94m{0} {1}\033[0m\n".format(auth_args.name[0], auth_args.name[1])
+		print "\n\033[96mPROJECT PATH: \033[94m{0}\033[0m\n".format(project_path)
+		confirm_parser = argparse.ArgumentParser()
+		confirm_parser.add_argument('confirmed',  type=str, choices=['y', 'n'])
+		confirm_args = confirm_parser.parse_args(raw_input("Is this correct?").lower())
+		if confirm_args.confirmed == "n":
+			return create(name, path)
+		correct = True
 	try:
 		shutil.copytree(source, project_path)
 		print "\t...Project template files successfully copied to {0}".format(project_path)
 		temp_exp_f = open(os.path.join(project_path, "experiment.py"), "rt")
-		temp_exp = temp_exp_f.read().replace('PROJECT_NAME', args.name)
+		temp_exp = temp_exp_f.read().replace('PROJECT_NAME', name).replace('EXPERIMENTER_NAME', " ".join(auth_args.name))
 		open(os.path.join(project_path, "experiment.py"), "w+").write(temp_exp)
 		shutil.move(os.path.join(project_path, 'ExpAssets', 'PROJECT_NAME_schema.sql'), os.path.join(project_path, 'ExpAssets', name + '_schema.sql'))
 		print "\t...Project name '{0}' successfully applied to template files".format(name)
@@ -88,6 +86,8 @@ def update():
 	 Generally, this just needs to be a lot more robust.
 	 You're using Popen() because it lets you get stdout, whereas subprocess.call() only provides a returncode
 	"""
+	print "Update isn't currently supported. It's coming in a later update of KLIBs. For now, you can do this manually simply by cloning the git repository (https://www.github.com/jmwmulle/klibs) and re-installing."
+	return
 	p = Popen(['git', '-C', '/usr/local/klibs/klibs_git', 'pull'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 	output, err = p.communicate()
 	print output
@@ -95,12 +95,27 @@ def update():
 	#
 	# 	rc = p.returncode
 
+def run(path, screen_size, random_seed):
+	if random_seed == -1: random_seed = None
+	name = os.path.split(path)[-1]
+	os.chdir(path)
+	experiment = imp.load_source(path, "experiment.py")
+	app = getattr(experiment, name)
+	app(name, screen_size, random_seed=random_seed).run()
+
+
+def export(path):
+	name = os.path.split(path)[-1]
+	os.chdir(path)
+	experiment = imp.load_source(path, "experiment.py")
+	app = getattr(experiment, name)
+	app(name, 1, export=True)
 
 
 
 parser = argparse.ArgumentParser()
 subparsers = parser.add_subparsers(title='subcommands',
-								   description='Valid arguments: project_name, destination',
+								   description='Valid arguments: create, update, run, export',
 								   help='additional help')
 
 create_parser = subparsers.add_parser('create')
@@ -110,10 +125,28 @@ create_parser.set_defaults(func=create)
 
 update_parser = subparsers.add_parser('update')
 update_parser.set_defaults(func=update)
-args = parser.parse_args()
 
-try:
-	name, path = [args.name, args.path]
-	args.func(args.name, args.path)
-except AttributeError:
-	args.func()
+
+run_parser = subparsers.add_parser('run')
+run_parser.add_argument('screen_size', nargs="?", type=int, help='The diagonal size of the screen in inches on which the experiment is being run. This is used to calculate degrees of visual angle.')
+run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
+run_parser.add_argument('random_seed', default=-1, nargs="?", type=int, help='The diagonal size of the screen in inches on which the experiment is being run. This is used to calculate degrees of visual angle.')
+run_parser.set_defaults(func=run)
+
+
+export_parser = subparsers.add_parser('export')
+export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
+export_parser.set_defaults(func=export)
+
+args = vars(parser.parse_args())
+
+# try:
+# args = vars(args)
+arg_dict = {}
+for key in args:
+	if key != "func": arg_dict[key] = args[key]
+args["func"](**arg_dict)
+	#
+	# args.func(*args)
+# except AttributeError:
+# 	args.func()

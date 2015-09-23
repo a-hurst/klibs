@@ -61,7 +61,12 @@ def create(name, path):
 		temp_exp_f = open(os.path.join(project_path, "experiment.py"), "rt")
 		temp_exp = temp_exp_f.read().replace('PROJECT_NAME', name).replace('EXPERIMENTER_NAME', " ".join(auth_args.name))
 		open(os.path.join(project_path, "experiment.py"), "w+").write(temp_exp)
+
 		shutil.move(os.path.join(project_path, 'ExpAssets', 'PROJECT_NAME_schema.sql'), os.path.join(project_path, 'ExpAssets', name + '_schema.sql'))
+		temp_sql_f = open(os.path.join(project_path, 'ExpAssets', name + '_schema.sql'), "rt")
+		temp_sql = temp_sql_f.read().replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
+		open(os.path.join(project_path, 'ExpAssets', name + '_schema.sql'), "w+").write(temp_sql)
+
 		print "\t...Project name '{0}' successfully applied to template files".format(name)
 		print "\033[92m\nProject successfully created at: '\033[94m{0}\033[0m'".format(project_path)
 	except OSError, e:
@@ -96,6 +101,7 @@ def update():
 	# 	rc = p.returncode
 
 def run(path, screen_size, random_seed):
+	print [path, screen_size, random_seed]
 	if random_seed == -1: random_seed = None
 	name = os.path.split(path)[-1]
 	os.chdir(path)
@@ -128,7 +134,7 @@ update_parser.set_defaults(func=update)
 
 
 run_parser = subparsers.add_parser('run')
-run_parser.add_argument('screen_size', nargs="?", type=int, help='The diagonal size of the screen in inches on which the experiment is being run. This is used to calculate degrees of visual angle.')
+run_parser.add_argument('screen_size', type=int, help='The diagonal size of the screen in inches on which the experiment is being run. This is used to calculate degrees of visual angle.')
 run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
 run_parser.add_argument('random_seed', default=-1, nargs="?", type=int, help='The diagonal size of the screen in inches on which the experiment is being run. This is used to calculate degrees of visual angle.')
 run_parser.set_defaults(func=run)

@@ -38,4 +38,5 @@ if os.path.exists("/usr/local/bin/klibs"):
 shutil.copyfile("klibs.py", "/usr/local/bin/klibs")
 shutil.copymode("klibs.py", "/usr/local/bin/klibs")
 os.mkdir("/usr/local/klibs")
-shutil.copytree("template_temp", "/usr/local/klibs/template")
+shutil.copytree("template", "/usr/local/klibs/template")
+shutil.copymode("template", "/usr/local/klibs/template")

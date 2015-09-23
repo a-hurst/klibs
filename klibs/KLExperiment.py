@@ -72,6 +72,9 @@ class Experiment(object):
 											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 		Params.time_keeper.start("Trial Generation")
 		self.trial_factory = TrialFactory(self)
+		if Params.manual_trial_generation is False:
+			self.trial_factory.import_stim_file(Params.config_file_path)
+			self.trial_factory.generate()
 		Params.time_keeper.stop("Trial Generation")
 
 		self.event_code_generator = None

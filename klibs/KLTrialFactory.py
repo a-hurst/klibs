@@ -75,19 +75,18 @@ class TrialFactory(object):
 
 	# Behaviors
 	trial_generation_scheme = None
-	trial_generation_function = None
+	trial_generator = None
 	event_code_generator = None
 
-	def __init__(self, experiment):
+	def __init__(self, experiment, trial_generator=None):
 		self.experiment = experiment
 		self.param_weight_search = compile("^.*[ ]*\[([0-9]{1,3})\]$")
 		self.param_label_search = compile("^(.*)([ ]*\[[0-9]{1,3}\])$")
-		self.__import_stim_file(Params.config_file_path)
 
 	def __generate_trials(self, practice_trials=False ):
 		pr("KLTrialFactory.__generate_trials(self)", 2, ENTERING)
 		trial_set = list(product(*[factor[1][:] for factor in self.exp_parameters]))
-
+		if len(trial_set) == 0: trial_set = [ [] ]
 		# convert each trial tuple to list and insert at the front of it a boolean indicating if it is a practice trial
 		for i in range( len(trial_set) ):
 			trial_set[i] = list(trial_set[i])
@@ -140,7 +139,7 @@ class TrialFactory(object):
 					trial.append(el[0])
 		#  not finished, just cramemd it here when talking with ross
 
-	def __import_stim_file(self, path, trial_generator=None):
+	def import_stim_file(self, path):
 		pr("KLTrialFactory.import_stim_file(self, path)", 2, ENTERING)
 		if os.path.exists(path):
 			config_file = csv.reader(open(path, 'rb'))
@@ -149,7 +148,7 @@ class TrialFactory(object):
 				self.config_file_rows.append(row)
 				self.__parse_parameters_row(row, header=row_count == 0)
 				row_count += 1
-
+		if len(self.exp_parameters) == 0: return True
 		# Strip out trial_count column if it exists but doesn't contain integers
 		if self.exp_parameters[-1][0] in [TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC]:
 			if not all(type(val) is int for val in zip(*self.exp_parameters)[-1]):
@@ -157,12 +156,12 @@ class TrialFactory(object):
 			else:
 				self.trial_generation_scheme = TF_STIM_FILE
 
-		if trial_generator is not None:
-			self.blocks = trial_generator(Params.blocks_per_experiment, Params.trials_per_block, self.exp_parameters)
+	def generate(self):
+		try:
+			self.blocks = self.trial_generator(self.exp_parameters)
 			if Params.practicing:
-				self.practice_blocks = trial_generator(Params.practice_blocks_per_experiment,
-													   Params.trials_per_practice_block, self.exp_parameters)
-		else:
+				self.practice_blocks = self.trial_generator(self.exp_parameters)
+		except AttributeError:
 			self.blocks = self.__generate_trials()
 			if Params.practicing:
 				self.practice_blocks = self.__generate_trials(True)
@@ -208,7 +207,11 @@ class TrialFactory(object):
 
 	@property
 	def trial_generation_function(self, trial_generator):
+		return self.trial_generator
+
+	@trial_generation_function.setter
+	def trial_generation_function(self, trial_generator):
 		if not hasattr(trial_generator, '__call__'):
 			raise ValueError("trial_generator must be a function definition.")
 		else:
-			self.trial_generation_function = trial_generator
+			self.trial_generator = trial_generator

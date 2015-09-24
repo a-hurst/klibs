@@ -372,7 +372,6 @@ class Experiment(object):
 
 		# names must be unique; returns True if unique, False otherwise
 		if self.database.is_unique('participants', 'userhash', name):
-			print "was unique"
 			if anonymous_user:
 				sex = "m" if time.time() % 2 > 0  else "f"
 				handedness = "a"

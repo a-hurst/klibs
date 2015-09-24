@@ -101,7 +101,6 @@ def update():
 	# 	rc = p.returncode
 
 def run(path, screen_size, random_seed):
-	print [path, screen_size, random_seed]
 	if random_seed == -1: random_seed = None
 	name = os.path.split(path)[-1]
 	os.chdir(path)

@@ -28,6 +28,7 @@ try:
 		experiment = None
 		__gaze_boundaries = {}
 		custom_display = None
+		dc_width = None  # ie. drift-correct width
 
 		def __init__(self, experiment_instance):
 			self.experiment = experiment_instance
@@ -41,21 +42,35 @@ try:
 				self.dummy_mode = Params.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
 			else:
 				self.dummy_mode = False
-			self.dc_width = Params.screen_y // 60
-			dc_tl = [Params.screen_x // 2 - self.dc_width // 2, Params.screen_y // 2 - self.dc_width //2]
-			dc_br = [Params.screen_x // 2 + self.dc_width // 2, Params.screen_y // 2 + self.dc_width //2]
-			self.add_gaze_boundary("drift_correct", [dc_tl, dc_br])
+			self.clear_gaze_boundaries()
+
 
 		def __eye(self):
 			self.eye = self.eyeAvailable()
 			return self.eye != EL_NO_EYES
 
-		def add_gaze_boundary(self, name, bounds, shape=RECT):  # todo: make this bad boy take more than bounding rects
-			if shape not in [RECT, CIRCLE]:
-				raise ValueError("Argument 'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+		def fetch_gaze_boundary(self, name=None):
+			return self.__gaze_boundaries[name] if name is not None else self.__gaze_boundaries
+
+		def add_gaze_boundary(self, name, bounds, shape=EL_RECT_BOUNDARY):
+			if shape not in [EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY]:
+				raise ValueError("Argument 'shape' must be a shape constant (ie. EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY).")
 			# TODO:  handling for when a extant boundary would be over-written
 			self.__gaze_boundaries[name] = {"shape": shape, "bounds": bounds}
 			return True
+
+		def clear_gaze_boundaries(self):
+			self.__gaze_boundaries = {}
+			self.dc_width = Params.screen_y // 60
+			dc_tl = [Params.screen_x // 2 - self.dc_width // 2, Params.screen_y // 2 - self.dc_width //2]
+			dc_br = [Params.screen_x // 2 + self.dc_width // 2, Params.screen_y // 2 + self.dc_width //2]
+			self.add_gaze_boundary("drift_correct", [dc_tl, dc_br])
+
+		def remove_gaze_boundary(self, name):
+			try:
+				del(self.__gaze_boundaries[name])
+			except KeyError:
+				raise KeyError("Key '{0}' not found; No such gaze boundary exists!".format(name))
 
 		def within_boundary(self, boundary, point=None, shape=None):
 			debug = False
@@ -67,7 +82,7 @@ try:
 			except:
 				if shape is None:
 					raise IndexError("No boundary registered with name '{0}'.".format(boundary))
-				if shape not in [RECT, CIRCLE]:
+				if shape not in [EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY]:
 					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
 			if point is None:
 				try:
@@ -79,15 +94,21 @@ try:
 						point = mouse_pos()
 					except:
 						raise EnvironmentError("Nothing to track! One of either eye or mouse tracking required.")
-			if shape == RECT:
+			if shape == EL_RECT_BOUNDARY:
 				x_range = range(boundary[0][0], boundary[1][0])
 				y_range = range(boundary[0][1], boundary[1][1])
 				ret_val = point[0] in x_range and point[1] in y_range
-				if debug: print "POINT: {0}, X_RANGE: {1}, Y_RANGE: {2}, RET_VAL:{3}".format(point, (x_range[0], x_range[-1]),(y_range[0], y_range[-1]), ret_val )
+				if Params.debug_level > 3: print "POINT: {0}, X_RANGE: {1}, Y_RANGE: {2}, RET_VAL:{3}".format(point, (x_range[0], x_range[-1]),(y_range[0], y_range[-1]), ret_val )
 				return point[0] in x_range and point[1] in y_range
 
-			if shape == CIRCLE:
-				return boundary[0] <= math.sqrt((point[0] - boundary[1][0]) ** 2 + (point[1] - boundary[1][1]) ** 2)
+			if shape == EL_CIRCLE_BOUNDARY:
+				r = (boundary[1][0] - boundary[0][0]) // 2
+				center = (boundary[0][0] + r, boundary[0][1] + r)
+				d_x = point[0] - center[0]
+				d_y = point[1] - center[1]
+				center_point_dist = math.sqrt(d_x**2 + d_y**2)
+				print "r: {0}, center: {1}, d_x: {2}, d_y: {3}, cpt: {4}, \n boundary: {5}, point: {6}".format(r, center, d_x, d_y, center_point_dist, boundary, point)
+				return center_point_dist <= r
 
 		def is_gaze_boundary(self, string):
 			return type(string) is str and string in self.__gaze_boundaries

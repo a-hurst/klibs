@@ -49,7 +49,7 @@ class Experiment(object):
 		:raise EnvironmentError:
 		"""
 
-
+		super(Experiment, self).__init__()
 
 
 		if not Params.setup(project_name, asset_path, random_seed):
@@ -109,10 +109,18 @@ class Experiment(object):
 		for i in range(phases):
 			practicing = phases == 2 and i == 1
 			for block in self.trial_factory.export_trials(practicing):
+				Params.recycle_count = 0
 				Params.block_number = block[0]
 				self.block(block[0])    # ie. block number
 				for trial in block[1]:  # ie. list of trials
-					self.__trial(trial)
+					try:
+						self.__trial(trial)
+					except TrialException as e:
+						block[1].recycle()
+						Params.recycle_count += 1
+						Params.tk.log(e.message)
+						self.database.current(False)
+						self.clear()
 		Params.time_keeper.stop("trial_execution");
 		self.clean_up()
 		self.database.db.commit()
@@ -128,16 +136,20 @@ class Experiment(object):
 		args = args[0]
 		# try:
 		if args[1][0] is True:  # ie. if practicing
-			Params.trial_number = (Params.block_number * Params.trials_per_practice_block) + args[0]
+			block_base = Params.block_number - 1 * Params.trials_per_practice_block
+			Params.trial_number = block_base + args[0] + 1 - Params.recycle_count
 		else:
-			Params.trial_number = (Params.block_number * Params.trials_per_block) + args[0]
+			block_base = Params.block_number - 1 * Params.trials_per_block
+			Params.trial_number =  block_base + args[0] + 1 - Params.recycle_count
+		self.trial_prep(args[1])
+		try:
+			trial_data = self.trial(args[1])
+			trial_id = self.__log_trial(trial_data)
+			self.trial_clean_up(trial_id, args[1])
+		except TrialException as e:
+			self.trial_clean_up(False, args[1])
+			raise e
 
-		self.trial_prep(*args, **kwargs)
-		# except:
-		# 	raise
-		# finally:
-		self.__log_trial(self.trial(*args, **kwargs))
-		self.trial_clean_up()
 
 	def __database_init(self, *args):
 		"""
@@ -163,7 +175,7 @@ class Experiment(object):
 		if auto_id: trial_data[Params.id_field_name] = Params.participant_id
 		if self.database.current() is None: self.database.init_entry('trials', "trial_{0}".format(Params.trial_number))
 		for attr in trial_data: self.database.log(attr, trial_data[attr])
-		self.database.insert()
+		return self.database.insert()
 
 	def display_init(self, diagonal_in):
 		"""
@@ -219,7 +231,6 @@ class Experiment(object):
 			print "splash.png not found; splash screen not presented"
 		self.flip(1)
 
-
 	def alert(self, alert_string, blit=True, display_for=0):
 		"""
 		Displays an alert.
@@ -265,18 +276,23 @@ class Experiment(object):
 			height = source.height
 			width = source.width
 			content = source.render()
+		elif issubclass(type(self.dot), Drawbject):
+			height = source.height
+			width = source.width
+			# source.draw()
+			content = source.render().render()
 		elif type(source) is numpy.ndarray:
 			height = source.shape[0]
 			width = source.shape[1]
 			content = source
 		else:
-			raise TypeError("Argument 'source' must be either of type numpy.ndarray or klibs.NumpySurface.")
+			raise TypeError("Argument 'source' must be numpy.ndarray, klibs.KLNumpySurface.NumpySurface, or inherit from klibs.KLDraw.Drawbect.")
 
 		# configure OpenGL for blit
 		gl.glEnable(gl.GL_BLEND)
 		gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-		id = gl.glGenTextures(1)
-		gl.glBindTexture(gl.GL_TEXTURE_2D, id)
+		t_id = gl.glGenTextures(1)
+		gl.glBindTexture(gl.GL_TEXTURE_2D, t_id)
 		gl.glTexEnvi(gl.GL_TEXTURE_ENV, gl.GL_TEXTURE_ENV_MODE, gl.GL_REPLACE)
 		gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP)
 		gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP)
@@ -284,7 +300,7 @@ class Experiment(object):
 		gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
 		gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, content)
 		gl.glEnable(gl.GL_TEXTURE_2D)
-		gl.glBindTexture(gl.GL_TEXTURE_2D, id)
+		gl.glBindTexture(gl.GL_TEXTURE_2D, t_id)
 		gl.glBegin(gl.GL_QUADS)
 
 		# convert english location strings to x,y coordinates of destination surface
@@ -304,7 +320,7 @@ class Experiment(object):
 		#          the top-left corner being blit to (2,2), such that the bottom-right corner would be at (5,5)
 		registrations = build_registrations(height, width)
 
-		if 0 < registration & registration < 10:
+		if 0 < registration < 10:
 			x_bounds[0] += int(registrations[registration][0])
 			x_bounds[1] += int(registrations[registration][0])
 			y_bounds[0] += int(registrations[registration][1])
@@ -325,8 +341,8 @@ class Experiment(object):
 		gl.glVertex2f(x_bounds[0], y_bounds[1])
 		gl.glEnd()
 		gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
-		gl.glDeleteTextures([id])
-		del id
+		gl.glDeleteTextures([t_id])
+		del t_id
 		gl.glDisable(gl.GL_TEXTURE_2D)
 
 	def block_break(self, message=None):
@@ -355,7 +371,6 @@ class Experiment(object):
 		"""
 
 		# TODO: this function should have default questions/answers but should also be able to read from a CSV or dict
-		print [Params.collect_demographics, anonymous_user]
 		if not Params.collect_demographics and not anonymous_user: return
 
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
@@ -386,7 +401,6 @@ class Experiment(object):
 			self.database.log('handedness', handedness)
 			self.database.log('age', age)
 			self.database.log('created', now(True))
-			print "Params.demographics_collected: {0}".format(Params.demographics_collected)
 			if not Params.demographics_collected:
 				Params.participant_id = self.database.insert()
 				Params.demographics_collected = True
@@ -583,7 +597,6 @@ class Experiment(object):
 		:return: :raise RuntimeError:
 		"""
 
-		pr("@PKLExperiment.listen() reached", 2)
 		exit_msg_thresh = 2
 		# todo: listen is not a method; it should be a class, "listener", that gets configured
 		# TODO: response_count should be a real thing
@@ -598,12 +611,14 @@ class Experiment(object):
 		if type(max_wait) not in (int, float):
 			raise TypeError("Argument 'max_wait' must be an integer.")
 		try:
-			if key_map_name in Params.key_maps:
-				key_map = Params.key_maps[key_map_name]
+			key_map = Params.key_maps[key_map_name]
+		except KeyError:
+			if key_map_name is None:
+				key_map = None
+			elif key_map_name is str:
+				raise KeyError("Argument 'key_map_name' did not match any registered KeyMap.")
 			else:
-				raise ValueError("Argument 'key_map_name' did not match any registered KeyMap.")
-		except:
-			raise TypeError("Argument 'key_map_name' must be a string corresponding to a registered KeyMap.")
+				raise TypeError("Argument 'key_map_name' must be a string corresponding to a registered KeyMap.")
 		response = None
 		rt = -1
 
@@ -624,7 +639,6 @@ class Experiment(object):
 		# then = time.time()
 		while waiting:
 			# now = time.time()
-			# pr("\t@TListen Loop Time: {0}ms".format(int((now - then) * 1000)), 1)
 			# then = now
 			try:
 				self.eyelink.listen(**el_args)
@@ -633,14 +647,15 @@ class Experiment(object):
 
 			sdl2.SDL_PumpEvents()
 			if wait_callback:
-				try:
-					wait_resp = wait_callback(*wait_args, **wait_kwargs)
-					if wait_resp:
-						waiting = False
-						return [wait_resp, time.time() - start_time]
-				except Exception as e:
-					err_message = "wait callback failed with following message: {0}".format(e.message)
-					raise RuntimeError(err_message)
+				# try:
+				wait_resp = wait_callback(*wait_args, **wait_kwargs)
+				if wait_resp:
+					waiting = False
+					return [wait_resp, time.time() - start_time]
+				# except Exception as e:
+				# 	err_message = "wait callback failed with following message: {0}".format(e.message)
+				# 	raise RuntimeError(err_message)
+					# raise sys.exec_info[0], sys.exec_info[1], sys.exec_info[2]
 
 			for event in sdl2.ext.get_events():
 				if event.type == sdl2.SDL_KEYDOWN:
@@ -649,23 +664,24 @@ class Experiment(object):
 						key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
 						sdl_keysym = key.keysym.sym
 						key_name = sdl2.keyboard.SDL_GetKeyName(sdl_keysym)
-						valid = key_map.validate(sdl_keysym)
+						if key_map is not None:
+							valid = key_map.validate(sdl_keysym)
+						else:
+							valid = False
 						if valid:  # a KeyMap with name "*" (ie. any key) returns self.ANY_KEY
 							response = key_map.read(sdl_keysym, "data")
 							if interrupt:  # ONLY for TIME SENSITIVE reactions to participant response; this flag
 							# voids overwatch()
-								pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 								return [response, rt]
 						else:
-							wrong_key = True
+							if key_map is not None:
+								wrong_key = True
 					if key_name not in MOD_KEYS and key_name is not None:
 						self.over_watch(event)  # ensure the 'wrong key' wasn't a call to quit or pause
 						if interrupt:    # returns response immediately; else waits for maxWait to elapse
 							if response:
-								pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 								return [response, rt]
 							elif key_map.any_key:
-								pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 								return [key_map.any_key_string, rt]
 						if wrong_key is True:  # flash an error for an actual wrong key
 							pass
@@ -675,17 +691,13 @@ class Experiment(object):
 						# wrong_key = False
 			if (time.time() - start_time) > max_wait:
 				waiting = False
-				pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 				return [TIMEOUT, -1]
 		if not response:
 			if null_response:
-				pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 				return [null_response, rt]
 			else:
-				pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 				return [NO_RESPONSE, rt]
 		else:
-			pr("@BKLExperiment.listen() exiting", exit_msg_thresh)
 			return [response, rt]
 
 	def message(self, message, font=None, font_size=None, color=None, bg_color=None, location=None, registration=None,

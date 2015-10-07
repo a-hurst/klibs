@@ -94,6 +94,7 @@ block_number = 0
 blocks_per_experiment = 0
 practice_blocks_per_experiment = 0
 trials_per_participant = 0
+recycle_count = 0  # reset on a per-block basis
 manual_trial_generation = False
 
 # database

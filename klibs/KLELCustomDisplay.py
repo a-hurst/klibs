@@ -5,7 +5,7 @@ import pylink
 from KLAudioClip import AudioClip  # just a simple class for playing sdl2 sounds we made
 from KLNumpySurface import *  # a class for easily moving between numpy pixel arrays and sdl2/openGL
 import KLParams as Params  # a list of program-wide settings like screen dimensions, colors, etc.
-
+import KLDraw
 
 class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 
@@ -52,17 +52,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		if y is None:
 			y = x[1]
 			x = x[0]
-		draw_context_length = Params.screen_y // 60
-		while draw_context_length % 3 != 0:  # center-dot is 1/3 of parent; offset unequal if parent not divisible by 3
-			draw_context_length += 1
-		black_brush = aggdraw.Brush((0, 0, 0, 255))
-		white_brush = aggdraw.Brush((255, 255, 255, 255))
-		draw_context = aggdraw.Draw("RGBA", [draw_context_length + 2, draw_context_length + 2], (0, 0, 0, 0))
-		draw_context.ellipse([0, 0, draw_context_length, draw_context_length], black_brush)
-		wd_top = draw_context_length // 3  #ie. white_dot_top, the inner white dot of the calibration point
-		wd_bot = 2 * draw_context_length // 3
-		draw_context.ellipse([wd_top, wd_top, wd_bot, wd_bot], white_brush)
-		self.experiment.blit(from_aggdraw_context(draw_context), 5, [int(x), int(y)])
+		self.experiment.blit(KLDraw.drift_correct_target(), 5, [int(x), int(y)])
 		if flip: self.experiment.flip()
 
 	def play_beep(self, clip):

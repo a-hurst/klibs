@@ -112,7 +112,6 @@ class TextManager(object):
 			raise ValueError("font_size argument is  required or else  default_font_size must be set prior to calling.")
 		if not font_name:
 			font_name = self.default_font
-		print self.fonts
 		return ImageFont.truetype(self.fonts[font_name], font_size)
 
 	def size(self, text):  # TODO: What is this function for?
@@ -121,7 +120,7 @@ class TextManager(object):
 
 	def wrapped_text(self, text, width=None, font=None, font_size=None, color=None, bg_color=None, line_height=None):
 		lines = text.split("\n")
-		if (width):
+		if width:
 			pass  # test various lengths until you get a size that works, then re-populate lines
 		lines_surfs = [self.render_text(line, font, font_size, color, bg_color) for line in lines ]
 		text_dims = [0,0]
@@ -155,8 +154,6 @@ class TextManager(object):
 		else:
 			bg_color = (0, 0, 0, 0)
 		rendering_font = self.__compile_font(font_name=font, font_size=font_size, )
-		print "String immediately before render: {0}".format(string)
-		print rendering_font
 		glyph_bitmap = rendering_font.getmask(string, mode="L")  # L = antialiasing mode
 		bitmap_as_1d_array = numpy.asarray(glyph_bitmap)
 		bitmap_as_2d_array = numpy.reshape(bitmap_as_1d_array, (glyph_bitmap.size[1], glyph_bitmap.size[0]), order='C')

@@ -97,8 +97,8 @@ MOD_KEYS = {"Left Shift": 1, "Right Shift": 2, "Left Ctrl": 64, "Right Ctrl": 12
 UI_METHOD_KEYSYMS = [sdl2.SDLK_q, sdl2.SDLK_c, sdl2.SDLK_p]
 
 SCREEN_FLAGS = sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP | sdl2.SDL_RENDERER_ACCELERATED | sdl2.SDL_RENDERER_PRESENTVSYNC
-RECT = 0
-CIRCLE = 1
+EL_RECT_BOUNDARY = "rectangle"
+EL_CIRCLE_BOUNDARY = "circle"
 RGBA = "RGBA"
 
 # TrialFactory Constants

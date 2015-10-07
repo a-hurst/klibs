@@ -315,10 +315,7 @@ class Database(object):
 
 	def insert(self, data=None, table=None, clear_current=True):
 		# todo: check if the table uses participant_id column; if no id in data, add it
-		pr("KLDatabase.insert(self, data, table, clear_current)", 3, ENTERING)
-		pr("\t@Tdata: {0} table: {1} clear_current: {2}".format(data, table, clear_current), 3)
-
-		if not data:
+		if data is None:
 			try:
 				data = self.current()
 			except RuntimeError:  # exception below is a more informative account of the current problem
@@ -341,26 +338,37 @@ class Database(object):
 				template = self.table_schemas[self.__default_table]
 			except:
 				raise RuntimeError("Table not found; provide table reference or ensure KLDatabase.__default_table is set.")
-		insert_template = [None, ] * (len(template) - 1) if template[0][0] == ID else [None, ] * len(template)
+		columns = []
+		values = []
 		try:
-			column_index = 0
 			for column in template:
-				if type_str(data[column_index]) == column[1]['type']:
-					insert_template.append(column)
+				column_index = template.index(column)
+				try:
+					data_value = data[column_index]
+				except KeyError:
+					try:
+						data_value = data[column[0]]
+					except KeyError:
+						if column[0] == 'id':
+							continue
+				if boolean_to_logical(data_value): data_value = boolean_to_logical(data_value)
+				if type_str(data_value) == column[1]['type']:
 					if column[1]['type'] in (PY_INT, PY_FLOAT):
-						data[column_index] =  str(data[column_index])
+						data_value =  str(data_value)
 					else:
-						data[column_index] = "'{0}'".format(data[column_index])
+						data_value = "'{0}'".format(data_value)
 				else:
-					error_data = [column[1]['type'], column[0], type_str(data[column_index])]
+					error_data = [column[1]['type'], column[0], type_str(data_value)]
 					raise TypeError("Expected '{0}' for column '{1}', got '{2}'.".format(*error_data))
-				column_index += 1
+				values.append(data_value)
+				columns.append(column[0])
 			if column_index + 1 > len(data):
 				raise AttributeError('Cannot map data to table: more data elements than columns.')
 		except IndexError:
 			raise AttributeError('Cannot map data to table: fewer data elements than columns.')
-
-		return "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, ",".join(insert_template), ",".join(data))
+		columns_str = ",".join(columns)
+		values_str = ",".join(values)
+		return "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
 
 	def query(self, query, query_type=QUERY_SEL, return_result=True):
 		result = self.cursor.execute(query)
@@ -456,7 +464,6 @@ class Database(object):
 
 		return header
 
-
 	def build_column_header(self):
 		column_names = []
 		for field in Params.default_participant_fields:
@@ -466,7 +473,6 @@ class Database(object):
 		for field in self.table_schemas['trials']:
 			if field[0][-2:] != "id": column_names.append(field[0])
 		return  TAB.join(column_names)
-
 
 	def export(self, multi_file=True, join_tables=None):
 		column_names = self.build_column_header()

@@ -381,25 +381,21 @@ class RGBCLI:
 		   "@E": '\033[0m'    # return to normal
 	}
 
-
-def pr(self, string):
-		string = "{0}".format(string)
-		for col in self.col:
-			string = string.replace(col, self.col[col])
-		print "{0}{1}".format(string, self.col["@E"])
-
-
-def pr(string, priority=0, signature=False):
-	try:
-		rgb = RGBCLI()
-		if priority >= Params.debug_level:
-			if signature == ENTERING: string = "\nEntering @P" + string
-			if signature == EXITING: string = "@RExiting @P" + string + "\n"
-			if signature == EXCEPTION: string = "\t@RERROR:" + string
-			rgb.pr(string)
-	except:
-		if priority is False:
-			return
+def pr(namespace, *args):
+	components = []
+	print namespace
+	for var in args:
+		element = ([name, value] for (name, value) in namespace.iteritems() if var is value)
+		components.append([i for i in element])
+	print components
+	names =	[i[0] for i in components]
+	values = [i[1] for i in components]
+	print_str = ""
+	for name in names:
+		print_str += name + ": {" + names.index(name) + "}"
+		if names.index(name) != len(names) - 1:
+			print_str += ", "
+	print print_str.format(*values)
 
 
 def camel_to_snake(string):

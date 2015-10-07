@@ -56,7 +56,7 @@ class TrialIterator(BlockIterator):
 
 	def recycle(self):
 		self.trials.append(self.trials[self.i - 1])
-		temp = self.l[self.i:]
+		temp = self.trials[self.i:]
 		random.shuffle(temp)
 		self.trials[self.i:] = temp
 		self.length += 1
@@ -84,7 +84,6 @@ class TrialFactory(object):
 		self.param_label_search = compile("^(.*)([ ]*\[[0-9]{1,3}\])$")
 
 	def __generate_trials(self, practice_trials=False ):
-		pr("KLTrialFactory.__generate_trials(self)", 2, ENTERING)
 		trial_set = list(product(*[factor[1][:] for factor in self.exp_parameters]))
 		if len(trial_set) == 0: trial_set = [ [] ]
 		# convert each trial tuple to list and insert at the front of it a boolean indicating if it is a practice trial
@@ -129,7 +128,6 @@ class TrialFactory(object):
 		return blocks
 
 	def __generate_trials_from_stimfile(self):
-		pr("KLTrialFactory.__generate_trials_from_stimfile(self)", 2, ENTERING)
 		for row in self.exp_parameters:
 			trial = []
 			for el in row:
@@ -140,7 +138,6 @@ class TrialFactory(object):
 		#  not finished, just cramemd it here when talking with ross
 
 	def import_stim_file(self, path):
-		pr("KLTrialFactory.import_stim_file(self, path)", 2, ENTERING)
 		if os.path.exists(path):
 			config_file = csv.reader(open(path, 'rb'))
 			row_count = 0
@@ -161,15 +158,13 @@ class TrialFactory(object):
 			self.blocks = self.trial_generator(self.exp_parameters)
 			if Params.practicing:
 				self.practice_blocks = self.trial_generator(self.exp_parameters)
-		except AttributeError:
+		except TypeError:
 			self.blocks = self.__generate_trials()
 			if Params.practicing:
 				self.practice_blocks = self.__generate_trials(True)
-		pr("KLTrialFactory.import_stim_file(self, path)", 2, EXITING)
 		return True
 
 	def __parse_parameters_row(self, row, header=False):
-		pr("KLTrialFactory.__parse_parameters_row(self, row, header)", 2, ENTERING)
 		col = 0
 		for el in row:
 			if header:
@@ -194,7 +189,7 @@ class TrialFactory(object):
 					for i in range(weight_val):
 						self.exp_parameters[col][1].append(param_label)
 			col += 1
-		pr("KLTrialFactory.__parse_parameters_row(self, row)", 2, EXITING)
+
 
 	def export_trials(self, practicing=False):
 		return BlockIterator(self.practice_blocks) if practicing else BlockIterator(self.blocks)

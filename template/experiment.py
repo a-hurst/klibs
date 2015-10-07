@@ -43,14 +43,14 @@ class PROJECT_NAME(klibs.Experiment):
 	def block(self, block_num):
 		pass
 
-	def trial_prep(self, *args, **kwargs):
+	def trial_prep(self, trial_num, trial_factors):
 		self.db.init_entry('trials')
 
-	def trial(self, trial_factors, trial_num):
+	def trial(self, trial_num, trial_factors ):
 
 		return {}
 
-	def trial_clean_up(self, *args, **kwargs):
+	def trial_clean_up(self, trial_id, trial_num, trial_factors):
 		pass
 
 	def clean_up(self):

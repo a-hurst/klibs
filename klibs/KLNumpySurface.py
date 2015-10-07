@@ -25,6 +25,7 @@ def canvas(width, height, mode='RGBA', background=(0, 0, 0, 0)):
 	if len(bg) == 3: bg.append(0)
 	return aggdraw.Draw(mode, (width, height), tuple(background))
 
+
 def ad_fill(color, opacity=255):
 	"""
 
@@ -68,6 +69,7 @@ def from_aggdraw_context(draw_context):
 	draw_context_bytes = Image.frombytes(draw_context.mode, draw_context.size, draw_context.tostring())
 	return NumpySurface(numpy.asarray(draw_context_bytes))
 
+
 class NumpySurface(object):
 	# todo: save states! save diffs between operations! so cool and unnecessary!
 	# todo: default alpha value for render
@@ -95,6 +97,11 @@ class NumpySurface(object):
 		self.width = width
 		self.height = height
 
+		self.init_bg_positions(fg_position, bg_position)
+		self.init_layers(foreground, background)
+		self.init_canvas()
+
+	def init_bg_positions(self, fg_position, bg_position):
 		# do positions first in case a resize is required during bg & fg processing
 		if fg_position is not None:
 			if type(fg_position) is tuple:
@@ -124,37 +131,45 @@ class NumpySurface(object):
 		self.bg_xy = self.__background_position
 		self.fg_xy = self.__foreground_position
 
-		if background is not None:  # process bg first to cut down on resizing since bg is probably > fg
-			if type(background) is numpy.ndarray:
+	def init_layers(self, foreground, background):
+		if background is not None:
+			try:
 				self.background = self.__ensure_alpha_channel(background)
-			elif type(background) is str:  # assume it's a path to an image file
-				self.layer_from_file(background, False, bg_position)
-			else:
-				raise TypeError("Argument 'background' must be either a string (path to image) or a numpy.ndarray.")
-			self.__update_shape()
+			except AttributeError:
+				self.layer_from_file(background, True, self.fg_xy)
+			except TypeError:
+				background = numpy.asarray(Image.frombytes(background.mode, background.size, background.tostring()))
+				self.background = self.__ensure_alpha_channel(background)
 
 		if foreground is not None:
 			try:
 				self.foreground = self.__ensure_alpha_channel(foreground)
 			except AttributeError:
-				self.layer_from_file(foreground, True, fg_position)
-			# self.__update_shape()
-
-		if all([self.background, self.foreground, width, height]) is None:
-			return
-		else:
-			if foreground is None:
+				self.layer_from_file(foreground, True, self.fg_xy)
+			except TypeError:
 				try:
-					fg_width = self.background.shape[1] if self.background.shape[1] > width else width
+					foreground.render()  # if it renders, it's a KLDraw.Drawbject, which returns a Numpy
+					foreground = foreground.surface
 				except AttributeError:
-					fg_width = width
-				try:
-					fg_height = self.background.shape[0] if self.background.shape[0] > height else height
-				except AttributeError:
-					fg_height = height
+					pass
+				foreground = numpy.asarray(Image.frombytes(foreground.mode, foreground.size, foreground.tostring()))
+				self.foreground = self.__ensure_alpha_channel(foreground)
 
-				self.foreground = numpy.zeros((fg_height, fg_width, 4))
-				self.__update_shape()
+	def init_canvas(self):
+		if all([self.background, self.foreground, self.width, self.height]) is None: return
+
+		if self.foreground is None:
+			try:
+				fg_width = self.background.shape[1] if self.background.shape[1] > self.width else self.width
+			except AttributeError:
+				fg_width = self.width
+			try:
+				fg_height = self.background.shape[0] if self.background.shape[0] > self.height else self.height
+			except AttributeError:
+				fg_height = self.height
+
+			self.foreground = numpy.zeros((fg_height, fg_width, 4))
+			self.__update_shape()
 
 
 			# elif type(foreground) is str:  # assume it's a path to an image file
@@ -566,25 +581,33 @@ class NumpySurface(object):
 			return render_surface
 
 	def __update_shape(self):
-		if type(self.foreground) is numpy.ndarray:
-			if type(self.background) is numpy.ndarray:
-				if self.foreground.shape[1] > self.background.shape[1]:
-					self.width = self.foreground.shape[1]
-				else:
-					self.width = self.background.shape[1]
-				if self.foreground.shape[0] > self.background.shape[0]:
-					self.height = self.foreground.shape[0]
-				else:
-					self.height = self.background.shape[0]
-			else:
-				self.width = self.foreground.shape[1]
-				self.height = self.foreground.shape[0]
-		elif type(self.background) is numpy.ndarray:
-			self.width = self.background.shape[1]
-			self.height = self.background.shape[0]
-		else:
-			self.width = 0
-			self.height = 0
+		for surface in [self.foreground, self.background]:
+			try:
+				if self.width < surface.shape[1]:
+					self.width = surface.shape[1]
+				if self.height < surface.shape[0]:
+					self.height = surface.shape[0]
+			except AttributeError:
+				pass
+		# if type(self.foreground) is numpy.ndarray:
+		# 	if type(self.background) is numpy.ndarray:
+		# 		if self.foreground.shape[1] > self.background.shape[1]:
+		# 			self.width = self.foreground.shape[1]
+		# 		else:
+		# 			self.width = self.background.shape[1]
+		# 		if self.foreground.shape[0] > self.background.shape[0]:
+		# 			self.height = self.foreground.shape[0]
+		# 		else:
+		# 			self.height = self.background.shape[0]
+		# 	else:
+		# 		self.width = self.foreground.shape[1]
+		# 		self.height = self.foreground.shape[0]
+		# elif type(self.background) is numpy.ndarray:
+		# 	self.width = self.background.shape[1]
+		# 	self.height = self.background.shape[0]
+		# else:
+		# 	self.width = 0
+		# 	self.height = 0
 
 		return True
 

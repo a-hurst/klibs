@@ -23,6 +23,7 @@ from KLDraw import *
 from KLTrialFactory import TrialFactory
 import AppKit
 
+
 #  TODO: Pull all the interface commands, keymaps, overwatch, etc. into KLInterface and stick it on a separate process
 #  TODO: Multiprocessing
 
@@ -276,7 +277,7 @@ class Experiment(object):
 			height = source.height
 			width = source.width
 			content = source.render()
-		elif issubclass(type(self.dot), Drawbject):
+		elif issubclass(type(source), Drawbject):
 			height = source.height
 			width = source.width
 			# source.draw()
@@ -1175,8 +1176,12 @@ class Experiment(object):
 		"""
 		try:
 			self.database.db.commit()
-		except:  # TODO: Determine exception type
-			print "Commit() to self.database failed."
+		except Exception as e:
+			if e.message == "Cannot operate on a closed database.":
+				pass
+			else:
+				print "Commit() to self.database failed."
+				raise e
 		try:
 			self.database.db.close()
 		except:  # TODO: Determine exception tpye

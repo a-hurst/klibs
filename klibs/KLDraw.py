@@ -53,19 +53,23 @@ def drift_correct_target():
 
 class Drawbject(object):
 	__stroke = None
-	__fill = None
-	stroke_offset = 0
-	width = None
-	height = None
+	transparent_brush = aggdraw.Brush((255, 0, 0), 0)
 
 	def __init__(self, surface_x, surface_y, stroke, fill):
+		self.stroke_color = None
+		self.stroke_width = None
+		self.__fill = None
+		self.fill_color = None
+		self.stroke_offset = 0
+		self.width = None
+		self.height = None
+
 		super(Drawbject, self).__init__()
+
 		try:
 			test = iter(stroke)
 			self.stroke = stroke
-			surface_x += stroke[0]
-			surface_y += stroke[0]
-			self.stroke_offset = stroke[0] // 2
+			self.stroke_offset = stroke[0]
 		except TypeError:
 			pass
 		try:
@@ -93,6 +97,8 @@ class Drawbject(object):
 		else:
 			color = [i for i in color]
 			opacity = 255
+		self.stroke_color = color
+		self.stroke_width = width
 		self.__stroke = aggdraw.Pen(tuple(color), width, opacity)
 
 	@property
@@ -107,12 +113,16 @@ class Drawbject(object):
 		else:
 			color = tuple(color)
 			opacity = 255
+		self.fill_color = color
 		self.__fill = aggdraw.Brush(color, opacity)
 
 	@abc.abstractmethod
 	def draw(self):
 		pass
 
+	@property
+	def dimensions(self):
+		return [self.width, self.height]
 
 
 class FixationCross(Drawbject):
@@ -134,13 +144,43 @@ class Circle(Drawbject):
 
 	def __init__(self, diameter, stroke=None, fill=None, auto_draw=True):
 		super(Circle, self).__init__(diameter + 2, diameter + 2, stroke, fill)
-		self.diameter = diameter
+		self.diameter = diameter - 2 * stroke[0]
 		if auto_draw:
 			self.draw()
 
 
 	def draw(self):
-		xy_1 = self.stroke_offset + 1
+		xy_1 = self.stroke_offset + 2
 		xy_2 = self.diameter
 		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], self.stroke, self.fill)
 		return self
+
+
+class Annulus(Drawbject):
+
+	def __init__(self, diameter, ring_width, stroke=None, fill=None, auto_draw=True):
+		super(Annulus, self).__init__(diameter + 2, diameter + 2, stroke, fill)
+		self.ring_width = ring_width
+		try:
+			self.ring_inner_width = ring_width - 2 * stroke[0]
+		except TypeError:
+			self.ring_inner_width = ring_width
+		if self.ring_inner_width < 1:
+			raise ValueError("Annulus area subsumed by stroke; increase ring_width or decrease stroke size")
+		if stroke is None:
+			self.stroke_color = (0,0,0)
+			self.stroke_width = 0
+		if auto_draw:
+			self.draw()
+
+	def draw(self):
+		if self.stroke:
+			stroked_path_pen = aggdraw.Pen(tuple(self.stroke_color), self.ring_width)
+			xy_1 = 2 + self.ring_width
+			xy_2 = self.width - (2 + self.ring_width)
+			self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroked_path_pen, self.transparent_brush)
+		xy_1 = 2 + self.ring_width
+		xy_2 = self.width - (2 + self.ring_width)
+		path_pen = aggdraw.Pen(tuple(self.fill_color), self.ring_inner_width)
+		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
+		return self.surface

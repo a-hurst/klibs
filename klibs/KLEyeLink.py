@@ -10,6 +10,7 @@ try:
 	import pylink
 	import KLParams as Params
 	import sdl2
+	import math
 	from KLConstants import *
 	from KLUtilities import *
 
@@ -32,6 +33,7 @@ try:
 
 		def __init__(self, experiment_instance):
 			self.experiment = experiment_instance
+			self.__current_sample = False
 			if Params.eye_tracker_available:
 				try:
 					pylink.EyeLink.__init__(self)
@@ -87,13 +89,9 @@ try:
 			if point is None:
 				try:
 					point = self.gaze()
-				except Exception as e:
-					print e.message
-					print "Warning: Using mouse_pos()"
-					try:
-						point = mouse_pos()
-					except:
-						raise EnvironmentError("Nothing to track! One of either eye or mouse tracking required.")
+				except ValueError as e:
+					return False
+
 			if shape == EL_RECT_BOUNDARY:
 				x_range = range(boundary[0][0], boundary[1][0])
 				y_range = range(boundary[0][1], boundary[1][1])
@@ -185,6 +183,8 @@ try:
 
 		def sample(self):
 			self.__current_sample = self.getNewestSample()
+			if self.__current_sample == 0:
+				self.__current_sample = False
 			return self.__current_sample
 
 		def setup(self):

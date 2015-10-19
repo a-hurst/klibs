@@ -127,7 +127,7 @@ class TextManager(object):
 		for line in lines_surfs:
 			if line.width > text_dims[0]: text_dims[0] = line.width
 			if line_height is None: line_height = 1.5 * line.height
-			text_dims[1] += line_height
+			text_dims[1] += int(line_height)
 		print "Text Dimensions: {0}".format(text_dims)
 		y_pos = 0
 		text_surface = NumpySurface(width=text_dims[0], height=text_dims[1])
@@ -214,77 +214,6 @@ class TextManager(object):
 			return self.__default_strings[string_name]
 		else:
 			return False
-
-	# def wrapped_text(self, text, delimiter=None, font_size=None, font=None, wrap_width=None):
-	# 	render_font_name = None
-	# 	render_font_size = None
-	# 	if font is not None:
-	# 		render_font_name = font
-	# 	if font_size is not None:
-	# 		render_font_size = font_size
-	# 	if delimiter is None:
-	# 		delimiter = "\n"
-	# 	try:
-	# 		if wrap_width is not None:
-	# 			if type(wrap_width) not in [int, float]:
-	# 				e_str = "The config option 'wrapWidth' must be an int or a float; '{0}' was passed. \
-	# 						Defaulting to 80% of app width."
-	# 				raise ValueError(e_str.format(repr(wrap_width)))
-	# 			elif 1 > wrap_width > 0:  # assume it's a percentage of app width.
-	# 				wrap_width = int(wrap_width * self.appx)
-	# 			elif wrap_width > self.appx or wrap_width < 0:
-	# 				e_str = "A wrapWidth of '{0}' was passed which is either too big to fit inside the app or else is\
-	# 						negative (and must be positive). Defaulting to 80% of app width."
-	# 				raise ValueError(e_str)
-	# 			#having passed these tests, wrapWidth must now be correct
-	# 		else:
-	# 			wrap_width = int(0.8 * self.appx)
-	# 	except ValueError as e:
-	# 		print self.warn(e.message, {'class': self.__class__.__name__, 'method': 'wrapText'})
-	# 		wrap_width = int(0.8 * self.appx)
-	# 	render_font = self.__compile_font(render_font_name, render_font_size)
-	# 	paragraphs = text.split(delimiter)
-	#
-	# 	render_lines = []
-	# 	line_height = 0
-	# 	# this loop was written by Mike Lawrence (mike.lwrnc@gmail.com) and then (slightly) modified for this program
-	# 	for p in paragraphs:
-	# 		word_list = p.split(' ')
-	# 		if len(word_list) == 1:
-	# 			render_lines.append(word_list[0])
-	# 			if p != paragraphs[len(paragraphs) - 1]:
-	# 				render_lines.append(' ')
-	# 				line_height += render_font.get_linesize()
-	# 		else:
-	# 			processed_words = 0
-	# 			while processed_words < (len(word_list) - 1):
-	# 				current_line_start = processed_words
-	# 				current_line_width = 0
-	#
-	# 				while (processed_words < (len(word_list) - 1)) and (current_line_width <= wrap_width):
-	# 					processed_words += 1
-	# 					current_line_width = render_font.size(' '.join(word_list[current_line_start:(processed_words + 1)]))[0]
-	# 				if processed_words < (len(word_list) - 1):
-	# 					#last word went over, paragraph continues
-	# 					render_lines.append(' '.join(word_list[current_line_start:(processed_words - 1)]))
-	# 					line_height = line_height + render_font.get_linesize()
-	# 					processed_words -= 1
-	# 				else:
-	# 					if current_line_width <= wrap_width:
-	# 						#short final line
-	# 						render_lines.append(' '.join(word_list[current_line_start:(processed_words + 1)]))
-	# 						line_height = line_height + render_font.get_linesize()
-	# 					else:
-	# 						#full line then 1 word final line
-	# 						render_lines.append(' '.join(word_list[current_line_start:processed_words]))
-	# 						line_height = line_height + render_font.get_linesize()
-	# 						render_lines.append(word_list[processed_words])
-	# 						line_height = line_height + render_font.get_linesize()
-	# 					#at end of paragraph, check whether a inter-paragraph space should be added
-	# 					if p != paragraphs[len(paragraphs) - 1]:
-	# 						render_lines.append(' ')
-	# 						line_height = line_height + render_font.get_linesize()
-	# 	return render_lines
 
 	@property
 	def antialias(self):

@@ -77,8 +77,10 @@ def add_alpha_channel(numpy_array, alpha_value=255):
 	else:
 		return numpy_array
 
+
 def import_image_file(path):
 		return add_alpha_channel(numpy.array(Image.open(path)))
+
 
 class NumpySurface(object):
 	# todo: save states! save diffs between operations! so cool and unnecessary!
@@ -103,7 +105,6 @@ class NumpySurface(object):
 		self.fg = None
 		self.bg_offset = None
 		self.fg_offset = None
-
 		self.width = width
 		self.height = height
 
@@ -234,8 +235,8 @@ class NumpySurface(object):
 		x2 = position[0] + source_width
 		y1 = position[1]
 		y2 = position[1] + source_height
-		print "Position: {0}: ".format(position)
-		print "Blit Coords: {0}: ".format([y1,y2,x1,x2])
+		# print "Position: {0}: ".format(position)
+		# print "Blit Coords: {0}: ".format([y1,y2,x1,x2])
 
 		self.__ensure_writeable(layer)
 		# todo: find out why this won't accept a 3rd dimension (ie. color)
@@ -243,9 +244,9 @@ class NumpySurface(object):
 			if source_width > self.width: self.resize([self.height, source_width])
 			if source_height > self.height: self.resize([self.width, source_height])
 		# todo: make a "clip" behavior
-		print "ForegroundShape: {0}, SourceShape: {1}".format(self.foreground.shape, source.shape)
+		# print "ForegroundShape: {0}, SourceShape: {1}".format(self.foreground.shape, source.shape)
 		blit_region = self.foreground[y1: y2, x1: x2]
-		print "Blit_region of fg: {0}".format(blit_region.shape)
+		# print "Blit_region of fg: {0}".format(blit_region.shape)
 		if layer == NS_FOREGROUND:
 			self.foreground[y1: y2, x1: x2] = source
 		else:
@@ -412,7 +413,7 @@ class NumpySurface(object):
 	def has_content(self):
 		return False if self.foreground is None and self.background is None else True
 
-	def mask(self, mask, position, grey_scale=False, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
+	def mask(self, mask, position=[0,0], grey_scale=False, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
 		"""
 
 		:param mask:
@@ -486,7 +487,6 @@ class NumpySurface(object):
 
 				# mask = mask[mask_y1: mask_y2, mask_x1: mask_x2]
 				position = new_pos
-				pr("\t@TMask Shape: {0}, Position: {1}, FG Shape: {2}".format(mask.shape, position, self.foreground.shape), 2)
 
 			elif self.region_in_layer_bounds(mask, position, NS_FOREGROUND):
 				self.__fg_mask_position = position
@@ -613,25 +613,6 @@ class NumpySurface(object):
 					self.height = surface.shape[0]
 			except AttributeError:
 				pass
-		# if type(self.foreground) is numpy.ndarray:
-		# 	if type(self.background) is numpy.ndarray:
-		# 		if self.foreground.shape[1] > self.background.shape[1]:
-		# 			self.width = self.foreground.shape[1]
-		# 		else:
-		# 			self.width = self.background.shape[1]
-		# 		if self.foreground.shape[0] > self.background.shape[0]:
-		# 			self.height = self.foreground.shape[0]
-		# 		else:
-		# 			self.height = self.background.shape[0]
-		# 	else:
-		# 		self.width = self.foreground.shape[1]
-		# 		self.height = self.foreground.shape[0]
-		# elif type(self.background) is numpy.ndarray:
-		# 	self.width = self.background.shape[1]
-		# 	self.height = self.background.shape[0]
-		# else:
-		# 	self.width = 0
-		# 	self.height = 0
 
 		return True
 
@@ -672,7 +653,7 @@ class NumpySurface(object):
 	@property
 	def background(self):
 		return self.__background
-	
+
 	@background.setter
 	def background(self, background_content):
 		if type(background_content) is numpy.ndarray:
@@ -699,3 +680,7 @@ class NumpySurface(object):
 			self.__bg_color = color
 		else:
 			raise TypeError("NumpySurface.background_color must be a tuple of integers (ie. rgb or rgba color value).")
+
+	@property
+	def dimensions(self):
+		return [self.width, self.height]

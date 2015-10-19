@@ -1206,12 +1206,12 @@ class Experiment(object):
 		:param kwargs:
 		"""
 		Params.time_keeper.start("experiment")
-		self.setup()
 		if Params.collect_demographics:
 			if not Params.demographics_collected:
 				self.collect_demographics()
 		elif not Params.demographics_collected:
 			self.collect_demographics(True)
+		self.setup()
 		self.__execute_experiment(*args, **kwargs)
 		self.quit()
 

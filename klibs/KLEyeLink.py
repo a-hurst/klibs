@@ -196,6 +196,8 @@ try:
 				self.filename = exp_file_name(EDF_FILE)
 				pylink.flushGetkeyQueue()
 				self.setOfflineMode()
+				# TODO: have a default "can't connect to tracker; do you want to switch to dummy_mode" UI pop up
+				# Running this with pylink installed whilst unconnected to a tracker throws: RuntimeError: Link terminated
 				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setLinkEventFilter("SACCADE,BLINK")
 				self.openDataFile(self.filename[0])

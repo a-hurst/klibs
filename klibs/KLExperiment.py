@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'jono'
 import random
 import numpy
@@ -28,6 +29,18 @@ import AppKit
 #  TODO: Multiprocessing
 
 class Experiment(object):
+	"""
+	Initializes a KLExperiment Object
+
+	:param project_name: Project title, used in creating filenames and instance variables.
+	:type project_name: String
+	:param asset_path: Path to assets directory if assets directory is not in default location.
+	:type asset_path: String
+	:param export: ``DEPRECATED`` Provides instructions to export current data instead of running the experiment as normal
+	:type export: Boolean or List of Booleans
+	:raise EnvironmentError:
+	"""
+
 	__completion_message = "thanks for participating; please have the researcher return to the room."
 	__wrong_key_msg = None
 	window = None
@@ -44,9 +57,11 @@ class Experiment(object):
 		Initializes a KLExperiment Object
 
 		:param project_name: Project title, used in creating filenames and instance variables.
+		:type project_name: String
 		:param asset_path: Path to assets directory if assets directory is not in default location.
-		:param export: bool or list of bools providing instructions to export current data instead of
-		running the experiment as normal
+		:type asset_path: String
+		:param export: ``DEPRECATED`` Provides instructions to export current data instead of running the experiment as normal
+		:type export: Boolean or List of Booleans
 		:raise EnvironmentError:
 		"""
 
@@ -130,7 +145,7 @@ class Experiment(object):
 
 	def __trial(self, *args, **kwargs):
 		"""
-		Private method; manages a trial. Expected *args = [trial_number, [practicing, param_1, param_2...]]
+		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1, param_2...]]
 
 		"""
 
@@ -180,14 +195,11 @@ class Experiment(object):
 
 	def display_init(self, diagonal_in):
 		"""
-		Creates the SDL2 display object in which the project runs. This is also the display object passed to CustomDisplay instance.
+		Creates an `SDL2 window object <http://pysdl2.readthedocs.org/en/latest/modules/sdl2ext_window.html>`_ in which the project runs.
+		This is also the window object passed to :mod:`~klibs.KLELCustomDisplay`.\ :class:`~klibs.KLELCustomDisplay.ELCustomDisplay` instance.
 
-		:param view_distance: Distance from participant's eyes to display, measured in degrees of visual angle. By default will be passed KLPrams.view_distance
-
-		.. rst-class:: not-implemented
-
-			:param ppi: Pixels-per-inch of the monitor used for displaying the experiment. Accepts an integer value or  either of
-
+		:param diagonal_in: The diagonal length of the monitor's viewable area.
+		:type diagonal_in: Int or Float
 		:raise TypeError:
 		"""
 
@@ -234,16 +246,22 @@ class Experiment(object):
 
 	def alert(self, alert_string, blit=True, display_for=0):
 		"""
-		Displays an alert.
+		Convenience function wrapping
+		:mod:`~klibs.KLExperiment`.\ :class:`~klibs.KLExperiment.Experiment`.\ :func:`~klibs.KLExperiment.Experiment.message`
+		``Alert_string`` is formatted as 'warning' text (ie. red, large, screen center).
 
 		:param alert_string: Message to display as alert.
-		:param blit: When false returns rendered alert surface for manual blitting. By default (ie. False), automatically blits alert to screen and awaits 'any key' response.
+		:type alert_string: String
+		:param blit: Return surface or :func:`~klibs.KLExperiment.Experiment.blit` automatically
+		:type blit: Bool
 		:param display_for: Number of seconds to display the alert message for (overrides 'any key' dismissal).
-		"""
+		:type display_for: Int
 
-		# TODO: address the absence of default colors
+		"""
 		# todo: instead hard-fill, "separate screen" flag; copy current surface, blit over it, reblit surf or fresh
-		# surf
+		# todo: address the absence of default colors
+
+
 
 		self.clear()
 		self.fill(Params.default_fill_color)
@@ -260,12 +278,15 @@ class Experiment(object):
 
 	def blit(self, source, registration=7, position=(0, 0), context=None):
 		"""
-		Draws passed surface to image buffer.
+		Draws passed content to display buffer.
 
-		:param source: KLNumpySurface or numpy array of image data (see manual for more information).
+		:param source: Image data to be buffered.
+		:type source: :class:`~klibs.KLNumpySurface.NumpySurface`, :class:`~klibs.KLDraw.Drawjbect`, Numpy Array, or `PIL.Image <http://pillow.readthedocs.org/en/3.0.x/reference/Image.html>`_
 		:param registration: Location on perimeter of surface that will be aligned to position (see manual for more information).
-		:param position: Location on screen to place source, either pixel cooridinates or location string (ie. "center", "top_left")
-		:param context: :not_im:`not implemented` A destination surface or display object for images built gradually. Preferred means of achieving this is the use of KLNumpySurface objects.
+		:type registration: Int
+		:param position: Location on screen to place source, either pixel coordinates or location string (ie. "center", "top_left")
+		:type position: String or iterable
+		:param context: ``NOT IMPLEMENTED`` A destination surface or display object for images built gradually.
 
 		:raise TypeError:
 		"""
@@ -350,9 +371,8 @@ class Experiment(object):
 		"""
 		Display a break message between blocks
 
-		.. rst-class:: method-flags
-
-			heavy_modification-planned, removal-possible
+		:flag: heavy_modification_planned
+		:flag: removal_possible
 
 		:param message: Text to be displayed during break.
 		"""
@@ -366,9 +386,10 @@ class Experiment(object):
 
 	def collect_demographics(self, anonymous_user=False):
 		"""
-		Gather participant demographic information and enter it into the project database. If not executed at runtime will be automatically called before trials begin with a timestamp used in place of a participant name.  See manual for detailed explanation.
+		Gathers participant demographic information and enter it into the project database.
+		Should not be explicitly called; see ``Params.collect_demographics``.
 
-		:param anonymous_user:
+		:param anonymous_user: Boolean, determines whether arbitrary participant info will be generated in lieu of real info.
 		"""
 
 		# TODO: this function should have default questions/answers but should also be able to read from a CSV or dict
@@ -422,7 +443,10 @@ class Experiment(object):
 
 	def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
 		"""
-		Performs a drift correction, or simulates one via the mouse if no eye tracker available. Wraps method of same name in KlEyeLink and original PyLink method; experimenters should use this method to ensure compatibility with future releases.
+		Performs a drift correction, or simulates one via the mouse when eye tracker is unavailable.
+		Wraps method of same name in :func:`~klibs.KLEyeLink.EyeLink.drift_correct` and original PyLink method.
+
+		:flag: canonical_wrapper
 
 		:param location: Location of drift correct target; if not provided, defaults to screen center.
 		:param events: see PyLink documentation
@@ -437,9 +461,7 @@ class Experiment(object):
 		"""
 		Creates and renders a FixationCross (see KLDraw) inside an optional background circle at provided or default location.
 
-		.. rst-class: method-flags
-
-			heavy_modification-possible
+		:flag: heavy_modification_possible
 
 		:param width: Width in pixels (and consequently height) of fixation cross.
 		:param stroke: Width in pixels of the fixation cross's horizontal & vertical bars.
@@ -458,11 +480,7 @@ class Experiment(object):
 
 	def exempt(self, index, state=True):
 		"""
-		Legacy function; do not use, wil lbe removed in future updates.
-
-		.. rst-class: method-flags
-
-			deprecated
+		:flag: deprecated
 
 		:param index:
 		:param state:
@@ -475,10 +493,13 @@ class Experiment(object):
 
 	def flip(self, duration=0):
 		"""
-		Renders contents of draw buffer to current display, then waits for either any key press OR an optionally specified duration.
+		Transfers content of draw buffer to current display then waits for either of:
+		 - any key press
+		 - a specified duration (if defined).
 
 		:param duration: Duration in ms for which to display flipped buffer; Experiment.overwatch() called for duration.
-		:return: :raise: AttributeError, TypeError, GenError
+		:returns:
+		:raises: AttributeError, TypeError
 		"""
 
 		sdl2.SDL_GL_SwapWindow(self.window.window)
@@ -495,27 +516,32 @@ class Experiment(object):
 		else:
 			raise TypeError("Duration must be expressed as an integer, '{0}' was passed.".format(type(duration)))
 
-	def add_keymap(self, name, key_names=None, key_codes=None, key_vals=None):
+	def add_keymap(self, name, ui_labels=None, data_labels=None, sdl_keysyms=None):
 		"""
-		A convenience method that creates a ``KLKeyMap.KeyMap`` instance from supplied information.
+		A convenience method that creates a
+		:mod:`~klibs.KLKeyMap`.\ :class:`~klibs.KLKeyMap.KeyMap` instance from supplied information.
 
 		Equivalent to::
 
-			Params.key_maps['name'] = KLKeyMap.KeyMap(*args, **kwargs)
+			Params.key_maps['name'] = KLKeyMap.KeyMap(name, ui_labels, data_labels, sdl_keysyms)
 
-		:param name:
-		:param key_names:
-		:param key_codes:
-		:param key_vals:
-		:return: :raise TypeError:
+		:param name: String to use as reference for the keymap (ie. 'response_keys' )
+		:param ui_labels: Strings labelling key mappings for human communication purposes (ie. "z", "/")
+		:type ui_labels: Iterable
+		:param data_labels: Strings used for representing key mappings in a datafile (ie. "RIGHT","LEFT").
+		:type data_labels: Iterable
+		:param sdl_keysyms: SDL2 keysym values; see :ref:`sdl_keycode_reference` for complete list.
+		:type sdl_keysyms: Iterable
+		:return: mixed
+		:raises: TypeError
 		"""
 
 		if type(name) is not str:
 			raise TypeError("Argument 'name' must be a string.")
 
 		# register the keymap if one is being passed in and set keyMap = name of the newly registered map
-		if all(type(key_param) in [tuple, str] for key_param in [key_names, key_codes, key_vals]):
-			Params.key_maps[name] = KeyMap(name, key_names, key_codes, key_vals)
+		if all(type(key_param) in [tuple, str] for key_param in [ui_labels, data_labels, sdl_keysyms]):
+			Params.key_maps[name] = KeyMap(name, ui_labels, data_labels, sdl_keysyms)
 
 		#retrieve registered keymap(s) by name
 		if name in Params.key_maps:
@@ -527,9 +553,8 @@ class Experiment(object):
 		"""
 		Presents contents of instructions.txt to participant.
 
-		.. rst-class:: method-flags
-
-			not-implemented, heavy_modification-planned
+		:flag: not-implemented
+		:flag: heavy_modification_planned
 
 		:param instructions_text: String of instructions text or path to file containing the same; defaults to contents of default instructions.txt file if it exists.
 		:raise TypeError:
@@ -545,11 +570,9 @@ class Experiment(object):
 
 	def ui_request(self, key_press, execute=False):
 		"""
-		Inspects a keypress for interface commands like "quit", "pause", etc.. Primarily used by KLExperiment.overwatch; Currently only "quit" is implemented.
+		Inspects a keypress for interface commands like "quit", "pause", etc.. Primarily used by :func:`~klibs.KLExperiment.Experiment.over_watch`; Currently only "quit" is implemented.
 
-		.. rst-class:: method-flags
-
-			extension-planned
+		:flag: extension-planned
 
 		:param key_press:
 		:param execute:
@@ -575,21 +598,19 @@ class Experiment(object):
 	def listen(self, max_wait=MAX_WAIT, key_map_name="*", el_args=None, null_response=None, response_count=None,
 			   interrupt=True, flip=True, wait_callback=None, *wait_args, **wait_kwargs):
 		"""
-		Note: This method will be replaced with a KLListener class with a more robust and user-friendly interface and its own API in a later release of KLIBs. Used for interacting with the particpant via key presses; this is the primary method for collecting responses of any kind. See manual for extensive documentation.
+		Used for interacting with the participant via key presses; this is the primary method for collecting responses of any kind. See manual for extensive documentation.
 
-		.. rst-class: method-flags
+		.. warning:: This method is slated for removal and will be completely replaced with the module ``KLListener`` in a future release.
 
-			relocation-planned, heavy_modification-planned, backwards_compatibility-planned
+		:flag: relocation-planned
+		:flag: heavy_modification_planned
+		:flag: backwards_compatibility_planned
 
 		:param max_wait: Maximum time in seconds to await participant response before declaring a "TIME_OUT" response. Default is an indefinite period.
 		:param key_map_name: Look-up name of the KLKeyMap instance to be used for handling participant responses. Default is 'any key'. Note: will accept a KLKeyMap object directly in future release.
 		:param el_args: Dictionary of keyword arguments to be passed to KlExperiment.KLEyeLink.listen().
 		:param null_response: String return on timeout, default is "NO_RESPONSE"
-
-		.. rst-class: not-implemented
-
-			:param response_count: Number of responses to collect from participant. Default is 1.
-
+		:param response_count: ``NOT IMPLEMENTED`` Number of responses to collect from participant. Default is 1.
 		:param interrupt: When True, response is returned as soon as it is collected, otherwise allows max_wait to elapse. Default is True. Note: When False, creates a very small performance loss (>1ms) as KLExperiment.overwatch() is called to inspect the response before it is evaluated by the supplied KLKeyMap.
 		:param flip: When True, KLExperiment.flip() is called immediately before initiating the listen() loop. Otherwise display buffer must be flipped (if need) manually called during the wait_callback
 		:param wait_callback: Function to execute between each loop of listen; used for updating the display or otherwise interacting with the user while listen() is running.
@@ -707,13 +728,13 @@ class Experiment(object):
 		"""
 		Generates and optionally renders formatted text to the display.
 
-		*Note: Most of these key word arguments will be passed as single KLTextStyle object argument.*
+		.. warning:: This method will take a single argument, a KLTextManager.TextStyle object, in a future release. Backwards compatibility is expected.
 
-		.. rst-class:: method-flags
-
-			heavy_modification-planned, backwards_compatibility-planned
+		:flag: heavy_modification_planned
+		:flag: backwards_compatibility_planned
 
 		:param message: Text to be displayed.
+		:type message: String
 		:param font: Name of font to be used. Default is Helvetica. Must be a font installed on the system; non-system-default fonts should **not** be used.
 		:param font_size: Font size in points to be used for the message text; default is KLParams .default_font_size, which is 28pt by default.
 		:param color: Color of message text; default is KLParams.default_color, which is black by default.
@@ -820,7 +841,7 @@ class Experiment(object):
 	def numpy_surface(self, foreground=None, background=None, fg_position=None, bg_position=None, width=None,
 					  height=None):
 		"""
-		Factory method for KLNumpySurface.NumpySurface; see KLNumpySurface.
+		Factory method for :func:`~klibs.KLNumpySurface.NumpySurface`.
 
 		:param fg_position: Pixel coordinates or location identifier of foreground content. Will non-destructively clip content it extends beyond surface edges.
 		:param bg_position: (see fg_position)
@@ -940,9 +961,9 @@ class Experiment(object):
 		:raise TypeError:
 
 		**Example**
-		-----------
 
-		This statement::
+
+		The following::
 
 			question = "What is your name?"
 			font = "Helvetica"
@@ -950,7 +971,8 @@ class Experiment(object):
 			colors = [rgb(0,0,0), rgb(255,0,0)]
 			self.query(question, font=font_name, font_size=sizes, color=colors)
 
-		Results in the following formatting structure:
+
+		Produces this formatting structure:
 
 			+----------+-------------+---------+-----------+
 			|**string**|**font size**|**color**| **font**  |
@@ -1211,6 +1233,8 @@ class Experiment(object):
 				self.collect_demographics()
 		elif not Params.demographics_collected:
 			self.collect_demographics(True)
+		if Params.eye_tracking and Params.eye_tracker_available:
+			self.eyelink.setup()
 		self.setup()
 		self.__execute_experiment(*args, **kwargs)
 		self.quit()

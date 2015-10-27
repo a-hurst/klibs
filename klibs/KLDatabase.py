@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'jono'
 
 import os
@@ -117,7 +118,7 @@ class EntryTemplate(object):
 		print self.schema
 
 
-#TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
+# TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
 class Database(object):
 	__default_table = None
 	__open_entries = {}
@@ -164,7 +165,7 @@ class Database(object):
 			self.__catch_db_not_found()
 
 	def __tables(self):
-		#TODO: I changed tableCount to tableList and made it an attribute as it seems to be used in rebuild. Verify this.
+		# TODO: I changed tableCount to tableList and made it an attribute as it seems to be used in rebuild. Verify this.
 		self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 		self.table_list = self.cursor.fetchall()
 		return self.table_list
@@ -222,7 +223,7 @@ class Database(object):
 	def flush(self):
 		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
 		for tableTuple in self.cursor.fetchall():
-			table = str(tableTuple[0]) #str() necessary b/c tableTuple[0] is in unicode
+			table = str(tableTuple[0])  # str() necessary b/c tableTuple[0] is in unicode
 			if table == "sqlite_sequence":
 				pass
 			else:
@@ -250,9 +251,6 @@ class Database(object):
 			self.__open_entries = {}
 			self.__current_entry = None
 			print  "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
-			# TODO: Make this call App.message() somehow so as to be clearer.Or better, relaunch the app somehow!!
-			# m = "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
-			# App.message(m, location="center", fullscreen=True, fontSize=48, color=(0,255,0))
 			quit()
 
 	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
@@ -417,7 +415,7 @@ class Database(object):
 		#  random_seed has to be added to every participant row when exporting to multi-file
 		default_fields = Params.default_participant_fields_sf if multi_file else Params.default_participant_fields
 		for field in default_fields:
-			if iterable(field):  # ie. the id/userhash field—id used internally, userhash for output
+			if iterable(field):  # ie. the id/userhash field--id used internally, userhash for output
 				p_field_str += "`participants`.`{0}` AS `{1}`, ".format(*field)
 			else:
 				p_field_str += "`participants`.`{0}`, ".format(field)
@@ -440,7 +438,7 @@ class Database(object):
 		return data if multi_file else [data]
 
 	def export_header(self, user_id=None):
-		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export—probably this should be added to the participant table at run time
+		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export--probably this should be added to the participant table at run time
 		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", Params.klibs_version], ["Display Diagonal Inches", Params.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*Params.screen_x_y)], ["Random Seed", random_seed]]
 		klibs_vars = [ "KLIBS INFO", ["KLIBs Version", Params.klibs_version]]
 		if user_id:  # if building a header for a single participant, include the random seed

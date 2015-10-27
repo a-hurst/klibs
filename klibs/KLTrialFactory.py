@@ -190,7 +190,6 @@ class TrialFactory(object):
 						self.exp_parameters[col][1].append(param_label)
 			col += 1
 
-
 	def export_trials(self, practicing=False):
 		return BlockIterator(self.practice_blocks) if practicing else BlockIterator(self.blocks)
 

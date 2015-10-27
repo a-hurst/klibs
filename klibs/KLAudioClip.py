@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'j. mulle'
 """
 originally by mike lawrence (github.com/mike-lawrence)

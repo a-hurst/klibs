@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'jono'
 PYLINK_AVAILABLE = False
 import ctypes
@@ -112,6 +113,13 @@ try:
 			return type(string) is str and string in self.__gaze_boundaries
 
 		def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
+			"""
+
+			:param location:
+			:param events:
+			:param samples:
+			:return: :raise ValueError:
+			"""
 			location = Params.screen_c if location is None else location
 			gaze_boundary = None
 			try:

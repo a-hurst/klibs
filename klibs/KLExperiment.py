@@ -47,8 +47,8 @@ class Experiment(object):
 	paused = False
 
 	# runtime KLIBS modules  
-	eyelink = None          # KLEyeLink instance
-	database = None      # KLDatabase instance
+	eyelink = None        # KLEyeLink instance
+	database = None       # KLDatabase instance
 	trial_factory = None  # KLTrialFactory instance
 	text_manager = None   # KLTextManager instance
 
@@ -375,6 +375,7 @@ class Experiment(object):
 		:flag: removal_possible
 
 		:param message: Text to be displayed during break.
+		:type message: String
 		"""
 
 		default = "You've completed block {0} of {1}. When you're ready to continue, press any key.".format(
@@ -389,7 +390,8 @@ class Experiment(object):
 		Gathers participant demographic information and enter it into the project database.
 		Should not be explicitly called; see ``Params.collect_demographics``.
 
-		:param anonymous_user: Boolean, determines whether arbitrary participant info will be generated in lieu of real info.
+		:param anonymous_user: Toggles generation of arbitrary participant info in lieu of participant-supplied info.
+		:type anonymous_user: Boolean
 		"""
 
 		# TODO: this function should have default questions/answers but should also be able to read from a CSV or dict
@@ -444,37 +446,47 @@ class Experiment(object):
 	def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
 		"""
 		Performs a drift correction, or simulates one via the mouse when eye tracker is unavailable.
-		Wraps method of same name in :func:`~klibs.KLEyeLink.EyeLink.drift_correct` and original PyLink method.
+		Wraps method of same name in
+		:mod:`~klibs.KLEyeLink`.\ :class:`~klibs.KLEyeLink.EyeLink`.\ :func:`~klibs.KLEyeLink.EyeLink.drift_correct`
+		and original PyLink method.
 
 		:flag: canonical_wrapper
 
-		:param location: Location of drift correct target; if not provided, defaults to screen center.
+		:param location: X-Y Location of drift correct target; if not provided, defaults to screen center.
+		:type location: Iterable of Integers
 		:param events: see PyLink documentation
 		:param samples: see PyLink documentation
-		:return see PyLink documentation:
+		:return Eyelink response code; see `PyLink documentation<http:kleinlab.psychology.dal.ca/pylink`_:
 		"""
 
 		self.clear()
 		return self.eyelink.drift_correct(location, events, samples)
 
-	def draw_fixation(self, position=BL_CENTER, width=None, stroke=None, color=None, fill_color=None, flip=False):
+	def draw_fixation(self, location=BL_CENTER, size=None, stroke=None, color=None, fill_color=None, flip=False):
 		"""
-		Creates and renders a FixationCross (see KLDraw) inside an optional background circle at provided or default location.
+		Creates and renders a FixationCross (see :mod:`~klibs.KLDraw` inside an optional background circle at provided or
+		default location.
 
 		:flag: heavy_modification_possible
+		:flag: relocation_planned
 
-		:param width: Width in pixels (and consequently height) of fixation cross.
+		:param location: X-Y Location of drift correct target; if not provided, defaults to screen center.
+		:type location: Interable of Integers or `Relative Location Constant`
+		:param size: Width and height in pixels of fixation cross.
+		:type size: Integer
 		:param stroke: Width in pixels of the fixation cross's horizontal & vertical bars.
-		:param color: Color of fixation cross as iterable rgb or rgba values (ie. (255, 0, 0) or (255, 0, 0, 125).
+		:type stroke: Integer
+		:param color: Color of fixation cross as rgb or rgba values (ie. (255, 0, 0) or (255, 0, 0, 125).
+		:type color: Iterable of Integers
 		:param fill_color: Color of background circle as iterable rgb or rgba values; default is None.
-		:param flip:
-		:return:
+		:type color: Iterable of Integers
+		:param flip: Toggles automatic flipping of display buffer, see :func:`~klibs.KLExperiment.Experiment.flip``.
 		"""
 
-		if not width: width = Params.screen_y // 50
-		if not stroke: stroke = width // 5
-		cross = FixationCross(width, stroke, color, fill_color).draw()
-		self.blit(cross, 5, absolute_position(position))
+		if not size: size = Params.screen_y // 50
+		if not stroke: stroke = size // 5
+		cross = FixationCross(size, stroke, color, fill_color).draw()
+		self.blit(cross, 5, absolute_position(location))
 		if flip: self.flip()
 		return True
 
@@ -482,8 +494,7 @@ class Experiment(object):
 		"""
 		:flag: deprecated
 
-		:param index:
-		:param state:
+		.. warning:: This function is deprecated and slated for removal; do not use.
 		"""
 		if index in self.exemptions.keys():
 			if state == 'on' or True:
@@ -497,8 +508,8 @@ class Experiment(object):
 		 - any key press
 		 - a specified duration (if defined).
 
-		:param duration: Duration in ms for which to display flipped buffer; Experiment.overwatch() called for duration.
-		:returns:
+		:param duration: Duration in ms for which to display flipped buffer.
+		:type duration: Integer
 		:raises: AttributeError, TypeError
 		"""
 
@@ -518,21 +529,24 @@ class Experiment(object):
 
 	def add_keymap(self, name, ui_labels=None, data_labels=None, sdl_keysyms=None):
 		"""
-		A convenience method that creates a
-		:mod:`~klibs.KLKeyMap`.\ :class:`~klibs.KLKeyMap.KeyMap` instance from supplied information.
+		A convenience method that creates a :mod:`~klibs.KLKeyMap`.\ :class:`~klibs.KLKeyMap.KeyMap` instance from
+		supplied information.
+
+		:flag: relocation_planned
 
 		Equivalent to::
 
 			Params.key_maps['name'] = KLKeyMap.KeyMap(name, ui_labels, data_labels, sdl_keysyms)
 
-		:param name: String to use as reference for the keymap (ie. 'response_keys' )
-		:param ui_labels: Strings labelling key mappings for human communication purposes (ie. "z", "/")
-		:type ui_labels: Iterable
-		:param data_labels: Strings used for representing key mappings in a datafile (ie. "RIGHT","LEFT").
-		:type data_labels: Iterable
+		:param name: Name reference for the keymap (ie. 'response_keys' )
+		:type name: String
+		:param ui_labels: Labels for key mappings for human communication purposes (ie. "z", "/")
+		:type ui_labels: Iterable of Strings
+		:param data_labels: Labels for representing key mappings in a datafile (ie. "RIGHT","LEFT").
+		:type data_labels: Iterable of Strings
 		:param sdl_keysyms: SDL2 keysym values; see :ref:`sdl_keycode_reference` for complete list.
-		:type sdl_keysyms: Iterable
-		:return: mixed
+		:type sdl_keysyms: Iterable of SDL_keysyms
+		:return: :class:`~klibs.KLKeyMap.KeyMap` or Boolean
 		:raises: TypeError
 		"""
 
@@ -553,11 +567,12 @@ class Experiment(object):
 		"""
 		Presents contents of instructions.txt to participant.
 
-		:flag: not-implemented
+		:flag: not_implemented
 		:flag: heavy_modification_planned
+		:flag: relocation_planned
 
-		:param instructions_text: String of instructions text or path to file containing the same; defaults to contents of default instructions.txt file if it exists.
-		:raise TypeError:
+		:param instructions_text: Instructions text or path to file containing the same; defaults to contents of default instructions.txt file if it exists.
+		:type instructions_text: String
 		"""
 
 		try:
@@ -570,9 +585,10 @@ class Experiment(object):
 
 	def ui_request(self, key_press, execute=False):
 		"""
-		Inspects a keypress for interface commands like "quit", "pause", etc.. Primarily used by :func:`~klibs.KLExperiment.Experiment.over_watch`; Currently only "quit" is implemented.
+		Inspects a keypress for interface commands like "quit", "pause", etc.. Primarily used by
+		:func:`~klibs.KLExperiment.Experiment.over_watch`; Currently only "quit" is implemented.
 
-		:flag: extension-planned
+		:flag: extension_planned
 
 		:param key_press:
 		:param execute:
@@ -602,24 +618,36 @@ class Experiment(object):
 
 		.. warning:: This method is slated for removal and will be completely replaced with the module ``KLListener`` in a future release.
 
-		:flag: relocation-planned
+		:flag: relocation_planned
 		:flag: heavy_modification_planned
 		:flag: backwards_compatibility_planned
 
-		:param max_wait: Maximum time in seconds to await participant response before declaring a "TIME_OUT" response. Default is an indefinite period.
-		:param key_map_name: Look-up name of the KLKeyMap instance to be used for handling participant responses. Default is 'any key'. Note: will accept a KLKeyMap object directly in future release.
-		:param el_args: Dictionary of keyword arguments to be passed to KlExperiment.KLEyeLink.listen().
-		:param null_response: String return on timeout, default is "NO_RESPONSE"
+		:param max_wait: Maximum time in seconds to await participant response. Default is an indefinite period.
+		:type max_wait: Integer
+		:param key_map_name: Reference name of the :class:`~klibs.KLKeyMap.KeyMap` instance to be used for handling participant responses.
+		:type key_map_name: String
+		:param el_args: Keyword arguments to be passed to :func:`~klibs.KlExperiment.Experiment.listen`.`ToDo: Detailed documentation on this`
+		:type el_args: Dict
+		:param null_response: Response to be returned on timeout, default is "NO_RESPONSE"
+		:type null_response: Any
 		:param response_count: ``NOT IMPLEMENTED`` Number of responses to collect from participant. Default is 1.
-		:param interrupt: When True, response is returned as soon as it is collected, otherwise allows max_wait to elapse. Default is True. Note: When False, creates a very small performance loss (>1ms) as KLExperiment.overwatch() is called to inspect the response before it is evaluated by the supplied KLKeyMap.
-		:param flip: When True, KLExperiment.flip() is called immediately before initiating the listen() loop. Otherwise display buffer must be flipped (if need) manually called during the wait_callback
-		:param wait_callback: Function to execute between each loop of listen; used for updating the display or otherwise interacting with the user while listen() is running.
-		:param wait_args: A list of required arguments to be passed to the supplied wait_callback. [PYTHON SYNTAX CONCEPT:"splat operator"]
-		:param wait_kwargs: A dictionary of key word arguments to be passed to the supplied wait_callback. [PYTHON SYNTAX CONCEPT:"splat operator"]
-		:return: :raise RuntimeError:
+		:type response_count: Integer
+		:param interrupt: When True, response is returned as soon as it is collected, otherwise allows max_wait to elapse. Default is True.
+		:type interrupt: Boolean
+		:param flip: Toggles automatic flipping of display buffer on initiating the listen loop.
+		:type flip: Boolean
+		:param wait_callback: Function to execute between each loop of listen.
+		:type wait_callback: Function
+		:param wait_args: Required arguments to be passed to wait_callback.
+		:type wait_args: List or Tuple
+		:param wait_kwargs: Key word arguments to be passed to  wait_callback.
+		:type wait_kwargs: Dict
+		:raise RuntimeError:
+		:return: List
 		"""
 
 		exit_msg_thresh = 2
+		# Add this to detailed documentation "Note: When False, creates a very small performance loss (>1ms) as KLExperiment.overwatch() is called to inspect the response before it is evaluated by the supplied KLKeyMap."
 		# todo: listen is not a method; it should be a class, "listener", that gets configured
 		# TODO: response_count should be a real thing
 		# TODO: have customizable wrong key & time-out behaviors
@@ -728,28 +756,39 @@ class Experiment(object):
 		"""
 		Generates and optionally renders formatted text to the display.
 
-		.. warning:: This method will take a single argument, a KLTextManager.TextStyle object, in a future release. Backwards compatibility is expected.
+		.. warning:: This method will take a single argument, a KLTextManager.TextStyle object, in a future release. Backwards compatibility is tentatively planned.
 
 		:flag: heavy_modification_planned
 		:flag: backwards_compatibility_planned
 
 		:param message: Text to be displayed.
 		:type message: String
-		:param font: Name of font to be used. Default is Helvetica. Must be a font installed on the system; non-system-default fonts should **not** be used.
-		:param font_size: Font size in points to be used for the message text; default is KLParams .default_font_size, which is 28pt by default.
-		:param color: Color of message text; default is KLParams.default_color, which is black by default.
-		:param bg_color: Background color of message text; default is KLParams.default_bg_color, which is None by default.
-		:param location: Pixel coordinates or location identifier where the message should be placed. Default is screen center.
-		:param registration: Location on message surface perimeter to be placed at supplied location. Default is 5, or the surface center.
+		:param font: Name of font to be used. Default is Helvetica. Must be a font installed on the system.
+		:type font: String
+		:param font_size: Font size in points to be used for the message text; default is :class:`~klibs.KLParams`.\ `default_font_size`.
+		:type font_size: Integer
+		:param color: Color of message text in rgb or rgba values; default is :class:`~klibs.KLParams`.\ default_color.
+		:type color: Iterable of Integers
+		:param bg_color: Background color of message text in rgb or rgba values; default is :class:`~klibs.KLParams`.\ default_bg_color.
+		:type color: Iterable of Integers
+		:param location: X-Y coordinates where the message should be placed. Default is screen center.
+		:type location: Iterable of Integers or `Location Constant`
+		:param registration: Location about message surface perimeter to be placed at supplied location. Default is center.
+		:type registration: Integer
 		:param wrap: When True, text will wrap when edge of screen is reached, or if line reaches wrap_width.
-		:param wrap_width: Maximum width, in pixels, a line of text can be before commencing a new line.
+		:type wrap: Boolean
+		:param wrap_width: Maximum width (px) of text line before breaking.
+		:type wrap_width: Integer
 		:param line_delimiter: Symbol or string indicating a line break. Default is unix new line operator, ie. "\\n".
-		:param blit: When True, blits the message surface to the display buffer, otherwise returns the surface; default is True.
-		:param flip: When True, flips the display buffer after blit. Default is False.
-		:param padding: Width of white space, in pixels, surrounding the message surface on all sides.
-		:return: Mixed (NumpySurface, boolean)
-		:raise ValueError:
-		"""
+		:type line_delimiter: String
+		:param blit: Toggles whether message surface is automatically :func:`~klibs.KLExperiment.Experiment.blit` to the display buffer.
+		:type blit: Boolean
+		:param flip: Toggles whether :func:`~klibs.KLExperiment.Experiment.flip` is automatically called after blit.
+		:type flip: Boolean
+		:param padding: Width of white space (px) surrounding the message surface on all sides.
+		:type padding: Integer
+		:return: NumpySurface or Boolean
+			"""
 
 		render_config = {}
 		message_surface = None  # unless wrap is true, will remain empty

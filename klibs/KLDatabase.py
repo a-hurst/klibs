@@ -375,7 +375,7 @@ class Database(object):
 	def p_filename_str(self, participant_id, multi_file=False, incomplete=False, duplicate_count=None):
 			if multi_file:
 		 		created = str(self.query("SELECT `created` FROM `participants` WHERE `id` = {0}".format(1)).fetchone()[0][:10])
-			fname = "p{0}.{1}".format(participant_id, created) if multi_file else "{0}_all_trials".format(Params.project_name)
+			fname = "p{0}.{1}".format(str(participant_id), created) if multi_file else "{0}_all_trials".format(Params.project_name)
 			if duplicate_count: fname += "_{0}".format(duplicate_count)
 			if incomplete: fname += "_incomplete"
 			fname += DATA_EXT
@@ -422,7 +422,6 @@ class Database(object):
 			if field[0] not in [ID, Params.id_field_name]:
 				t_field_str += "`trials`.`{0}`, ".format(field[0])
 		t_field_str = t_field_str[:-2]  # remove additional comma & space
-
 		for p in participant_ids:
 			if p[0] == -1:  # legacy test data collected before anonymous_user added to collect_demographics()
 				q = "SELECT {0} FROM `trials` WHERE `trials`.`participant_id` = -1".format(t_field_str)
@@ -481,12 +480,11 @@ class Database(object):
 				pass
 			else:
 				header = self.export_header(p_id)
-				print header
 				if multi_file:
 					incomplete = multi_file and len(data_set[1]) != Params.trials_per_block * Params.blocks_per_experiment
 				else:
 					incomplete = False
-				file_strings = self.p_filename_str(multi_file, True) if incomplete else self.p_filename_str(p_id, multi_file)
+				file_strings = self.p_filename_str(p_id, multi_file, True) if incomplete else self.p_filename_str(p_id, multi_file)
 				if os.path.isfile(file_strings[1]):
 					duplicate_count = 1
 					while os.path.isfile(os.path.join(file_strings[1])):

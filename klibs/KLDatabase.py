@@ -130,7 +130,6 @@ class Database(object):
 	table_schemas = {}
 
 	def __init__(self):
-		pr("database init()")
 		self.__init_db()
 		self.build_table_schemas()
 

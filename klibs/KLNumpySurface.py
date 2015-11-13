@@ -441,10 +441,6 @@ class NumpySurface(object):
 					position = [position[0], position[1]]
 				except AttributeError:
 					print "Argument 'position' must be iterable set of polar coordinates."
-				# layer_yx = self.foreground.shape
-				# mask_height = self.foreground.shape[0] - mask.shape[0] + -1 * position[1]
-				# mask_width = self.foreground.shape[1] - mask.shape[1] + -1 * position[0]
-
 				new_pos = [0, 0]
 				mask_x1 = 0
 				mask_x2 = 0
@@ -499,17 +495,10 @@ class NumpySurface(object):
 			fg_y1 = position[1]
 			fg_y2 = alpha_map.shape[0] + position[1]
 			pump()
-			print "Foreground SHape: {0}".format(self.foreground.shape)
-			print "Masked FG Region Coords: {0}, {1}, {2}, {3}".format(fg_y2, fg_y1, fg_x2, fg_x1)
-			print "Masked FG Region Arithmetic: {0}".format([fg_y2 - fg_y1, fg_x2 - fg_x1])
 			flat_map = alpha_map.flatten()
-			print "Masking FG Region: {0}".format(self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3].shape)
 			flat_fg = self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3].flatten()
-			print "FlatMap Shape: {0}, FlatFG shape: {1}".format(flat_map.shape, flat_fg.shape)
 			zipped_arrays = zip(flat_map, flat_fg)
-			print "Zipped Shape: {0}".format(len(zipped_arrays))
 			flat_masked_region = numpy.asarray([min(x, y) for x, y in zipped_arrays])
-			print "AlphaMap Shape: {0}, flat_masked_region: {1}".format(alpha_map.shape, flat_masked_region.shape)
 			masked_region = flat_masked_region.reshape(alpha_map.shape)
 			self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3] = masked_region
 

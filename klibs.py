@@ -1,4 +1,4 @@
-#!/usr/bin/env /System/Library/Frameworks/Python.framework/Versions/2.7/bin/python
+#!/usr/bin/env python
 # expected usage: klibs create path/to/project 
 
 col = {"@P": '\033[95m',  # purple

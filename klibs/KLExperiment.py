@@ -404,7 +404,7 @@ class Experiment(object):
 		else:
 			name_query_string = self.query(
 				'What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.',
-				as_password=True)
+				password=True)
 			name_hash = hashlib.sha1(name_query_string)
 			name = name_hash.hexdigest()
 		self.database.log('userhash', name)
@@ -598,7 +598,7 @@ class Experiment(object):
 		if key_press.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
 			if key_press.sym in UI_METHOD_KEYSYMS:
 				if key_press.sym == sdl2.SDLK_q:
-					quit()
+					kl_quit()
 				elif key_press.sym in [sdl2.SDLK_c, sdl2.SDLK_s]:
 					return key_press.sym
 				elif key_press.sym == sdl2.SDLK_p:
@@ -975,20 +975,26 @@ class Experiment(object):
 		#todo: will be a screen that's shown before anything happens in the program to quickly tweak debug settings
 		pass
 
-	def query(self, query=None, as_password=False, font=None, font_size=None, color=None, locations=None, registration=5, return_type=None, accepted=None):
+	def query(self, query=None, password=False, font=None, font_size=None, color=None, locations=None, registration=5, return_type=None, accepted=None):
 		"""
 		Convenience function for collecting participant input with real-time visual feedback.
 
-		Presents a string (ie. a question or response instruction) to the participant. Then listens for keyboard input and displays the participant's response on screen in real time.
+		Presents a string (ie. a question or response instruction) to the participant. Then listens for keyboard input
+		and displays the participant's response on screen in real time.
 
-		Experiment.query() makes two separate calls to Experiment.message(), which allows for query text and response text to be formatted independently. All of the formatting arguments can optionally be length-2 lists of the usual parameters, where the first element would be applied to the query string and the second to the response. If normal formatting values are supplied, they are applied to both the query and response text.
+		Experiment.query() makes two separate calls to Experiment.message(), which allows for query text and response
+		text to be formatted independently. All of the formatting arguments can optionally be length-2 lists of the
+		usual parameters, where the first element would be applied to the query string and the second to the response.
+		If normal formatting values are supplied, they are applied to both the query and response text.
 
 		.. rst-class:: method-flags
 
 			relocation-planned, backwards_compatibility-planned
 
-		:param query: A string of text to present to the participant usually a question or instruction about desired input.
-		:param as_password: When true participant input will appear on screen in asterisks, though real key presses are recorded.
+		:param query: A string of text to present to the participant usually a question or instruction about desired
+		input.
+		:param password: When true participant input will appear on screen in asterisks, though real key presses are
+		recorded.
 		:param font: See Experiment.message()
 		:param font_size: See Experiment.message()
 		:param color: See Experiment.message()
@@ -1021,7 +1027,8 @@ class Experiment(object):
 			| response |   16pt      | red     | Helvetica |
 			+----------+-------------+---------+-----------+
 
-		*Note: As with Experiment.message() <#message_def> this method will eventually accept a TextStyle object instead of the formatting arguments currently implemented.*
+		*Note: As with Experiment.message() <#message_def> this method will eventually accept a TextStyle object
+		instead of the formatting arguments currently implemented.*
 
 		"""
 		# TODO: 'accepted' might be better as a KLKeyMap object? Or at least more robust than a list of letters?
@@ -1122,10 +1129,10 @@ class Experiment(object):
 		user_finished = False  # True when enter or return are pressed
 		no_answer_string = 'Please provide an answer.'
 		invalid_answer_string = None
-
-		if accepted is not None:
+		error_string = None
+		if accepted:
 			try:
-				accepted_iter = iter(accepted)
+				iter(accepted)
 				accepted_str = pretty_join(accepted, delimiter=",", before_last='or', prepend='[ ', append=']')
 				invalid_answer_string = 'Your answer must be one of the following: {0}'.format(accepted_str)
 			except:
@@ -1133,93 +1140,56 @@ class Experiment(object):
 		while not user_finished:
 			sdl2.SDL_PumpEvents()
 			for event in sdl2.ext.get_events():
-				if event.type == sdl2.SDL_KEYDOWN:
-					if input_string == no_answer_string:
-						input_string = ''
-					key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
-					sdl_keysym = key.keysym.sym
-					key_name = sdl2.keyboard.SDL_GetKeyName(sdl_keysym)
-					shift_key = False
-					self.over_watch(event)
+				if event.type not in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
+					continue
+				self.over_watch(event)
+				if event.type == sdl2.SDL_KEYUP:  # don't fetch letter on both events
+					continue
+				if error_string:
+					error_string = None
+					input_string = ''
+				key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
+				sdl_keysym = key.keysym.sym
 
-					if sdl2.keyboard.SDL_GetModState() in (sdl2.KMOD_LSHIFT, sdl2.KMOD_RSHIFT, sdl2.KMOD_CAPS):
-						shift_key = True
-					if sdl_keysym == sdl2.SDLK_BACKSPACE:  # ie. backspace
-						if input_string:
-							input_string = input_string[0:(len(input_string) - 1)]
-							render_string = None
-							if as_password is True and len(input_string) != 0:
-								render_string = len(input_string) * '*'
-							else:
-								render_string = input_string
+				self.fill()
+				self.blit(query_surface, query_registration, query_location)
 
-							if len(render_string) > 0:
-								input_surface = self.text_manager.render_text(render_string, *input_config)
-								self.fill()
-								self.blit(query_surface, query_registration, query_location)
-								self.blit(input_surface, input_registration, input_location)
-								self.flip()
-							else:
-								self.fill()
-								self.blit(query_surface, query_registration, query_location)
-								self.flip()
-					elif sdl_keysym in (sdl2.SDLK_RETURN, sdl2.SDLK_RETURN):  # ie. if enter or return
-						invalid_answer = False
-						empty_answer = False
-						if len(input_string) > 0:
-							if accepted:   # to make the accepted list work, there's a lot of checking yet to do
-								if input_string in accepted:
-									user_finished = True
-								else:
-									invalid_answer = True
-							else:
+				if sdl_keysym == sdl2.SDLK_BACKSPACE:  # ie. backspace
+					input_string = input_string[:-1]
+
+				if sdl_keysym in (sdl2.SDLK_KP_ENTER, sdl2.SDLK_RETURN):  # ie. if enter or return
+					if len(input_string):
+						if accepted:   # to make the accepted list work, there's a lot of checking yet to do
+							if input_string in accepted:
 								user_finished = True
-						else:
-							empty_answer = True
-						if invalid_answer or empty_answer:
-							error_string = ""
-							if invalid_answer:
+							else:
 								error_string = invalid_answer_string
-							else:
-								error_string = no_answer_string
-							error_config = copy(input_config)
-							error_config[2] = self.text_manager.alert_color
-							input_surface = self.text_manager.render_text(error_string, *error_config)
-							self.fill()
-							self.blit(query_surface, query_registration, query_location)
-							self.blit(input_surface, input_registration, input_location)
-							self.flip()
-							input_string = ""
-					elif sdl_keysym == sdl2.SDLK_ESCAPE:  # if escape, erase the string
-						input_string = ''
-						input_surface = self.text_manager.render_text(input_string, *input_config)
-						self.fill()
-						self.blit(query_surface, query_registration, query_location)
-						self.blit(input_surface, input_registration, input_location)
-						self.flip()
+						else:
+							user_finished = True
 					else:
-						if key_name not in (MOD_KEYS):  # TODO: probably use sdl keysyms as keys instead of key_names
-							if shift_key:
-								input_string += key_name
-							else:
-								input_string += key_name.lower()
-							input_surface = None
-							if as_password:
-								if as_password is True and len(input_string) != 0:
-									password_string = '' + len(input_string) * '*'
-									input_surface = self.text_manager.render_text(password_string, *input_config)
-								else:
-									input_surface = self.text_manager.render_text(input_string, *input_config)
-							else:
-								input_surface = self.text_manager.render_text(input_string, *input_config)
-							self.fill()
-							self.blit(query_surface, query_registration, query_location)
-							self.blit(input_surface, input_registration, input_location)
-							self.flip()
-						# else:
-						# 	pass  # until a key-up event occurs, could be a ui request (ie. quit, pause, calibrate)
-				elif event.type is sdl2.SDL_KEYUP:
-					self.over_watch(event)
+						error_string = no_answer_string
+					if error_string:
+						error_config = copy(input_config)
+						error_config[2] = self.text_manager.alert_color
+						input_surface = self.text_manager.render_text(error_string, *error_config)
+						input_string = ""
+				if sdl_keysym == sdl2.SDLK_ESCAPE:  # if escape, erase the string
+					input_string = ""
+					input_surface = None
+
+				if sdl_key_code_to_str(sdl_keysym):
+					input_string += sdl_key_code_to_str(sdl_keysym)
+				render_str = len(input_string) * '*' if password else input_string
+				if not error_string:  # if error_string, input_surface already created with different config.
+					try:
+						input_surface = self.text_manager.render_text(render_str, *input_config)
+					except IndexError:
+						input_surface = None
+				if input_surface:
+					self.blit(input_surface, input_registration, input_location)
+				self.flip()
+					# else:
+					# 	pass  # until a key-up event occurs, could be a ui request (ie. quit, pause, calibrate)
 		self.fill()
 		self.flip()
 		if return_type in (int, str):

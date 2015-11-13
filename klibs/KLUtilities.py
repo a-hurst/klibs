@@ -188,8 +188,8 @@ def log(msg, priority):
 	return True
 
 
-def mouse_pos(pump=True):
-	if pump:
+def mouse_pos(pump_event_queue=True):
+	if pump_event_queue:
 		sdl2.SDL_PumpEvents()
 	x, y = ctypes.c_int(0), ctypes.c_int(0)
 	sdl2.mouse.SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
@@ -356,20 +356,14 @@ def safe_flag_string(flags, prefix=None, uc=True):
 	return eval(flag_string)
 
 
-def now(as_timestamp=False):
-	time_str = time.time()
-	if as_timestamp:
-		try:
-			time_str = datetime.datetime.fromtimestamp(time_str).strftime(as_timestamp)
-		except:
-			time_str = datetime.datetime.fromtimestamp(time_str).strftime('%Y-%m-%d %H:%M:%S')
-	return time_str
+def now(format_time=False, format_template=DATETIME_STAMP):
+	return datetime.datetime.fromtimestamp(time.time()).strftime(format_template) if format_time else time.time()
 
 
-def quit(msg=None):
+def kl_quit(msg=None):
 	if msg:
 		print msg
-	print "Exiting..."
+	print "Quit called; exiting experiment..."
 	sdl2.SDL_Quit()
 	sys.exit()
 
@@ -404,4 +398,16 @@ def boolean_to_logical(value, convert_integers=False):
 		if value in [1,"1"]: return "TRUE"
 		if value in [0,"0"]: return "FALSE"
 	return None
+
+
+def sdl_key_code_to_str(sdl_keysym):
+	key_name = sdl2.keyboard.SDL_GetKeyName(sdl_keysym).replace("Keypad ", "")
+	if key_name in MOD_KEYS:  # TODO: probably use sdl keysyms as keys instead of key_names
+		return False
+	if key_name == "Space":
+		return " "
+	if sdl2.keyboard.SDL_GetModState() not in (sdl2.KMOD_LSHIFT, sdl2.KMOD_RSHIFT, sdl2.KMOD_CAPS):
+		key_name = key_name.lower()
+	return key_name if len(key_name) == 1 else False  # to cover all keys that aren't alphanumeric or handled here
+
 

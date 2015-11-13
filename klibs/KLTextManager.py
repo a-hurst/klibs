@@ -137,7 +137,6 @@ class TextManager(object):
 
 		return text_surface
 
-
 	def render_text(self, string, font=None, font_size=None, color=None, bg_color=None):
 		strings  = string.split("\n")
 		if len(strings) > 1:

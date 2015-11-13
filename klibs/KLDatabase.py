@@ -147,7 +147,7 @@ class Database(object):
 			f = open(Params.database_path, "a").close()
 			self.__init_db()
 		else:
-			quit()
+			kl_quit()
 
 	def __init_db(self):
 		if os.path.exists(Params.database_path):
@@ -180,7 +180,7 @@ class Database(object):
 		if kill_app:
 			self.db.close()
 			self.__restore()
-			quit()
+			kl_quit()
 
 	def __restore(self):
 		# restores database file from the back-up of it
@@ -251,7 +251,7 @@ class Database(object):
 			self.__open_entries = {}
 			self.__current_entry = None
 			print  "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
-			quit()
+			kl_quit()
 
 	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
 

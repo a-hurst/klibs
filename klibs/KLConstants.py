@@ -79,7 +79,10 @@ DB_COL_SNAKE = "snake_case"
 DB_COL_CAMEL = "camelCase"
 DB_COL_TITLE = "TitleCase"
 
-
+# KLTextManager
+ANS_VALID = "answer valid"
+ANS_INVALID = "answer invalid"
+ANS_EMPTY = "empty answer"
 
 # EyeSome definitions for visually clean interaction with the EyeLink C++ libraries
 EL_LEFT_EYE = 0
@@ -92,6 +95,7 @@ PARALLEL_AVAILABLE = False
 MAX_DRIFT_DEG = 3
 INIT_SAC_DIST = 3  # Min. distance (degrees) before eye movement == initiating saccade for response direction
 EL_TEMP_FILE = "temp_participant{0}".format(EDF)
+
 # lists of sdl2 key representations needed by klibs
 MOD_KEYS = {"Left Shift": 1, "Right Shift": 2, "Left Ctrl": 64, "Right Ctrl": 128,  # todo: make __mod_keysyms
 			"Left Alt": 256, "Right Alt": 512, "Left Command": 1024, "Right Command": 2048}
@@ -118,3 +122,4 @@ TF_NAS = ["na", "n/a", "NA", "N/A", "nA", "Na", "n/A", "N/a"]
 ENTERING = 1
 EXITING = 2
 EXCEPTION = 3
+DATETIME_STAMP = '%Y-%m-%d %H:%M:%S'

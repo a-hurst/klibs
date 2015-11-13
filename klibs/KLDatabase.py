@@ -499,5 +499,4 @@ class Database(object):
 
 	@default_table.setter
 	def default_table(self, name):  # todo: error handling
->>>>>>> c26248667b11d171e3d4694ce7c62f3eace2bcbf
 		self.__default_table = name

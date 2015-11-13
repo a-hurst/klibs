@@ -51,6 +51,7 @@ class Experiment(object):
 	database = None       # KLDatabase instance
 	trial_factory = None  # KLTrialFactory instance
 	text_manager = None   # KLTextManager instance
+	debug = {}
 
 	def __init__(self, project_name, display_diagonal_in, random_seed=None, asset_path="ExpAssets", export=False):
 		"""
@@ -148,14 +149,18 @@ class Experiment(object):
 		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1, param_2...]]
 
 		"""
-
+	
 		args = args[0]
+		self.debug['trial_factors'] = args[1]
 		# try:
 		if args[1][0] is True:  # ie. if practicing
 			block_base = Params.block_number - 1 * Params.trials_per_practice_block
 			Params.trial_number = block_base + args[0] + 1 - Params.recycle_count
 		else:
-			block_base = Params.block_number - 1 * Params.trials_per_block
+			if Params.block_number > 1:
+				block_base = Params.block_number - 1 * Params.trials_per_block
+			else:
+				block_base = 0
 			Params.trial_number =  block_base + args[0] + 1 - Params.recycle_count
 		self.trial_prep(args[1])
 		try:
@@ -192,6 +197,11 @@ class Experiment(object):
 		if self.database.current() is None: self.database.init_entry('trials', "trial_{0}".format(Params.trial_number))
 		for attr in trial_data: self.database.log(attr, trial_data[attr])
 		return self.database.insert()
+	
+	def debug_print_trial_factors(self):
+		print  "debug trial factors"
+		msg = "Trial Factors: {0}".format(", ".join(self.debug["trial_factors"]))
+		self.message(msg, location=[10,10], font_size=32, color=(255,255,255,255), bg_color=(126,126,126,255), flip=False)
 
 	def display_init(self, diagonal_in):
 		"""
@@ -352,7 +362,6 @@ class Experiment(object):
 			x_bounds[1] += int(registrations[7][0])
 			y_bounds[0] += int(registrations[7][1])
 			y_bounds[1] += int(registrations[7][1])
-
 		gl.glTexCoord2f(0, 0)
 		gl.glVertex2f(x_bounds[0], y_bounds[0])
 		gl.glTexCoord2f(1, 0)
@@ -377,11 +386,13 @@ class Experiment(object):
 		:param message: Text to be displayed during break.
 		:type message: String
 		"""
-
-		default = "You've completed block {0} of {1}. When you're ready to continue, press any key.".format(
-			Params.block_number, Params.blocks_per_experiment)
+		if Params.block_number == 1:
+			return
+		default = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key.".format(
+			Params.block_number - 1, Params.blocks_per_experiment)
 		if Params.testing: return
 		if not message: message = default
+		self.fill()
 		self.message(message, location='center', registration=5)
 		self.listen()
 

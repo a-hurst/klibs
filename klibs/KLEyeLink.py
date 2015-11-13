@@ -68,6 +68,26 @@ try:
 			dc_tl = [Params.screen_x // 2 - self.dc_width // 2, Params.screen_y // 2 - self.dc_width //2]
 			dc_br = [Params.screen_x // 2 + self.dc_width // 2, Params.screen_y // 2 + self.dc_width //2]
 			self.add_gaze_boundary("drift_correct", [dc_tl, dc_br])
+		
+		def draw_gaze_boundary(self, name="*", blit=True):
+			shape = None
+			boundary = None
+			try:
+				boundary_dict = self.__gaze_boundaries[name]
+				boundary = boundary_dict["bounds"]
+				shape = boundary_dict['shape']
+			except:
+				if shape is None:
+					raise IndexError("No boundary registered with name '{0}'.".format(boundary))
+				if shape not in [EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY]:
+					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+			width = boundary[1][1] - boundary[0][1]
+			height = boundary[1][0] - boundary[0][0]
+			bounding_box = self.surface = aggdraw.Draw("RGBA", [width, height], (0, 0, 0, 0))
+			box_pen = self.__stroke = aggdraw.Pen((255,0,0), 3, 255)
+			bounding_box.rectangle([0,0,width,height], box_pen)
+			self.experiment.blit(NumpySurface(bounding_box), position=boundary[0], registration=7)
+			
 
 		def remove_gaze_boundary(self, name):
 			try:
@@ -189,7 +209,7 @@ try:
 
 			return [int(sample[0]), int(sample[1])] if return_integers else sample
 
-		def sample(self):
+		def sample(self):			
 			self.__current_sample = self.getNewestSample()
 			if self.__current_sample == 0:
 				self.__current_sample = False
@@ -207,7 +227,7 @@ try:
 				# TODO: have a default "can't connect to tracker; do you want to switch to dummy_mode" UI pop up
 				# Running this with pylink installed whilst unconnected to a tracker throws: RuntimeError: Link terminated
 				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
-				self.setLinkEventFilter("SACCADE,BLINK")
+				self.setLinkEventFilter("FIXATION,SACCADE,BLINK")
 				self.openDataFile(self.filename[0])
 				self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)

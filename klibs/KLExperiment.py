@@ -610,8 +610,9 @@ class Experiment(object):
 			if key_press.sym in UI_METHOD_KEYSYMS:
 				if key_press.sym == sdl2.SDLK_q:
 					kl_quit()
-				elif key_press.sym in [sdl2.SDLK_c, sdl2.SDLK_s]:
-					return key_press.sym
+				elif key_press.sym == sdl2.SDLK_c:
+					if Params.eye_tracking and Params.eye_tracker_available:
+						self.eyelink.calibrate()
 				elif key_press.sym == sdl2.SDLK_p:
 					if not self.paused:
 						self.paused = True

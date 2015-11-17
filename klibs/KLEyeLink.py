@@ -52,6 +52,9 @@ try:
 			self.eye = self.eyeAvailable()
 			return self.eye != EL_NO_EYES
 
+		def calibrate(self):
+			self.doTrackerSetup()
+
 		def fetch_gaze_boundary(self, name=None):
 			return self.__gaze_boundaries[name] if name is not None else self.__gaze_boundaries
 
@@ -234,7 +237,7 @@ try:
 				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
 				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
 				self.setMotionThreshold(Params.saccadic_motion_threshold)
-				self.doTrackerSetup()
+				self.calibrate()
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 			start = time.time()

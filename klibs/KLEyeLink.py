@@ -167,7 +167,8 @@ try:
 			events = EL_TRUE if events in [EL_TRUE, True] else EL_FALSE
 			samples = EL_TRUE if samples in [EL_TRUE, True] else EL_FALSE
 			if not self.dummy_mode:
-				return self.doDriftCorrect(location[0], location[1], events, samples)
+				self.doDriftCorrect(location[0], location[1], events, samples)
+				return self.applyDriftCorrect()
 			else:
 				def dc(dc_location, dc_gaze_boundary):
 					hide_mouse_cursor()

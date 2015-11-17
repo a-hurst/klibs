@@ -1229,7 +1229,7 @@ class Experiment(object):
 		except:  # TODO: Determine exception tpye
 			print "Database.close() unsuccessful."
 		try:
-			self.eyelink.stopRecording()
+			self.eyelink.shut_down_eyelink()
 		except:
 			print "EyeLink.stopRecording()  unsuccessful.\n ****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******"
 		try:

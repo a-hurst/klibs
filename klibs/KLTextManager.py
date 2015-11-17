@@ -7,6 +7,17 @@ from KLUtilities import *
 from KLConstants import *
 import KLParams as Params
 
+class TextStyle(object):
+
+	def __init__(self):
+		self.font_size = Params.default_font_size
+		self.color = [22, 22, 22, 255]
+		self.background_color = [0, 0, 0, 0]
+		self.font_name = "Arial"
+		self.font_file_name = "Arial"
+		self.font_extension = "ttf"
+		self.line_height = 1
+
 
 class TextManager(object):
 	asset_path = "ExpAssets"
@@ -21,83 +32,41 @@ class TextManager(object):
 	strings = {}
 	window_x = None
 	window_y = None
-	__antialias = True
+	default_font_size = None
 	__default_color = (0, 0, 0, 255)
 	__default_input_color = (3, 118, 163, 255)
 	__default_bg_color = (255, 255, 255)
 	__default_font_size = None
 	__default_font = None
-	__print_locations = {'query': None, 'response': None, 'timeout':None }
-	__default_strings = {'query': None, 'response': None, 'timeout':None }
 	__default_message_duration = 1
 
 
-	def __init__(self, window_dimensions, monitor_dimensions, dpi, default_font=None, default_font_size="18pt",
-					asset_path=None, fonts_directory_path=None, default_query_string=None, default_response_string=None,
-					default_locations=None):
-
-		self.window_x = window_dimensions[0]
-		self.window_y = window_dimensions[1]
-		self.monitor_x = monitor_dimensions[0]
-		self.monitor_y = monitor_dimensions[1]
-
-		if default_response_string:
-			self.default_response_string = default_response_string
-		if default_query_string:
-			self.default_query_string = default_query_string
-		self.default_timeout_string = "Too slow!"
-		self.default_timeout_location = "center"
-
-		if type(default_locations) is list and len(default_locations) == 2:  # query & response exist by default
-			self.default_query_location = default_locations[0]
-			self.default_response_location = default_locations[1]
-		elif type(default_locations) is dict:  # can assert an arbitrarily long number of default locations
-			query_location_present = False
-			response_location_present = False
-			for loc in default_locations:
-				if loc == "query":
-					query_location_present = True
-				if loc == "response":
-					response_location_present = True
-				if type(default_locations[loc]) is not tuple:
-					raise TypeError("Values of default_locations dict keys must be coordinate tuples (ie. x,y).")
-			if not query_location_present and response_location_present:
-				raise ValueError("default_locations dictionary must contain, minimally, the keys 'query' and 'response'")
-			self.__print_locations = default_locations
-
-		if type(asset_path) is str and os.path.exists(asset_path):
-			self.asset_path = asset_path
-
-		if type(fonts_directory_path) is str and os.path.exists(fonts_directory_path):
+	def __init__(self, default_font=None, default_font_size="18pt", fonts_directory_path=None):
+		if fonts_directory_path:
 			self.fonts_directory_path = fonts_directory_path
 
-		if type(self.window_x) is int and type(dpi) is int:
-			self.__build_font_sizes(dpi)
-			self.default_font_size = '18pt'
-		else:
-			raise ValueError("dpi must be an integer")
+		self.__build_font_sizes()
+		self.default_font_size = default_font_size
 
 		# set a default font, using Trebuchet if not passed; Helvetica is a font suitcase in OS X, and because fuck arial
-		if type(default_font) is list:
-			if len(default_font) == 2:
+		try:
+			iter(default_font)
+			try:
 				default_font_name, default_font_extension = default_font
 				default_font_filename = default_font_name
-			elif len(default_font) == 3:
-				default_font_name, default_font_filename, default_font_extension = default_font
-			else:
-				raise ValueError("Argument 'default_font' should be a list of length 2 or 3.")
-		else:
+			except ValueError:
+					default_font_name, default_font_filename, default_font_extension = default_font
+		except TypeError:
 			default_font_name, default_font_filename, default_font_extension = ["Arial", "Arial", "ttf"]
 
-		if self.add_font(default_font_name, default_font_extension, default_font_filename):
-			self.default_font = default_font_name
+		self.add_font(default_font_name, default_font_extension, default_font_filename, True)
 
-	def __build_font_sizes(self, dpi):
+	def __build_font_sizes(self):
 		size_list = range(3, 96)
 		self.font_sizes = {}
 		for num in size_list:
 			key = str(num) + 'pt'
-			self.font_sizes[key] = int(math.floor(1.0 / 72 * dpi * num))
+			self.font_sizes[key] = int(math.floor(1.0 / 72 * Params.ppi * num))
 
 	def __compile_font(self, font_name=None, font_size=None):
 		# process font_size argument or assign a default
@@ -140,7 +109,6 @@ class TextManager(object):
 	def render_text(self, string, font=None, font_size=None, color=None, bg_color=None):
 		strings  = string.split("\n")
 		if len(strings) > 1:
-			print strings
 			return self.wrapped_text(string, None, font, font_size, color, bg_color)
 		if not color:
 			color = self.default_color
@@ -167,7 +135,7 @@ class TextManager(object):
 		rendered_text[:, :, 3][bitmap_as_2d_array == 0] = bg_color[3]
 		return NumpySurface(rendered_text.astype(numpy.uint8))
 
-	def add_font(self, font_name, font_extension="ttf", font_file_name=None):
+	def add_font(self, font_name, font_extension="ttf", font_file_name=None, make_default=False):
 		"""
 
 		:param font_name: Name of font; should mirror file name without extension. If not, also use font_file_name argument.
@@ -181,7 +149,7 @@ class TextManager(object):
 			else:
 				font_file_name = ".".join([font_file_name, font_extension])
 			sys_path = os.path.join(self.fonts_directory_path, font_file_name)
-			app_path = os.path.join(self.asset_path, font_file_name)
+			app_path = os.path.join(Params.asset_path, font_file_name)
 			if os.path.isfile(sys_path):
 				self.fonts[font_name] = sys_path
 			elif os.path.isfile(app_path):
@@ -191,124 +159,8 @@ class TextManager(object):
 				raise ImportError(e_str.format(font_file_name))
 		else:
 			raise TypeError("Arguments 'font' and 'font_extension' must both be strings.")
+		self.default_font = font_name
 		return True
-
-	def fetch_print_location(self, location):
-		"""
-
-		:param location: String name of stored location (defaults are 'query' and 'response'
-		:return: Returns either a tuple of x, y coordinates (if location is found) or False
-		"""
-		if type(location) is not str:
-			raise TypeError("Argument 'location' must be a string.")
-		if location in self.__print_locations:
-			return self.__print_locations[location]
-		else:
-			return False
-
-	def fetch_string(self, string_name):
-		if type(string_name) is not str:
-			raise TypeError("Argument 'string_name' must be a string.")
-		if string_name in self.__default_strings:
-			return self.__default_strings[string_name]
-		else:
-			return False
-
-	@property
-	def antialias(self):
-		return self.__antialias
-
-	@antialias.setter
-	# @canonical
-	def antialias(self, state):
-		"""
-
-		:param state:
-		"""
-		if type(state) is bool:
-			self.__antialias = state
-		else:
-			raise TypeError("Argument 'state' must be boolean.")
-
-	@property
-	def default_query_location(self):
-		return self.__print_locations['query']
-
-	@default_query_location.setter
-	def default_query_location(self, query_location):
-		"""
-		Set the default screen locations for prompts and responses
-		"""
-		try:
-			query_iter = iter(query_location)
-			self.__print_locations['query'] = query_location
-		except:
-			raise TypeError("query_location must be an iterable object containing a pair of x,y integers .")
-
-	@property
-	def default_response_location(self):
-		return self.__print_locations['response']
-
-	@default_response_location.setter
-	def default_response_location(self, response_location):
-		"""
-		Set the default screen locations for prompts and responses
-		"""
-		try:
-			response_iter = iter(response_location)
-			self.__print_locations['response'] = response_location
-		except:
-			raise TypeError("response_location must be an iterable object containing a pair of x,y integers .")
-
-
-	@property
-	def default_timeout_location(self):
-		return self.__print_locations['timeout']
-
-	@default_timeout_location.setter
-	def default_timeout_location(self, timeout_location):
-		"""
-		Set the default screen locations for prompts and responses
-		"""
-		try:
-			timeout_iter = iter(timeout_location)
-			self.__print_locations['timeout'] = timeout_location
-		except:
-			raise TypeError("timeout_location must be an iterable object containing a pair of x,y integers .")
-
-
-	@property
-	def default_query_string(self):
-		return self.__default_strings['query']
-
-	@default_query_string.setter
-	def default_query_string(self, query_string):
-		if type(query_string) is str:
-			self.__default_strings['query'] = query_string
-		else:
-			raise TypeError("'query_string' must be a string.")
-
-	@property
-	def default_response_string(self):
-		return self.__default_strings['response']
-
-	@default_response_string.setter
-	def default_response_string(self, response_string):
-		if type(response_string) is str:
-			self.__default_strings['response'] = response_string
-		else:
-			raise TypeError("'response_string' must be a string.")
-
-	@property
-	def default_timeout_string(self):
-		return self.__default_strings['timeout']
-
-	@default_timeout_string.setter
-	def default_timeout_string(self, timeout_string):
-		if type(timeout_string) is str:
-			self.__default_strings['timeout'] = timeout_string
-		else:
-			raise TypeError("'timeout_string' must be a string.")
 
 	@property
 	def default_color(self):

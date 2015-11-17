@@ -100,7 +100,7 @@ class Experiment(object):
 		self.display_init(display_diagonal_in)
 
 		# initialize the self.text layer for the app
-		self.text_manager = TextManager(Params.screen_x_y, Params.screen_x_y, Params.ppi)
+		self.text_manager = TextManager(Params.ppi)
 		if Params.default_font_size:
 			self.text_manager.default_font_size = Params.default_font_size
 

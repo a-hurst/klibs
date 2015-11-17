@@ -411,7 +411,7 @@ class Database(object):
 		t_field_str = ""
 
 		#  random_seed has to be added to every participant row when exporting to multi-file
-		default_fields = Params.default_participant_fields_sf if multi_file else Params.default_participant_fields
+		default_fields = Params.default_participant_fields if multi_file else Params.default_participant_fields_sf
 		for field in default_fields:
 			if iterable(field):  # ie. the id/userhash field--id used internally, userhash for output
 				p_field_str += "`participants`.`{0}` AS `{1}`, ".format(*field)
@@ -459,9 +459,9 @@ class Database(object):
 
 		return header
 
-	def build_column_header(self):
+	def build_column_header(self, multi_file=True):
 		column_names = []
-		for field in Params.default_participant_fields:
+		for field in (Params.default_participant_fields if multi_file else Params.default_participant_fields_sf):
 			column_names.append(field[1]) if iterable(field) else column_names.append(field)
 		column_names = [snake_to_camel(col) for col in column_names]
 

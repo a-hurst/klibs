@@ -381,21 +381,21 @@ class RGBCLI:
 		   "@E": '\033[0m'    # return to normal
 	}
 
-def pr(namespace, *args):
-	components = []
-	print namespace
-	for var in args:
-		element = ([name, value] for (name, value) in namespace.iteritems() if var is value)
-		components.append([i for i in element])
-	print components
-	names =	[i[0] for i in components]
-	values = [i[1] for i in components]
-	print_str = ""
-	for name in names:
-		print_str += name + ": {" + names.index(name) + "}"
-		if names.index(name) != len(names) - 1:
-			print_str += ", "
-	print print_str.format(*values)
+# def pr(namespace, *args):
+# 	components = []
+# 	print namespace
+# 	for var in args:
+# 		element = ([name, value] for (name, value) in namespace.iteritems() if var is value)
+# 		components.append([i for i in element])
+# 	print components
+# 	names =	[i[0] for i in components]
+# 	values = [i[1] for i in components]
+# 	print_str = ""
+# 	for name in names:
+# 		print_str += name + ": {" + names.index(name) + "}"
+# 		if names.index(name) != len(names) - 1:
+# 			print_str += ", "
+# 	print print_str.format(*values)
 
 
 def camel_to_snake(string):

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import abc
 import math
 import sys
@@ -5,6 +6,7 @@ import os
 import random
 import time
 import datetime
+import thread
 import traceback
 import sqlite3
 import hashlib
@@ -12,7 +14,6 @@ import re
 import shutil
 from copy import copy
 import numpy
-import thread
 from functools import wraps
 import OpenGL.GL as gl
 from PIL import Image

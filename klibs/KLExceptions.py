@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'jono'
 class NullColumn(Exception):
 	def __init__(self, msg):

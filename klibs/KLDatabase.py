@@ -117,7 +117,7 @@ class EntryTemplate(object):
 		print self.schema
 
 
-#TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
+# TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
 class Database(object):
 	__default_table = None
 	__open_entries = {}
@@ -129,7 +129,6 @@ class Database(object):
 	table_schemas = {}
 
 	def __init__(self):
-		pr("database init()")
 		self.__init_db()
 		self.build_table_schemas()
 
@@ -164,7 +163,7 @@ class Database(object):
 			self.__catch_db_not_found()
 
 	def __tables(self):
-		#TODO: I changed tableCount to tableList and made it an attribute as it seems to be used in rebuild. Verify this.
+		# TODO: I changed tableCount to tableList and made it an attribute as it seems to be used in rebuild. Verify this.
 		self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 		self.table_list = self.cursor.fetchall()
 		return self.table_list
@@ -222,7 +221,7 @@ class Database(object):
 	def flush(self):
 		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
 		for tableTuple in self.cursor.fetchall():
-			table = str(tableTuple[0]) #str() necessary b/c tableTuple[0] is in unicode
+			table = str(tableTuple[0])  # str() necessary b/c tableTuple[0] is in unicode
 			if table == "sqlite_sequence":
 				pass
 			else:
@@ -250,9 +249,6 @@ class Database(object):
 			self.__open_entries = {}
 			self.__current_entry = None
 			print  "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
-			# TODO: Make this call App.message() somehow so as to be clearer.Or better, relaunch the app somehow!!
-			# m = "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
-			# App.message(m, location="center", fullscreen=True, fontSize=48, color=(0,255,0))
 			quit()
 
 	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
@@ -378,7 +374,7 @@ class Database(object):
 	def p_filename_str(self, participant_id, multi_file=False, incomplete=False, duplicate_count=None):
 			if multi_file:
 		 		created = str(self.query("SELECT `created` FROM `participants` WHERE `id` = {0}".format(1)).fetchone()[0][:10])
-			fname = "p{0}.{1}".format(participant_id, created) if multi_file else "{0}_all_trials".format(Params.project_name)
+			fname = "p{0}.{1}".format(str(participant_id), created) if multi_file else "{0}_all_trials".format(Params.project_name)
 			if duplicate_count: fname += "_{0}".format(duplicate_count)
 			if incomplete: fname += "_incomplete"
 			fname += DATA_EXT
@@ -415,9 +411,9 @@ class Database(object):
 		t_field_str = ""
 
 		#  random_seed has to be added to every participant row when exporting to multi-file
-		default_fields = Params.default_participant_fields_sf if multi_file else Params.default_participant_fields
+		default_fields = Params.default_participant_fields if multi_file else Params.default_participant_fields_sf
 		for field in default_fields:
-			if iterable(field):  # ie. the id/userhash field—id used internally, userhash for output
+			if iterable(field):  # ie. the id/userhash field--id used internally, userhash for output
 				p_field_str += "`participants`.`{0}` AS `{1}`, ".format(*field)
 			else:
 				p_field_str += "`participants`.`{0}`, ".format(field)
@@ -425,7 +421,6 @@ class Database(object):
 			if field[0] not in [ID, Params.id_field_name]:
 				t_field_str += "`trials`.`{0}`, ".format(field[0])
 		t_field_str = t_field_str[:-2]  # remove additional comma & space
-
 		for p in participant_ids:
 			if p[0] == -1:  # legacy test data collected before anonymous_user added to collect_demographics()
 				q = "SELECT {0} FROM `trials` WHERE `trials`.`participant_id` = -1".format(t_field_str)
@@ -440,7 +435,7 @@ class Database(object):
 		return data if multi_file else [data]
 
 	def export_header(self, user_id=None):
-		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export—probably this should be added to the participant table at run time
+		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export--probably this should be added to the participant table at run time
 		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", Params.klibs_version], ["Display Diagonal Inches", Params.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*Params.screen_x_y)], ["Random Seed", random_seed]]
 		klibs_vars = [ "KLIBS INFO", ["KLIBs Version", Params.klibs_version]]
 		if user_id:  # if building a header for a single participant, include the random seed
@@ -464,9 +459,9 @@ class Database(object):
 
 		return header
 
-	def build_column_header(self):
+	def build_column_header(self, multi_file=True):
 		column_names = []
-		for field in Params.default_participant_fields:
+		for field in (Params.default_participant_fields if multi_file else Params.default_participant_fields_sf):
 			column_names.append(field[1]) if iterable(field) else column_names.append(field)
 		column_names = [snake_to_camel(col) for col in column_names]
 
@@ -484,12 +479,11 @@ class Database(object):
 				pass
 			else:
 				header = self.export_header(p_id)
-				print header
 				if multi_file:
 					incomplete = multi_file and len(data_set[1]) != Params.trials_per_block * Params.blocks_per_experiment
 				else:
 					incomplete = False
-				file_strings = self.p_filename_str(multi_file, True) if incomplete else self.p_filename_str(p_id, multi_file)
+				file_strings = self.p_filename_str(p_id, multi_file, True) if incomplete else self.p_filename_str(p_id, multi_file)
 				if os.path.isfile(file_strings[1]):
 					duplicate_count = 1
 					while os.path.isfile(os.path.join(file_strings[1])):

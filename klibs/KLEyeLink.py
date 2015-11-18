@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'jono'
 PYLINK_AVAILABLE = False
 import ctypes
@@ -10,6 +11,7 @@ try:
 	import pylink
 	import KLParams as Params
 	import sdl2
+	import math
 	from KLConstants import *
 	from KLUtilities import *
 
@@ -32,6 +34,7 @@ try:
 
 		def __init__(self, experiment_instance):
 			self.experiment = experiment_instance
+			self.__current_sample = False
 			if Params.eye_tracker_available:
 				try:
 					pylink.EyeLink.__init__(self)
@@ -49,6 +52,9 @@ try:
 			self.eye = self.eyeAvailable()
 			return self.eye != EL_NO_EYES
 
+		def calibrate(self):
+			self.doTrackerSetup()
+
 		def fetch_gaze_boundary(self, name=None):
 			return self.__gaze_boundaries[name] if name is not None else self.__gaze_boundaries
 
@@ -65,6 +71,26 @@ try:
 			dc_tl = [Params.screen_x // 2 - self.dc_width // 2, Params.screen_y // 2 - self.dc_width //2]
 			dc_br = [Params.screen_x // 2 + self.dc_width // 2, Params.screen_y // 2 + self.dc_width //2]
 			self.add_gaze_boundary("drift_correct", [dc_tl, dc_br])
+		
+		def draw_gaze_boundary(self, name="*", blit=True):
+			shape = None
+			boundary = None
+			try:
+				boundary_dict = self.__gaze_boundaries[name]
+				boundary = boundary_dict["bounds"]
+				shape = boundary_dict['shape']
+			except:
+				if shape is None:
+					raise IndexError("No boundary registered with name '{0}'.".format(boundary))
+				if shape not in [EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY]:
+					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+			width = boundary[1][1] - boundary[0][1]
+			height = boundary[1][0] - boundary[0][0]
+			bounding_box = self.surface = aggdraw.Draw("RGBA", [width, height], (0, 0, 0, 0))
+			box_pen = self.__stroke = aggdraw.Pen((255,0,0), 3, 255)
+			bounding_box.rectangle([0,0,width,height], box_pen)
+			self.experiment.blit(NumpySurface(bounding_box), position=boundary[0], registration=7)
+			
 
 		def remove_gaze_boundary(self, name):
 			try:
@@ -87,13 +113,9 @@ try:
 			if point is None:
 				try:
 					point = self.gaze()
-				except Exception as e:
-					print e.message
-					print "Warning: Using mouse_pos()"
-					try:
-						point = mouse_pos()
-					except:
-						raise EnvironmentError("Nothing to track! One of either eye or mouse tracking required.")
+				except ValueError as e:
+					return False
+
 			if shape == EL_RECT_BOUNDARY:
 				x_range = range(boundary[0][0], boundary[1][0])
 				y_range = range(boundary[0][1], boundary[1][1])
@@ -114,6 +136,13 @@ try:
 			return type(string) is str and string in self.__gaze_boundaries
 
 		def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
+			"""
+
+			:param location:
+			:param events:
+			:param samples:
+			:return: :raise ValueError:
+			"""
 			location = Params.screen_c if location is None else location
 			gaze_boundary = None
 			try:
@@ -141,7 +170,8 @@ try:
 			events = EL_TRUE if events in [EL_TRUE, True] else EL_FALSE
 			samples = EL_TRUE if samples in [EL_TRUE, True] else EL_FALSE
 			if not self.dummy_mode:
-				return self.doDriftCorrect(location[0], location[1], events, samples)
+				self.doDriftCorrect(location[0], location[1], events, samples)
+				return self.applyDriftCorrect()
 			else:
 				def dc(dc_location, dc_gaze_boundary):
 					hide_mouse_cursor()
@@ -183,8 +213,10 @@ try:
 
 			return [int(sample[0]), int(sample[1])] if return_integers else sample
 
-		def sample(self):
+		def sample(self):			
 			self.__current_sample = self.getNewestSample()
+			if self.__current_sample == 0:
+				self.__current_sample = False
 			return self.__current_sample
 
 		def setup(self):
@@ -196,14 +228,16 @@ try:
 				self.filename = exp_file_name(EDF_FILE)
 				pylink.flushGetkeyQueue()
 				self.setOfflineMode()
+				# TODO: have a default "can't connect to tracker; do you want to switch to dummy_mode" UI pop up
+				# Running this with pylink installed whilst unconnected to a tracker throws: RuntimeError: Link terminated
 				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
-				self.setLinkEventFilter("SACCADE,BLINK")
+				self.setLinkEventFilter("FIXATION,SACCADE,BLINK")
 				self.openDataFile(self.filename[0])
 				self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
 				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
 				self.setMotionThreshold(Params.saccadic_motion_threshold)
-				self.doTrackerSetup()
+				self.calibrate()
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 			start = time.time()

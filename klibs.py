@@ -1,4 +1,4 @@
-#!/usr/bin/env /System/Library/Frameworks/Python.framework/Versions/2.7/bin/python
+#!/usr/bin/env python
 # expected usage: klibs create path/to/project 
 
 col = {"@P": '\033[95m',  # purple
@@ -66,6 +66,11 @@ def create(name, path):
 		temp_sql_f = open(os.path.join(project_path, 'ExpAssets', name + '_schema.sql'), "rt")
 		temp_sql = temp_sql_f.read().replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
 		open(os.path.join(project_path, 'ExpAssets', name + '_schema.sql'), "w+").write(temp_sql)
+
+		shutil.move(os.path.join(project_path, 'gitignore.txt'), os.path.join(project_path,".gitignore"))
+		temp_sql_f = open(os.path.join(project_path,".gitignore"), "rt")
+		temp_sql = temp_sql_f.read().replace('PROJECT_NAME', name)
+		open(os.path.join(project_path,".gitignore"), "w+").write(temp_sql)
 
 		print "\t...Project name '{0}' successfully applied to template files".format(name)
 		print "\033[92m\nProject successfully created at: '\033[94m{0}\033[0m'".format(project_path)

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 author = 'jono'
 
 from KLConstants import *

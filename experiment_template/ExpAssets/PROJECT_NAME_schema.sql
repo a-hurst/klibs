@@ -38,7 +38,7 @@ CREATE TABLE participants (
 	sex text not null,
 	age integer not null, 
 	handedness text not null,
-  	created text not null
+	created text not null
 );
 
 CREATE TABLE trials (

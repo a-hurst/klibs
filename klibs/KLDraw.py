@@ -144,7 +144,10 @@ class Circle(Drawbject):
 
 	def __init__(self, diameter, stroke=None, fill=None, auto_draw=True):
 		super(Circle, self).__init__(diameter + 2, diameter + 2, stroke, fill)
-		self.diameter = diameter - 2 * stroke[0]
+		try:
+			self.diameter = diameter - 2 * stroke[0]
+		except TypeError:
+			self.diameter = diameter
 		if auto_draw:
 			self.draw()
 
@@ -173,6 +176,7 @@ class Annulus(Drawbject):
 		if auto_draw:
 			self.draw()
 
+
 	def draw(self):
 		if self.stroke:
 			stroked_path_pen = aggdraw.Pen(tuple(self.stroke_color), self.ring_width)
@@ -183,4 +187,31 @@ class Annulus(Drawbject):
 		xy_2 = self.width - (2 + self.ring_width)
 		path_pen = aggdraw.Pen(tuple(self.fill_color), self.ring_inner_width)
 		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
+		return self.surface
+
+
+class Rectangle(Drawbject):
+
+	def __init__(self, width, height=None, stroke=None, fill=None, auto_draw=True):
+		if not height:
+			height = width
+		super(Rectangle, self).__init__(width + 2, height + 2, stroke, fill)
+		if auto_draw:
+			self.draw()
+
+	def draw(self):
+		print self.stroke
+		print self.fill
+		print self.width
+		print self.height
+		if self.stroke:
+			w = self.width - self.stroke_offset
+			h = self.height - self.stroke_offset
+			if self.fill:
+				self.surface.rectangle((1, 1, w, h), self.stroke, self.fill)
+			else:
+				self.surface.rectangle((1, 1, w, h), self.stroke)
+		else:
+			self.surface.rectangle((1, 1, self.width, self.height), None, self.fill)
+
 		return self.surface

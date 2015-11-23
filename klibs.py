@@ -140,7 +140,8 @@ update_parser.set_defaults(func=update)
 run_parser = subparsers.add_parser('run')
 run_parser.add_argument('screen_size', type=int, help='The diagonal size of the screen in inches on which the experiment is being run. This is used to calculate degrees of visual angle.')
 run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
-run_parser.add_argument('random_seed', default=-1, nargs="?", type=int, help='The diagonal size of the screen in inches on which the experiment is being run. This is used to calculate degrees of visual angle.')
+run_parser.add_argument('random_seed', default=-1, nargs="?", type=int, help="Providing a random seed will allow an experiment to continue from it's previously completed state." )
+#run_parser.add_argument('testing', default=-1, nargs="?", type=str, help="Providing a random seed will allow an experiment to continue from it's previously completed state." )
 run_parser.set_defaults(func=run)
 
 

@@ -120,7 +120,6 @@ try:
 				x_range = range(boundary[0][0], boundary[1][0])
 				y_range = range(boundary[0][1], boundary[1][1])
 				ret_val = point[0] in x_range and point[1] in y_range
-				if Params.debug_level > 3: print "POINT: {0}, X_RANGE: {1}, Y_RANGE: {2}, RET_VAL:{3}".format(point, (x_range[0], x_range[-1]),(y_range[0], y_range[-1]), ret_val )
 				return point[0] in x_range and point[1] in y_range
 
 			if shape == EL_CIRCLE_BOUNDARY:

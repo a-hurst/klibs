@@ -1,6 +1,0 @@
-.idea/*
-.DS_Store
-ExpAssets/PROJECT_NAME.db
-ExpAssets/PROJECT_NAME.db.backup
-ExpAssets/Data/*
-ExpAssets/EDF/*

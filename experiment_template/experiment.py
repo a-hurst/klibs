@@ -3,10 +3,8 @@ __author__ = "EXPERIMENTER_NAME"
 import klibs
 from klibs import Params
 
-"""
- Below are some commonly required additional libraries; uncomment as needed.
+# Below are some commonly required additional libraries; uncomment as needed.
 
-""" 
 # import os
 # import time
 # from PIL import Image
@@ -42,11 +40,10 @@ class PROJECT_NAME(klibs.App):
 	def block(self, block_num):
 		pass
 
-	def trial_prep(self, *args, **kwargs):
-		self.db.init_entry('trials')
+	def trial_prep(self, trial_factors):
+		pass
 
-	def trial(self, trial_factors, trial_num):
-
+	def trial(self, trial_factors):
 		return {}
 
 	def trial_clean_up(self, *args, **kwargs):

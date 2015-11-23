@@ -2,20 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="03ba5189-f7f9-4849-af46-98a0bf358f56" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/template/ExpAssets/PROJECT_NAME_schema.sql" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/template/__init__.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/template/experiment.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/template/gitignore.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/template_temp/ExpAssets/PROJECT_NAME_schema.sql" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/template_temp/__init__.py" afterPath="" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/template/ExpAssets/PROJECT_NAME_schema.sql" afterPath="$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_schema.sql" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/template/__init__.py" afterPath="$PROJECT_DIR$/experiment_template/__init__.py" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/template_temp/experiment.py" afterPath="$PROJECT_DIR$/experiment_template/experiment.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs/KLDraw.py" afterPath="$PROJECT_DIR$/klibs/KLDraw.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs/KLEyeLink.py" afterPath="$PROJECT_DIR$/klibs/KLEyeLink.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs/KLUtilities.py" afterPath="$PROJECT_DIR$/klibs/KLUtilities.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs.py" afterPath="$PROJECT_DIR$/klibs.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/setup.py" afterPath="$PROJECT_DIR$/setup.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="klibs.iws" />
@@ -39,22 +26,21 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="klibs.py" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="klibs.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/klibs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="143" column="1" selection-start="7158" selection-end="7158" vertical-scroll-proportion="0.0" vertical-offset="1396" max-vertical-offset="2235">
+            <state line="43" column="42" selection-start="2323" selection-end="2323" vertical-scroll-proportion="0.19181034" vertical-offset="511" max-vertical-offset="2235">
               <folding>
-                <element signature="e#1693#4736#0" expanded="true" />
-                <element signature="e#5527#5756#0" expanded="true" />
+                <element signature="e#5538#5767#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="setup.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="setup.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/setup.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="41" column="76" selection-start="1228" selection-end="1228" vertical-scroll-proportion="0.7798742" vertical-offset="198" max-vertical-offset="675">
+            <state line="28" column="23" selection-start="683" selection-end="683" vertical-scroll-proportion="0.0" vertical-offset="198" max-vertical-offset="675">
               <folding />
             </state>
           </provider>
@@ -185,9 +171,9 @@
         <option value="$PROJECT_DIR$/template_temp/experiment.py" />
         <option value="$PROJECT_DIR$/template_temp/ExpAssets/PROJECT_NAME_schema.sql" />
         <option value="$PROJECT_DIR$/template_temp/ExpAssets/PROJECT_NAME_config.csv" />
-        <option value="$PROJECT_DIR$/klibs.py" />
         <option value="$PROJECT_DIR$/klibs/KLDraw.py" />
         <option value="$PROJECT_DIR$/setup.py" />
+        <option value="$PROJECT_DIR$/klibs.py" />
       </list>
     </option>
   </component>
@@ -493,7 +479,7 @@
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.22022955" sideWeight="0.6706507" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.22022955" sideWeight="0.6706507" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
@@ -531,8 +517,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state line="127" column="110" selection-start="6104" selection-end="6104" vertical-scroll-proportion="0.0" vertical-offset="1905" max-vertical-offset="2445">
           <folding>
-            <element signature="e#1693#4736#0" expanded="true" />
-            <element signature="e#5527#5756#0" expanded="true" />
+            <element signature="e#5538#5767#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -650,20 +635,19 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/klibs.py">
+    <entry file="file://$PROJECT_DIR$/setup.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="143" column="1" selection-start="7158" selection-end="7158" vertical-scroll-proportion="0.0" vertical-offset="1606" max-vertical-offset="2235">
-          <folding>
-            <element signature="e#1693#4736#0" expanded="true" />
-            <element signature="e#5527#5756#0" expanded="true" />
-          </folding>
+        <state line="28" column="23" selection-start="683" selection-end="683" vertical-scroll-proportion="0.0" vertical-offset="198" max-vertical-offset="675">
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/setup.py">
+    <entry file="file://$PROJECT_DIR$/klibs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="41" column="76" selection-start="1228" selection-end="1228" vertical-scroll-proportion="0.7798742" vertical-offset="198" max-vertical-offset="675">
-          <folding />
+        <state line="43" column="42" selection-start="2323" selection-end="2323" vertical-scroll-proportion="0.19181034" vertical-offset="511" max-vertical-offset="2235">
+          <folding>
+            <element signature="e#5538#5767#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

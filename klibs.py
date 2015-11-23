@@ -41,7 +41,7 @@ def create(name, path):
 	auth_parse.add_argument('name', type=str, nargs=2)
 	auth_args = auth_parse.parse_args(raw_input("Provide your first and last name:").split())
 
-	source = "/usr/local/klibs/template"
+	source = "/usr/local/klibs/experiment_template"
 	project_path = os.path.join(path, name)
 
 	correct = False

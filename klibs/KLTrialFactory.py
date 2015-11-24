@@ -142,6 +142,8 @@ class TrialFactory(object):
 			config_file = csv.reader(open(path, 'rb'))
 			row_count = 0
 			for row in config_file:
+				if row[0][0] == "#":  # ie. skip header line, which wasn't in earlier versions of the config file
+					continue
 				self.config_file_rows.append(row)
 				self.__parse_parameters_row(row, header=row_count == 0)
 				row_count += 1

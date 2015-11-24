@@ -18,7 +18,7 @@ from klibs import Params
 Params.default_fill_color = (100, 100, 100, 255)
 
 Params.debug_level = 0
-Params.collect_demographics = False
+Params.collect_demographics = True
 Params.practicing = True
 Params.eye_tracking = True
 Params.eye_tracker_available = False
@@ -29,7 +29,7 @@ Params.practice_blocks_per_experiment = 3
 Params.trials_per_practice_block = 3
 
 
-class PROJECT_NAME(klibs.App):
+class PROJECT_NAME(klibs.Experiment):
 
 	def __init__(self, *args, **kwargs):
 		super(PROJECT_NAME, self).__init__(*args, **kwargs)
@@ -44,12 +44,13 @@ class PROJECT_NAME(klibs.App):
 		pass
 
 	def trial(self, trial_factors):
-		return {}
+		return {
+			"block_num": Params.block_number,
+			"trial_num": Params.trial_number
+		}
 
 	def trial_clean_up(self, *args, **kwargs):
 		pass
 
 	def clean_up(self):
 		pass
-
-app = PROJECT_NAME("PROJECT_NAME").run()

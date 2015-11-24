@@ -200,10 +200,6 @@ class Rectangle(Drawbject):
 			self.draw()
 
 	def draw(self):
-		print self.stroke
-		print self.fill
-		print self.width
-		print self.height
 		if self.stroke:
 			w = self.width - self.stroke_offset
 			h = self.height - self.stroke_offset

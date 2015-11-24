@@ -124,10 +124,10 @@ def init_project():
 	global config_file_path
 	global initialized
 
-	database_filename = project_name + DB_EXT
-	schema_filename = project_name + SCHEMA_EXT
-	log_filename = project_name + LOG_EXT
-	config_filename = project_name + CONFIG_EXT
+	database_filename = str(project_name) + DB_EXT
+	schema_filename = str(project_name) + SCHEMA_EXT
+	log_filename = str(project_name) + LOG_EXT
+	config_filename = str(project_name) + CONFIG_EXT
 	edf_path = os.path.join(asset_path, "EDF")  # todo: write edf management
 	log_file_path = os.path.join(asset_path, log_filename)
 	schema_file_path = os.path.join(asset_path, schema_filename)
@@ -139,7 +139,7 @@ def init_project():
 	initialized = True
 	return True
 
-def setup(project_name_str, asset_path_str, previous_random_seed):
+def setup(project_name_str, previous_random_seed):
 	global project_name
 	global asset_path
 	global random_seed
@@ -155,5 +155,5 @@ def setup(project_name_str, asset_path_str, previous_random_seed):
 	random_seed = previous_random_seed if previous_random_seed else time()
 	seed(random_seed)
 	project_name = project_name_str
-	asset_path = asset_path_str
+	asset_path = "ExpAssets"
 	return init_project()

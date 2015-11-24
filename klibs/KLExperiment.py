@@ -53,7 +53,7 @@ class Experiment(object):
 	text_manager = None   # KLTextManager instance
 	debug = {}
 
-	def __init__(self, project_name, display_diagonal_in, random_seed=None, asset_path="ExpAssets", export=False):
+	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available):
 		"""
 		Initializes a KLExperiment Object
 
@@ -68,8 +68,14 @@ class Experiment(object):
 
 		super(Experiment, self).__init__()
 
+		if development_mode:
+			Params.development_mode = True
+			Params.collect_demographics = False
 
-		if not Params.setup(project_name, asset_path, random_seed):
+		if not eyelink_available:
+			Params.eye_tracker_available = False
+
+		if not Params.setup(project_name, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 
 		#initialize the self.database instance

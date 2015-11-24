@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="03ba5189-f7f9-4849-af46-98a0bf358f56" name="Default" comment="" />
+    <list default="true" id="03ba5189-f7f9-4849-af46-98a0bf358f56" name="Default" comment="">
+      <change type="DELETED" beforePath="$PROJECT_DIR$/experiment_template/__init__.py" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs/KLDraw.py" afterPath="$PROJECT_DIR$/klibs/KLDraw.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs/KLExperiment.py" afterPath="$PROJECT_DIR$/klibs/KLExperiment.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs/KLParams.py" afterPath="$PROJECT_DIR$/klibs/KLParams.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs/KLTextManager.py" afterPath="$PROJECT_DIR$/klibs/KLTextManager.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs/KLTrialFactory.py" afterPath="$PROJECT_DIR$/klibs/KLTrialFactory.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_config.csv" afterPath="$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_config.csv" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_schema.sql" afterPath="$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_schema.sql" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/experiment_template/experiment.py" afterPath="$PROJECT_DIR$/experiment_template/experiment.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs.py" afterPath="$PROJECT_DIR$/klibs.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+    </list>
     <ignored path="klibs.iws" />
     <ignored path=".idea/workspace.xml" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -23,87 +35,36 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="klibs.py" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="klibs.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/klibs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="43" column="42" selection-start="2323" selection-end="2323" vertical-scroll-proportion="0.0" vertical-offset="511" max-vertical-offset="2235">
+            <state line="200" column="17" selection-start="10001" selection-end="10001" vertical-scroll-proportion="0.8383621" vertical-offset="2356" max-vertical-offset="2955">
               <folding>
-                <element signature="e#5538#5767#0" expanded="true" />
+                <element signature="e#1606#1621#0" expanded="true" />
+                <element signature="e#1708#5948#0" expanded="true" />
+                <element signature="e#6788#7071#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="gitignore.txt" pinned="false" current="true" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/experiment_template/gitignore.txt">
+      <file leaf-file-name="KLTextManager.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/klibs/KLTextManager.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="0" column="2" selection-start="2" selection-end="2" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="477">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="setup.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/setup.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="28" column="23" selection-start="683" selection-end="683" vertical-scroll-proportion="0.0" vertical-offset="198" max-vertical-offset="675">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="PROJECT_NAME_config.csv" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_config.csv">
-          <provider editor-type-id="com.intellij.persistence.database.editor.CsvTableFileEditorProvider">
-            <state />
-          </provider>
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="2" column="19" selection-start="0" selection-end="83" vertical-scroll-proportion="-1.1111112" vertical-offset="0" max-vertical-offset="120">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="experiment.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/experiment_template/experiment.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="23" column="36" selection-start="494" selection-end="494" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="915">
+            <state line="99" column="8" selection-start="3355" selection-end="3355" vertical-scroll-proportion="0.0" vertical-offset="830" max-vertical-offset="1725">
               <folding>
-                <element signature="e#34#46#0" expanded="true" />
-                <element signature="e#710#761#0" expanded="true" />
-                <element signature="e#783#875#0" expanded="true" />
-                <element signature="e#908#912#0" expanded="true" />
-                <element signature="e#954#958#0" expanded="true" />
-                <element signature="e#995#1004#0" expanded="true" />
-                <element signature="e#1052#1056#0" expanded="true" />
-                <element signature="e#1081#1085#0" expanded="true" />
+                <element signature="e#20#42#0" expanded="true" />
+                <element signature="e#2040#2640#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLDraw.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/klibs/KLDraw.py">
+      <file leaf-file-name="__init__.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/klibs/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="207" column="13" selection-start="6006" selection-end="6006" vertical-scroll-proportion="0.0" vertical-offset="1683" max-vertical-offset="2190">
-              <folding>
-                <element signature="e#2053#2552#0" expanded="true" />
-                <element signature="e#2575#2721#0" expanded="true" />
-                <element signature="e#2755#2775#0" expanded="true" />
-                <element signature="e#2821#3091#0" expanded="true" />
-                <element signature="e#3123#3141#0" expanded="true" />
-                <element signature="e#3183#3374#0" expanded="true" />
-                <element signature="e#3416#3420#0" expanded="true" />
-                <element signature="e#3458#3490#0" expanded="true" />
-                <element signature="e#3527#4052#0" expanded="false" />
-                <element signature="e#3587#4052#0" expanded="true" />
-                <element signature="e#4171#4371#0" expanded="true" />
-                <element signature="e#4393#4532#0" expanded="true" />
-                <element signature="e#4563#5639#0" expanded="false" />
-                <element signature="e#4647#5108#0" expanded="true" />
-                <element signature="e#5130#5639#0" expanded="true" />
-                <element signature="e#5754#5888#0" expanded="true" />
-              </folding>
+            <state line="35" column="11" selection-start="700" selection-end="708" vertical-scroll-proportion="0.0" vertical-offset="105" max-vertical-offset="4725">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -111,35 +72,83 @@
       <file leaf-file-name="KLExperiment.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/klibs/KLExperiment.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="1363" column="8" selection-start="50505" selection-end="50505" vertical-scroll-proportion="0.0" vertical-offset="1651" max-vertical-offset="2115">
+            <state line="55" column="107" selection-start="1695" selection-end="1695" vertical-scroll-proportion="0.0" vertical-offset="270" max-vertical-offset="4920">
+              <folding>
+                <element signature="e#1707#4180#0" expanded="true" />
+                <element signature="e#29657#34842#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="experiment.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/experiment_template/experiment.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="28" column="36" selection-start="634" selection-end="634" vertical-scroll-proportion="0.0" vertical-offset="138" max-vertical-offset="915">
+              <folding>
+                <element signature="e#34#46#0" expanded="true" />
+                <element signature="e#716#767#0" expanded="true" />
+                <element signature="e#789#881#0" expanded="true" />
+                <element signature="e#914#918#0" expanded="true" />
+                <element signature="e#960#964#0" expanded="true" />
+                <element signature="e#1001#1086#0" expanded="true" />
+                <element signature="e#1134#1138#0" expanded="true" />
+                <element signature="e#1163#1167#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="KLDatabase.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/klibs/KLDatabase.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="134" column="35" selection-start="3944" selection-end="3944" vertical-scroll-proportion="0.0" vertical-offset="705" max-vertical-offset="1950">
+              <folding>
+                <element signature="e#357#530#0" expanded="true" />
+                <element signature="e#3865#3910#0" expanded="true" />
+                <element signature="e#3947#4424#0" expanded="true" />
+                <marker date="1447877638000" expanded="true" signature="5132:5181" placeholder="SELECT name ..sqlite_master..." />
+                <marker date="1447877638000" expanded="true" signature="5916:5973" placeholder="SELECT `name..sqlite_master..." />
+                <marker date="1447877638000" expanded="true" signature="6923:6980" placeholder="SELECT `name..sqlite_master..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="PROJECT_NAME_schema.sql" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_schema.sql">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="47" column="28" selection-start="2000" selection-end="2000" vertical-scroll-proportion="-14.28" vertical-offset="348" max-vertical-offset="825">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLELCustomDisplay.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/klibs/KLELCustomDisplay.py">
+      <file leaf-file-name="PROJECT_NAME_config.csv" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_config.csv">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="6" column="5" selection-start="242" selection-end="242" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="900">
+            <state line="0" column="1" selection-start="1" selection-end="1" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="135">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLUtilities.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/klibs/KLUtilities.py">
+      <file leaf-file-name="KLTrialFactory.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/klibs/KLTrialFactory.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="377" column="0" selection-start="12570" selection-end="12570" vertical-scroll-proportion="0.0" vertical-offset="1096" max-vertical-offset="1560">
+            <state line="144" column="29" selection-start="3905" selection-end="3905" vertical-scroll-proportion="0.0" vertical-offset="618" max-vertical-offset="1335">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLConstants.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/klibs/KLConstants.py">
+      <file leaf-file-name="KLParams.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/klibs/KLParams.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="90" column="0" selection-start="1659" selection-end="1659" vertical-scroll-proportion="0.0" vertical-offset="1196" max-vertical-offset="1950">
-              <folding />
+            <state line="157" column="28" selection-start="4670" selection-end="4670" vertical-scroll-proportion="0.0" vertical-offset="1893" max-vertical-offset="2370">
+              <folding>
+                <element signature="e#2969#4122#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -162,16 +171,22 @@
   <component name="IdeDocumentHistory">
     <option name="changedFiles">
       <list>
-        <option value="$PROJECT_DIR$/klibs/KLExperiment.py" />
         <option value="$PROJECT_DIR$/klibs/KLUtilities.py" />
         <option value="$PROJECT_DIR$/klibs/KLEyeLink.py" />
         <option value="$PROJECT_DIR$/template_temp/experiment.py" />
         <option value="$PROJECT_DIR$/template_temp/ExpAssets/PROJECT_NAME_schema.sql" />
         <option value="$PROJECT_DIR$/template_temp/ExpAssets/PROJECT_NAME_config.csv" />
-        <option value="$PROJECT_DIR$/klibs/KLDraw.py" />
         <option value="$PROJECT_DIR$/setup.py" />
-        <option value="$PROJECT_DIR$/klibs.py" />
         <option value="$PROJECT_DIR$/experiment_template/gitignore.txt" />
+        <option value="$PROJECT_DIR$/klibs/KLDraw.py" />
+        <option value="$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_config.csv" />
+        <option value="$PROJECT_DIR$/klibs/KLParams.py" />
+        <option value="$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_schema.sql" />
+        <option value="$PROJECT_DIR$/klibs/KLTrialFactory.py" />
+        <option value="$PROJECT_DIR$/experiment_template/experiment.py" />
+        <option value="$PROJECT_DIR$/klibs/KLExperiment.py" />
+        <option value="$PROJECT_DIR$/klibs/KLTextManager.py" />
+        <option value="$PROJECT_DIR$/klibs.py" />
       </list>
     </option>
   </component>
@@ -279,7 +294,7 @@
     <property name="options.splitter.main.proportions" value="0.3" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="options.lastSelected" value="com.jetbrains.python.configuration.PythonSdkConfigurable" />
-    <property name="last_opened_file_path" value="$USER_HOME$/Desktop/TestExp" />
+    <property name="last_opened_file_path" value="$USER_HOME$/Desktop/Test" />
     <property name="FullScreen" value="false" />
     <property name="options.searchVisible" value="true" />
     <property name="options.splitter.details.proportions" value="0.2" />
@@ -504,47 +519,41 @@
     <breakpoint-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/klibs.py">
+    <entry file="file://$PROJECT_DIR$/klibs/KLELCustomDisplay.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="127" column="110" selection-start="6104" selection-end="6104" vertical-scroll-proportion="0.0" vertical-offset="1905" max-vertical-offset="2445">
+        <state line="6" column="5" selection-start="242" selection-end="242" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="900">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/experiment_template/gitignore.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="0" column="2" selection-start="2" selection-end="2" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="477">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/klibs/KLDraw.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="130" column="46" selection-start="3625" selection-end="3625" vertical-scroll-proportion="0.0" vertical-offset="1263" max-vertical-offset="2295">
           <folding>
-            <element signature="e#5538#5767#0" expanded="true" />
+            <element signature="e#2053#2552#0" expanded="true" />
+            <element signature="e#2575#2721#0" expanded="true" />
+            <element signature="e#2755#2775#0" expanded="true" />
+            <element signature="e#2821#3091#0" expanded="true" />
+            <element signature="e#3123#3141#0" expanded="true" />
+            <element signature="e#3183#3374#0" expanded="true" />
+            <element signature="e#3416#3420#0" expanded="true" />
+            <element signature="e#3458#3490#0" expanded="true" />
+            <element signature="e#4171#4371#0" expanded="true" />
+            <element signature="e#4393#4532#0" expanded="true" />
+            <element signature="e#4563#5639#0" expanded="false" />
+            <element signature="e#4647#5108#0" expanded="true" />
+            <element signature="e#5130#5639#0" expanded="true" />
+            <marker date="1448297901000" expanded="true" signature="-1:-1" placeholder="..." />
+            <marker date="1448297901000" expanded="true" signature="-1:-1" placeholder="..." />
+            <marker date="1448297901000" expanded="true" signature="-1:-1" placeholder="..." />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/klibs/KLExperiment.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="1313" column="8" selection-start="49421" selection-end="49421" vertical-scroll-proportion="0.0" vertical-offset="1725" max-vertical-offset="3060">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/klibs/KLUtilities.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="398" column="0" selection-start="12595" selection-end="13109" vertical-scroll-proportion="0.0" vertical-offset="5970" max-vertical-offset="6420">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/klibs/KLParams.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1650">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/klibs/KLConstants.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="90" column="0" selection-start="1659" selection-end="1659" vertical-scroll-proportion="0.0" vertical-offset="1196" max-vertical-offset="1950">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/klibs/KLEyeLink.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="52" column="36" selection-start="1405" selection-end="1405" vertical-scroll-proportion="0.0" vertical-offset="326" max-vertical-offset="3540">
-          <folding />
         </state>
       </provider>
     </entry>
@@ -555,33 +564,33 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/klibs/KLELCustomDisplay.py">
+    <entry file="file://$PROJECT_DIR$/klibs/KLConstants.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="6" column="5" selection-start="242" selection-end="242" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="900">
+        <state line="90" column="0" selection-start="1659" selection-end="1659" vertical-scroll-proportion="0.0" vertical-offset="241" max-vertical-offset="1950">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_schema.sql">
+    <entry file="file://$PROJECT_DIR$/setup.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="38" column="24" selection-start="1781" selection-end="1781" vertical-scroll-proportion="0.4358407" vertical-offset="373" max-vertical-offset="825">
+        <state line="28" column="23" selection-start="683" selection-end="683" vertical-scroll-proportion="0.7861635" vertical-offset="0" max-vertical-offset="675">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/experiment_template/experiment.py">
+    <entry file="file://$PROJECT_DIR$/klibs/KLParams.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="23" column="36" selection-start="494" selection-end="494" vertical-scroll-proportion="0.0" vertical-offset="123" max-vertical-offset="915">
+        <state line="157" column="28" selection-start="4670" selection-end="4670" vertical-scroll-proportion="0.0" vertical-offset="1893" max-vertical-offset="2370">
           <folding>
-            <element signature="e#34#46#0" expanded="true" />
-            <element signature="e#710#761#0" expanded="true" />
-            <element signature="e#783#875#0" expanded="true" />
-            <element signature="e#908#912#0" expanded="true" />
-            <element signature="e#954#958#0" expanded="true" />
-            <element signature="e#995#1004#0" expanded="true" />
-            <element signature="e#1052#1056#0" expanded="true" />
-            <element signature="e#1081#1085#0" expanded="true" />
+            <element signature="e#2969#4122#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/klibs/__init__.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="35" column="11" selection-start="700" selection-end="708" vertical-scroll-proportion="0.0" vertical-offset="105" max-vertical-offset="4725">
+          <folding />
         </state>
       </provider>
     </entry>
@@ -590,62 +599,83 @@
         <state />
       </provider>
       <provider selected="true" editor-type-id="text-editor">
-        <state line="2" column="19" selection-start="0" selection-end="83" vertical-scroll-proportion="-1.1111112" vertical-offset="0" max-vertical-offset="120">
+        <state line="0" column="1" selection-start="1" selection-end="1" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="477">
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/klibs/KLTrialFactory.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="144" column="29" selection-start="3905" selection-end="3905" vertical-scroll-proportion="0.0" vertical-offset="618" max-vertical-offset="1335">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_schema.sql">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="47" column="28" selection-start="2000" selection-end="2000" vertical-scroll-proportion="-14.28" vertical-offset="348" max-vertical-offset="825">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/klibs/KLDatabase.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="134" column="35" selection-start="3944" selection-end="3944" vertical-scroll-proportion="0.0" vertical-offset="705" max-vertical-offset="1950">
+          <folding>
+            <element signature="e#357#530#0" expanded="true" />
+            <element signature="e#3865#3910#0" expanded="true" />
+            <element signature="e#3947#4424#0" expanded="true" />
+            <marker date="1447877638000" expanded="true" signature="5132:5181" placeholder="SELECT name ..sqlite_master..." />
+            <marker date="1447877638000" expanded="true" signature="5916:5973" placeholder="SELECT `name..sqlite_master..." />
+            <marker date="1447877638000" expanded="true" signature="6923:6980" placeholder="SELECT `name..sqlite_master..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/experiment_template/experiment.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="28" column="36" selection-start="634" selection-end="634" vertical-scroll-proportion="0.0" vertical-offset="138" max-vertical-offset="915">
+          <folding>
+            <element signature="e#34#46#0" expanded="true" />
+            <element signature="e#716#767#0" expanded="true" />
+            <element signature="e#789#881#0" expanded="true" />
+            <element signature="e#914#918#0" expanded="true" />
+            <element signature="e#960#964#0" expanded="true" />
+            <element signature="e#1001#1086#0" expanded="true" />
+            <element signature="e#1134#1138#0" expanded="true" />
+            <element signature="e#1163#1167#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/klibs/KLExperiment.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="1363" column="8" selection-start="50505" selection-end="50505" vertical-scroll-proportion="0.0" vertical-offset="2085" max-vertical-offset="3420">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/klibs/KLDraw.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="207" column="13" selection-start="6006" selection-end="6006" vertical-scroll-proportion="0.0" vertical-offset="1683" max-vertical-offset="2190">
+        <state line="55" column="107" selection-start="1695" selection-end="1695" vertical-scroll-proportion="0.0" vertical-offset="270" max-vertical-offset="4920">
           <folding>
-            <element signature="e#2053#2552#0" expanded="true" />
-            <element signature="e#2575#2721#0" expanded="true" />
-            <element signature="e#2755#2775#0" expanded="true" />
-            <element signature="e#2821#3091#0" expanded="true" />
-            <element signature="e#3123#3141#0" expanded="true" />
-            <element signature="e#3183#3374#0" expanded="true" />
-            <element signature="e#3416#3420#0" expanded="true" />
-            <element signature="e#3458#3490#0" expanded="true" />
-            <element signature="e#3527#4052#0" expanded="false" />
-            <element signature="e#3587#4052#0" expanded="true" />
-            <element signature="e#4171#4371#0" expanded="true" />
-            <element signature="e#4393#4532#0" expanded="true" />
-            <element signature="e#4563#5639#0" expanded="false" />
-            <element signature="e#4647#5108#0" expanded="true" />
-            <element signature="e#5130#5639#0" expanded="true" />
-            <element signature="e#5754#5888#0" expanded="true" />
+            <element signature="e#1707#4180#0" expanded="true" />
+            <element signature="e#29657#34842#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/setup.py">
+    <entry file="file://$PROJECT_DIR$/klibs/KLTextManager.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="28" column="23" selection-start="683" selection-end="683" vertical-scroll-proportion="0.0" vertical-offset="198" max-vertical-offset="675">
-          <folding />
+        <state line="99" column="8" selection-start="3355" selection-end="3355" vertical-scroll-proportion="0.0" vertical-offset="830" max-vertical-offset="1725">
+          <folding>
+            <element signature="e#20#42#0" expanded="true" />
+            <element signature="e#2040#2640#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/klibs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="43" column="42" selection-start="2323" selection-end="2323" vertical-scroll-proportion="0.0" vertical-offset="511" max-vertical-offset="2235">
+        <state line="200" column="17" selection-start="10001" selection-end="10001" vertical-scroll-proportion="0.8383621" vertical-offset="2356" max-vertical-offset="2955">
           <folding>
-            <element signature="e#5538#5767#0" expanded="true" />
+            <element signature="e#1606#1621#0" expanded="true" />
+            <element signature="e#1708#5948#0" expanded="true" />
+            <element signature="e#6788#7071#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/experiment_template/gitignore.txt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="2" selection-start="2" selection-end="2" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="477">
-          <folding />
         </state>
       </provider>
     </entry>

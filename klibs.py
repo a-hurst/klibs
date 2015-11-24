@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# expected usage: klibs create path/to/project 
 
 col = {"@P": '\033[95m',  # purple
 		   "@B": '\033[94m',  # blue
@@ -198,8 +197,24 @@ except SystemExit:
 	print "\n\t\t...like we used to..."
 	time.sleep(1)
 	print "\n*sniff*"
+	time.sleep(1.5)
+	print "\nSo, can I just say:"
 	time.sleep(2)
-	print "\nSo anyway. I really appreciate this time to just chat."
+	print "\nI really appreciate this time to just chat."
+	time.sleep(1.5)
+	print "\n\t'Us time', ya know?"
+	time.sleep(2)
+	print "\nBut anyway, I should get going."
+	time.sleep(1.5)
+	print "\nExperiments to run, data to collect."
+	time.sleep(1)
+	print "\nPlus I've got to calibrate that damn eye--"
+	time.sleep(2)
+	print "\n\tErr, nothing..."
+	time.sleep(3)
+	print "\nLook, it's been a long day."
+	time.sleep(2)
+	print "\nAnywho, don't be a stranger! kkbai!"
 	exit()
 
 arg_dict = {}

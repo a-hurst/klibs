@@ -2,7 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="03ba5189-f7f9-4849-af46-98a0bf358f56" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs.py" afterPath="$PROJECT_DIR$/klibs.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/klibs/KLTrialFactory.py" afterPath="$PROJECT_DIR$/klibs/KLTrialFactory.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="klibs.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -25,10 +26,10 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="klibs.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="klibs.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/klibs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="205" column="16" selection-start="10120" selection-end="10120" vertical-scroll-proportion="0.41810346" vertical-offset="2626" max-vertical-offset="3180">
+            <state line="223" column="0" selection-start="10569" selection-end="10569" vertical-scroll-proportion="0.0" vertical-offset="2716" max-vertical-offset="3180">
               <folding>
                 <element signature="e#1558#1573#0" expanded="true" />
                 <element signature="e#1660#5900#0" expanded="true" />
@@ -59,6 +60,17 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="KLUtilities.py" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/klibs/KLUtilities.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="328" column="29" selection-start="11324" selection-end="11324" vertical-scroll-proportion="0.0" vertical-offset="766" max-vertical-offset="1575">
+              <folding>
+                <element signature="e#12151#12260#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="KLExperiment.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/klibs/KLExperiment.py">
           <provider selected="true" editor-type-id="text-editor">
@@ -84,6 +96,7 @@
                 <element signature="e#1001#1086#0" expanded="true" />
                 <element signature="e#1134#1138#0" expanded="true" />
                 <element signature="e#1163#1167#0" expanded="true" />
+                <marker date="1448402963000" expanded="true" signature="674:1167" placeholder="..." />
               </folding>
             </state>
           </provider>
@@ -123,22 +136,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="KLTrialFactory.py" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="KLTrialFactory.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/klibs/KLTrialFactory.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="144" column="29" selection-start="3905" selection-end="3905" vertical-scroll-proportion="0.0" vertical-offset="618" max-vertical-offset="1335">
+            <state line="145" column="32" selection-start="3914" selection-end="3914" vertical-scroll-proportion="0.4654088" vertical-offset="618" max-vertical-offset="1395">
               <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="KLParams.py" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/klibs/KLParams.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="157" column="28" selection-start="4670" selection-end="4670" vertical-scroll-proportion="0.0" vertical-offset="1893" max-vertical-offset="2370">
-              <folding>
-                <element signature="e#2969#4122#0" expanded="true" />
-              </folding>
             </state>
           </provider>
         </entry>
@@ -172,15 +174,16 @@
         <option value="$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_config.csv" />
         <option value="$PROJECT_DIR$/klibs/KLParams.py" />
         <option value="$PROJECT_DIR$/experiment_template/ExpAssets/PROJECT_NAME_schema.sql" />
-        <option value="$PROJECT_DIR$/klibs/KLTrialFactory.py" />
         <option value="$PROJECT_DIR$/experiment_template/experiment.py" />
         <option value="$PROJECT_DIR$/klibs/KLExperiment.py" />
         <option value="$PROJECT_DIR$/klibs/KLTextManager.py" />
         <option value="$PROJECT_DIR$/klibs.py" />
+        <option value="$PROJECT_DIR$/klibs/KLTrialFactory.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
+    <option name="x" value="-2" />
     <option name="y" value="23" />
     <option name="width" value="1440" />
     <option name="height" value="873" />
@@ -284,7 +287,7 @@
     <property name="options.splitter.main.proportions" value="0.3" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="options.lastSelected" value="com.jetbrains.python.configuration.PythonSdkConfigurable" />
-    <property name="last_opened_file_path" value="$USER_HOME$/Desktop/Test" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../IOR_Reward" />
     <property name="FullScreen" value="false" />
     <property name="options.searchVisible" value="true" />
     <property name="options.splitter.details.proportions" value="0.2" />
@@ -474,11 +477,11 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1440" height="873" extended-state="6" />
-    <editor active="true" />
+    <frame x="-2" y="23" width="1440" height="873" extended-state="6" />
+    <editor active="false" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32934928" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32934928" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -527,30 +530,23 @@
       <provider selected="true" editor-type-id="text-editor">
         <state line="130" column="46" selection-start="3625" selection-end="3625" vertical-scroll-proportion="0.0" vertical-offset="1263" max-vertical-offset="2295">
           <folding>
-            <element signature="e#2053#2552#0" expanded="true" />
-            <element signature="e#2575#2721#0" expanded="true" />
-            <element signature="e#2755#2775#0" expanded="true" />
-            <element signature="e#2821#3091#0" expanded="true" />
-            <element signature="e#3123#3141#0" expanded="true" />
-            <element signature="e#3183#3374#0" expanded="true" />
-            <element signature="e#3416#3420#0" expanded="true" />
-            <element signature="e#3458#3490#0" expanded="true" />
-            <element signature="e#4171#4371#0" expanded="true" />
-            <element signature="e#4393#4532#0" expanded="true" />
+            <element signature="e#2053#2552#0" expanded="false" />
+            <element signature="e#2575#2721#0" expanded="false" />
+            <element signature="e#2755#2775#0" expanded="false" />
+            <element signature="e#2821#3091#0" expanded="false" />
+            <element signature="e#3123#3141#0" expanded="false" />
+            <element signature="e#3183#3374#0" expanded="false" />
+            <element signature="e#3416#3420#0" expanded="false" />
+            <element signature="e#3458#3490#0" expanded="false" />
+            <element signature="e#4171#4371#0" expanded="false" />
+            <element signature="e#4393#4532#0" expanded="false" />
             <element signature="e#4563#5639#0" expanded="false" />
-            <element signature="e#4647#5108#0" expanded="true" />
-            <element signature="e#5130#5639#0" expanded="true" />
+            <element signature="e#4647#5108#0" expanded="false" />
+            <element signature="e#5130#5639#0" expanded="false" />
             <marker date="1448297901000" expanded="true" signature="-1:-1" placeholder="..." />
             <marker date="1448297901000" expanded="true" signature="-1:-1" placeholder="..." />
             <marker date="1448297901000" expanded="true" signature="-1:-1" placeholder="..." />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/klibs/KLUtilities.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="377" column="0" selection-start="12570" selection-end="12570" vertical-scroll-proportion="0.0" vertical-offset="436" max-vertical-offset="1560">
-          <folding />
         </state>
       </provider>
     </entry>
@@ -572,7 +568,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state line="157" column="28" selection-start="4670" selection-end="4670" vertical-scroll-proportion="0.0" vertical-offset="1893" max-vertical-offset="2370">
           <folding>
-            <element signature="e#2969#4122#0" expanded="true" />
+            <element signature="e#2969#4122#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -590,13 +586,6 @@
       </provider>
       <provider selected="true" editor-type-id="text-editor">
         <state line="0" column="1" selection-start="1" selection-end="1" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="477">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/klibs/KLTrialFactory.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="144" column="29" selection-start="3905" selection-end="3905" vertical-scroll-proportion="0.0" vertical-offset="618" max-vertical-offset="1335">
           <folding />
         </state>
       </provider>
@@ -634,6 +623,7 @@
             <element signature="e#1001#1086#0" expanded="true" />
             <element signature="e#1134#1138#0" expanded="true" />
             <element signature="e#1163#1167#0" expanded="true" />
+            <marker date="1448402963000" expanded="true" signature="674:1167" placeholder="..." />
           </folding>
         </state>
       </provider>
@@ -660,12 +650,28 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/klibs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="205" column="16" selection-start="10120" selection-end="10120" vertical-scroll-proportion="0.41810346" vertical-offset="2626" max-vertical-offset="3180">
+        <state line="223" column="0" selection-start="10569" selection-end="10569" vertical-scroll-proportion="0.0" vertical-offset="2716" max-vertical-offset="3180">
           <folding>
             <element signature="e#1558#1573#0" expanded="true" />
             <element signature="e#1660#5900#0" expanded="true" />
             <element signature="e#6740#7023#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/klibs/KLUtilities.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="328" column="29" selection-start="11324" selection-end="11324" vertical-scroll-proportion="0.0" vertical-offset="766" max-vertical-offset="1575">
+          <folding>
+            <element signature="e#12151#12260#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/klibs/KLTrialFactory.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="145" column="32" selection-start="3914" selection-end="3914" vertical-scroll-proportion="0.4654088" vertical-offset="618" max-vertical-offset="1395">
+          <folding />
         </state>
       </provider>
     </entry>

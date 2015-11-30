@@ -92,7 +92,6 @@ if PYLINK_AVAILABLE:
 			box_pen = self.__stroke = aggdraw.Pen((255,0,0), 3, 255)
 			bounding_box.rectangle([0,0,width,height], box_pen)
 			self.experiment.blit(NumpySurface(bounding_box), position=boundary[0], registration=7)
-			
 
 		def remove_gaze_boundary(self, name):
 			try:

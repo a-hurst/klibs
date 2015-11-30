@@ -10,6 +10,7 @@ from copy import copy
 import OpenGL.GL as gl
 import sdl2.ext
 import aggdraw
+from KLAudio import AudioManager
 from KLEyeLink import *
 from KLExceptions import *
 from KLNumpySurface import *
@@ -105,10 +106,13 @@ class Experiment(object):
 		# initialize screen surface and screen parameters
 		self.display_init(display_diagonal_in)
 
-		# initialize the self.text layer for the app
+		# initialize the text management for the experiment
 		self.text_manager = TextManager(Params.ppi)
 		if Params.default_font_size:
 			self.text_manager.default_font_size = Params.default_font_size
+
+		# initialize audio management for the experiment
+		self.audio = AudioManager(self)
 
 		# initialize eyelink
 		self.eyelink = EyeLink(self)
@@ -117,7 +121,6 @@ class Experiment(object):
 
 		if not Params.collect_demographics:
 			self.collect_demographics(True)
-
 
 	def __execute_experiment(self, *args, **kwargs):
 		"""

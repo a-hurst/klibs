@@ -32,6 +32,7 @@ from KLAudio import *
 from KLUtilities import *
 from KLNumpySurface import *
 from KLDraw import *
+from KLResponseCollectors import *
 
 print "\n\n\033[92m*** Now loading KLIBS Environment ***\033[0m"
 print "\t\033[32mHint: if a bunch of SDL errors were just reported, this was expected, do not be alarmed!)\033[0m"
@@ -44,6 +45,7 @@ from KLELCustomDisplay import ELCustomDisplay
 from KLEEG import *
 from KLExperiment import Experiment
 
+global exp
 def track_mouse():
 	"""
 	Utility method for

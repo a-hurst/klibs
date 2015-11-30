@@ -96,12 +96,18 @@ class TimeKeeper(object):
 
 	def start(self, label, time_value=None):
 		self.periods[label] = [time_value if time_value else time.time(), None]
+		return self
 
 	def stop(self, label, time_value=None):
 		self.periods[label][1] = time_value if time_value else time.time()
+		return self
 
 	def period(self, label):
-		return self.periods[label][1] - self.periods[label][0]
+		try:
+			return self.periods[label][1] - self.periods[label][0]
+		except TypeError:
+			self.stop(label)
+			return self.period(label)
 
 	def read(self, label):
 		try:

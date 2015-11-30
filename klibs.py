@@ -7,14 +7,24 @@ col = {"@P": '\033[95m',  # purple
 		   "@E": '\033[0m'    # return to normal
 	}
 
+import argparse
+import os
+import shutil
+from subprocess import Popen, PIPE
+import imp
+import time
+import traceback
+import sys
+
 try:
 	import klibs
-	import imp
-	import time
 except ImportError:
 	#  todo: add in Ross's april fools idea
-	print "\n\033[91m*** Fatal Error: klibs not found ***\033[0m\n"
-	print "\033[1mWhat To Do: \033[0mThe klibs python module couldn't be located; repair the path to the module or reinstall it."
+	exc_type, exc_value, exc_traceback = sys.exc_info()
+	print "\n\033[91m*** Fatal Error: Unable to load klibs ***\033[0m"
+	print "\n\033[0mStack Trace (if you don't understand this, skip forward to 'What To Do If KLIBs Wasn't Found'"
+	print traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
+	print "\n\033[1mWhat To Do If KLIBS Wasn't Found: \n\033[0mIf the klibs python module couldn't be located; repair the path to the module or reinstall it."
 	print "Perhaps you're thinking \"then what's talking to me right now?!\". Don't worry, neither you nor I have gone mad."
 	print "Rather, when you typed 'klibs <name> <path>' you executed a setup script to create a new empty project."
 	print "This script is invoked using the word 'klibs' as a convenience but it is *not* a part of the klibs python module"
@@ -27,10 +37,7 @@ except ImportError:
 	print "\n... if the links don't work it's because Jon likely only wrote this; try: this.impetus@gmail.com!\n"
 	quit()
 
-import argparse
-import os
-import shutil
-from subprocess import Popen, PIPE
+
 
 
 def create(name, path):

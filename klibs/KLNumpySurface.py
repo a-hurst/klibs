@@ -41,7 +41,6 @@ def ad_fill(color, opacity=255):
 		col = col[0:2]
 	else:
 		col = color
-	pr("@T\tcol: {0}, opacity:{1}".format(col, opacity))
 	return aggdraw.Brush(tuple(col), opacity)
 
 
@@ -72,6 +71,7 @@ def from_aggdraw_context(draw_context):
 
 
 def add_alpha_channel(numpy_array, alpha_value=255):
+	# todo: stop throwing an error when there's an empty array
 	if len(numpy_array[2][0]) == 3:
 		return numpy.insert(numpy_array, 3, alpha_value, 2)
 	else:
@@ -149,6 +149,7 @@ class NumpySurface(object):
 				self.background = add_alpha_channel(background)
 
 		if foreground is not None:
+			self.foreground = add_alpha_channel(foreground)
 			try:
 				self.foreground = add_alpha_channel(foreground)
 			except AttributeError:

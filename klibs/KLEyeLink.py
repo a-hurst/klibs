@@ -1,30 +1,32 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
-PYLINK_AVAILABLE = False
+
 import ctypes
 from KLDraw import *
+import os
+import abc
+import time
+import KLParams as Params
+import sdl2
+import math
+from KLConstants import *
+from KLUtilities import *
+try:
+	import pylink
+	PYLINK_AVAILABLE = True
+except ImportError:
+	print "\t* Warning: Pylink library not found; eye tracking will not be available."
+	PYLINK_AVAILABLE = False
 
 try:
-	import os
-	import abc
-	import time
-	import pylink
-	import KLParams as Params
-	import sdl2
-	import math
-	from KLConstants import *
-	from KLUtilities import *
+	mouse = mouse_pos(True)
+	if (type(x) is int for x in mouse):
+		DUMMY_MODE_AVAILABLE = True
+except:
+	DUMMY_MODE_AVAILABLE = False
 
-	try:
-		mouse = mouse_pos(True)
-		if (type(x) is int for x in mouse):
-			DUMMY_MODE_AVAILABLE = True
-	except ImportError:
-		DUMMY_MODE_AVAILABLE = False
 
-	PYLINK_AVAILABLE = True
-	print "\tPylink library found! EyeTracking available!"
-
+if PYLINK_AVAILABLE:
 	class EyeLink(pylink.EyeLink):
 		__dummy_mode = None
 		experiment = None
@@ -275,5 +277,4 @@ try:
 		@dummy_mode.setter
 		def dummy_mode(self, status):
 				self.__dummy_mode = status
-except:
-	print "Warning: Pylink library not found; eye tracking will not be available."
+

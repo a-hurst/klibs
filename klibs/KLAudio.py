@@ -9,6 +9,14 @@ import sdl2.ext
 from sdl2 import sdlmixer
 import KLParams as Params
 from KLConstants import *
+import KLTimeKeeper as tk
+try:
+	import pyaudio
+	import wave
+	from array import array
+except ImportError:
+	print "\t* Warning: Pyaudio library not found; audio recording and sampling unavailable."
+
 
 if Params.audio_initialized is False:
 	sdl2.SDL_Init(sdl2.SDL_INIT_AUDIO)
@@ -70,4 +78,49 @@ class AudioClip(object):
 		def __set_volume(self, value=None):
 			sdlmixer.Mix_VolumeChunk(self.sample, self.__volume if value is None else value)
 			return True
+
+
+class AudioSample(object):
+
+	def __init__(self, raw_sample):
+		print raw_sample
+		self.array = array('h', raw_sample)
+		self.peak = max(self.array)
+
+
+class AudioResponse(object):
+	p = None
+	stream = None
+
+	def __init__(self):
+		self.p = pyaudio.PyAudio()
+
+	def init_stream(self):
+		try:
+			self.stream.stop_stream()
+			self.stream.close()
+			self.p.terminate()
+		except:
+			pass
+		self.p = pyaudio.PyAudio()
+		self.stream = self.p.open(format=pyaudio.paInt16, channels=1, rate=AR_RATE, input=True, output=True, frames_per_buffer=AR_CHUNK_SIZE)
+
+	def __sample(self):
+		if self.stream is None:
+			self.init_stream()
+		try:
+			return AudioSample(self.stream.read(AR_CHUNK_SIZE))
+		except IOError:
+			self.init_stream()
+			return self.__sample()
+
+	def get_ambient_level(self, duration=5):
+		sample_period = tk.CountDown(duration)
+		peaks = []
+		while sample_period.counting():
+			peaks.append(self.__sample().peak)
+		print peaks
+		return sum(peaks) / len(peaks)
+
+
 

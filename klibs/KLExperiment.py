@@ -251,14 +251,14 @@ class Experiment(object):
 		gl.glMatrixMode(gl.GL_MODELVIEW)
 		gl.glDisable(gl.GL_DEPTH_TEST)
 		self.clear()
-		sdl2.SDL_PumpEvents()
+		pump()
 
 		self.fill()
 		try:
 			self.blit(NumpySurface("splash.png"), 5, 'center')
 		except :
 			print "splash.png not found; splash screen not presented"
-		self.flip(1)
+		self.flip(2)
 
 	def alert(self, alert_string, blit=True, display_for=0):
 		"""
@@ -315,8 +315,8 @@ class Experiment(object):
 			width = source.width
 			content = source.render()
 		elif issubclass(type(source), Drawbject):
-			height = source.height
-			width = source.width
+			height = source.surface_height
+			width = source.surface_width
 			# source.draw()
 			content = source.render().render()
 		elif type(source) is numpy.ndarray:

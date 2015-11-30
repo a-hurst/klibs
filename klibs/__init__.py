@@ -28,7 +28,7 @@ from KLExceptions import *
 from KLConstants import * # string constants, included for tidyness below basically
 from KLTimeKeeper import TimeKeeper
 import KLParams as Params
-from KLAudioClip import *
+from KLAudio import *
 from KLUtilities import *
 from KLNumpySurface import *
 from KLDraw import *

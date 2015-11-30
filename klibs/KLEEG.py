@@ -23,4 +23,4 @@ try:
 				time.sleep(0.01)  # sleep 10 ms
 except:
 	PARRALELL_AVAILABLE = False
-	print "Warning: Parallel library not found; EEG messaging will not be available."
+	print "\t* Warning: Parallel library not found; EEG messaging will not be available."

@@ -52,6 +52,9 @@ try:
 			self.eye = self.eyeAvailable()
 			return self.eye != EL_NO_EYES
 
+		def calibrate(self):
+			self.doTrackerSetup()
+
 		def fetch_gaze_boundary(self, name=None):
 			return self.__gaze_boundaries[name] if name is not None else self.__gaze_boundaries
 
@@ -117,7 +120,6 @@ try:
 				x_range = range(boundary[0][0], boundary[1][0])
 				y_range = range(boundary[0][1], boundary[1][1])
 				ret_val = point[0] in x_range and point[1] in y_range
-				if Params.debug_level > 3: print "POINT: {0}, X_RANGE: {1}, Y_RANGE: {2}, RET_VAL:{3}".format(point, (x_range[0], x_range[-1]),(y_range[0], y_range[-1]), ret_val )
 				return point[0] in x_range and point[1] in y_range
 
 			if shape == EL_CIRCLE_BOUNDARY:
@@ -167,7 +169,8 @@ try:
 			events = EL_TRUE if events in [EL_TRUE, True] else EL_FALSE
 			samples = EL_TRUE if samples in [EL_TRUE, True] else EL_FALSE
 			if not self.dummy_mode:
-				return self.doDriftCorrect(location[0], location[1], events, samples)
+				self.doDriftCorrect(location[0], location[1], events, samples)
+				return self.applyDriftCorrect()
 			else:
 				def dc(dc_location, dc_gaze_boundary):
 					hide_mouse_cursor()
@@ -233,7 +236,7 @@ try:
 				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
 				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
 				self.setMotionThreshold(Params.saccadic_motion_threshold)
-				self.doTrackerSetup()
+				self.calibrate()
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 			start = time.time()

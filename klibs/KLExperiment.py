@@ -53,7 +53,7 @@ class Experiment(object):
 	text_manager = None   # KLTextManager instance
 	debug = {}
 
-	def __init__(self, project_name, display_diagonal_in, random_seed=None, asset_path="ExpAssets", export=False):
+	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available):
 		"""
 		Initializes a KLExperiment Object
 
@@ -68,8 +68,14 @@ class Experiment(object):
 
 		super(Experiment, self).__init__()
 
+		if development_mode:
+			Params.development_mode = True
+			Params.collect_demographics = False
 
-		if not Params.setup(project_name, asset_path, random_seed):
+		if not eyelink_available:
+			Params.eye_tracker_available = False
+
+		if not Params.setup(project_name, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 
 		#initialize the self.database instance
@@ -610,8 +616,9 @@ class Experiment(object):
 			if key_press.sym in UI_METHOD_KEYSYMS:
 				if key_press.sym == sdl2.SDLK_q:
 					kl_quit()
-				elif key_press.sym in [sdl2.SDLK_c, sdl2.SDLK_s]:
-					return key_press.sym
+				elif key_press.sym == sdl2.SDLK_c:
+					if Params.eye_tracking and Params.eye_tracker_available:
+						self.eyelink.calibrate()
 				elif key_press.sym == sdl2.SDLK_p:
 					if not self.paused:
 						self.paused = True
@@ -1229,7 +1236,7 @@ class Experiment(object):
 		except:  # TODO: Determine exception tpye
 			print "Database.close() unsuccessful."
 		try:
-			self.eyelink.stopRecording()
+			self.eyelink.shut_down_eyelink()
 		except:
 			print "EyeLink.stopRecording()  unsuccessful.\n ****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******"
 		try:

@@ -1,0 +1,4 @@
+# Config file for PROJECT_NAME
+column_1.param, column_2.param, trial_count
+factor_1,factor_3,,
+factor_2,factor_4,,

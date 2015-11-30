@@ -97,7 +97,6 @@ class TextManager(object):
 			if line.width > text_dims[0]: text_dims[0] = line.width
 			if line_height is None: line_height = 1.5 * line.height
 			text_dims[1] += int(line_height)
-		print "Text Dimensions: {0}".format(text_dims)
 		y_pos = 0
 		text_surface = NumpySurface(width=text_dims[0], height=text_dims[1])
 		for line in lines_surfs:

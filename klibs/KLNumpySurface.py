@@ -66,7 +66,11 @@ def from_aggdraw_context(draw_context):
 	:param draw_context:
 	:return:
 	"""
-	draw_context_bytes = Image.frombytes(draw_context.mode, draw_context.size, draw_context.tostring())
+	try:
+		draw_context_bytes = Image.frombytes(draw_context.mode, draw_context.size, draw_context.tostring())  # old aggdraw
+	except Exception:
+		draw_context_bytes = Image.frombytes(draw_context.mode, draw_context.size, draw_context.tobytes()) # new aggdraw
+
 	return NumpySurface(numpy.asarray(draw_context_bytes))
 
 

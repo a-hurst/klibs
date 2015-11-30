@@ -7,6 +7,8 @@ from KLAudioClip import AudioClip  # just a simple class for playing sdl2 sounds
 from KLNumpySurface import *  # a class for easily moving between numpy pixel arrays and sdl2/openGL
 import KLParams as Params  # a list of program-wide settings like screen dimensions, colors, etc.
 import KLDraw
+import array
+import sys
 
 class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 
@@ -19,6 +21,16 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		self.experiment = experiment  # a reference to the instance of the "experiment class" where most of the
 		self.size = self.experiment.window.size
 		self.tracker = tracker
+		self.last_flip = None
+		self.fill_color = [255,0,0]
+		if sys.byteorder == 'little':
+			self.byteorder = 1
+		else:
+			self.byteorder = 0
+		self.imagebuffer = array.array('I')
+		self.pal = None
+		self.__img__ = None
+
 
 		pylink.EyeLinkCustomDisplay.__init__(self)
 
@@ -75,9 +87,9 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 					if tracker_mode in [pylink.EL_VALIDATE_MODE, pylink.EL_CALIBRATE_MODE]:
 						return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
 					else:
-						return False
+						return 0
 				if ui_request:
-					if ui_request == sdl2.SDLK_c and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
+					if ui_request == sdl2.SDLK_c: #and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
 						return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
 				return [pylink.KeyInput(keysym.sym, keysym.mod)]
 
@@ -97,6 +109,19 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		pass
 
 	def draw_image_line(self, width, line, totlines, buff):
+		i = 0
+		while i < width:
+			if buff[i]>=len(self.pal):
+				buff[i] = len(self.pal)-1
+			self.imagebuffer.append(self.pal[buff[i]&0x000000FF])
+			i = i+1
+		if line == totlines:
+			img = Image.fromstring('RGBX', (width,totlines), self.imagebuffer.tostring())
+			img = img.convert('RGBA')
+			self.experiment.blit(NumpySurface(numpy.asarray(img)), position=Params.screen_c, registration=5)
+			self.experiment.flip()
+			self.imagebuffer = array.array('I')
+			return
 		# todo make this shizit work son
 		try:
 			for i in range(0, len(buff)):
@@ -114,4 +139,16 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		pass
 
 	def set_image_palette(self, r, g, b):
-		pass
+		self.imagebuffer = array.array('I')
+		sz = len(r)
+		i = 0
+		self.pal = []
+		while i < sz:
+			rf = int(b[i])
+			gf = int(g[i])
+			bf = int(r[i])
+			if self.byteorder:
+				self.pal.append((rf<<16) | (gf<<8) | (bf))
+			else:
+				self.pal.append((bf<<24) |  (gf<<16) | (rf<<8)) #for mac
+			i = i+1

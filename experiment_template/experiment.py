@@ -3,10 +3,8 @@ __author__ = "EXPERIMENTER_NAME"
 import klibs
 from klibs import Params
 
-"""
- Below are some commonly required additional libraries; uncomment as needed.
+# Below are some commonly required additional libraries; uncomment as needed.
 
-""" 
 # import os
 # import time
 # from PIL import Image
@@ -20,7 +18,7 @@ from klibs import Params
 Params.default_fill_color = (100, 100, 100, 255)
 
 Params.debug_level = 0
-Params.collect_demographics = False
+Params.collect_demographics = True
 Params.practicing = True
 Params.eye_tracking = True
 Params.eye_tracker_available = False
@@ -31,7 +29,7 @@ Params.practice_blocks_per_experiment = 3
 Params.trials_per_practice_block = 3
 
 
-class PROJECT_NAME(klibs.App):
+class PROJECT_NAME(klibs.Experiment):
 
 	def __init__(self, *args, **kwargs):
 		super(PROJECT_NAME, self).__init__(*args, **kwargs)
@@ -42,17 +40,17 @@ class PROJECT_NAME(klibs.App):
 	def block(self, block_num):
 		pass
 
-	def trial_prep(self, *args, **kwargs):
-		self.db.init_entry('trials')
+	def trial_prep(self, trial_factors):
+		pass
 
-	def trial(self, trial_factors, trial_num):
-
-		return {}
+	def trial(self, trial_factors):
+		return {
+			"block_num": Params.block_number,
+			"trial_num": Params.trial_number
+		}
 
 	def trial_clean_up(self, *args, **kwargs):
 		pass
 
 	def clean_up(self):
 		pass
-
-app = PROJECT_NAME("PROJECT_NAME").run()

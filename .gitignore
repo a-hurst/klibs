@@ -1,4 +1,5 @@
-.idea 
+.idea
+.idea/*
 .DS_Store
 build/
 __init__.pyc

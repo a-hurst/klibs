@@ -37,6 +37,7 @@ def cursor(color=None):
 	cursor_surface = from_aggdraw_context(dc)
 	return cursor_surface
 
+
 def drift_correct_target():
 	draw_context_length = Params.screen_y // 60
 	while draw_context_length % 3 != 0:  # center-dot is 1/3 of parent; offset unequal if parent not divisible by 3
@@ -51,38 +52,71 @@ def drift_correct_target():
 
 	return NumpySurface(draw_context)
 
+
+#  to handle legacy code in which KLIBs had a Circle object rather than an Ellipse object
+def Circle(diameter, stroke=None, fill=None, auto_draw=True):
+	return Ellipse(diameter, diameter, stroke, fill, auto_draw)
+
+
 class Drawbject(object):
-	__stroke = None
 	transparent_brush = aggdraw.Brush((255, 0, 0), 0)
 
-	def __init__(self, surface_x, surface_y, stroke, fill):
-		self.stroke_color = None
-		self.stroke_width = None
-		self.__fill = None
-		self.fill_color = None
-		self.stroke_offset = 0
-		self.width = None
-		self.height = None
-
+	def __init__(self, width, height, stroke, fill):
 		super(Drawbject, self).__init__()
 
+		self.__stroke = None
+		self.stroke_color = None
+		self.stroke_width = None
+		self.stroke_alignment = STROKE_INNER
+		self.__fill = None
+		self.fill_color = None
+		self.stroke_width = 0
+		self.object_width = width
+		self.object_height = height
+		self.surface_width = None
+		self.surface_height = None
+		self.surface = None
+
 		try:
-			test = iter(stroke)
+			iter(stroke)
 			self.stroke = stroke
-			self.stroke_offset = stroke[0]
 		except TypeError:
-			pass
+			self.stroke = None
+
 		try:
 			self.fill = fill
 		except TypeError:
-			pass
-		self.width = surface_x
-		self.height = surface_y
-		self.surface = aggdraw.Draw("RGBA", [surface_x, surface_y], (0, 0, 0, 0))
+			self.fill = None
+
+
+		self.init_surface(width, height)
+
+	def __str__(self):
+		return "klibs.Drawbject.{0} ({1} x {2}) at {3}".format(self.__name__, self.surface_width, self.surface_height, hex(id(self)))
+
+	def init_surface(self, width=None, height=None):
+		if width is not None and height is not None:  # initial call infers dimensions; subsequent calls for clearing the surface only
+			if self.stroke_alignment == STROKE_OUTER:
+				self.surface_width = width + 2 + self.stroke_width * 2
+				self.surface_height = height + 2 + self.stroke_width * 2
+			elif self.stroke_alignment == STROKE_CENTER:
+				self.surface_width = width + 2 + self.stroke_width
+				self.surface_height = height + 2 + self.stroke_width
+			else:
+				self.surface_width = width + 2
+				self.surface_height = height + 2
+		self.surface = aggdraw.Draw("RGBA", [self.surface_width, self.surface_height], (0, 0, 0, 0))
+		self.surface.setantialias(True)
 
 	def render(self):
+		self.init_surface()
+		self.draw()
 		surface_bytes = Image.frombytes(self.surface.mode, self.surface.size, self.surface.tostring())
 		return NumpySurface(numpy.asarray(surface_bytes))
+
+	@abc.abstractproperty
+	def __name__(self):
+		pass
 
 	@property
 	def stroke(self):
@@ -90,7 +124,22 @@ class Drawbject(object):
 
 	@stroke.setter
 	def stroke(self, style):
-		width, color = style
+		if not style:
+			self.stroke_alignment = STROKE_OUTER
+			self.stroke_width = 0
+			self.stroke_color = None
+			return self
+		try:
+			width, color, alignment = style
+		except ValueError:
+			width, color = style
+			alignment = STROKE_OUTER
+
+		if alignment in [STROKE_INNER, STROKE_CENTER, STROKE_OUTER]:
+			self.stroke_alignment = alignment
+		else:
+			raise ValueError("Invalid value provided for stroke alignment; see KLConstants for accepted values")
+
 		if len(color) == 4:
 			opacity = color[3]
 			color = [i for i in color[0:3]]
@@ -100,6 +149,9 @@ class Drawbject(object):
 		self.stroke_color = color
 		self.stroke_width = width
 		self.__stroke = aggdraw.Pen(tuple(color), width, opacity)
+		if self.surface: # don't call this when initializing the Drawbject for the first time
+			self.init_surface()
+		return self
 
 	@property
 	def fill(self):
@@ -107,6 +159,9 @@ class Drawbject(object):
 
 	@fill.setter
 	def fill(self, color):
+		if not color:
+			self.fill_color = None
+			return self
 		if len(color) == 4:
 			opacity = color[3]
 			color = tuple(color[0:3])
@@ -115,6 +170,9 @@ class Drawbject(object):
 			opacity = 255
 		self.fill_color = color
 		self.__fill = aggdraw.Brush(color, opacity)
+		if self.surface: # don't call this when initializing the Drawbject for the first time
+			self.init_surface()
+		return self
 
 	@abc.abstractmethod
 	def draw(self):
@@ -122,41 +180,52 @@ class Drawbject(object):
 
 	@property
 	def dimensions(self):
-		return [self.width, self.height]
+		return [self.surface_width, self.surface_height]
 
 
 class FixationCross(Drawbject):
 
-	def __init__(self, width, stroke, color=None, fill=None):
-		Drawbject.__init__(self, width, width)
-		if fill is None:
-			fill = Params.default_fill_color
-		if color is None:
-			color = (abs(255 - fill[0]), abs(255 - fill[1]), abs(255 - fill[2]), 255)  # invert default fill if no color
-		cross_pen = aggdraw.Pen(color, stroke, 255)
-		self.surface = aggdraw.Draw("RGBA", (width, width), fill)
-		self.surface.line((width // 2, 0, width // 2, width), cross_pen)
-		self.surface.line((0, width // 2, width, width // 2), cross_pen)
-
-
-class Circle(Drawbject):
-	diameter = None
-
-	def __init__(self, diameter, stroke=None, fill=None, auto_draw=True):
-		super(Circle, self).__init__(diameter + 2, diameter + 2, stroke, fill)
-		try:
-			self.diameter = diameter - 2 * stroke[0]
-		except TypeError:
-			self.diameter = diameter
+	def __init__(self, size, thickness, stroke=None, fill=None, auto_draw=True):
+		if not stroke:  # ie. "fill" will actually be the stroke of two lines as against two intersecting rects
+			stroke = [thickness, fill]
+			fill = None
+		super(FixationCross, self).__init__(size, size, stroke, fill)
 		if auto_draw:
 			self.draw()
 
+	def draw(self):
+		if not self.fill:
+			self.surface.line((self.surface_width // 2, 1, self.surface_width // 2, self.surface_width - 1), self.stroke)
+			self.surface.line((1, self.surface_height // 2, self.surface_height - 1, self.surface_height // 2), self.stroke)
+		else:
+			str_h1 = self.surface_height // 2 - self.stroke_width // 2
+			str_h2 = self.surface_height // 2 + self.stroke_width // 2
+			self.surface.rectangle([1, str_h1, self.surface_width - 1, str_h2])
+
+	@property
+	def __name__(self):
+		return "FixationCross"
+
+
+class Ellipse(Drawbject):
+
+	def __init__(self, width, height=None, stroke=None, fill=None, auto_draw=True):
+		if not height:
+			height = width
+		super(Ellipse, self).__init__(width, height, stroke, fill)
+		if auto_draw:
+			self.draw()
 
 	def draw(self):
-		xy_1 = self.stroke_offset + 2
-		xy_2 = self.diameter
-		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], self.stroke, self.fill)
+		xy_1 = self.stroke_width + 1
+		x_2 = self.surface_width - 1
+		y_2 = self.surface_height - 1
+		self.surface.ellipse([xy_1, xy_1, x_2, y_2], self.stroke, self.fill)
 		return self
+
+	@property
+	def __name__(self):
+		return "Ellipse"
 
 
 class Annulus(Drawbject):
@@ -181,13 +250,17 @@ class Annulus(Drawbject):
 		if self.stroke:
 			stroked_path_pen = aggdraw.Pen(tuple(self.stroke_color), self.ring_width)
 			xy_1 = 2 + self.ring_width
-			xy_2 = self.width - (2 + self.ring_width)
+			xy_2 = self.surface_width - (2 + self.ring_width)
 			self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroked_path_pen, self.transparent_brush)
 		xy_1 = 2 + self.ring_width
-		xy_2 = self.width - (2 + self.ring_width)
+		xy_2 = self.surface_width - (2 + self.ring_width)
 		path_pen = aggdraw.Pen(tuple(self.fill_color), self.ring_inner_width)
 		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
 		return self.surface
+
+	@property
+	def __name__(self):
+		return "Annulus"
 
 
 class Rectangle(Drawbject):
@@ -195,19 +268,25 @@ class Rectangle(Drawbject):
 	def __init__(self, width, height=None, stroke=None, fill=None, auto_draw=True):
 		if not height:
 			height = width
-		super(Rectangle, self).__init__(width + 2, height + 2, stroke, fill)
+		super(Rectangle, self).__init__(width, height, stroke, fill)
 		if auto_draw:
 			self.draw()
 
 	def draw(self):
+		x1 = self.stroke_width + 1
+		y1 = self.stroke_width + 1
+		x2 = self.surface_width - (self.stroke_width + 1)
+		y2 = self.surface_height - (self.stroke_width + 1)
 		if self.stroke:
-			w = self.width - self.stroke_offset
-			h = self.height - self.stroke_offset
 			if self.fill:
-				self.surface.rectangle((1, 1, w, h), self.stroke, self.fill)
+				self.surface.rectangle((x1, y1, x2, y2), self.stroke, self.fill)
 			else:
-				self.surface.rectangle((1, 1, w, h), self.stroke)
+				self.surface.rectangle((x1, y1, x2, y2), self.stroke)
 		else:
-			self.surface.rectangle((1, 1, self.width, self.height), None, self.fill)
+			self.surface.rectangle((1, 1, self.surface_width - 1, self.surface_height - 1), self.fill)
 
 		return self.surface
+
+	@property
+	def __name__(self):
+		return "Rectangle"

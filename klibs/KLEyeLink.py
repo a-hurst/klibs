@@ -209,7 +209,10 @@ if PYLINK_AVAILABLE:
 					if eye_required == EL_RIGHT_EYE:
 						sample = self.__current_sample.getLeftEye().getGaze()
 			else:
-				raise ValueError("Unable to collect a sample from the EyeLink.")
+				if not self.__eye():
+					return self.gaze()
+				else:
+					raise ValueError("Unable to collect a sample from the EyeLink.")
 
 			return [int(sample[0]), int(sample[1])] if return_integers else sample
 
@@ -259,11 +262,12 @@ if PYLINK_AVAILABLE:
 			self.stopRecording()
 
 		def shut_down_eyelink(self):
-			if self.eyelink.isRecording() == 0: self.eyelink.stopRecording()
+			if self.isRecording() == 0: 
+				self.stopRecording()
 			self.setOfflineMode()
 			self.closeDataFile()
-			self.receiveDataFile(self.file_name[0], self.file_name[1])
-			return self.eyelink.close()
+			self.receiveDataFile(self.filename[0], self.filename[1])
+			return self.close()
 
 		@abc.abstractmethod
 		def listen(self, **kwargs):

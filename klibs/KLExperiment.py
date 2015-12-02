@@ -163,14 +163,11 @@ class Experiment(object):
 		self.debug['trial_factors'] = args[1]
 		# try:
 		if args[1][0] is True:  # ie. if practicing
-			block_base = Params.block_number - 1 * Params.trials_per_practice_block
+			block_base = (Params.block_number * Params.trials_per_practice_block) - Params.trials_per_practice_block 
 			Params.trial_number = block_base + args[0] + 1 - Params.recycle_count
 		else:
-			if Params.block_number > 1:
-				block_base = Params.block_number - 1 * Params.trials_per_block
-			else:
-				block_base = 0
-			Params.trial_number =  block_base + args[0] + 1 - Params.recycle_count
+			block_base = (Params.block_number * Params.trials_per_block) - Params.trials_per_block 
+			Params.trial_number =   block_base + args[0] - Params.recycle_count
 		self.trial_prep(args[1])
 		try:
 			trial_data = self.trial(args[1])
@@ -1263,6 +1260,7 @@ class Experiment(object):
 				self.collect_demographics()
 		elif not Params.demographics_collected:
 			self.collect_demographics(True)
+
 		if Params.eye_tracking and Params.eye_tracker_available:
 			self.eyelink.setup()
 		self.setup()

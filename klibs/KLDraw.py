@@ -50,7 +50,7 @@ def drift_correct_target():
 	wd_bot = 2 * draw_context_length // 3
 	draw_context.ellipse([wd_top, wd_top, wd_bot, wd_bot], white_brush)
 
-	return NumpySurface(draw_context)
+	return from_aggdraw_context(draw_context)
 
 
 #  to handle legacy code in which KLIBs had a Circle object rather than an Ellipse object

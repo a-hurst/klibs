@@ -167,7 +167,7 @@ try:
 	run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
 	run_parser.add_argument('-rs', '--random_seed',  type=int, help="Providing a random seed will allow an experiment to continue from it's previously completed state." )
 	run_parser.add_argument('-d', '--development_mode', action="store_true", help="Development mode turns off demographics collection and turns on several debugging features." )
-	run_parser.add_argument('-ELx', '--eyelink_connected', action="store_true", help="Specifies whether or not an eyelink is connected; default is True. Does nothing for non-eyetracking experiments." )
+	run_parser.add_argument('-ELx', '--eyelink_connected', action="store_false", help="Specifies whether or not an eyelink is connected; default is True. Does nothing for non-eyetracking experiments." )
 	run_parser.set_defaults(func=run)
 
 

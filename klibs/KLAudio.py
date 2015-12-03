@@ -10,6 +10,7 @@ from sdl2 import sdlmixer
 import KLParams as Params
 from KLConstants import *
 import KLTimeKeeper as tk
+from KLDraw import *
 import math
 
 try:
@@ -119,12 +120,12 @@ class AudioSample(object):
 		return self.trough > threshold if threshold else self.threshold
 
 
-class AudioResponseListener(object):
+class AudioStream(object):
 	p = None
 	stream = None
 
-	def __init__(self, experiment, threshold):
-		super(AudioResponseListener, self).__init__()
+	def __init__(self, experiment, threshold=None):
+		super(AudioStream, self).__init__()
 		self.experiment = experiment
 		self.p = pyaudio.PyAudio()
 		if threshold == AR_AUTO_THRESHOLD:
@@ -132,17 +133,7 @@ class AudioResponseListener(object):
 		else:
 			self.threshold = threshold
 
-	def init_stream(self):
-		try:
-			self.stream.stop_stream()
-			self.stream.close()
-			self.p.terminate()
-		except AttributeError:
-			pass  # on first pass, no stream exists; on subsequent passes, extant stream should be stopped & overwritten
-		self.p = pyaudio.PyAudio()
-		self.stream = self.p.open(format=pyaudio.paInt16, channels=2, rate=AR_RATE, input=True, output=True, frames_per_buffer=AR_CHUNK_SIZE)
-
-	def __sample(self):
+	def sample(self):
 		if self.stream is None:
 			self.init_stream()
 		try:
@@ -152,25 +143,67 @@ class AudioResponseListener(object):
 				return AudioSample(self.stream.read(AR_CHUNK_SIZE), Params.AR_AUTO_THRESHOLD)
 		except IOError:
 			self.init_stream()
-			return self.__sample()
+			return self.sample()
 
-	def get_ambient_level(self, duration=5):
-		sample_period = Params.tk.countdown(duration)
-		warn_period = Params.tk.countdown(3)
-		warn_message = "Please remain quite while the ambient noise level is sampled. Sampling will begin in {0} seconds."
+	def init_stream(self):
+		try:
+			self.stream.stop_stream()
+			self.stream.close()
+			self.p.terminate()
+		except (AttributeError, IOError) as e:
+			pass  # on first pass, no stream exists; on subsequent passes, extant stream should be stopped & overwritten
+		self.p = pyaudio.PyAudio()
+		self.stream = self.p.open(format=pyaudio.paInt16, channels=2, rate=AR_RATE, input=True, output=True, frames_per_buffer=AR_CHUNK_SIZE)
+
+	def get_ambient_level(self, period=1):
+		from KLResponseCollectors import KeyPressCollector  # not available at module load
+		sample_period = Params.tk.countdown(period)
+		warn_message = "Please remain quite while the ambient noise level is sampled. Press SPACE to begin."
 		sampling_message = "Sampling Complete In {0} Seconds"
-		peaks = []
-		while warn_period.counting():
-			self.experiment.fill()
-			self.experiment.message(warn_message.format(int(math.ceil(warn_period.remaining()))), location=Params.screen_c, registration=5)
-			self.experiment.flip()
+		any_key_listener = KeyPressCollector(Params.key_maps["*"], self.experiment, interrupt=True)
 
+		peaks = []
+
+		self.experiment.fill()
+		self.experiment.message(warn_message, location=Params.screen_c, registration=5)
+		any_key_listener.run()
+		sample_period.start()
 		while sample_period.counting():
+			pump()
 			self.experiment.fill()
 			self.experiment.message(sampling_message.format(int(math.ceil(sample_period.remaining())), font_size="48pt"), location=Params.screen_c, registration=5)
-			peaks.append(self.__sample().peak)
+			peaks.append(self.sample().peak)
 			self.experiment.flip()
+
 		return sum(peaks) / len(peaks)
+
+	def get_peak_during(self, period=3, message=None):
+		initial_diameter = int(Params.screen_x * 0.05)
+		sample_period = Params.tk.countdown(period)
+		peak = 0
+		while sample_period.counting():
+			pump()
+			self.experiment.fill()
+			if message:
+				self.experiment.message(message)
+			sample = self.sample()
+			if sample.peak > peak:
+				peak = sample.peak
+			peak_circle = int((peak * Params.screen_x * 0.9) / 65000)
+			sample_circle = int((sample.peak * Params.screen_x * 0.9) / 65000)
+			if peak_circle < 5:
+				peak_circle = 5
+			if sample_circle < 5:
+				sample_circle = 5
+			self.experiment.blit(Circle(peak_circle, fill=[255, 145, 0]), position=Params.screen_c, registration=5)
+			self.experiment.blit(Circle(sample_circle, fill=[84, 60, 182]), position=Params.screen_c, registration=5)
+			self.experiment.flip()
+
+		return peak
+
+
+
+
 
 
 

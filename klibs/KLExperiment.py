@@ -16,13 +16,15 @@ from KLExceptions import *
 from KLNumpySurface import *
 from KLDatabase import *
 from KLKeyMap import KeyMap
-from KLTextManager import TextManager
+from KLTextManager import *
 from KLUtilities import *
 import KLParams as Params
 from KLConstants import *
 from KLELCustomDisplay import ELCustomDisplay
 from KLDraw import *
 from KLTrialFactory import TrialFactory
+from KLDebug import Debugger
+import sys
 import AppKit
 
 
@@ -52,7 +54,6 @@ class Experiment(object):
 	database = None       # KLDatabase instance
 	trial_factory = None  # KLTrialFactory instance
 	text_manager = None   # KLTextManager instance
-	debug = {}
 
 	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available):
 		"""
@@ -86,6 +87,7 @@ class Experiment(object):
 			export = [export]
 		self.__database_init(*export)
 		Params.key_maps["*"] = KeyMap("*", [], [], [])
+		Params.key_maps["*"].any_key = True
 		Params.key_maps["over_watch"] = KeyMap("over_watch", [], [], [])
 		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
 		Params.key_maps["eyelink"] = KeyMap("eyelink",
@@ -103,6 +105,7 @@ class Experiment(object):
 
 		self.event_code_generator = None
 
+
 		# initialize screen surface and screen parameters
 		self.display_init(display_diagonal_in)
 
@@ -111,6 +114,9 @@ class Experiment(object):
 		if Params.default_font_size:
 			self.text_manager.default_font_size = Params.default_font_size
 
+		# init debugger
+		self.debug = Debugger(self)
+
 		# initialize audio management for the experiment
 		self.audio = AudioManager(self)
 
@@ -118,6 +124,7 @@ class Experiment(object):
 		self.eyelink = EyeLink(self)
 		self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
 		self.eyelink.dummy_mode = Params.eye_tracker_available is False
+
 
 		if not Params.collect_demographics:
 			self.collect_demographics(True)
@@ -152,7 +159,6 @@ class Experiment(object):
 		self.database.db.commit()
 		self.database.db.close()
 
-
 	def __trial(self, *args, **kwargs):
 		"""
 		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1, param_2...]]
@@ -179,7 +185,6 @@ class Experiment(object):
 		except TrialException as e:
 			self.trial_clean_up(False, args[1])
 			raise e
-
 
 	def __database_init(self, *args):
 		"""
@@ -253,15 +258,18 @@ class Experiment(object):
 		gl.glOrtho(0, Params.screen_x, Params.screen_y, 0, 0, 1)
 		gl.glMatrixMode(gl.GL_MODELVIEW)
 		gl.glDisable(gl.GL_DEPTH_TEST)
-		self.clear()
 		pump()
 
-		self.fill()
+		self.clear()
 		try:
-			self.blit(NumpySurface("splash.png"), 5, 'center')
-		except :
+			brand_period = Params.tk.count_down(2)
+			while brand_period.counting():
+				self.fill()
+				self.blit(NumpySurface(os.path.join(Params.klibs_path, "splash.png")), 5, 'center')
+				self.flip()
+		except AttributeError:
 			print "splash.png not found; splash screen not presented"
-		self.flip(2)
+		Params.display_initialized = True
 
 	def alert(self, alert_string, blit=True, display_for=0):
 		"""
@@ -522,7 +530,7 @@ class Experiment(object):
 			if state == 'off' or False:
 				self.exemptions[index] = False
 
-	def flip(self, duration=0):
+	def flip(self, duration=0, debug=False):
 		"""
 		Transfers content of draw buffer to current display then waits for either of:
 		 - any key press
@@ -532,6 +540,13 @@ class Experiment(object):
 		:type duration: Integer
 		:raises: AttributeError, TypeError
 		"""
+
+		if Params.development_mode or debug:
+			try:
+				self.debug.print_logs(cli=False)
+			except AttributeError as e:  # potentially gets called once before the Debugger is intialized during init
+				if Params.display_initialized:
+					raise
 
 		sdl2.SDL_GL_SwapWindow(self.window.window)
 
@@ -771,8 +786,13 @@ class Experiment(object):
 		else:
 			return [response, rt]
 
-	def message(self, message, font=None, font_size=None, color=None, bg_color=None, location=None, registration=None,
-				wrap=None, wrap_width=None, line_delimiter=None, blit=True, flip=False, padding=None):
+	def message(self, message, style=None, font=None, font_size=None, color=None, bg_color=None, location=None, registration=None,
+				wrap_width=None, blit=True, flip=False, padding=None):
+		if not style:
+			style_name = "legacy_style_{0}".format(self.text_manager.legacy_styles_count)
+			self.text_manager.legacy_styles_count += 1
+			# font_size=None, color=None, bg_color=None, line_height=None, font=None
+			style = TextStyle(style_name, font_size, color, bg_color, font)
 		# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
 		"""
 		Generates and optionally renders formatted text to the display.
@@ -814,89 +834,33 @@ class Experiment(object):
 		render_config = {}
 		message_surface = None  # unless wrap is true, will remain empty
 
-		if font is None:
-			font = self.text_manager.default_font
-
-		if font_size is None:
-			font_size = self.text_manager.default_font_size
-
-		if color is None:
-			if self.text_manager.default_color:
-				color = self.text_manager.default_color
-
-		if bg_color is None:
-			bg_color = self.text_manager.default_bg_color
-
-		# if wrap:
-		# 	print "Wrapped text is not currently implemented. This feature is pending."
-		# 	exit()
-		# 	message = text.wrapped_text(message, delimiter, font_size, font, wrap_width)
-		# 	line_surfaces = []
-		# 	message_height = 0
-		# 	message_width = 0
-		# 	for line in message:
-		# 		line_surface = text.render_text(line, render_config)
-		# 		line_surfaces.append((line_surface, [0, message_height]))
-		# 		message_width = peak(line_surface.get_width(), message_width)
-		# 		message_height = message_height + line_surface.get_height()
-		# 	message_surface = pygame.Surface((message_width, message_height))
-		# 	message_surface.fill(bg_color)
-		# 	for ls in line_surfaces:
-		# 		self.blit(ls[0], 7, ls[1], message_surface)
-
-		#process blit registration
+		# process blit registration
 		if location == "center" and registration is None:  # an exception case for perfect centering
 			registration = 5
 		if registration is None:
-			if wrap:
-				registration = 5
-			else:
-				registration = 7
+			registration = 7
 
 		# process location, infer if need be; failure here is considered fatal
-		if location is None:
-			# By Default: wrapped text blits to screen center; single-lines blit to topLeft with a padding = fontSize
-			if wrap:
-				location = Params.screen_c
-			else:
-				x_offset = (Params.screen_x - Params.screen_x) // 2 + font_size
-				y_offset = (Params.screen_y - Params.screen_y) // 2 + font_size
-				location = (x_offset, y_offset)
-		elif type(location) is str:
-			location = absolute_position(location, self.window)
+		if not location:
+			x_offset = (Params.screen_x - Params.screen_x) // 2 + style.font_size
+			y_offset = (Params.screen_y - Params.screen_y) // 2 + style.font_size
+			location = (x_offset, y_offset)
 		else:
 			try:
 				iter(location)
-				if len(location) != 2:
-					raise ValueError()
-			except:
-				raise ValueError(
-					"Argument 'location' invalid; must be a location string, coordinate tuple, or NoneType")
+			except AttributeError:
+				try:
+					location = absolute_position(location, self.window)
+				except ValueError:
+					raise ValueError("Argument 'location' must be a location constant or iterable x,y coordinate pair")
 
+		message_surface = self.text_manager.render(message, style)
 		if not blit:
-			if wrap:
-				return message_surface
-			else:
-				message_surface = self.text_manager.render_text(message, render_config)
-				#check for single lines that extend beyond the app area and wrap if need be
-				# if message_surface.shape[1] > self.screen_x:
-				# 	return self.message(message, wrap=True)
-				# else:
-				# 	return message_surface
-				return message_surface
+			return message_surface
 		else:
-			if wrap:
-				self.blit(message_surface, registration, Params.screen_c)
-			else:
-				message_surface = self.text_manager.render_text(message, font, font_size, color, bg_color)
-				# if message_surface.shape[1] > self.screen_x:
-				# 	wrap = True
-				# 	return self.message(message, font, font_size, color, bg_color, location, registration,
-				# 						wrap, wrap_width, delimiter, blit, flip)
-				self.blit(message_surface, registration, location)
-			if flip:
-				self.flip()
-		return True
+			self.blit(message_surface, registration, location)
+		if flip:
+			self.flip()
 
 	def numpy_surface(self, foreground=None, background=None, fg_position=None, bg_position=None, width=None,
 					  height=None):

@@ -12,6 +12,7 @@ klibs_version = "1.0a"
 
 #  project structure; default paths & filenames
 global project_name
+global klibs_path
 global asset_path
 global database_filename
 global log_filename
@@ -36,6 +37,7 @@ audio_initialized = False
 
 skeleton_mode = False
 debug_level = 3
+development_mode = False  # when True, skips collect_demographics & prints various details to screen
 
 calibrate_with_audio = True
 calibrate_targets = 9
@@ -60,6 +62,8 @@ default_alert_duration = 1
 default_fill_color = [45, 45, 45, 255]
 default_response_color = [41,28, 70, 255]
 default_input_color = [45, 25, 28, 255]
+default_font_size = 28
+default_font_name = 'Frutiger'
 default_timeout_message = "Too slow!"
 monitor_x = None
 monitor_y = None
@@ -76,11 +80,11 @@ screen_x_y = None
 screen_degrees_x = None
 screen_degrees_y = None
 view_distance = 57  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen
+display_initialized = False
 
 saccadic_velocity_threshold = 20
 saccadic_acceleration_threshold = 5000
 saccadic_motion_threshold = 0.15
-default_font_size = 28
 
 fixation_size = 1  # deg of visual angle
 box_size = 1  # deg of visual angle
@@ -142,6 +146,7 @@ def init_project():
 def setup(project_name_str, previous_random_seed):
 	global project_name
 	global asset_path
+	global klibs_path
 	global random_seed
 	global time_keeper
 	global tk
@@ -156,4 +161,5 @@ def setup(project_name_str, previous_random_seed):
 	seed(random_seed)
 	project_name = project_name_str
 	asset_path = "ExpAssets"
+	klibs_path = "/usr/local/klibs/font"
 	return init_project()

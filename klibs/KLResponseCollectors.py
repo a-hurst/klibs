@@ -4,7 +4,7 @@ import KLParams as Params
 import abc
 from KLConstants import *
 from KLUtilities import *
-
+from KLAudio import AudioStream
 
 class ResponseCollector(object):
 	callback = None
@@ -147,4 +147,88 @@ class KeyPressCollector(ResponseCollector):
 			return self.responses if self.max_response_count > 1 else self.responses[0]
 
 
+class AudioResponseCollector(ResponseCollector):
 
+	def __init__(self, *args, **kwargs):
+		super(AudioResponseCollector, self).__init__(*args, **kwargs)
+		self.__threshold = None
+		self.stream = AudioStream(self.experiment)
+		self.threshold_valid = False
+
+	def calibrate(self):
+		peaks = []
+		for i in range(0, 3):
+			message = "Provide a normal sample of your intended response."
+			peaks.append( self.stream.get_peak_during(3, message) )
+			if i < 3:
+				next_message = "Got it; {0} more samples to collect. Press any key to continue".format(2-i)
+				self.experiment.fill()
+				self.experiment.message(next_message, location=Params.screen_c, registration=5)
+				any_key = KeyPressCollector(Params.key_maps['*'],experiment=self.experiment, interrupt=True)
+				any_key.run()
+		self.threshold = min(peaks)
+		self.validate()
+
+	def validate(self):
+		validate_counter = Params.tk.countdown(5)
+		while validate_counter.counting():
+			self.experiment.fill()
+			validation_instruction = "Ok; threshold set. To ensure it's validity, please provide one (and only one) more response."
+			self.experiment.message(validation_instruction, location=Params.screen_c, registration=5)
+			self.experiment.flip()
+			if self.stream.sample().peak >= self.threshold:
+				validate_counter.finish()
+				self.threshold_valid = True
+		if self.threshold_valid:
+			validation_message = "Great, validation was successful. Press any key to continue."
+			key_map = Params.key_maps["*"]
+		else:
+			validation_message = "Validation wasn't successful. Type C to re-calibrate or V to try validation again."
+			from KLKeyMap import KeyMap
+			key_map = KeyMap("",['c','v'],['c','v'],[sdl2.SDLK_c, sdl2.SDLK_v])
+		advance = KeyPressCollector(key_map, experiment=self.experiment, interrupt=True)
+		self.experiment.fill()
+		self.experiment.message(validation_message, location=Params.screen_c, registration=5)
+		response = advance.run()
+		if self.threshold_valid:
+			return
+		else:
+			if response[0] == "c":
+				self.calibrate()
+			if response[0] == "v":
+				self.validate()
+
+	def run(self):
+		if not self.threshold_valid:
+			pass  # write an exception for this
+		sdl2.SDL_PumpEvents()
+		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
+
+		if self.flip: self.experiment.flip()
+
+		rt_label = "Trial_{0}_Audio_Response".format(Params.trial_number)
+		Params.tk.start(rt_label)
+		self.response_window.start()
+		while self.response_window.counting():
+			pump()
+			try:
+				self.callback(*self.callback_args, **self.callback_kwargs)
+			except TypeError:
+				pass
+			if self.stream.sample().peak >= self.threshold:
+				if len(self.responses) < self.min_response_count:
+					self.responses.append([True, Params.tk.elapsed(rt_label)])
+				if self.interrupt:
+					return self.responses if self.max_response_count > 1 else self.responses[0]
+		if len(self.responses) == 0:
+			return [self.null_response_value, TIMEOUT]
+		else:
+			return self.responses if self.max_response_count > 1 else self.responses[0]
+
+	@property
+	def threshold(self):
+		return self.__threshold
+
+	@threshold.setter
+	def threshold(self, value):
+		self.__threshold = value

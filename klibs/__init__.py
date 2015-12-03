@@ -43,6 +43,7 @@ from KLKeyMap import *
 from KLEyeLink import *
 from KLELCustomDisplay import ELCustomDisplay
 from KLEEG import *
+from KLDebug import *
 from KLExperiment import Experiment
 
 global exp

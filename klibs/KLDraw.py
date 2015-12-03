@@ -226,6 +226,39 @@ class Ellipse(Drawbject):
 	@property
 	def __name__(self):
 		return "Ellipse"
+	
+	@property
+	def width(self):
+		return self.object_width
+	
+	@width.setter
+	def width(self, value):
+		self.object_width = value
+		self.init_surface()
+
+	@property
+	def height(self):
+		return self.object_height
+	
+	
+	@height.setter
+	def height(self, value):
+		self.object_height = value
+		self.init_surface()
+
+	@property
+	def diameter(self):
+		if self.object_width == self.object_height:
+			return self.object_width
+		else:
+			return None
+
+
+	@diameter.setter
+	def diameter(self, value):
+		self.object_height = value
+		self.object_width = value
+		self.init_surface()
 
 
 class Annulus(Drawbject):

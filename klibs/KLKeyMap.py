@@ -88,21 +88,6 @@ class KeyMap(object):
 		else:
 			return None
 
-	# def add_map(self, name, key_names=None, key_codes=None, key_vals=None):
-	# 	self.__maps[name] = KeyMap(name, key_names, key_codes, key_vals)
-	#
-	# def fetch_map(self, name):
-	# 	#retrieve registered keymap(s) by name
-	# 	if name in self.__maps:
-	# 		return self.__maps[name]
-	# 	elif name == "any":  # returns first registered map; if using 1 map/project, can call listen() with 1 param only
-	# 		if len(self.__maps) > 0:
-	# 			map_names = self.__maps.keys()
-	# 			return self.__maps[map_names[0]]
-	# 	elif name == "*":
-	# 		self.__maps['*'] = KeyMap('*', any_key=True)
-	# 		return self.__maps['*']
-
 	@property
 	def any_key(self):
 		return self.__any_key

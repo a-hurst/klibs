@@ -62,8 +62,8 @@ def absolute_position(position, destination):
 
 	try:
 		return locations[position]
-	except:
-		raise IndexError("Invalid position identifier.")
+	except IndexError:
+		raise ValueError("Invalid position identifier.")
 
 
 def arg_error_str(arg_name, given, expected, kw=True):
@@ -322,7 +322,7 @@ def px_to_deg(length):  # length = px
 
 
 def rgb_to_rgba(rgb):
-	return rgb[0], rgb[1], rgb[2], 1
+	return rgb if len(rgb) == 4 else rgb[0], rgb[1], rgb[2], 1
 
 
 def type_str(var):
@@ -410,4 +410,6 @@ def sdl_key_code_to_str(sdl_keysym):
 		key_name = key_name.lower()
 	return key_name if len(key_name) == 1 else False  # to cover all keys that aren't alphanumeric or handled here
 
-
+def mean(values, as_int=False):
+	mean_val = sum(values) / len(values)
+	return mean_val if not as_int else int(mean_val)

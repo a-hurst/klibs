@@ -27,6 +27,9 @@ class ResponseCollector(object):
 
 		self.responses = []
 
+	def uses(self, interfaces):
+		pass
+
 	@abc.abstractmethod
 	def run(self, *callback_args, **callback_kwargs):
 		pass

@@ -33,6 +33,7 @@ if PYLINK_AVAILABLE:
 		__gaze_boundaries = {}
 		custom_display = None
 		dc_width = None  # ie. drift-correct width
+		edf_filename = None
 
 		def __init__(self, experiment_instance):
 			self.experiment = experiment_instance
@@ -185,8 +186,6 @@ if PYLINK_AVAILABLE:
 				return self.experiment.listen(MAX_WAIT, OVER_WATCH, wait_callback=dc, dc_location=location, dc_gaze_boundary=gaze_boundary)
 
 		def gaze(self, eye_required=None, return_integers=True):
-			debug = False
-			if debug: print "gaze(eye_required={0}, return_integers={1}".format(eye_required, return_integers)
 			if self.dummy_mode:
 				try:
 					return mouse_pos()
@@ -228,14 +227,14 @@ if PYLINK_AVAILABLE:
 			else:
 				pylink.openGraphicsEx(self.custom_display)
 			if not self.dummy_mode:
-				self.filename = exp_file_name(EDF_FILE)
+				self.edf_filename = exp_file_name(EDF_FILE)
 				pylink.flushGetkeyQueue()
 				self.setOfflineMode()
 				# TODO: have a default "can't connect to tracker; do you want to switch to dummy_mode" UI pop up
 				# Running this with pylink installed whilst unconnected to a tracker throws: RuntimeError: Link terminated
 				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setLinkEventFilter("FIXATION,SACCADE,BLINK")
-				self.openDataFile(self.filename[0])
+				self.openDataFile(self.edf_filename[0])
 				self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
 				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
@@ -266,7 +265,7 @@ if PYLINK_AVAILABLE:
 				self.stopRecording()
 			self.setOfflineMode()
 			self.closeDataFile()
-			self.receiveDataFile(self.filename[0], self.filename[1])
+			self.receiveDataFile(self.edf_filename[0], self.edf_filename[1])
 			return self.close()
 
 		@abc.abstractmethod

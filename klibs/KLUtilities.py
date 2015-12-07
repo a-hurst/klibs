@@ -14,9 +14,6 @@ import datetime
 import re
 
 def absolute_position(position, destination):
-	#  if pixel coordinates are supplied by accident or automatically
-	if iterable(position) and all(type(i) is int for i in position): return position
-
 	height = None
 	width = None
 	try:  # ie. a numpy array
@@ -110,7 +107,7 @@ def bounded_by(self, pos, left, right, top, bottom):
 def build_registrations(source_height, source_width):
 	return ((),
 		(0, -1.0 * source_height),
-		(-1.0 * source_width / 2.0, source_height),
+		(-1.0 * source_width / 2.0, -1.0 * source_height),
 		(-1.0 * source_width, -1.0 * source_height),
 		(0, -1.0 * source_height / 2.0),
 		(-1.0 * source_width / 2.0, -1.0 * source_height / 2.0),
@@ -159,7 +156,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 	else:
 		date = date[5:].replace("-", "")
 		file_extension = EDF_EXT
-		file_path = Params.edf_path
+		file_path = Params.edf_dir
 		file_name = file_name_str.format(participant_id, date, file_extension)
 		return [file_name, os.path.join(file_path, file_name)]
 
@@ -322,7 +319,7 @@ def px_to_deg(length):  # length = px
 
 
 def rgb_to_rgba(rgb):
-	return rgb if len(rgb) == 4 else rgb[0], rgb[1], rgb[2], 1
+	return tuple(rgb) if len(rgb) == 4 else (rgb[0], rgb[1], rgb[2], 255)
 
 
 def type_str(var):

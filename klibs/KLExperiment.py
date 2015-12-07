@@ -64,11 +64,16 @@ class Experiment(object):
 		:param asset_path: Path to assets directory if assets directory is not in default location.
 		:type asset_path: String
 		:param export: ``DEPRECATED`` Provides instructions to export current data instead of running the experiment as normal
-		:type export: Boolean or List of Booleans
+		:type export: Boolean, Iterable
 		:raise EnvironmentError:
 		"""
 
 		super(Experiment, self).__init__()
+
+		if not Params.setup(project_name, random_seed):
+			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
+
+		Params.tk.start("Experiment Init")  # global TimeKeeper is initialized in Params.setup()
 
 		if development_mode:
 			Params.development_mode = True
@@ -77,42 +82,22 @@ class Experiment(object):
 		if not eyelink_available:
 			Params.eye_tracker_available = False
 
-		if not Params.setup(project_name, random_seed):
-			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 
 		#initialize the self.database instance
 		try:
 			iterable = iter(export)
-		except:
+		except TypeError:
 			export = [export]
 		self.__database_init(*export)
-		Params.key_maps["*"] = KeyMap("*", [], [], [])
-		Params.key_maps["*"].any_key = True
-		Params.key_maps["over_watch"] = KeyMap("over_watch", [], [], [])
-		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
-		Params.key_maps["eyelink"] = KeyMap("eyelink",
-											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
-											[sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
-											 sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
-											 sdl2.SDLK_RIGHT],
-											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
-		Params.time_keeper.start("Trial Generation")
-		self.trial_factory = TrialFactory(self)
-		if Params.manual_trial_generation is False:
-			self.trial_factory.import_stim_file(Params.config_file_path)
-			self.trial_factory.generate()
-		Params.time_keeper.stop("Trial Generation")
 
-		self.event_code_generator = None
 
+		# initialize the text management for the experiment
+		self.text_manager = TextManager()
+		if Params.default_font_size:
+			self.text_manager.default_font_size = Params.default_font_size
 
 		# initialize screen surface and screen parameters
 		self.display_init(display_diagonal_in)
-
-		# initialize the text management for the experiment
-		self.text_manager = TextManager(Params.ppi)
-		if Params.default_font_size:
-			self.text_manager.default_font_size = Params.default_font_size
 
 		# init debugger
 		self.debug = Debugger(self)
@@ -125,9 +110,29 @@ class Experiment(object):
 		self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
 		self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
+		Params.key_maps["*"] = KeyMap("*", [], [], [])
+		Params.key_maps["*"].any_key = True
+		Params.key_maps["over_watch"] = KeyMap("over_watch", [], [], [])
+		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
+		Params.key_maps["eyelink"] = KeyMap("eyelink",
+											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
+											[sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
+											 sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
+											 sdl2.SDLK_RIGHT],
+											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
+
+		Params.time_keeper.start("Trial Generation")
+		self.trial_factory = TrialFactory(self)
+		if Params.manual_trial_generation is False:
+			self.trial_factory.import_stim_file(Params.config_file_path)
+			self.trial_factory.generate()
+		Params.time_keeper.stop("Trial Generation")
+
+		self.event_code_generator = None
 
 		if not Params.collect_demographics:
 			self.collect_demographics(True)
+		Params.tk.stop("Experiment Init")
 
 	def __execute_experiment(self, *args, **kwargs):
 		"""
@@ -220,7 +225,7 @@ class Experiment(object):
 		This is also the window object passed to :mod:`~klibs.KLELCustomDisplay`.\ :class:`~klibs.KLELCustomDisplay.ELCustomDisplay` instance.
 
 		:param diagonal_in: The diagonal length of the monitor's viewable area.
-		:type diagonal_in: Int or Float
+		:type diagonal_in: Int, Float
 		:raise TypeError:
 		"""
 
@@ -249,7 +254,7 @@ class Experiment(object):
 		Params.ppd = Params.pixels_per_degree  # alias for convenience
 
 		# these next six lines essentially assert a 2d, pixel-based rendering context; copied-and-pasted from Mike!
-		gl_context = sdl2.SDL_GL_CreateContext(self.window.window)
+		sdl2.SDL_GL_CreateContext(self.window.window)
 		gl.glMatrixMode(gl.GL_PROJECTION)
 		gl.glLoadIdentity()
 		gl.glOrtho(0, Params.screen_x, Params.screen_y, 0, 0, 1)
@@ -262,10 +267,10 @@ class Experiment(object):
 			brand_period = Params.tk.count_down(2)
 			while brand_period.counting():
 				self.fill()
-				self.blit(NumpySurface(os.path.join(Params.klibs_path, "splash.png")), 5, 'center')
+				self.blit(NumpySurface(os.path.join(Params.klibs_dir, "splash.png")), 5, 'center')
 				self.flip()
 		except AttributeError:
-			print "splash.png not found; splash screen not presented"
+			pass
 		Params.display_initialized = True
 
 	def alert(self, alert_string, blit=True, display_for=0):
@@ -305,11 +310,11 @@ class Experiment(object):
 		Draws passed content to display buffer.
 
 		:param source: Image data to be buffered.
-		:type source: :class:`~klibs.KLNumpySurface.NumpySurface`, :class:`~klibs.KLDraw.Drawjbect`, Numpy Array, or `PIL.Image <http://pillow.readthedocs.org/en/3.0.x/reference/Image.html>`_
+		:type source: :class:`~klibs.KLNumpySurface.NumpySurface`, :class:`~klibs.KLDraw.Drawjbect`, Numpy Array, `PIL.Image <http://pillow.readthedocs.org/en/3.0.x/reference/Image.html>`_
 		:param registration: Location on perimeter of surface that will be aligned to position (see manual for more information).
 		:type registration: Int
 		:param position: Location on screen to place source, either pixel coordinates or location string (ie. "center", "top_left")
-		:type position: String or iterable
+		:type position: String, Iterable
 		:param context: ``NOT IMPLEMENTED`` A destination surface or display object for images built gradually.
 
 		:raise TypeError:
@@ -553,7 +558,7 @@ class Experiment(object):
 			if duration > 0:
 				start = time.time()
 				while time.time() - start < duration:
-					self.over_watch()
+					self.ui_listen()
 			else:
 				raise AttributeError("Duration must be a positive number, '{0}' was passed".format(duration))
 		else:
@@ -615,7 +620,7 @@ class Experiment(object):
 
 		self.listen()
 
-	def ui_request(self, key_press, execute=False):
+	def ui_request(self, key_press=None, execute=True):
 		"""
 		Inspects a keypress for interface commands like "quit", "pause", etc.. Primarily used by
 		:func:`~klibs.KLExperiment.Experiment.over_watch`; Currently only "quit" is implemented.
@@ -626,22 +631,28 @@ class Experiment(object):
 		:param execute:
 		:return:
 		"""
+		if not key_press:
+			for event in sdl2.ext.get_events():
+				if event.type in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
+					ui_request = self.ui_request(event.key.keysym)
+					if ui_request:
+						return
+				if event.type == sdl2.SDL_KEYUP:
+					return # ie it wasn't a ui request and can't become one now
+			return False
 
 		if key_press.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
 			if key_press.sym in UI_METHOD_KEYSYMS:
 				if key_press.sym == sdl2.SDLK_q:
-					kl_quit()
+					return kl_quit() if execute else [True, "quit"]
 				elif key_press.sym == sdl2.SDLK_c:
 					if Params.eye_tracking and Params.eye_tracker_available:
-						self.eyelink.calibrate()
+						return self.eyelink.calibrate() if execute else [True, "el_calibrate"]
 				elif key_press.sym == sdl2.SDLK_p:
-					if not self.paused:
-						self.paused = True
-						self.pause()
-						return True
-					if self.paused:
-						self.paused = False
-						return False
+					if execute:
+						return self.pause()
+					else:
+						return [True, "pause" if not self.paused else "unpause"]
 		return False
 
 	def listen(self, max_wait=MAX_WAIT, key_map_name="*", el_args=None, null_response=None, response_count=None,
@@ -760,7 +771,7 @@ class Experiment(object):
 							if key_map is not None:
 								wrong_key = True
 					if key_name not in MOD_KEYS and key_name is not None:
-						self.over_watch(event)  # ensure the 'wrong key' wasn't a call to quit or pause
+						self.ui_listen(event)  # ensure the 'wrong key' wasn't a call to quit or pause
 						if interrupt:    # returns response immediately; else waits for maxWait to elapse
 							if response:
 								return [response, rt]
@@ -875,57 +886,22 @@ class Experiment(object):
 
 		return NumpySurface(foreground, background, fg_position, bg_position, width, height)
 
-	def over_watch(self, keypress_event=None):
-		"""
-		Inspects keypress events for interface requests (ie.  'quit', 'calibrate', 'pause', etc.) and executes them. When called without event argument, pumps and inspects the entire event queue, otherwise inspects only the supplied event.
-
-		:param keypress_event: An sdl2.
-		:return:
-		"""
-
-		input_collected = False
-		repumping = False  # only repump once else holding a modifier key down can keep overwatch running forever
-		keysym = None
-		sym = None
-		mod_name = None
-		key_name = None
-		event_stack = None
-		if keypress_event is None:
-			event_stack = sdl2.SDL_PumpEvents()
-			if type(event_stack) is list:
-				event_stack.reverse()
-			else:
-				return False  # ie. app is in a passive context and no input is happening
-		else:
-			event_stack = [keypress_event]
-		while not input_collected:
-			keypress_event = event_stack.pop()
-			if keypress_event.type in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
-				keysym = keypress_event.key.keysym
-				sym = keysym.sym  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
-				key_name = sdl2.keyboard.SDL_GetKeyName(sym)
-				if keypress_event.type == sdl2.SDL_KEYUP:  # modifier or no, a key up event implies user decision; exit loop
-					input_collected = True
-				if key_name not in MOD_KEYS:  # if event key isn't a modifier: get key info & exit loop
-					mod_name = sdl2.keyboard.SDL_GetModState()
-					input_collected = True
-				elif repumping and keypress_event.repeat != 0:  # user holding mod key; return control to calling method calling
-					return False
-				elif len(event_stack) == 0:
-					sdl2.SDL_PumpEvents()
-					event_stack = sdl2.ext.get_events()
-					event_stack.reverse()
-					if len(event_stack) > 0:
-						repumping = True
-					else:
-						return False
-				else:
-					pass
-			else:
-				return False   # event argument was no good; just bail
-
-		self.ui_request(keysym)
-		return False
+	# def ui_listen(self):
+	# 	"""
+	# 	Inspects keypress events for interface requests (ie.  'quit', 'calibrate', 'pause', etc.) and executes them. When called without event argument, pumps and inspects the entire event queue, otherwise inspects only the supplied event.
+	#
+	# 	:param keypress_event: An sdl2.
+	# 	:return:
+	# 	"""
+	#
+	# 	for event in sdl2.ext.get_events():
+	# 		if event.type in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
+	# 			ui_request = self.ui_request(event.key.keysym)
+	# 			if ui_request:
+	# 				return
+	# 		if event.type == sdl2.SDL_KEYUP:
+	# 			return # ie it wasn't a ui request and can't become one now
+	# 	return False
 
 	def pause(self):
 		"""
@@ -936,13 +912,15 @@ class Experiment(object):
 			broken, heavy_modification-planned, backwards_compatibility-expected, interface-command
 
 		"""
-
-		pump()
-		while self.paused:
-			self.message('PAUSED', fullscreen=True, location='center', font_size=96, color=(255, 0, 0, 255),
-						 registration=5, blit=False)
-			self.over_watch()
-			self.listen_refresh()
+		if not self.paused:
+			pump()
+			while self.paused:
+				self.message('PAUSED', fullscreen=True, location='center', font_size=96, color=(255, 0, 0, 255),
+							 registration=5, blit=False)
+				self.ui_listen()
+				self.listen_refresh()
+		else:
+			self.paused = False
 
 	def project_config(self):
 		"""
@@ -1124,7 +1102,7 @@ class Experiment(object):
 			for event in sdl2.ext.get_events():
 				if event.type not in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
 					continue
-				self.over_watch(event)
+				self.ui_listen(event)
 				if event.type == sdl2.SDL_KEYUP:  # don't fetch letter on both events
 					continue
 				if error_string:
@@ -1350,3 +1328,11 @@ class Experiment(object):
 	@abc.abstractmethod
 	def trial_clean_up(self):
 		pass
+
+	#  Legacy functions to be removed in a later release
+
+	def over_watch(self):
+		return self.ui_request()
+
+	def overwatch(self):
+		return self.ui_request()

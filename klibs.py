@@ -130,14 +130,14 @@ def update():
 	# 	rc = p.returncode
 
 
-def run(path, screen_size, random_seed, development_mode=False, eyelink_connected=True):
+def run(path, screen_size, random_seed, development_mode, no_eyelink):
 	if path[-1] == "/":
 		path = path[:-1]
 	project_name = os.path.split(path)[-1]
 	os.chdir(path)
 	experiment = imp.load_source(path, "experiment.py")
 	app = getattr(experiment, project_name)
-	app(project_name, screen_size, random_seed, False, development_mode, eyelink_connected).run()
+	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink).run()
 
 
 def export(path):
@@ -167,7 +167,7 @@ try:
 	run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
 	run_parser.add_argument('-rs', '--random_seed',  type=int, help="Providing a random seed will allow an experiment to continue from it's previously completed state." )
 	run_parser.add_argument('-d', '--development_mode', action="store_true", help="Development mode turns off demographics collection and turns on several debugging features." )
-	run_parser.add_argument('-ELx', '--eyelink_connected', action="store_false", help="Specifies whether or not an eyelink is connected; default is True. Does nothing for non-eyetracking experiments." )
+	run_parser.add_argument('-ELx', '--no_eyelink', action="store_false", help="Signals the absence of a connected eyelink unit. Does nothing for non-eyetracking experiments." )
 	run_parser.set_defaults(func=run)
 
 

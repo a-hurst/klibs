@@ -169,7 +169,7 @@ class AudioStream(object):
 		any_key_listener.run()
 		sample_period.start()
 		while sample_period.counting():
-			pump()
+			self.experiment.ui_listen()
 			self.experiment.fill()
 			self.experiment.message(sampling_message.format(int(math.ceil(sample_period.remaining())), font_size="48pt"), location=Params.screen_c, registration=5)
 			peaks.append(self.sample().peak)
@@ -180,16 +180,18 @@ class AudioStream(object):
 	def get_peak_during(self, period=3, message=None):
 		initial_diameter = int(Params.screen_x * 0.05)
 		sample_period = Params.tk.countdown(period)
-		peak = 0
+		local_peak = 0
+		sdl2.SDL_PumpEvents()
+		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
 		while sample_period.counting():
-			pump()
+			self.experiment.ui_request()
 			self.experiment.fill()
 			if message:
 				self.experiment.message(message)
 			sample = self.sample()
-			if sample.peak > peak:
-				peak = sample.peak
-			peak_circle = int((peak * Params.screen_x * 0.9) / 65000)
+			if sample.peak > local_peak:
+				local_peak = sample.peak
+			peak_circle = int((local_peak * Params.screen_x * 0.9) / 65000)
 			sample_circle = int((sample.peak * Params.screen_x * 0.9) / 65000)
 			if peak_circle < 5:
 				peak_circle = 5
@@ -199,7 +201,8 @@ class AudioStream(object):
 			self.experiment.blit(Circle(sample_circle, fill=[84, 60, 182]), position=Params.screen_c, registration=5)
 			self.experiment.flip()
 
-		return peak
+
+		return local_peak
 
 
 

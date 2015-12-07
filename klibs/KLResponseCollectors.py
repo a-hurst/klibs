@@ -172,6 +172,7 @@ class AudioResponseCollector(ResponseCollector):
 	def validate(self):
 		validate_counter = Params.tk.countdown(5)
 		while validate_counter.counting():
+			self.experiment.ui_request()
 			self.experiment.fill()
 			validation_instruction = "Ok; threshold set. To ensure it's validity, please provide one (and only one) more response."
 			self.experiment.message(validation_instruction, location=Params.screen_c, registration=5)

@@ -75,15 +75,40 @@ def from_aggdraw_context(draw_context):
 
 
 def add_alpha_channel(numpy_array, alpha_value=255):
-	# todo: stop throwing an error when there's an empty array
-	if len(numpy_array[2][0]) == 3:
-		return numpy.insert(numpy_array, 3, alpha_value, 2)
-	else:
+	try:
+		with_alpha = numpy.zeros((numpy_array.shape[0], numpy_array.shape[1], 4))
+		with_alpha[:, :, :3] = numpy_array
+		with_alpha[:, :, 3] = alpha_value
+		return with_alpha
+	except ValueError:
 		return numpy_array
+	# try:
+	# 	if numpy_array.shape[2] == 3:
+	# 		return numpy.insert(numpy_array, 3, alpha_value, 2)
+	# 	else:
+	# 		return numpy_array
+	# except IndexError:
+	# 	raise ValueError("Invalid data supplied; too few dimensions or wrong data type.")
 
 
 def import_image_file(path):
 		return add_alpha_channel(numpy.array(Image.open(path)))
+
+
+def grey_scale_to_alpha(self, img):
+		"""
+
+		:param img:
+		:return: :raise TypeError:
+		"""
+		if type(img) is NumpySurface:
+			img = img.render()
+		elif type(img) is str:
+			img = import_image_file(img)
+		elif type(img) is not numpy.ndarray:
+			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
+		img[0: -1, 0: -1, 3] = img[0: -1, 0: -1, 0]
+		return img
 
 
 class NumpySurface(object):
@@ -111,61 +136,48 @@ class NumpySurface(object):
 		self.fg_offset = None
 		self.width = width
 		self.height = height
-
-		self.init_bg_offsets(fg_offset, bg_offset)
+		self.fg_offset = fg_offset
+		self.bg_offset = bg_offset
 		self.init_layers(foreground, background)
 		self.init_canvas()
 
-	def init_bg_offsets(self, fg_position, bg_position):
-		# do positions first in case a resize is required during bg & fg processing
-		if fg_position is not None:
-			try:
-				iter(fg_position)
-				self.__foreground_offset = fg_position
-			except:
-				raise ValueError("Argument 'fg_position' must be None or iterable x, y coordinates.")
-		else:
-			self.__foreground_offset = (0, 0)
-
-		if bg_position is not None:
-			try:
-				iter(bg_position)
-				self.__background_offset = bg_position
-			except:
-				raise ValueError("Argument 'bg_position' must be None or iterable x, y coordinates.")
-		else:
-			self.__background_offset = (0, 0)
-
-		# just some aliases to shorten lines later (render, resize, etc.)
-		self.bg = self.__background
-		self.fg = self.__foreground
-		self.bg_offset = self.__background_offset
-		self.fg_offset = self.__foreground_offset
-
 	def init_layers(self, foreground, background):
 		if background is not None:
-			try:
+			if type(background) is numpy.ndarray:
 				self.background = add_alpha_channel(background)
-			except AttributeError:
+			elif type(background) is str:
 				self.layer_from_file(background, True, self.fg_offset)
-			except TypeError:
-				background = numpy.asarray(Image.frombytes(background.mode, background.size, background.tostring()))
-				self.background = add_alpha_channel(background)
-
+			elif type(background) is NumpySurface:
+				self.background = background.background
+			elif type(background) is aggdraw.Draw:
+				self.background = from_aggdraw_context(background)
+			else:
+				raise TypeError("Background content was not a valid type for initializing a NumpySurface layer.")
 		if foreground is not None:
-			self.foreground = add_alpha_channel(foreground)
-			try:
+			if type(foreground) is numpy.ndarray:
 				self.foreground = add_alpha_channel(foreground)
-			except AttributeError:
+			elif type(foreground) is str:
 				self.layer_from_file(foreground, True, self.fg_offset)
-			except TypeError:
-				try:
-					foreground.render()  # if it renders, it's a KLDraw.Drawbject, which returns a Numpy
-					foreground = foreground.surface
-				except AttributeError:
-					pass
-				foreground = numpy.asarray(Image.frombytes(foreground.mode, foreground.size, foreground.tostring()))
-				self.foreground = add_alpha_channel(foreground)
+			elif type(foreground) is NumpySurface:
+				self.foreground = foreground.foreground
+			elif type(foreground) is aggdraw.Draw:
+				self.foreground = from_aggdraw_context(foreground)
+			else:
+				raise TypeError("foreground content was not a valid type for initializing a NumpySurface layer.")
+		# if foreground is not None:
+		# 	try:
+		# 		# self.foreground = foreground
+		# 		self.foreground = add_alpha_channel(foreground)
+		# 	except AttributeError:
+		# 		self.layer_from_file(foreground, True, self.fg_offset)
+		# 	except TypeError:
+		# 		try:
+		# 			# if it renders, it's a KLDraw.Drawbject, which returns a Numpy
+		# 			foreground = foreground.render().surface
+		# 		except AttributeError:
+		# 			pass
+		# 		foreground = numpy.asarray(Image.frombytes(foreground.mode, foreground.size, foreground.tostring()))
+		# 		self.foreground = add_alpha_channel(foreground)
 
 	def init_canvas(self):
 		if all([self.background, self.foreground, self.width, self.height]) is None:
@@ -209,17 +221,16 @@ class NumpySurface(object):
 		:param position:
 		:raise ValueError:
 		"""
-		source_height = None
-		source_width = None
-
 		try:
+			source.foreground = source.foreground.astype(numpy.uint8)
 			source = source.render()
-		except:
+		except AttributeError:
 			pass
 		try:
 			source = add_alpha_channel(source)
 		except:
 			raise TypeError("Argument 'source' must be either of klibs.NumpySurface or numpy.ndarray.")
+
 		source_height = source.shape[0]
 		source_width = source.shape[1]
 
@@ -250,12 +261,14 @@ class NumpySurface(object):
 			if source_height > self.height: self.resize([self.width, source_height])
 		# todo: make a "clip" behavior
 		# print "ForegroundShape: {0}, SourceShape: {1}".format(self.foreground.shape, source.shape)
-		blit_region = self.foreground[y1: y2, x1: x2]
+		blit_region = self.foreground[y1: y2, x1: x2, :]
 		# print "Blit_region of fg: {0}".format(blit_region.shape)
 		if layer == NS_FOREGROUND:
-			self.foreground[y1: y2, x1: x2] = source
+			self.foreground[y1: y2, x1: x2, :] = source
 		else:
 			self.background[y1: y2, x1: x2] = source
+
+		return self
 
 	def __ensure_writeable(self, layer=NS_FOREGROUND):
 		if layer == NS_FOREGROUND:
@@ -314,6 +327,8 @@ class NumpySurface(object):
 
 		self.resize(size)
 
+		return self
+
 	def layer_from_file(self, image, layer=NS_FOREGROUND, position=None):
 		# todo: better error handling; check if the file has a valid image extension, make sure path is a valid type
 		"""
@@ -333,8 +348,7 @@ class NumpySurface(object):
 			TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
 
 		self.__update_shape()  # only needed if resize not called; __update_shape called at the end of resize
-
-		return True
+		return self
 
 	def position_in_layer_bounds(self, position, layer=None):
 		"""
@@ -400,21 +414,6 @@ class NumpySurface(object):
 		else:
 			return False
 
-	def grey_scale_to_alpha(self, img):
-		"""
-
-		:param img:
-		:return: :raise TypeError:
-		"""
-		if type(img) is NumpySurface:
-			img = img.render()
-		elif type(img) is str:
-			img = import_image_file(img)
-		elif type(img) is not numpy.ndarray:
-			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
-		img[0: -1, 0: -1, 3] = img[0: -1, 0: -1, 0]
-		return img
-
 	def has_content(self):
 		return False if self.foreground is None and self.background is None else True
 
@@ -435,7 +434,7 @@ class NumpySurface(object):
 		elif type(mask) is not numpy.ndarray:
 			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
 		if grey_scale:
-			mask = self.grey_scale_to_alpha(mask)
+			mask = grey_scale_to_alpha(mask)
 		if layer == NS_FOREGROUND:
 			self.__foreground_unmask = copy(self.foreground)
 			self.__foreground_mask = mask
@@ -515,17 +514,17 @@ class NumpySurface(object):
 		"""
 		return self.render(True)
 
-	def resize(self, dimensions=None, fill=(0, 0, 0, 0)):
+	def resize(self, dimensions=None, registration=BL_TOP_RIGHT, fill=[0, 0, 0, 0]):
 		# todo: add "extend" function, which wraps this
 		"""
 
-		:param dimension:
+		:param dimensions:
 		:param fill: Transparent by default, can be any rgba value
 		:return:
 		"""
 		try:
 			fill = rgb_to_rgba(fill)
-		except [AttributeError, IndexError]:
+		except (AttributeError, IndexError):
 			raise ValueError("Argument fill must be a rgb or rgba color iterable.")
 
 		if dimensions is None:
@@ -537,8 +536,10 @@ class NumpySurface(object):
 			fg_clip = [	new_fg.shape[0] - (self.fg_offset[1] + self.foreground.shape[0]),
 						new_fg.shape[1] - (self.fg_offset[0] + self.foreground.shape[1]) ]
 			for clip in fg_clip:
+				axis = fg_clip.index(clip)
 				if clip >= 0:
-					fg_clip[fg_clip.index(clip)] = self.foreground.shape[fg_clip.index(clip)]
+					fg_clip[axis] = self.foreground.shape[axis] + self.fg_offset[axis]
+
 			new_bg = numpy.zeros((dimensions[1], dimensions[0], 4))
 			bg_clip = [new_bg.shape[0] - (self.bg_offset[1] + self.background.shape[0]),
 					   new_bg.shape[1] - (self.bg_offset[0] + self.background.shape[1])]
@@ -547,7 +548,7 @@ class NumpySurface(object):
 					index = bg_clip.index(clip)
 					offset_index = 0 if index == 1 else 1
 					bg_clip[index] = self.background.shape[index] + self.bg_offset[offset_index]
-		except [AttributeError, IndexError]:
+		except (AttributeError, IndexError):
 			raise ValueError("Argument dimensions must be a an iterable integer pair (height x width) ")
 
 		# apply clipping if needed
@@ -559,18 +560,20 @@ class NumpySurface(object):
 		y2 = self.background.shape[0]
 		x1 = self.bg_offset[0]
 		x2 = self.background.shape[1]
-		new_bg[y1: y2, x1: x2 ] = self.background
+		new_bg[y1: y2, x1: x2, :] = self.background
 
 		y1 = self.fg_offset[1]
 		y2 = self.foreground.shape[0]
 		x1 = self.fg_offset[0]
 		x2 = self.foreground.shape[1]
-		new_fg[y1:y2, x1:x2] = self.foreground
+		new_fg[y1:y2, x1:x2, :] = self.foreground
 
 		self.foreground = new_fg
 		self.background = new_bg
 
-		self.__update_shape()
+		# self.__update_shape()
+
+		return self
 
 	def render(self, prerendering=False):
 		# todo: add functionality for not using a copy, ie. permanently render
@@ -605,7 +608,7 @@ class NumpySurface(object):
 			self.__prerender = render_surface
 			return True
 		else:
-			return render_surface
+			return render_surface.astype(numpy.uint8)
 
 	def __update_shape(self):
 		for surface in [self.foreground, self.background]:
@@ -647,11 +650,14 @@ class NumpySurface(object):
 
 	@foreground.setter
 	def foreground(self, foreground_content):
+		# TODO: handle passing drawbjects, PIL objects or file paths
 		if foreground_content.shape[1] > self.width:
 			self.width = foreground_content.shape[1]
 		if foreground_content.shape[0] > self.height:
 			self.height = foreground_content.shape[0]
 		self.__foreground = foreground_content
+		self.fg = self.__foreground  # convenience alias
+
 
 	@property
 	def background(self):
@@ -659,17 +665,13 @@ class NumpySurface(object):
 
 	@background.setter
 	def background(self, background_content):
-		if type(background_content) is numpy.ndarray:
-			# todo: foreground needs to be resized to background size if this happens
-			if background_content.shape[1] > self.width:
-				self.width = background_content.shape[1]
-			if background_content.shape[0] > self.height:
-				self.height = background_content.shape[0]
-			self.__background = background_content
-		elif type(background_content) is tuple and len(background_content) in (3, 4):
-			raise TypeError("NumpySurface.background must be a numpy.ndarray; set color with NumpySurface.background_color")
-		else:
-			raise TypeError("NumpySurface.background must be a numpy.ndarray.")
+		# TODO: handle passing drawbjects, PIL objects or file paths
+		if background_content.shape[1] > self.width:
+			self.width = background_content.shape[1]
+		if background_content.shape[0] > self.height:
+			self.height = background_content.shape[0]
+		self.__background = background_content
+		self.bg = self.__background  # convenience alias
 
 	@property
 	def background_color(self):
@@ -687,3 +689,34 @@ class NumpySurface(object):
 	@property
 	def dimensions(self):
 		return [self.width, self.height]
+
+	@property
+	def fg_offset(self):
+		return self.__foreground_offset
+
+	@fg_offset.setter
+	def fg_offset(self, offset):
+		try:
+			iter(offset)
+			self.__foreground_offset = offset
+		except TypeError:
+			if offset is None:
+				self.__foreground_offset = (0, 0)
+			else:
+				raise ValueError("Background and foreground offsets must be iterable.")
+
+	@property
+	def bg_offset(self):
+		return self.__background_offset
+
+	@bg_offset.setter
+	def bg_offset(self, offset):
+		try:
+			iter(offset)
+			self.__background_offset = offset
+		except TypeError:
+			if offset is None:
+				self.__background_offset = (0, 0)
+			else:
+				raise ValueError("Background and foreground offsets must be iterable.")
+

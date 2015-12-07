@@ -11,15 +11,16 @@ from subprocess import PIPE, Popen
 klibs_version = "1.0a"
 
 #  project structure; default paths & filenames
+klibs_dir = klibs_dir = "/usr/local/klibs"
 global project_name
-global klibs_path
-global asset_path
+global asset_dir
+global image_dir
 global database_filename
 global log_filename
 global log_file_path
 global database_path
 global database_backup_path
-global edf_path
+global edf_dir
 global schema_file_path
 global schema_filename
 global data_path
@@ -31,6 +32,12 @@ global random_seed
 global time_keeper
 global tk
 global anonymous_username
+
+exp_font_dir = "ExpAssets/Resources/font"
+sys_font_dir = "/Library/Fonts"
+user_font_dir = "~/Library/Fonts"
+klibs_font_dir = "/usr/local/klibs/font"
+font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
 
 initialized = False
 audio_initialized = False
@@ -113,13 +120,13 @@ data_column_format = DB_COL_TITLE
 def init_project():
 	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
 	global project_name
-	global asset_path
+	global asset_dir
 	global database_filename
 	global log_filename
 	global log_file_path
 	global database_path
 	global database_backup_path
-	global edf_path
+	global edf_dir
 	global schema_file_path
 	global schema_filename
 	global data_path
@@ -132,25 +139,26 @@ def init_project():
 	schema_filename = str(project_name) + SCHEMA_EXT
 	log_filename = str(project_name) + LOG_EXT
 	config_filename = str(project_name) + CONFIG_EXT
-	edf_path = os.path.join(asset_path, "EDF")  # todo: write edf management
-	log_file_path = os.path.join(asset_path, log_filename)
-	schema_file_path = os.path.join(asset_path, schema_filename)
-	database_path = os.path.join(asset_path, database_filename)
+	edf_dir = os.path.join(asset_dir, "EDF")  # todo: write edf management
+	log_file_path = os.path.join(asset_dir, log_filename)
+	schema_file_path = os.path.join(asset_dir, schema_filename)
+	database_path = os.path.join(asset_dir, database_filename)
 	database_backup_path = database_path + BACK_EXT
-	data_path = os.path.join(asset_path, "Data")
+	data_path = os.path.join(asset_dir, "Data")
 	incomplete_data_path = os.path.join(data_path, "incomplete")
-	config_file_path = os.path.join(asset_path, config_filename)
+	config_file_path = os.path.join(asset_dir, config_filename)
 	initialized = True
 	return True
 
 def setup(project_name_str, previous_random_seed):
 	global project_name
-	global asset_path
-	global klibs_path
+	global asset_dir
 	global random_seed
 	global time_keeper
 	global tk
 	global anonymous_username
+	global exp_font_dir
+	global image_dir
 
 	anonymous_username = "demo_user_{0}".format(now(True))
 	time_keeper = TimeKeeper()
@@ -160,6 +168,7 @@ def setup(project_name_str, previous_random_seed):
 	random_seed = previous_random_seed if previous_random_seed else time()
 	seed(random_seed)
 	project_name = project_name_str
-	asset_path = "ExpAssets"
-	klibs_path = "/usr/local/klibs/font"
+	asset_dir = "ExpAssets"
+	exp_font_dir = os.path.join(asset_dir, "Resources", "font")
+	image_dir = os.path.join(asset_dir, "Resources", "image")
 	return init_project()

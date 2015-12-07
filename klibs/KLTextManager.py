@@ -2,33 +2,51 @@ __author__ = 'jono'
 import os, math, numpy
 from KLNumpySurface import NumpySurface
 from PIL import ImageFont
+from sdl2 import sdlttf
 from KLUtilities import *
 
 from KLConstants import *
 import KLParams as Params
 
+
+def argb_to_rgba(val):
+	print val.shape
+	changed = numpy.apply_along_axies(sdl2.ext.rgba_to_color, 0, val)
+	print changed.shape
+
+
 class TextStyle(object):
 
-	def __init__(self, label, font_size=None, color=None, bg_color=None, line_height=None, font=None):
-		if font:
-			try:
-				iter(font)
-			except AttributeError:
-				font = [font, font, "ttf"]
-		self.font_size = font_size if font_size else Params.default_font_size
-		self.color = rgb_to_rgba(color) if color else [22, 22, 22, 255]
-		self.bg_color = rgb_to_rgba(bg_color) if bg_color else [0, 0, 0, 0]
-		self.font_name = font[0] if font else Params.default_font_name
-		self.font_extension = font[2] if font else "ttf"
-		self.font_file_name = "{0}.{1}".format(font[1] if font else Params.default_font_name, self.font_extension)
-		self.line_height = line_height if line_height else 1
+	def __init__(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None):
+		"""
+
+		:param label:
+		:type label: String
+		:param font_size:
+		:type font_size: String, Int
+		:param color:
+		:type color: Iterable
+		:param bg_color:
+		:type bg_color: Iterable
+		:param line_height:
+		:type line_height: Int
+		:param font_label:
+		:type font_label: String or Iterable
+		"""
 		self.label = label
+		self.font_size = font_size if font_size else Params.default_font_size
+		self.font_label = font_label if font_label else Params.default_font_name
+		self.color = rgb_to_rgba(color) if color else (22, 22, 22, 255)
+		self.bg_color = rgb_to_rgba(bg_color) if bg_color else (0, 0, 0, 0)
+		self.line_height = line_height if line_height else 1.5
+
+	def __str__(self):
+		return "klibs.KLTextManager.TextStyle ('{0}') at {1}".format(self.label, hex(id(self)))
 
 
 class TextManager(object):
 	asset_path = "ExpAssets"
 	alert_color = (255, 0, 0, 255)
-	fonts_directory_path = "/Library/Fonts"
 	fonts = {}
 	font_sizes = {}
 	labels = {}
@@ -49,26 +67,13 @@ class TextManager(object):
 	__default_message_duration = 1
 
 
-	def __init__(self, default_font=None, default_font_size="18pt", fonts_directory_path=None):
-		if fonts_directory_path:
-			self.fonts_directory_path = fonts_directory_path
-
+	def __init__(self):
 		self.__build_font_sizes()
-		self.default_font_size = default_font_size
-		self.add_font("Anonymous Pro", font_file_name="AnonymousPro")
-		self.add_style("debug panel", "12pt", [255, 255, 255], ["Anonymous Pro", "AnonymousPro", "ttf"])
-
-		try:
-			iter(default_font)
-			try:
-				default_font_name, default_font_extension = default_font
-				default_font_filename = default_font_name
-			except ValueError:
-					default_font_name, default_font_filename, default_font_extension = default_font
-		except TypeError:
-			default_font_name, default_font_filename, default_font_extension = ["Frutiger", "Frutiger", "ttf"]
-
-		self.add_font(default_font_name, default_font_extension, default_font_filename, True)
+		self.add_font("Anonymous Pro", font_file_basename="AnonymousPro")
+		self.add_font("Frutiger")
+		self.add_style("debug", 16, (255, 255, 255, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro")
+		self.add_style("default", "16pt", [22, 22, 22], font_label="Frutiger")
+		sdlttf.TTF_Init()
 
 	def __build_font_sizes(self):
 		size_list = range(3, 96)
@@ -77,56 +82,53 @@ class TextManager(object):
 			key = str(num) + 'pt'
 			self.font_sizes[key] = int(math.floor(1.0 / 72 * Params.ppi * num))
 
-	def __compile_font(self, font_name=None, font_size=None):
+	def __compile_font(self, font, font_size):
 		# process font_size argument or assign a default
-		if font_size is not None:
-			if type(font_size) is str:
-				font_size = self.font_sizes[font_size]
+		try:
+			font_size = self.font_sizes[font_size]
+		except KeyError:
 			if type(font_size) is not int:
-				raise TypeError("font_size must be either a point-string (ie. 18pt) or an int describing pixel height.")
-		elif self.__default_font_size:
-			font_size = self.__default_font_size
-		else:
-			raise ValueError("font_size argument is  required or else  default_font_size must be set prior to calling.")
-		if not font_name:
-			font_name = self.default_font
-		return ImageFont.truetype(self.fonts[font_name], font_size)
+				raise TypeError("Argument 'font_size' must be a string (ie. '18pt') or int describing pixel height.")
 
-	def size(self, text, style=None):
-		"""
-		Returns the height in pixels of a single line of text using the provided style
-		:param text:
-		:return:
-		"""
-		rendering_font = ImageFont.truetype(self.default_font, self.__default_font_size)
-		return rendering_font.size()
+		return ImageFont.truetype(self.fonts[font], font_size)
 
-	def add_style(self, label, font_size=None, color=None, bg_color=None, line_height=None, font=None):
-		self.styles[label] = TextStyle(font_size, color, bg_color, line_height, font)
+	def add_style(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None):
+		self.styles[label] = TextStyle(label, font_size, color, bg_color, line_height, font_label)
 
 	def __wrap(self, text, style, width=None):
 		lines = text.split("\n")
 		if width:
-			pass  # test various lengths until you get a size that works, then re-populate lines
-		lines_surfs = [self.render(line, style) for line in lines ]
+			pass  # TODO: test various lengths until you get a size that works, then re-populate lines
+		lines_surfs = []
+		for line in lines:
+			if len(line):
+				lines_surfs.append(self.render(line, style))
 		text_dims = [0,0]
+		line_height = style.line_height * lines_surfs[0].height
 		for line in lines_surfs:
 			if line.width > text_dims[0]: text_dims[0] = line.width
-			if line_height is None: line_height = 1.5 * line.height
 			text_dims[1] += int(line_height)
-		y_pos = 0
-		text_surface = NumpySurface(width=text_dims[0], height=text_dims[1])
-		for line in lines_surfs:
-			text_surface.blit(line, position=[0, y_pos], behavior="extend")
-			y_pos += line_height
+		# text_surface = NumpySurface(width=text_dims[0], height=text_dims[1])
+		# for line in lines_surfs:
+		# 	if line.height != 0:
+		# 		text_surface.blit(line, position=[0, y_pos], behavior="extend")
+		# 		y_pos += line_height
+		for l in lines_surfs:
+			l.resize([text_dims[0], l.height])
+		text_surface = numpy.concatenate([l.render() for l in lines_surfs], 0)
+
+		# text_surface = NumpySurface( text_surface )
 
 		return text_surface
+		# return lines_surfs
 
-	def render(self, string, style):
+	def render(self, text, style="default"):
 		"""
 
-		:param string:
+		:param text:
+		:type text: String
 		:param style:
+		:type style: :class:`~klibs.KLTextManager.TextStyle`
 		:return:
 		"""
 
@@ -134,57 +136,70 @@ class TextManager(object):
 		if not isinstance(style, TextStyle):
 			style = self.styles[style]
 
-		font = ".".join([style.font_file_name, style.font_extension])
-		font_size = style.font_size
-		strings  = string.split("\n")
-		if len(strings) > 1:
-			return self.__wrap(string, style)
-		rendering_font = self.__compile_font(font_name=style.font_name, font_size=style.font_size, )
-		glyph_bitmap = rendering_font.getmask(string, mode="L")  # L = antialiasing mode
-		bitmap_as_1d_array = numpy.asarray(glyph_bitmap)
-		bitmap_as_2d_array = numpy.reshape(bitmap_as_1d_array, (glyph_bitmap.size[1], glyph_bitmap.size[0]), order='C')
-		nonzero_2d_bitmap = bitmap_as_2d_array[bitmap_as_2d_array > 0]
-		rendered_text = numpy.zeros((glyph_bitmap.size[1], glyph_bitmap.size[0], 4))
-		rendered_text[:, :, 0][bitmap_as_2d_array > 0] = style.color[0] * nonzero_2d_bitmap //  255
-		rendered_text[:, :, 1][bitmap_as_2d_array > 0] = style.color[1] * nonzero_2d_bitmap //  255
-		rendered_text[:, :, 2][bitmap_as_2d_array > 0] = style.color[2] * nonzero_2d_bitmap //  255
-		rendered_text[:, :, 3][bitmap_as_2d_array > 0] = style.color[3] * nonzero_2d_bitmap //  255
-		rendered_text[:, :, 0][bitmap_as_2d_array == 0] = style.bg_color[0]
-		rendered_text[:, :, 1][bitmap_as_2d_array == 0] = style.bg_color[1]
-		rendered_text[:, :, 2][bitmap_as_2d_array == 0] = style.bg_color[2]
-		rendered_text[:, :, 3][bitmap_as_2d_array == 0] = style.bg_color[3]
-		surface = NumpySurface(rendered_text.astype(numpy.uint8))
-		return surface if surface.width < Params.screen_x else self.__wrap(string, style, Params.screen_x - 20)
+		if len(text.split("\n")) > 1:
+			return self.__wrap(text, style)
 
-	def add_font(self, font_name, font_extension="ttf", font_file_name=None, make_default=False):
+		if len(text) == 0:
+			text = " "
+		# Attempting to use SDL font rendering...
+		#
+		# rendering_font = sdlttf.TTF_OpenFont(self.fonts[style.font_label], 24)
+		# rendered_text = sdlttf.TTF_RenderText_Blended(rendering_font, text, sdl2.SDL_Color(*style.color)).contents
+		# rendered_text = numpy.asarray(rendered_text)
+		# rendered_text = list(sdl2.ext.PixelView(rendered_text))
+		# rendered_text = numpy.asarray(rendered_text)
+		# to_rgba = numpy.vectorize(sdl2.ext.rgba_to_color)
+		# rendered_text = to_rgba(rendered_text)
+		# rendered_text_rgba = numpy.apply_along_axis(sdl2.ext.rgba_to_color, 0, numpy.vectorize(rendered_text))
+		# print rendered_text
+		# for row in rendered_text:
+		# 	rgba_row = []
+		# 	for col in row:
+		# 		rgba = list(sdl2.ext.rgba_to_color(col))
+		# 		rgba2 = rgba[1:]
+		# 		rgba2.append(rgba[0])
+		# 		rgba_row.append(rgba2)
+		# 	rendered_text_rgba.append(rgba_row)
+		# surface = NumpySurface(rendered_text.astype(numpy.uint8))
+
+		rendering_font = self.__compile_font(style.font_label, style.font_size)
+		glyph_bitmap = rendering_font.getmask(text, mode="L")  # L = antialiasing mode
+		bitmap_1d = numpy.asarray(glyph_bitmap)
+		bitmap_2d = numpy.reshape(bitmap_1d, (glyph_bitmap.size[1], glyph_bitmap.size[0]), order='C')
+		nonzero_2d_bitmap = bitmap_2d[bitmap_2d > 0]
+		rendered_text = numpy.zeros((glyph_bitmap.size[1], glyph_bitmap.size[0], 4))
+		rendered_text[:, :, 0][bitmap_2d > 0] = style.color[0] * nonzero_2d_bitmap //  255
+		rendered_text[:, :, 1][bitmap_2d > 0] = style.color[1] * nonzero_2d_bitmap //  255
+		rendered_text[:, :, 2][bitmap_2d > 0] = style.color[2] * nonzero_2d_bitmap //  255
+		rendered_text[:, :, 3][bitmap_2d > 0] = style.color[3] * nonzero_2d_bitmap //  255
+		rendered_text[:, :, 0][bitmap_2d == 0] = style.bg_color[0]
+		rendered_text[:, :, 1][bitmap_2d == 0] = style.bg_color[1]
+		rendered_text[:, :, 2][bitmap_2d == 0] = style.bg_color[2]
+		rendered_text[:, :, 3][bitmap_2d == 0] = style.bg_color[3]
+		surface = NumpySurface(rendered_text.astype(numpy.uint8))
+
+		return surface if surface.width < Params.screen_x else self.__wrap(text, style, Params.screen_x - 20)
+
+	def add_font(self, font_name, font_extension="ttf", font_file_basename=None):
 		"""
 
-		:param font_name: Name of font; should mirror file name without extension. If not, also use font_file_name argument.
+		:param font_name: Reference name of font within experiment context; typically mirrors filename.
+		:type font_name: String
 		:param font_extension: File extension of the font's file, usually, 'ttf' or 'otf'.
-		:param font_file_name: Use to simply 'font name' when file name is large, ie. "Arial Black CN.ttf" => "Arial"
+		:param font_file_basename: Filename without extension of file; used when font_name does not match filename.
 		:return:
 		"""
-		if type(font_name) is str and type(font_extension) is str:
-			if type(font_file_name) is not str:
-				font_file_name = ".".join([font_name, font_extension])
-			else:
-				font_file_name = ".".join([font_file_name, font_extension])
-			sys_path = os.path.join(self.fonts_directory_path, font_file_name)
-			app_path = os.path.join(Params.asset_path, font_file_name)
-			klibs_path = os.path.join(Params.klibs_path, font_file_name)
-			if os.path.isfile(sys_path):
-				self.fonts[font_name] = sys_path
-			elif os.path.isfile(app_path):
-				self.fonts[font_name] = app_path
-			elif os.path.isfile(klibs_path):
-				self.fonts[font_name] = klibs_path
-			else:
-				e_str = "Font file '{0}' was not found in either system fonts or experiment assets directories"
-				raise ImportError(e_str.format(font_file_name))
+		if not font_file_basename:
+			font_file_basename = ".".join([font_name, font_extension])
 		else:
-			raise TypeError("Arguments 'font' and 'font_extension' must both be strings.")
-		self.default_font = font_name
-		return True
+			font_file_basename = ".".join([font_file_basename, font_extension])
+
+		for d in Params.font_dirs:
+			if os.path.isfile(os.path.join(d, font_file_basename)):
+				self.fonts[font_name] = os.path.join(d, font_file_basename)
+		if not font_name in self.fonts:
+			raise ImportError("Font {0} not found in any expected destination.".format(font_file_basename))
+		return self
 
 	@property
 	def default_color(self):
@@ -280,3 +295,21 @@ class TextManager(object):
 			self.legacy_styles_count += 1
 			style = style_name
 		self.__wrap(strings, style, width)
+
+
+# def render(self, text, font_path, font_size=12, color=(0, 0, 0, 255), bg_color=(0, 0, 0, 0)):
+# 	rendering_font = ImageFont.truetype(font_path, font_size)
+# 	glyph_bitmap = rendering_font.getmask(text, mode="L")  # L = antialiasing mode
+# 	bitmap_1d = numpy.asarray(glyph_bitmap)
+# 	bitmap_2d = numpy.reshape(bitmap_1d, (glyph_bitmap.size[1], glyph_bitmap.size[0]), order='C')
+# 	nonzero_2d_bitmap = bitmap_2d[bitmap_2d > 0]
+# 	rendered_text = numpy.zeros((glyph_bitmap.size[1], glyph_bitmap.size[0], 4))
+# 	rendered_text[:, :, 0][bitmap_2d > 0] = color[0] * nonzero_2d_bitmap //  255
+# 	rendered_text[:, :, 1][bitmap_2d > 0] = color[1] * nonzero_2d_bitmap //  255
+# 	rendered_text[:, :, 2][bitmap_2d > 0] = color[2] * nonzero_2d_bitmap //  255
+# 	rendered_text[:, :, 3][bitmap_2d > 0] = color[3] * nonzero_2d_bitmap //  255
+# 	rendered_text[:, :, 0][bitmap_2d == 0] = bg_color[0]
+# 	rendered_text[:, :, 1][bitmap_2d == 0] = bg_color[1]
+# 	rendered_text[:, :, 2][bitmap_2d == 0] = bg_color[2]
+# 	rendered_text[:, :, 3][bitmap_2d == 0] = bg_color[3]
+# 	return rendered_text.astype(numpy.uint8)

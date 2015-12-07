@@ -3,3 +3,5 @@
 .DS_Store
 build/
 __init__.pyc
+pypi_releases
+pypi_releases/*

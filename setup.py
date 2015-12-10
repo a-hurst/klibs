@@ -26,24 +26,23 @@ setup(
 	author='Jonathan Mulle & Ross Story',
 	author_email='this.impetus@gmail.com',
 	url='http://github.com/jmwmulle/klibs',
-	packages=['klibs'],
-	requires=['numpy', 'pylink']
+	packages=['klibs']
 )
 
 # dirty hack until time is made to do this bit right via the installer
-if os.path.exists("/usr/local/klibs"):
-	shutil.rmtree("/usr/local/klibs")
-if os.path.exists("/usr/local/bin/klibs"):
-	os.remove("/usr/local/bin/klibs")
-shutil.copyfile("klibs", "/usr/local/bin/klibs")
-shutil.copymode("klibs", "/usr/local/bin/klibs")
-os.mkdir("/usr/local/klibs")
-os.mkdir("/usr/local/klibs/font")
-shutil.copyfile("lib/splash.png", "/usr/local/klibs/splash.png")
-shutil.copymode("lib/splash.png", "/usr/local/klibs/splash.png")
-shutil.copyfile("lib/font/AnonymousPro.ttf", "/usr/local/klibs/font/AnonymousPro.ttf")
-shutil.copymode("lib/font/AnonymousPro.ttf", "/usr/local/klibs/font/AnonymousPro.ttf")
-shutil.copyfile("lib/font/Frutiger.ttf", "/usr/local/klibs/font/Frutiger.ttf")
-shutil.copymode("lib/font/Frutiger.ttf", "/usr/local/klibs/font/Frutiger.ttf")
-shutil.copytree("lib/template", "/usr/local/klibs/template")
-shutil.copymode("lib/template", "/usr/local/klibs/template")
+# if os.path.exists("/usr/local/klibs"):
+# 	shutil.rmtree("/usr/local/klibs")
+# if os.path.exists("/usr/local/bin/klibs"):
+# 	os.remove("/usr/local/bin/klibs")
+# shutil.copyfile("klibs", "/usr/local/bin/klibs")
+# shutil.copymode("klibs", "/usr/local/bin/klibs")
+# os.mkdir("/usr/local/klibs")
+# os.mkdir("/usr/local/klibs/font")
+# shutil.copyfile("lib/splash.png", "/usr/local/klibs/splash.png")
+# shutil.copymode("lib/splash.png", "/usr/local/klibs/splash.png")
+# shutil.copyfile("lib/font/AnonymousPro.ttf", "/usr/local/klibs/font/AnonymousPro.ttf")
+# shutil.copymode("lib/font/AnonymousPro.ttf", "/usr/local/klibs/font/AnonymousPro.ttf")
+# shutil.copyfile("lib/font/Frutiger.ttf", "/usr/local/klibs/font/Frutiger.ttf")
+# shutil.copymode("lib/font/Frutiger.ttf", "/usr/local/klibs/font/Frutiger.ttf")
+# shutil.copytree("lib/template", "/usr/local/klibs/template")
+# shutil.copymode("lib/template", "/usr/local/klibs/template")

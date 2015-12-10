@@ -57,7 +57,7 @@ def create(name, path):
 			print "\033[91m\nOk Madonna, take it easy. \033[32mFirst \033[92m*\033[32mand\033[92m*\033[32m last name. Let's try that again--you got this champ...\033[0m"
 			return create(name, path)
 
-	source = "/usr/local/klibs/experiment_template"
+	source = "/usr/local/klibs/template"
 	project_path = os.path.join(path, name)
 
 	correct = False

@@ -7,6 +7,7 @@ class Debugger(object):
 	experiment = None
 	logs = []
 	labelled_logs = {}
+	display_location = "RIGHT"
 
 	def __init__(self, experiment):
 		self.experiment = experiment
@@ -37,19 +38,28 @@ class Debugger(object):
 			if len(display_lines):
 				text = "\n".join(display_lines)
 				content = self.experiment.text_manager.render(text, "debug")
-				# h = sum([l.height for l in content])
-				panel = Rectangle(Params.screen_x, content.shape[0], fill=[0,0,0,125]).render()
-				panel.foreground = panel.foreground.astype(numpy.uint8)
-				# panel.blit(content, position=[Params.screen_c[0], panel.height // 2], registration=5)
-				self.experiment.blit(panel, position=[0,Params.screen_y], registration=1)
-				# self.experiment.blit(content, position=[Params.screen_c[0],Params.screen_y], registration=2)
-				self.experiment.blit(content, position=[Params.screen_c[0], Params.screen_y], registration=2)
-				# lines = 0
-				# for l in content:
-				# 	height = Params.screen_y - (h - (l.height * lines))
-				# 	lines += 1
-				# 	self.experiment.blit(l, position=[Params.screen_c[0], height], registration=8)
-
+				if self.display_location == "LEFT":
+					panel_h = Params.screen_y
+					panel_w = content.shape[1] + 10
+					panel_position = (0,Params.screen_y)
+					panel_registration = 3
+					content_position = (5,5)
+					content_registration = 7
+				if self.display_location == "RIGHT":
+					panel_h = Params.screen_y
+					panel_w = content.shape[1] + 10
+					panel_position = (Params.screen_x - panel_w, Params.screen_y)
+					panel_registration = 1
+					content_position = (Params.screen_x - 5, 5)
+					content_registration = 9
+				if self.display_location == "BOTTOM":
+					panel_h = content.shape[0]
+					panel_w = Params.screen_x
+					content_position = (Params.screen_c[0], Params.screen_y)
+					content_registration = 2
+				panel = Rectangle(panel_w, panel_h, fill=[0,0,0,125]).render()
+				self.experiment.blit(panel, position=panel_position, registration=panel_registration)
+				self.experiment.blit(content, position=content_position, registration=content_registration)
 
 
 

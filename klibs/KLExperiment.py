@@ -260,6 +260,7 @@ class Experiment(object):
 		gl.glOrtho(0, Params.screen_x, Params.screen_y, 0, 0, 1)
 		gl.glMatrixMode(gl.GL_MODELVIEW)
 		gl.glDisable(gl.GL_DEPTH_TEST)
+
 		pump()
 
 		self.clear()

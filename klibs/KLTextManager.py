@@ -4,16 +4,23 @@ from KLNumpySurface import NumpySurface
 from PIL import ImageFont
 from sdl2 import sdlttf
 from KLUtilities import *
-
+from struct import *
+import timeit
 from KLConstants import *
 import KLParams as Params
 
 
-def argb_to_rgba(val):
-	print val.shape
-	changed = numpy.apply_along_axies(sdl2.ext.rgba_to_color, 0, val)
-	print changed.shape
+def argb32_to_rgba(np_array):
+		"""Converts an integer value to a Color, assuming the integer
+		represents a 32-bit RGBBA value.
+		"""
+		out =  numpy.zeros((np_array.shape[0], np_array.shape[1], 4))
+		out[...,3] = ((np_array & 0xFF000000) >> 24)
+		out[...,0] = ((np_array & 0x00FF0000) >> 16)
+		out[...,1] = ((np_array & 0x0000FF00) >> 8)
+		out[...,2] = ((np_array & 0x000000FF))
 
+		return out
 
 class TextStyle(object):
 
@@ -71,7 +78,7 @@ class TextManager(object):
 		self.__build_font_sizes()
 		self.add_font("Anonymous Pro", font_file_basename="AnonymousPro")
 		self.add_font("Frutiger")
-		self.add_style("debug", 16, (255, 255, 255, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro")
+		self.add_style("debug", 12, (255, 255, 255, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro")
 		self.add_style("default", "16pt", [22, 22, 22], font_label="Frutiger")
 		sdlttf.TTF_Init()
 
@@ -108,19 +115,13 @@ class TextManager(object):
 		for line in lines_surfs:
 			if line.width > text_dims[0]: text_dims[0] = line.width
 			text_dims[1] += int(line_height)
-		# text_surface = NumpySurface(width=text_dims[0], height=text_dims[1])
-		# for line in lines_surfs:
-		# 	if line.height != 0:
-		# 		text_surface.blit(line, position=[0, y_pos], behavior="extend")
-		# 		y_pos += line_height
 		for l in lines_surfs:
 			l.resize([text_dims[0], l.height])
 		text_surface = numpy.concatenate([l.render() for l in lines_surfs], 0)
 
-		# text_surface = NumpySurface( text_surface )
-
 		return text_surface
-		# return lines_surfs
+
+
 
 	def render(self, text, style="default"):
 		"""
@@ -141,42 +142,12 @@ class TextManager(object):
 
 		if len(text) == 0:
 			text = " "
-		# Attempting to use SDL font rendering...
-		#
-		# rendering_font = sdlttf.TTF_OpenFont(self.fonts[style.font_label], 24)
-		# rendered_text = sdlttf.TTF_RenderText_Blended(rendering_font, text, sdl2.SDL_Color(*style.color)).contents
-		# rendered_text = numpy.asarray(rendered_text)
-		# rendered_text = list(sdl2.ext.PixelView(rendered_text))
-		# rendered_text = numpy.asarray(rendered_text)
-		# to_rgba = numpy.vectorize(sdl2.ext.rgba_to_color)
-		# rendered_text = to_rgba(rendered_text)
-		# rendered_text_rgba = numpy.apply_along_axis(sdl2.ext.rgba_to_color, 0, numpy.vectorize(rendered_text))
-		# print rendered_text
-		# for row in rendered_text:
-		# 	rgba_row = []
-		# 	for col in row:
-		# 		rgba = list(sdl2.ext.rgba_to_color(col))
-		# 		rgba2 = rgba[1:]
-		# 		rgba2.append(rgba[0])
-		# 		rgba_row.append(rgba2)
-		# 	rendered_text_rgba.append(rgba_row)
-		# surface = NumpySurface(rendered_text.astype(numpy.uint8))
 
-		rendering_font = self.__compile_font(style.font_label, style.font_size)
-		glyph_bitmap = rendering_font.getmask(text, mode="L")  # L = antialiasing mode
-		bitmap_1d = numpy.asarray(glyph_bitmap)
-		bitmap_2d = numpy.reshape(bitmap_1d, (glyph_bitmap.size[1], glyph_bitmap.size[0]), order='C')
-		nonzero_2d_bitmap = bitmap_2d[bitmap_2d > 0]
-		rendered_text = numpy.zeros((glyph_bitmap.size[1], glyph_bitmap.size[0], 4))
-		rendered_text[:, :, 0][bitmap_2d > 0] = style.color[0] * nonzero_2d_bitmap //  255
-		rendered_text[:, :, 1][bitmap_2d > 0] = style.color[1] * nonzero_2d_bitmap //  255
-		rendered_text[:, :, 2][bitmap_2d > 0] = style.color[2] * nonzero_2d_bitmap //  255
-		rendered_text[:, :, 3][bitmap_2d > 0] = style.color[3] * nonzero_2d_bitmap //  255
-		rendered_text[:, :, 0][bitmap_2d == 0] = style.bg_color[0]
-		rendered_text[:, :, 1][bitmap_2d == 0] = style.bg_color[1]
-		rendered_text[:, :, 2][bitmap_2d == 0] = style.bg_color[2]
-		rendered_text[:, :, 3][bitmap_2d == 0] = style.bg_color[3]
-		surface = NumpySurface(rendered_text.astype(numpy.uint8))
+		rendering_font = sdlttf.TTF_OpenFont(self.fonts[style.font_label], style.font_size)
+		rendered_text = sdlttf.TTF_RenderText_Blended(rendering_font, text, sdl2.SDL_Color(*style.color)).contents
+		px = numpy.asarray(sdl2.ext.PixelView(rendered_text))
+		surface_array = argb32_to_rgba(px)
+		surface =  NumpySurface(surface_array)
 
 		return surface if surface.width < Params.screen_x else self.__wrap(text, style, Params.screen_x - 20)
 

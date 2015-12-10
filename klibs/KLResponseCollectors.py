@@ -1,7 +1,7 @@
 __author__ = 'jono'
 
-import KLParams as Params
 import abc
+import KLParams as Params
 from KLConstants import *
 from KLUtilities import *
 from KLAudio import AudioStream
@@ -102,13 +102,22 @@ class ResponseCollector(object):
 			raise TypeError("Argument 'interrupt' must be boolean.")
 
 
-class KeyPressCollector(ResponseCollector):
+class ResponseType(object):
+
+	def __init__(self):
+		super(ResponseType, self).__init__()
+
+	@abc.abstractmethod
+	def collect(self):
+		pass
+
+class KeyPressResponse(ResponseType):
 
 	def __init__(self, key_map, *args, **kwargs):
 		super(KeyPressCollector, self).__init__(*args, **kwargs)
 		self.key_map = key_map
 
-	def run(self, *callback_args, **callback_kwargs):
+	def collect(self, *callback_args, **callback_kwargs):
 		#  enter the loop with a cleared event queue
 		sdl2.SDL_PumpEvents()
 		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
@@ -202,7 +211,7 @@ class AudioResponseCollector(ResponseCollector):
 			if response[0] == "v":
 				self.validate()
 
-	def run(self):
+	def collect(self):
 		if not self.threshold_valid:
 			pass  # write an exception for this
 		sdl2.SDL_PumpEvents()

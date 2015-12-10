@@ -1,7 +1,6 @@
 .idea
 .idea/*
 .DS_Store
-build/
+build
+build/*
 __init__.pyc
-pypi_releases
-pypi_releases/*

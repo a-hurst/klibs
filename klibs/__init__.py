@@ -46,7 +46,6 @@ from KLEEG import *
 from KLDebug import *
 from KLExperiment import Experiment
 
-global exp
 def track_mouse():
 	"""
 	Utility method for

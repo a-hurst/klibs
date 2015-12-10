@@ -1,11 +1,11 @@
 __author__ = 'jono'
-import os, math, numpy
-from KLNumpySurface import NumpySurface
+import numpy
 from PIL import ImageFont
 from sdl2 import sdlttf
-from KLUtilities import *
-from struct import *
-import timeit
+
+import math
+from KLNumpySurface import NumpySurface
+from libexec.klibs.KLUtilities import *
 from KLConstants import *
 import KLParams as Params
 

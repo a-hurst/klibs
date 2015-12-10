@@ -1,11 +1,8 @@
 __author__ = 'jono'
 
-import os
-import hashlib
 import shutil
 import sqlite3
-import KLParams as Params
-from KLUtilities import *
+from libexec.klibs.KLUtilities import *
 
 
 class EntryTemplate(object):

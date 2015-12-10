@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
 
-import ctypes
-from KLDraw import *
-import os
 import abc
+
+from KLDraw import *
 import time
-import KLParams as Params
-import sdl2
 import math
-from KLConstants import *
-from KLUtilities import *
+from libexec.klibs.KLUtilities import *
+
 try:
 	import pylink
 	PYLINK_AVAILABLE = True

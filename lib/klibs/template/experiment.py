@@ -1,7 +1,8 @@
+from libexec import klibs
+
 __author__ = "EXPERIMENTER_NAME"
 
-import klibs
-from klibs import Params
+from libexec.klibs import Params
 
 # Below are some commonly required additional libraries; uncomment as needed.
 

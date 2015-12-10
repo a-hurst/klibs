@@ -2,14 +2,13 @@ __author__ = 'jono'
 
 import random
 from re import compile
-import os
 import csv
-import KLParams as Params
-import re
-from KLUtilities import *
-from itertools import product
 from copy import copy
+
 import numpy as np
+
+from libexec.klibs.KLUtilities import *
+from itertools import product
 from math import ceil
 
 

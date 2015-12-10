@@ -1,12 +1,11 @@
 __author__ = 'jono'
 
-from PIL import Image
-import aggdraw
-import numpy
-from KLConstants import *
-from KLNumpySurface import *
-from KLUtilities import *
 import abc
+
+import aggdraw
+from KLNumpySurface import *
+from libexec.klibs.KLUtilities import *
+
 
 
 ######################################################################

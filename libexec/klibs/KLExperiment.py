@@ -1,31 +1,24 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
-import random
-import numpy
-import math
-import time
-import hashlib
-import re
-from copy import copy
 import OpenGL.GL as gl
 import sdl2.ext
+import AppKit
+
+import math
+import time
 import aggdraw
-from KLAudio import AudioManager
+from libexec.klibs.KLAudio import AudioManager
 from KLEyeLink import *
 from KLExceptions import *
-from KLNumpySurface import *
 from KLDatabase import *
 from KLKeyMap import KeyMap
 from KLTextManager import *
-from KLUtilities import *
-import KLParams as Params
-from KLConstants import *
 from KLELCustomDisplay import ELCustomDisplay
 from KLDraw import *
 from KLTrialFactory import TrialFactory
 from KLDebug import Debugger
 import sys
-import AppKit
+
 
 
 #  TODO: Pull all the interface commands, keymaps, overwatch, etc. into KLInterface and stick it on a separate process

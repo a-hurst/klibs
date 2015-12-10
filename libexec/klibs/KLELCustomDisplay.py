@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
+from libexec.klibs import KLDraw
+
 __author__ = 'jono'
 import pylink
 
 #  these are all from our framework but shouldn't be the source of any interference here
-from KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
-from KLNumpySurface import *  # a class for easily moving between numpy pixel arrays and sdl2/openGL
-import KLParams as Params  # a list of program-wide settings like screen dimensions, colors, etc.
-import KLDraw
+from libexec.klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
+from libexec.klibs.KLNumpySurface import *  # a class for easily moving between numpy pixel arrays and sdl2/openGL
 import array
 import sys
 

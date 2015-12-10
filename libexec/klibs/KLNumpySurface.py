@@ -1,11 +1,13 @@
-import os
-import numpy
 from copy import copy
+
+import numpy
 from PIL import Image
 from PIL import ImageOps
-from KLUtilities import *
+
+from libexec.klibs.KLUtilities import *
 from KLConstants import *
 import aggdraw
+
 
 """
 These next few functions just wrap aggdraw's stupid API :S

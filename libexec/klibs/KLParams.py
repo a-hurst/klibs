@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 author = 'jono'
 
-from KLConstants import *
-from KLUtilities import *
-from KLTimeKeeper import TimeKeeper
 import os
 from random import seed
+
+from KLUtilities import *
+from libexec.klibs.KLTimeKeeper import TimeKeeper
 from time import time
-from subprocess import PIPE, Popen
+
 klibs_version = "1.0a"
 
 #  project structure; default paths & filenames

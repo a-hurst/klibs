@@ -1,50 +1,32 @@
 # -*- coding: utf-8 -*-
-import abc
 import math
 import sys
-import os
-import random
 import time
 import datetime
 import thread
-import traceback
-import sqlite3
-import hashlib
-import re
-import shutil
-from copy import copy
-import numpy
-from functools import wraps
-import OpenGL.GL as gl
-from PIL import Image
-from PIL import ImageFont
-from PIL import ImageOps
-import sdl2
-import sdl2.ext
-import AppKit
 # import pylink
 
-from KLExceptions import *
-from KLConstants import * # string constants, included for tidyness below basically
-from KLTimeKeeper import TimeKeeper
-import KLParams as Params
-from KLAudio import *
-from KLUtilities import *
-from KLNumpySurface import *
-from KLDraw import *
-from KLResponseCollectors import *
+from libexec.klibs.KLExceptions import *
+from libexec.klibs.KLConstants import * # string constants, included for tidyness below basically
+from libexec.klibs import KLParams as Params
+from libexec.klibs.KLTimeKeeper import TimeKeeper
+from libexec.klibs.KLAudio import *
+from libexec.klibs.KLUtilities import *
+from libexec.klibs.KLNumpySurface import *
+from libexec.klibs.KLDraw import *
+from libexec.klibs.KLResponseCollectors import *
 
 print "\n\n\033[92m*** Now loading KLIBS Environment ***\033[0m"
 print "\t\033[32mHint: if a bunch of SDL errors were just reported, this was expected, do not be alarmed!)\033[0m"
 
-from KLDatabase import Database
-from KLTextManager import TextManager
-from KLKeyMap import *
-from KLEyeLink import *
-from KLELCustomDisplay import ELCustomDisplay
-from KLEEG import *
-from KLDebug import *
-from KLExperiment import Experiment
+from libexec.klibs.KLDatabase import Database
+from libexec.klibs.KLTextManager import TextManager
+from libexec.klibs.KLKeyMap import *
+from libexec.klibs.KLEyeLink import *
+from libexec.klibs.KLELCustomDisplay import ELCustomDisplay
+from libexec.klibs.KLEEG import *
+from libexec.klibs.KLDebug import *
+from libexec.klibs.KLExperiment import Experiment
 
 def track_mouse():
 	"""

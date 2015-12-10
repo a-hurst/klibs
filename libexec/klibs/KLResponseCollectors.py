@@ -1,10 +1,8 @@
 __author__ = 'jono'
 
 import abc
-import KLParams as Params
-from KLConstants import *
-from KLUtilities import *
-from KLAudio import AudioStream
+from libexec.klibs.KLUtilities import *
+from libexec.klibs.KLAudio import AudioStream
 
 class ResponseCollector(object):
 	callback = None
@@ -197,7 +195,7 @@ class AudioResponseCollector(ResponseCollector):
 			key_map = Params.key_maps["*"]
 		else:
 			validation_message = "Validation wasn't successful. Type C to re-calibrate or V to try validation again."
-			from KLKeyMap import KeyMap
+			from libexec.klibs.KLKeyMap import KeyMap
 			key_map = KeyMap("",['c','v'],['c','v'],[sdl2.SDLK_c, sdl2.SDLK_v])
 		advance = KeyPressCollector(key_map, experiment=self.experiment, interrupt=True)
 		self.experiment.fill()

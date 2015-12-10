@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
+from libexec.klibs import KLParams as Params
+
 __author__ = 'jono'
 
 import math
 import sys
 import os
-import KLParams as Params
-from KLConstants import *
+from libexec.klibs.KLConstants import *
 import datetime
 import sdl2
 import ctypes

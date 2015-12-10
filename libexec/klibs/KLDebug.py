@@ -1,7 +1,6 @@
 __author__ = 'jono'
 import time
-from KLTextManager import *
-from KLDraw import *
+from libexec.klibs.KLDraw import *
 
 class Debugger(object):
 	experiment = None

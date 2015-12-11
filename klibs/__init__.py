@@ -5,11 +5,11 @@ import time
 import datetime
 import thread
 # import pylink
-from klibs import KLParams as Params
 
 from klibs.KLExceptions import *
 from klibs.KLConstants import * # string constants, included for tidyness below basically
 from klibs.KLTimeKeeper import TimeKeeper
+from klibs import KLParams as Params
 from klibs.KLAudio import *
 from klibs.KLUtilities import *
 from klibs.KLNumpySurface import *

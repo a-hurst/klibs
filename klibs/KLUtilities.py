@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-from klibs import KLParams as Params
 
 __author__ = 'jono'
 
 import math
 import sys
 import os
+import KLParams as Params
 from klibs.KLConstants import *
 import datetime
 import sdl2
@@ -13,6 +13,7 @@ import ctypes
 import time
 import datetime
 import re
+
 
 def absolute_position(position, destination):
 	height = None

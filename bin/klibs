@@ -19,6 +19,7 @@ import sys
 
 
 try:
+	import klibs
 except ImportError:
 	#  todo: add in Ross's april fools idea
 	exc_type, exc_value, exc_traceback = sys.exc_info()

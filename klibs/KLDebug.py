@@ -1,6 +1,6 @@
 __author__ = 'jono'
 import time
-from libexec.klibs.KLDraw import *
+from klibs.KLDraw import *
 
 class Debugger(object):
 	experiment = None

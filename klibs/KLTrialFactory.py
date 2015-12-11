@@ -7,7 +7,7 @@ from copy import copy
 
 import numpy as np
 
-from libexec.klibs.KLUtilities import *
+from klibs.KLUtilities import *
 from itertools import product
 from math import ceil
 

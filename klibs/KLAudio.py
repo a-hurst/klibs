@@ -6,7 +6,7 @@ Note AudioClip is an adaption of code originally written by mike lawrence (githu
 
 import sdl2.ext
 from sdl2 import sdlmixer
-from libexec.klibs.KLDraw import *
+from klibs.KLDraw import *
 import math
 
 try:
@@ -152,7 +152,7 @@ class AudioStream(object):
 		self.stream = self.p.open(format=pyaudio.paInt16, channels=2, rate=AR_RATE, input=True, output=True, frames_per_buffer=AR_CHUNK_SIZE)
 
 	def get_ambient_level(self, period=1):
-		from libexec.klibs.KLResponseCollectors import KeyPressCollector  # not available at module load
+		from klibs.KLResponseCollectors import KeyPressCollector  # not available at module load
 		sample_period = Params.tk.countdown(period)
 		warn_message = "Please remain quite while the ambient noise level is sampled. Press SPACE to begin."
 		sampling_message = "Sampling Complete In {0} Seconds"

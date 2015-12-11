@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 author = 'jono'
 
-import os
 from random import seed
 
-from KLUtilities import *
-from libexec.klibs.KLTimeKeeper import TimeKeeper
+from klibs.KLUtilities import *
+from klibs.KLTimeKeeper import TimeKeeper
 from time import time
 
 klibs_version = "1.0a"

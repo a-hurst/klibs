@@ -1,5 +1,5 @@
 __author__ = 'jono'
-from libexec.klibs.KLConstants import *
+from klibs.KLConstants import *
 class KeyMap(object):
 	def __init__(self, name, ui_labels, data_labels, sdl_keysyms):
 		self.__any_key = None

@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
 
-import abc
-
-from KLDraw import *
+from klibs.KLDraw import *
 import time
 import math
-from libexec.klibs.KLUtilities import *
+from klibs.KLUtilities import *
 
 try:
 	import pylink

@@ -3,8 +3,8 @@ __author__ = 'jono'
 import abc
 
 import aggdraw
-from KLNumpySurface import *
-from libexec.klibs.KLUtilities import *
+from klibs.KLNumpySurface import *
+from klibs.KLUtilities import *
 
 
 

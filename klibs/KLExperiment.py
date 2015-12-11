@@ -7,17 +7,18 @@ import AppKit
 import math
 import time
 import aggdraw
-from libexec.klibs.KLAudio import AudioManager
-from KLEyeLink import *
-from KLExceptions import *
-from KLDatabase import *
-from KLKeyMap import KeyMap
-from KLTextManager import *
-from KLELCustomDisplay import ELCustomDisplay
-from KLDraw import *
-from KLTrialFactory import TrialFactory
-from KLDebug import Debugger
 import sys
+from klibs.KLAudio import AudioManager
+from klibs.KLEyeLink import *
+from klibs.KLExceptions import *
+from klibs.KLDatabase import *
+from klibs.KLKeyMap import KeyMap
+from klibs.KLTextManager import *
+from klibs.KLELCustomDisplay import ELCustomDisplay
+from klibs.KLDraw import *
+from klibs.KLTrialFactory import TrialFactory
+from klibs.KLDebug import Debugger
+from klibs.KLResponseCollectors import ResponseCollector
 
 
 
@@ -97,6 +98,9 @@ class Experiment(object):
 
 		# initialize audio management for the experiment
 		self.audio = AudioManager(self)
+
+		self.response_collector = ResponseCollector(self)
+		self.rc = self.response_collector  # alias for convenience
 
 		# initialize eyelink
 		self.eyelink = EyeLink(self)

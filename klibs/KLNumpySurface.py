@@ -4,8 +4,8 @@ import numpy
 from PIL import Image
 from PIL import ImageOps
 
-from libexec.klibs.KLUtilities import *
-from KLConstants import *
+from klibs.KLUtilities import *
+from klibs.KLConstants import *
 import aggdraw
 
 

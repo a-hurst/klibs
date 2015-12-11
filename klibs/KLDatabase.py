@@ -2,7 +2,7 @@ __author__ = 'jono'
 
 import shutil
 import sqlite3
-from libexec.klibs.KLUtilities import *
+from klibs.KLUtilities import *
 
 
 class EntryTemplate(object):

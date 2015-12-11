@@ -4,10 +4,9 @@ from PIL import ImageFont
 from sdl2 import sdlttf
 
 import math
-from KLNumpySurface import NumpySurface
-from libexec.klibs.KLUtilities import *
-from KLConstants import *
-import KLParams as Params
+from klibs.KLNumpySurface import NumpySurface
+from klibs.KLUtilities import *
+from klibs.KLConstants import *
 
 
 def argb32_to_rgba(np_array):

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-from libexec.klibs import KLParams as Params
+from klibs import KLParams as Params
 
 __author__ = 'jono'
 
 import math
 import sys
 import os
-from libexec.klibs.KLConstants import *
+from klibs.KLConstants import *
 import datetime
 import sdl2
 import ctypes
@@ -356,14 +356,6 @@ def safe_flag_string(flags, prefix=None, uc=True):
 
 def now(format_time=False, format_template=DATETIME_STAMP):
 	return datetime.datetime.fromtimestamp(time.time()).strftime(format_template) if format_time else time.time()
-
-
-def kl_quit(msg=None):
-	if msg:
-		print msg
-	print "Quit called; exiting experiment..."
-	sdl2.SDL_Quit()
-	sys.exit()
 
 
 class RGBCLI:

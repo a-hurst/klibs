@@ -7,7 +7,7 @@ import math
 from klibs.KLNumpySurface import NumpySurface
 from klibs.KLUtilities import *
 from klibs.KLConstants import *
-
+from klibs import KLParams as Params
 
 def argb32_to_rgba(np_array):
 		"""Converts an integer value to a Color, assuming the integer
@@ -121,7 +121,6 @@ class TextManager(object):
 		return text_surface
 
 
-
 	def render(self, text, style="default"):
 		"""
 
@@ -159,12 +158,17 @@ class TextManager(object):
 		:param font_file_basename: Filename without extension of file; used when font_name does not match filename.
 		:return:
 		"""
+
+		print "ADDING FONTS"
 		if not font_file_basename:
 			font_file_basename = ".".join([font_name, font_extension])
 		else:
 			font_file_basename = ".".join([font_file_basename, font_extension])
+		print font_file_basename
+		print Params.font_dirs
 
 		for d in Params.font_dirs:
+			print os.path.join(d, font_file_basename)
 			if os.path.isfile(os.path.join(d, font_file_basename)):
 				self.fonts[font_name] = os.path.join(d, font_file_basename)
 		if not font_name in self.fonts:

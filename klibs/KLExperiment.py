@@ -61,7 +61,8 @@ class Experiment(object):
 		:type export: Boolean, Iterable
 		:raise EnvironmentError:
 		"""
-
+		print "FUCK YALL IM OUT"
+		exit()
 		super(Experiment, self).__init__()
 
 		if not Params.setup(project_name, random_seed):
@@ -227,6 +228,10 @@ class Experiment(object):
 		"""
 
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
+		dm = sdl2.SDL_GetCurrentDisplayMode(0, sdl2.SDL_DisplayMode())
+		print dm
+		print [dm.width, dm.height]
+		exit()
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()
 		screens = 0

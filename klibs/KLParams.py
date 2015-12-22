@@ -7,10 +7,10 @@ from klibs.KLUtilities import *
 from klibs.KLTimeKeeper import TimeKeeper
 from time import time
 
-klibs_version = "1.0a"
+klibs_version = "0.9.1.4"
 
 #  project structure; default paths & filenames
-klibs_dir = klibs_dir = "/usr/local/klibs"
+klibs_dir = klibs_dir = "/usr/local/lib/klibs"
 global project_name
 global asset_dir
 global image_dir
@@ -35,7 +35,7 @@ global anonymous_username
 exp_font_dir = "ExpAssets/Resources/font"
 sys_font_dir = "/Library/Fonts"
 user_font_dir = "~/Library/Fonts"
-klibs_font_dir = "/usr/local/klibs/font"
+klibs_font_dir = os.path.join(klibs_dir, "font")
 font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
 
 initialized = False

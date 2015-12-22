@@ -45,6 +45,7 @@ class PROJECT_NAME(klibs.Experiment):
 		pass
 
 	def trial(self, trial_factors):
+
 		return {
 			"block_num": Params.block_number,
 			"trial_num": Params.trial_number
@@ -52,6 +53,7 @@ class PROJECT_NAME(klibs.Experiment):
 
 	def trial_clean_up(self, *args, **kwargs):
 		pass
+
 
 	def clean_up(self):
 		pass

@@ -45,6 +45,9 @@ class CountDown(object):
 	def remaining(self):
 		return self.duration - (time.time() - self.started)
 
+	def elapsed(self):
+		return time.time() - self.started
+
 
 class TimeKeeper(object):
 	moments = {}

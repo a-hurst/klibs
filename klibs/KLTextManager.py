@@ -120,7 +120,6 @@ class TextManager(object):
 
 		return text_surface
 
-
 	def render(self, text, style="default"):
 		"""
 
@@ -159,16 +158,12 @@ class TextManager(object):
 		:return:
 		"""
 
-		print "ADDING FONTS"
 		if not font_file_basename:
 			font_file_basename = ".".join([font_name, font_extension])
 		else:
 			font_file_basename = ".".join([font_file_basename, font_extension])
-		print font_file_basename
-		print Params.font_dirs
 
 		for d in Params.font_dirs:
-			print os.path.join(d, font_file_basename)
 			if os.path.isfile(os.path.join(d, font_file_basename)):
 				self.fonts[font_name] = os.path.join(d, font_file_basename)
 		if not font_name in self.fonts:
@@ -226,7 +221,22 @@ class TextManager(object):
 		if type(color) is list:
 			self.__default_bg_color = color
 
+	@property
+	def default_font(self):
+		"""
 
+		:return:
+		"""
+		return self.__default_bg_color
+
+	@default_bg_color.setter
+	def default_font(self, color):
+		"""
+
+		:param color:
+		"""
+		if type(color) is list:
+			self.__default_bg_color = color
 
 	"""
 		Legacy functions to map old code to new functions and/or function signatures
@@ -250,7 +260,7 @@ class TextManager(object):
 			self.styles[style_name] =  style_object
 			self.legacy_styles_count += 1
 			style = style_name
-		self.render(string, style)
+		return self.render(string, style)
 
 	def wrapped_text(self, strings, width=None, font=None, font_size=None, color=None, bg_color=None, line_height=None):
 		if font:

@@ -4,7 +4,10 @@ import sys
 import time
 import datetime
 import thread
-# import pylink
+try:
+	import pylink
+except ImportError:
+	pass
 
 from klibs.KLExceptions import *
 from klibs.KLConstants import * # string constants, included for tidyness below basically

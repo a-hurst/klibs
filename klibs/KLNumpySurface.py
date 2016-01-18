@@ -586,7 +586,7 @@ class NumpySurface(object):
 		"""
 		if self.__prerender is not None and prerendering is False:
 			return self.__prerender
-		render_surface = None
+
 		if self.background is None and self.foreground is None:
 			raise ValueError('Nothing to render; NumpySurface has been initialized but not content has been added.')
 		if self.background is None:

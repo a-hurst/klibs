@@ -33,13 +33,13 @@ class AudioManager(object):
 		super(AudioManager, self).__init__()
 		self.experiment = experiment
 
-	def create_listener(self, name=None, threshold=AR_AUTO_THRESHOLD):
-		if not PYAUDIO_AVAILABLE:
-			raise RuntimeError("PyAudio module not loaded; KLAudio.AudioResponseListener not available.")
-		listener = AudioResponseListener(self.experiment, threshold)
-		if name:
-			self.listeners[name] = listener
-		return listener
+	# def create_listener(self, name=None, threshold=AR_AUTO_THRESHOLD):
+	# 	if not PYAUDIO_AVAILABLE:
+	# 		raise RuntimeError("PyAudio module not loaded; KLAudio.AudioResponseListener not available.")
+	# 	listener = AudioResponseListener(self.experiment, threshold)
+	# 	if name:
+	# 		self.listeners[name] = listener
+	# 	return listener
 
 	def clip(self, file_path):
 		return AudioClip(file_path)
@@ -105,9 +105,9 @@ class AudioSample(object):
 		super(AudioSample, self).__init__()
 		self.array = array('h', raw_sample)
 		self.peak = max(self.array)
-		self.trough = min(self.array)
-		self.mean = sum(self.array) / len(self.array)
-		self.threshold = None if threshold == AR_AUTO_THRESHOLD else threshold
+		# self.trough = min(self.array)
+		# self.mean = sum(self.array) / len(self.array)
+		# self.threshold = None if threshold == AR_AUTO_THRESHOLD else threshold
 
 	def is_below(self, threshold=None):
 		return self.peak < threshold if threshold else self.threshold
@@ -120,14 +120,15 @@ class AudioStream(object):
 	p = None
 	stream = None
 
-	def __init__(self, experiment, threshold=None):
+	def __init__(self, experiment, threshold=1):
 		super(AudioStream, self).__init__()
 		self.experiment = experiment
 		self.p = pyaudio.PyAudio()
-		if threshold == AR_AUTO_THRESHOLD:
-			self.threshold = 3 * self.get_ambient_level()  # this is probably in adequate and should employ a log scale
-		else:
-			self.threshold = threshold
+		self.threshold = 500
+		# if threshold == AR_AUTO_THRESHOLD:
+		# 	self.threshold = 3 * self.get_ambient_level()  # this is probably inadequate and should employ a log scale
+		# else:
+		# 	self.threshold = threshold
 
 	def sample(self):
 		if self.stream is None:
@@ -148,24 +149,23 @@ class AudioStream(object):
 			self.p.terminate()
 		except (AttributeError, IOError) as e:
 			pass  # on first pass, no stream exists; on subsequent passes, extant stream should be stopped & overwritten
+
 		self.p = pyaudio.PyAudio()
-		self.stream = self.p.open(format=pyaudio.paInt16, channels=2, rate=AR_RATE, input=True, output=True, frames_per_buffer=AR_CHUNK_SIZE)
+		self.stream = self.p.open(format=pyaudio.paInt16, channels=2, rate=AR_RATE, input=True, output=True, \
+															  frames_per_buffer=1024)
 
 	def get_ambient_level(self, period=1):
-		from klibs.KLResponseCollectors import KeyPressCollector  # not available at module load
 		sample_period = Params.tk.countdown(period)
-		warn_message = "Please remain quite while the ambient noise level is sampled. Press SPACE to begin."
+		warn_message = "Please remain quite while the ambient noise level is sampled. Sampling will begin in 3 seconds."
 		sampling_message = "Sampling Complete In {0} Seconds"
-		any_key_listener = KeyPressCollector(Params.key_maps["*"], self.experiment, interrupt=True)
-
 		peaks = []
 
 		self.experiment.fill()
 		self.experiment.message(warn_message, location=Params.screen_c, registration=5)
-		any_key_listener.run()
+		self.experiment.flip()
 		sample_period.start()
 		while sample_period.counting():
-			self.experiment.ui_listen()
+			self.experiment.ui_request()
 			self.experiment.fill()
 			self.experiment.message(sampling_message.format(int(math.ceil(sample_period.remaining())), font_size="48pt"), location=Params.screen_c, registration=5)
 			peaks.append(self.sample().peak)
@@ -174,21 +174,24 @@ class AudioStream(object):
 		return sum(peaks) / len(peaks)
 
 	def get_peak_during(self, period=3, message=None):
-		initial_diameter = int(Params.screen_x * 0.05)
-		sample_period = Params.tk.countdown(period)
+		# initial_diameter = int(Params.screen_x * 0.05)
 		local_peak = 0
 		sdl2.SDL_PumpEvents()
 		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
+		sample_period = Params.tk.countdown(period)
+		first_flip_rest = False
 		while sample_period.counting():
+			Params.tk.start("sampling")
+			sample = self.sample().peak
+			print "sample time: {0}".format(Params.tk.elapsed("sampling"))
 			self.experiment.ui_request()
 			self.experiment.fill()
 			if message:
 				self.experiment.message(message)
-			sample = self.sample()
-			if sample.peak > local_peak:
-				local_peak = sample.peak
+			if sample > local_peak:
+				local_peak = sample
 			peak_circle = int((local_peak * Params.screen_x * 0.9) / 65000)
-			sample_circle = int((sample.peak * Params.screen_x * 0.9) / 65000)
+			sample_circle = int((sample * Params.screen_x * 0.9) / 65000)
 			if peak_circle < 5:
 				peak_circle = 5
 			if sample_circle < 5:
@@ -196,6 +199,9 @@ class AudioStream(object):
 			self.experiment.blit(Circle(peak_circle, fill=[255, 145, 0]), position=Params.screen_c, registration=5)
 			self.experiment.blit(Circle(sample_circle, fill=[84, 60, 182]), position=Params.screen_c, registration=5)
 			self.experiment.flip()
+			if not first_flip_rest:
+				sample_period.start()
+				first_flip_rest = True
 
 
 		return local_peak

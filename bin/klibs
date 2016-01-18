@@ -12,7 +12,7 @@ import os
 import shutil
 from subprocess import Popen, PIPE
 import traceback
-
+import stat
 import imp
 import time
 import sys
@@ -21,34 +21,35 @@ pylink_install_required = False
 klibs_version = "0.9.1.4"
 
 
-try:
-	import klibs
-except ImportError as e:
-	if str(e) == "cannot import name request_cross_hair_draw":
-		pylink_install_required = True
-	else:
-		#  todo: add in Ross's april fools idea
-		exc_type, exc_value, exc_traceback = sys.exc_info()
-		print "\n\033[91m*** Fatal Error: Unable to load klibs ***\033[0m"
-		print "\n\033[0mStack Trace (if you don't understand this, skip forward to 'What To Do If KLIBs Wasn't Found'"
-		print traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
-		print "\n\033[1mWhat To Do If KLIBS Wasn't Found: \n\033[0mIf the klibs python module couldn't be located; repair the path to the module or reinstall it."
-		print "Perhaps you're thinking \"then what's talking to me right now?!\". Don't worry, neither you nor I have gone mad."
-		print "Rather, when you typed 'klibs <name> <path>' you executed a setup script to create a new empty project."
-		print "This script is invoked using the word 'klibs' as a convenience but it is *not* a part of the klibs python module"
-		print "required to execute a klibs project. This script is found at /usr/local/bin/klibs, whereas klibs must be"
-		print "reachable by PYTHONPATH. If you don't know what this means try simply reinstalling. If that doesn't work,"
-		print "then you probably need assistance. Go find a nerd!\n"
-		print "\t\033[94mMore Information:   \033[0mhttp://kleinlab.psychology.dal.ca/klibs/documentation\033[0m"
-		print "\t\033[94mDownload Installer: \033[0mhttp://kleinlab.psychology.dal.ca/klibs/installer.zip\033[0m"
-		print "\t\033[94mRepository:         \033[0mhttps://github.com/jmwmulle/klibs\n"
-		print "\n... if the links don't work it's because Jon likely only wrote this; try: this.impetus@gmail.com!\n"
-		quit()
 
-
+	# if not os.path.exists("/Library/Python/2.7/site-packages/pylink"):
+	# 	pylink_install_required = True
+	# 	# if str(e) == "cannot import name request_cross_hair_draw":
+	# else:
+	# 	#  todo: add in Ross's april fools idea
+def print_warning(exc_type, exc_value, exc_traceback):
+	print "\n\033[91m*** Fatal Error: Unable to load klibs ***\033[0m"
+	print "\n\033[0mStack Trace (if you don't understand this, skip forward to 'What To Do If KLIBs Wasn't Found'"
+	print traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout)
+	time.sleep(0.3)
+	print "\n\033[1mWhat To Do If KLIBS Wasn't Found: \n\033[0mIf the klibs python module couldn't be located; repair the path to the module or reinstall it."
+	print "Perhaps you're thinking \"then what's talking to me right now?!\". Don't worry, neither you nor I have gone mad."
+	print "Rather, when you typed 'klibs <name> <path>' you executed a setup script to create a new empty project."
+	print "This script is invoked using the word 'klibs' as a convenience but it is *not* a part of the klibs python module"
+	print "required to execute a klibs project. This script is found at /usr/local/bin/klibs, whereas klibs must be"
+	print "reachable by PYTHONPATH. If you don't know what this means try simply reinstalling. If that doesn't work,"
+	print "then you probably need assistance. Go find a nerd!\n"
+	print "\t\033[94mMore Information:   \033[0mhttp://kleinlab.psychology.dal.ca/klibs/documentation\033[0m"
+	print "\t\033[94mDownload Installer: \033[0mhttp://kleinlab.psychology.dal.ca/klibs/installer.zip\033[0m"
+	print "\t\033[94mRepository:         \033[0mhttps://github.com/jmwmulle/klibs\n"
+	print "\n... if the links don't work it's because Jon likely only wrote this; try: this.impetus@gmail.com!\n"
 
 
 def create(name, path):
+	try:
+		import klibs
+	except ImportError as e:
+		print_warning(*sys.exc_info())
 	# Adding author details and loop to confirm before execution, was in a rush,  will return later
 	# Basically got stick on feeding raw_input() into arg_parse, seems to take each letter as an argument
 	# Update #2:  moved on to using just raw_input() until help with how to do this turns up
@@ -139,6 +140,10 @@ def update():
 
 
 def run(path, screen_size, random_seed, development_mode, no_eyelink):
+	try:
+		import klibs
+	except ImportError as e:
+		print_warning(*sys.exc_info())
 	if path[-1] == "/":
 		path = path[:-1]
 	project_name = os.path.split(path)[-1]
@@ -149,17 +154,33 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink):
 
 
 def export(path):
+	try:
+		import klibs
+	except ImportError as e:
+		print_warning(*sys.exc_info())
 	name = os.path.split(path)[-1]
 	os.chdir(path)
 	experiment = imp.load_source(path, "experiment.py")
 	app = getattr(experiment, name)
 	app(name, 1, export=True)
 
-def post_install():
+def post_install(development_mode):
 	# from klibs.KLParams import klibs_version
 	try:
-		shutil.move("/usr/local/lib/python2.7/site-packages/pylink/pylink", "/Library/Python/2.7/site-packages/pylink")
-		# os.chmod(os.path.join("/usr/local/Cellar/klibs/", klibs_version, "lib/klibs"), 777)
+		pylink_cellar = os.path.join("/usr/local/Cellar/klibs/", klibs_version, "libexec/lib/python2.7/site-packages/pylink")
+		klibs_cellar = os.path.join("/usr/local/Cellar/klibs/", klibs_version, "libexec/lib/python2.7/site-packages/klibs")
+		libpath = os.path.join("/usr/local/lib/klibs")
+		if os.path.exists("/Library/Python/2.7/site-packages/pylink") and development_mode:
+			shutil.rmtree("/Library/Python/2.7/site-packages/pylink")
+		shutil.copytree(pylink_cellar, "/Library/Python/2.7/site-packages/pylink")
+		for path in [pylink_cellar, klibs_cellar, libpath]:
+			for root, dirs, files in os.walk(path):
+				for d in dirs:
+					os.chmod(os.path.join(root, d), stat.S_IFDIR | stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IWOTH |  stat.S_IXOTH)
+				for f in files:
+					os.chmod(os.path.join(root, f), stat.S_IFREG | stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IWOTH |  stat.S_IXOTH)
+		if not os.path.exists("/usr/local/lib/python2.7/site-packages/klibs"):
+			os.link(klibs_cellar, "/usr/local/lib/python2.7/site-packages/klibs")
 	except OSError as e:
 		print "Right idea, wrong execution; 'install-pylink' is the *ONLY* klibs command that requires sudo."
 		print e
@@ -181,6 +202,7 @@ try:
 	update_parser.set_defaults(func=update)
 
 	update_parser = subparsers.add_parser('post-install')
+	update_parser.add_argument('-d', '--development_mode', action="store_true")
 	update_parser.set_defaults(func=post_install)
 
 	run_parser = subparsers.add_parser('run')

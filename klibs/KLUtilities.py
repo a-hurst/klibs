@@ -73,7 +73,7 @@ def arg_error_str(arg_name, given, expected, kw=True):
 	return err_string.format(arg_name, type(given), type(expected))
 
 
-def bounded_by(self, pos, left, right, top, bottom):
+def bounded_by(pos, left, right, top, bottom):
 		"""
 
 

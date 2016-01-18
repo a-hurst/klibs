@@ -32,6 +32,7 @@ global time_keeper
 global tk
 global anonymous_username
 
+exp = None
 exp_font_dir = "ExpAssets/Resources/font"
 sys_font_dir = "/Library/Fonts"
 user_font_dir = "~/Library/Fonts"

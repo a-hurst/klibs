@@ -8,6 +8,7 @@ import math
 import time
 import aggdraw
 import sys
+import hashlib
 from klibs.KLAudio import AudioManager
 from klibs.KLEyeLink import *
 from klibs.KLExceptions import *
@@ -61,9 +62,9 @@ class Experiment(object):
 		:type export: Boolean, Iterable
 		:raise EnvironmentError:
 		"""
-		print "FUCK YALL IM OUT"
-		exit()
 		super(Experiment, self).__init__()
+
+		Params.exp = self
 
 		if not Params.setup(project_name, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
@@ -80,7 +81,7 @@ class Experiment(object):
 
 		#initialize the self.database instance
 		try:
-			iterable = iter(export)
+			iter(export)
 		except TypeError:
 			export = [export]
 		self.__database_init(*export)
@@ -100,8 +101,6 @@ class Experiment(object):
 		# initialize audio management for the experiment
 		self.audio = AudioManager(self)
 
-		self.response_collector = ResponseCollector(self)
-		self.rc = self.response_collector  # alias for convenience
 
 		# initialize eyelink
 		self.eyelink = EyeLink(self)
@@ -118,6 +117,10 @@ class Experiment(object):
 											 sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
 											 sdl2.SDLK_RIGHT],
 											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
+
+		# initialize response collector
+		self.response_collector = ResponseCollector(self)
+		self.rc = self.response_collector  # alias for convenience
 
 		Params.time_keeper.start("Trial Generation")
 		self.trial_factory = TrialFactory(self)
@@ -169,7 +172,7 @@ class Experiment(object):
 		"""
 	
 		args = args[0]
-		self.debug['trial_factors'] = args[1]
+		# self.debug['trial_factors'] = args[1]
 		# try:
 		if args[1][0] is True:  # ie. if practicing
 			block_base = (Params.block_number * Params.trials_per_practice_block) - Params.trials_per_practice_block 
@@ -228,10 +231,6 @@ class Experiment(object):
 		"""
 
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
-		dm = sdl2.SDL_GetCurrentDisplayMode(0, sdl2.SDL_DisplayMode())
-		print dm
-		print [dm.width, dm.height]
-		exit()
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()
 		screens = 0
@@ -561,7 +560,7 @@ class Experiment(object):
 			if duration > 0:
 				start = time.time()
 				while time.time() - start < duration:
-					self.ui_listen()
+					self.ui_request()
 			else:
 				raise AttributeError("Duration must be a positive number, '{0}' was passed".format(duration))
 		else:
@@ -643,11 +642,16 @@ class Experiment(object):
 				if event.type == sdl2.SDL_KEYUP:
 					return # ie it wasn't a ui request and can't become one now
 			return False
+		else:
+			try:
+				key_press = key_press.key.keysym
+			except AttributeError:
+				pass
 
 		if key_press.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
 			if key_press.sym in UI_METHOD_KEYSYMS:
 				if key_press.sym == sdl2.SDLK_q:
-					return kl_quit() if execute else [True, "quit"]
+					return self.quit() if execute else [True, "quit"]
 				elif key_press.sym == sdl2.SDLK_c:
 					if Params.eye_tracking and Params.eye_tracker_available:
 						return self.eyelink.calibrate() if execute else [True, "el_calibrate"]
@@ -799,12 +803,6 @@ class Experiment(object):
 
 	def message(self, message, style=None, font=None, font_size=None, color=None, bg_color=None, location=None, registration=None,
 				wrap_width=None, blit=True, flip=False, padding=None):
-		if not style:
-			style_name = "legacy_style_{0}".format(self.text_manager.legacy_styles_count)
-			self.text_manager.legacy_styles_count += 1
-			# font_size=None, color=None, bg_color=None, line_height=None, font=None
-			style = TextStyle(style_name, font_size, color, bg_color, font)
-		# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
 		"""
 		Generates and optionally renders formatted text to the display.
 
@@ -841,6 +839,17 @@ class Experiment(object):
 		:type padding: Integer
 		:return: NumpySurface or Boolean
 			"""
+		if not style:
+			style_name = "legacy_style_{0}".format(self.text_manager.legacy_styles_count)
+			self.text_manager.legacy_styles_count += 1
+			# font_size=None, color=None, bg_color=None, line_height=None, font=None
+			style = TextStyle(style_name, font_size, color, bg_color, font)
+		else:
+			try:
+				style = self.text_manager.styles[style]
+			except TypeError:
+				pass
+		# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
 
 		render_config = {}
 		message_surface = None  # unless wrap is true, will remain empty
@@ -1038,9 +1047,9 @@ class Experiment(object):
 		elif type(font) is str:
 			input_config[0] = font
 			query_config[0] = font
-		else:
-			input_config[0] = self.text_manager.default_font
-			query_config[0] = self.text_manager.default_font
+		# else:
+		# 	input_config[0] = self.text_manager.default_font
+		# 	query_config[0] = self.text_manager.default_font
 
 		# process the possibility of different query/input colors
 		if color is not None:
@@ -1068,14 +1077,15 @@ class Experiment(object):
 		# infer locations if not provided (ie. center y, pad x from screen midline) create/ render query_surface
 		# Note: input_surface not declared until user input received, see while loop below
 		query_surface = None
-		if query is None:
-			query = self.text_manager.fetch_string('query')
+		# if query is None:
+		# 	query = self.text_manager.fetch_string('query')
 
 		if query:
 			query_surface = self.text_manager.render_text(query, *query_config)
 		else:
 			raise ValueError("A default query string was not set and argument 'query' was not provided")
 
+		print type(query_surface)
 		query_baseline = (Params.screen_y // 2) - vertical_padding
 		input_baseline = (Params.screen_y // 2) + vertical_padding
 		horizontal_center = Params.screen_x // 2
@@ -1105,7 +1115,7 @@ class Experiment(object):
 			for event in sdl2.ext.get_events():
 				if event.type not in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
 					continue
-				self.ui_listen(event)
+				self.ui_request(event.key.keysym)
 				if event.type == sdl2.SDL_KEYUP:  # don't fetch letter on both events
 					continue
 				if error_string:
@@ -1321,15 +1331,15 @@ class Experiment(object):
 		pass
 
 	@abc.abstractmethod
-	def trial(self, trial_num, trial_factors):
+	def trial(self, trial_factors):
 		pass
 
 	@abc.abstractmethod
-	def trial_prep(self):
+	def trial_prep(self, trial_id, trial_factors):
 		pass
 
 	@abc.abstractmethod
-	def trial_clean_up(self):
+	def trial_clean_up(self, trial_factors):
 		pass
 
 	#  Legacy functions to be removed in a later release

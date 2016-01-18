@@ -4,11 +4,8 @@ import os
 import sys
 from distutils.core import setup
 
-try:
-	import pylink
-	install_packages = ['klibs']
-except ImportError:
-	install_packages = ['klibs']
+
+install_packages = ['klibs']
 
 setup(
 	name='KLIBs',

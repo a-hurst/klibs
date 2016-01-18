@@ -5,6 +5,7 @@ import abc
 import aggdraw
 from klibs.KLNumpySurface import *
 from klibs.KLUtilities import *
+from klibs.KLTextManager import TextStyle
 
 
 
@@ -322,3 +323,47 @@ class Rectangle(Drawbject):
 	@property
 	def __name__(self):
 		return "Rectangle"
+
+
+class Asterisk(Drawbject):
+
+	def __init__(self, size, color, auto_draw=True):
+		# size = int(1.2 * size)
+		size = int(math.floor(size * 72 / Params.ppi) * 1.5)
+		stroke_size = int(0.25 * size)
+		super(Asterisk, self).__init__(size, size, (stroke_size, color), fill=None)
+		self.size = size
+		if auto_draw:
+			self.draw()
+
+	def draw(self):
+		# Params.exp.text_manager.add_style("asterisk", font_size=self.size)
+		# text_surface = Params.exp.message("*", "asterisk", blit=False).foreground
+		# # this solution taken from http://stackoverflow.com/questions/34730738/remove-empty-rows-and-columns-from-3d-numpy-pixel-array
+		# print text_surface
+		# mask = text_surface == [22,22,22,0]
+		# all_white = mask.sum(axis=2) == 0
+		# rows = numpy.flatnonzero(~all_white.sum(axis=0))
+		# cols = numpy.flatnonzero(~all_white.sum(axis=1))
+		#
+		# cropped_surface = text_surface[cols.min():cols.max(), rows.min():rows.max(), :]
+		# cropped_surface.scale(self.surface_width)
+		# return cropped_surface
+		x_os = int(self.surface_width * 0.925)
+		y_os = int(self.surface_height * 0.75)
+		l1 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height - 1]
+		l2 = [x_os + 1, y_os +1, self.surface_width - x_os + 1, self.surface_height - y_os + 1]
+		l3 = [self.surface_width - (x_os + 1), y_os + 1, x_os + 1, self.surface_height - y_os + 1]
+		self.surface.line([l1[0], l1[1], l1[2],l1[3]], self.stroke)
+		self.surface.line([l2[0], l2[1], l2[2],l2[3]], self.stroke)
+		self.surface.line([l3[0], l3[1], l3[2],l3[3]], self.stroke)
+		return self.surface
+
+	# def render(self):
+	# 	return self.draw()
+
+
+
+	@property
+	def __name__(self):
+		return "Asterisk"

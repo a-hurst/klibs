@@ -51,7 +51,7 @@ class PROJECT_NAME(klibs.Experiment):
 			"trial_num": Params.trial_number
 		}
 
-	def trial_clean_up(self, *args, **kwargs):
+	def trial_clean_up(self, trial_id, trial_factors):
 		pass
 
 

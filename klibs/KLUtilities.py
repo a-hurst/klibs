@@ -187,13 +187,16 @@ def log(msg, priority):
 	return True
 
 
-def mouse_pos(pump_event_queue=True):
+def mouse_pos(pump_event_queue=True, position=None):
 	if pump_event_queue:
 		sdl2.SDL_PumpEvents()
-	x, y = ctypes.c_int(0), ctypes.c_int(0)
-	sdl2.mouse.SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
-	return [x.value, y.value]
-
+	if not position:
+		x, y = ctypes.c_int(0), ctypes.c_int(0)
+		sdl2.mouse.SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
+		return [x.value, y.value]
+	else:
+		# x, y = ctypes.c_int(position[0]), ctypes.c_int(position[1])
+		sdl2.mouse.SDL_WarpMouseInWindow(*position)
 
 def hide_mouse_cursor():
 	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)

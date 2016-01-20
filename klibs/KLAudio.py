@@ -103,11 +103,19 @@ class AudioSample(object):
 
 	def __init__(self, raw_sample, threshold):
 		super(AudioSample, self).__init__()
+		Params.tk.start("arrify")
 		self.array = array('h', raw_sample)
+		Params.tk.stop("arrify")
+		Params.tk.start("finding peak")
 		self.peak = max(self.array)
-		# self.trough = min(self.array)
-		# self.mean = sum(self.array) / len(self.array)
-		# self.threshold = None if threshold == AR_AUTO_THRESHOLD else threshold
+		Params.tk.stop("finding peak")
+		Params.tk.start("finding trough")
+		self.trough = min(self.array)
+		Params.tk.stop("finding trough")
+		Params.tk.start("finding mean")
+		self.mean = sum(self.array) / len(self.array)
+		Params.tk.stop("finding mean")
+		self.threshold = None if threshold == AR_AUTO_THRESHOLD else threshold
 
 	def is_below(self, threshold=None):
 		return self.peak < threshold if threshold else self.threshold
@@ -124,7 +132,7 @@ class AudioStream(object):
 		super(AudioStream, self).__init__()
 		self.experiment = experiment
 		self.p = pyaudio.PyAudio()
-		self.threshold = 500
+		self.threshold = 1
 		# if threshold == AR_AUTO_THRESHOLD:
 		# 	self.threshold = 3 * self.get_ambient_level()  # this is probably inadequate and should employ a log scale
 		# else:
@@ -134,13 +142,11 @@ class AudioStream(object):
 		if self.stream is None:
 			self.init_stream()
 		try:
-			try:
-				return AudioSample(self.stream.read(AR_CHUNK_SIZE), self.threshold)
-			except AttributeError:
-				return AudioSample(self.stream.read(AR_CHUNK_SIZE), Params.AR_AUTO_THRESHOLD)
-		except IOError:
-			self.init_stream()
-			return self.sample()
+			chunk = self.stream.read(AR_CHUNK_SIZE, False)
+			sample = AudioSample(chunk, self.threshold)
+			return sample
+		except AttributeError:
+			return AudioSample(self.stream.read(AR_CHUNK_SIZE), Params.AR_AUTO_THRESHOLD)
 
 	def init_stream(self):
 		try:
@@ -151,8 +157,8 @@ class AudioStream(object):
 			pass  # on first pass, no stream exists; on subsequent passes, extant stream should be stopped & overwritten
 
 		self.p = pyaudio.PyAudio()
-		self.stream = self.p.open(format=pyaudio.paInt16, channels=2, rate=AR_RATE, input=True, output=True, \
-															  frames_per_buffer=1024)
+		self.stream = self.p.open(format=pyaudio.paInt16, channels=1, rate=AR_RATE, input=True, output=True, \
+															  frames_per_buffer=AR_CHUNK_SIZE)
 
 	def get_ambient_level(self, period=1):
 		sample_period = Params.tk.countdown(period)
@@ -180,14 +186,12 @@ class AudioStream(object):
 		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
 		sample_period = Params.tk.countdown(period)
 		first_flip_rest = False
+		if message:
+			message = self.experiment.message(message, location=Params.screen_c, registration=5, blit=False)
 		while sample_period.counting():
-			Params.tk.start("sampling")
 			sample = self.sample().peak
-			print "sample time: {0}".format(Params.tk.elapsed("sampling"))
 			self.experiment.ui_request()
 			self.experiment.fill()
-			if message:
-				self.experiment.message(message)
 			if sample > local_peak:
 				local_peak = sample
 			peak_circle = int((local_peak * Params.screen_x * 0.9) / 65000)
@@ -196,6 +200,8 @@ class AudioStream(object):
 				peak_circle = 5
 			if sample_circle < 5:
 				sample_circle = 5
+			if message:
+				self.experiment.blit(message, position=[25,25], registration=7)
 			self.experiment.blit(Circle(peak_circle, fill=[255, 145, 0]), position=Params.screen_c, registration=5)
 			self.experiment.blit(Circle(sample_circle, fill=[84, 60, 182]), position=Params.screen_c, registration=5)
 			self.experiment.flip()

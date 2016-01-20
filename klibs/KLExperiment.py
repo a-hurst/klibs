@@ -185,6 +185,7 @@ class Experiment(object):
 			trial_data = self.trial(args[1])
 			trial_id = self.__log_trial(trial_data)
 			self.trial_clean_up(trial_id, args[1])
+			self.rc.reset()
 		except TrialException as e:
 			self.trial_clean_up(False, args[1])
 			raise e
@@ -778,7 +779,7 @@ class Experiment(object):
 							if key_map is not None:
 								wrong_key = True
 					if key_name not in MOD_KEYS and key_name is not None:
-						self.ui_listen(event)  # ensure the 'wrong key' wasn't a call to quit or pause
+						self.ui_request(event)  # ensure the 'wrong key' wasn't a call to quit or pause
 						if interrupt:    # returns response immediately; else waits for maxWait to elapse
 							if response:
 								return [response, rt]
@@ -897,23 +898,6 @@ class Experiment(object):
 		"""
 
 		return NumpySurface(foreground, background, fg_position, bg_position, width, height)
-
-	# def ui_listen(self):
-	# 	"""
-	# 	Inspects keypress events for interface requests (ie.  'quit', 'calibrate', 'pause', etc.) and executes them. When called without event argument, pumps and inspects the entire event queue, otherwise inspects only the supplied event.
-	#
-	# 	:param keypress_event: An sdl2.
-	# 	:return:
-	# 	"""
-	#
-	# 	for event in sdl2.ext.get_events():
-	# 		if event.type in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
-	# 			ui_request = self.ui_request(event.key.keysym)
-	# 			if ui_request:
-	# 				return
-	# 		if event.type == sdl2.SDL_KEYUP:
-	# 			return # ie it wasn't a ui request and can't become one now
-	# 	return False
 
 	def pause(self):
 		"""
@@ -1193,13 +1177,15 @@ class Experiment(object):
 		try:
 			self.eyelink.shut_down_eyelink()
 		except:
-			print "EyeLink.stopRecording()  unsuccessful.\n ****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******"
+			if Params.eye_tracking and Params.eye_tracker_available:
+				print "EyeLink.stopRecording()  unsuccessful.\n ****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******"
 		try:
 			Params.time_keeper.stop("experiment")
 		except KeyError:
 			pass
 		sdl2.SDL_Quit()
 		Params.time_keeper.log("exit")
+		print "\n\n\033[92m*** '{0}' successfully shutdown. ***\033[0m\n\n".format(Params.project_name)
 		sys.exit()
 
 	def run(self, *args, **kwargs):

@@ -122,7 +122,6 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 			self.experiment.flip()
 			self.imagebuffer = array.array('I')
 			return
-		# todo make this shizit work son
 		try:
 			for i in range(0, len(buff)):
 				if type(buff[i]) is int:

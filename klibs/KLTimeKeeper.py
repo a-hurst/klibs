@@ -130,8 +130,8 @@ class TimeKeeper(object):
 			try:
 				times.append(times[1] - times[0])
 			except TypeError:
-				time.append(None)
-			output.append( "{0}: Start = {1}, End = {2}, Duration = {3}".format(*times))
+				times.append(None)
+			output.append( "{0}: Start = {1}, End = {2}, Duration = {3}".format(p, *times))
 		return "\n".join(output)
 
 	def elapsed(self, label):

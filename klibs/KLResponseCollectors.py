@@ -6,6 +6,9 @@ from klibs.KLAudio import AudioStream
 
 RC_AUDIO = 'audio'
 RC_KEYPRESS = 'keypress'
+RC_MOUSECLICK = 'mouseclick'
+RC_MOUSEDOWN = 'mousedown'
+RC_MOUSEUP = 'mouseup'
 
 class ResponseType(object):
 	__name__ = None
@@ -25,12 +28,14 @@ class ResponseType(object):
 	def max_collected(self):
 		return self.response_count == self.max_response_count
 
-
 	def collect(self):
 		if not self.max_collected():
 			self.collect_response()
 		if self.max_collected() and self.interrupts:
 			self.collector.response_window.finish()
+
+	def reset(self):
+		self.responses = []
 
 	@property
 	def name(self):
@@ -91,11 +96,10 @@ class KeyPressResponse(ResponseType):
 		super(KeyPressResponse, self).__init__(collector)
 		self.__key_map = None
 
-	def collect_response(self):
+	def collect_response(self, event_queue):
 		if not self.key_map:
 			raise RuntimeError("No KeyMap configured to KeyPressResponse listener.")
-		pump()
-		for event in sdl2.ext.get_events():
+		for event in event_queue:
 			if event.type == sdl2.SDL_KEYDOWN:
 				key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
 				sdl_keysym = key.keysym.sym
@@ -176,17 +180,15 @@ class AudioResponse(ResponseType):
 				self.threshold_valid = True
 		if self.threshold_valid:
 			validation_message = "Great, validation was successful. Press any key to continue."
-			any_key_pressed = False
-			while not any_key_pressed:
-				for event in sdl2.ext.get_events():
-					if event.type == sdl2.SDL_KEYDOWN:
-						any_key_pressed = True
+			# any_key_pressed = False
+			# while not any_key_pressed:
+			# 	for event in sdl2.ext.get_events():
+			# 		if event.type == sdl2.SDL_KEYDOWN:
+			# 			any_key_pressed = True
 		else:
 			validation_message = "Validation wasn't successful. Type C to re-calibrate or V to try validation again."
-			from klibs.KLKeyMap import KeyMap
-			response_map = KeyMap("", ['c','v'], ['c','v'], [sdl2.SDLK_c, sdl2.SDLK_v])
 		self.collector.experiment.fill()
-		self.collector.experiment.message(validation_message, location=Params.screen_c, registration=5)
+		self.collector.experiment.message(validation_message, location=Params.screen_c, registration=5, flip=True)
 
 		response_collected = False
 		while not response_collected:
@@ -197,11 +199,10 @@ class AudioResponse(ResponseType):
 						self.calibrated = True
 						return
 					else:
-						if response_map.validate(event.key.keysym):
-							if event.key.keysym == sdl2.SDLK_c:
-								self.calibrate()
-							else:
-								self.validate()
+						if event.key.keysym == sdl2.SDLK_c:
+							self.calibrate()
+						else:
+							self.validate()
 
 	def collect_response(self):
 		if not self.calibrated:
@@ -221,13 +222,66 @@ class AudioResponse(ResponseType):
 		self.__threshold = value
 
 
-class MouseClickResponse(ResponseType):
+class MouseDownResponse(ResponseType):
 
 	def __init__(self):
-		pass
+		self.boundaries = {}
 
-	def collect_response(self):
-		pass
+	def add_click_boundary(self, label, bounds):
+		self.boundaries[label] = bounds
+
+	def add_click_boundaries(self, boundaries):
+		self.boundaries.update(boundaries)
+
+	def within_boundary(self, position, boundary=None):
+		boundaries = [boundary] if boundary else self.boundaries
+		for b in boundaries:
+			x_within =  position[0] in range(self.boundaries[b][0], self.boundaries[b][2])
+			y_within =  position[1] in range(self.boundaries[b][1], self.boundaries[b][3])
+			if x_within and y_within:
+				return b
+		return False
+
+	def collect_response(self, event_queue, boundaries=None):
+		for event in event_queue:
+			if event.type is sdl2.SDL_MOUSEBUTTONDOWN:
+				if len(self.responses) < self.min_response_count:
+					boundary =  self.within_boundary([event.x, event.y], boundaries)
+					if boundary:
+						self.responses.append( [boundary, self.collector.response_window.elapsed()] )
+				if self.interrupts:
+					return self.responses if self.max_response_count > 1 else self.responses[0]
+
+
+class MouseUpResponse(ResponseType):
+
+	def __init__(self):
+		self.boundaries = {}
+
+	def add_click_boundary(self, label, bounds):
+		self.boundaries[label] = bounds
+
+	def add_click_boundaries(self, boundaries):
+		self.boundaries.update(boundaries)
+
+	def within_boundary(self, position, boundary=None):
+		boundaries = [boundary] if boundary else self.boundaries
+		for b in boundaries:
+			x_within = position[0] in range(self.boundaries[b][0], self.boundaries[b][2])
+			y_within = position[1] in range(self.boundaries[b][1], self.boundaries[b][3])
+			if x_within and y_within:
+				return b
+		return False
+
+	def collect_response(self, event_queue, boundaries=None):
+		for event in event_queue:
+			if event.type is sdl2.SDL_MOUSEBUTTONUP:
+				if len(self.responses) < self.min_response_count:
+					boundary = self.within_boundary([event.x, event.y],  boundaries)
+					if boundary:
+						self.responses.append([boundary, self.collector.response_window.elapsed()])
+				if self.interrupts:
+					return self.responses if self.max_response_count > 1 else self.responses[0]
 
 
 class JoystickResponse(ResponseType):
@@ -257,7 +311,7 @@ class ResponseCollector(object):
 		self.__null_response_value = null_response
 		self.__min_response_count = response_count[0]
 		self.__max_response_count = response_count[1]
-		self.__uses = {RC_AUDIO:False, RC_KEYPRESS:False}
+		self.__uses = {RC_AUDIO:False, RC_KEYPRESS:False, RC_MOUSEUP:False, RC_MOUSEDOWN:False}
 		self.responses = {RC_AUDIO:[], RC_KEYPRESS:[]}
 		self.display_callback = display_callback
 		self.experiment = experiment
@@ -266,10 +320,14 @@ class ResponseCollector(object):
 		# individual assignment for easy configuring in experiment.setup()
 		self.audio_listener = AudioResponse(self)
 		self.keypress_listener = KeyPressResponse(self)
+		self.mousedown_listener = MouseDownResponse(self)
+		self.mouseup_listener = MouseUpResponse(self)
 
 		# dict of listeners for iterating during collect()
 		self.listeners[RC_AUDIO] = self.audio_listener
 		self.listeners[RC_KEYPRESS] = self.keypress_listener
+		self.listeners[RC_MOUSEDOWN] = self.mousedown_listener
+		self.listeners[RC_MOUSEUP] = self.mouseup_listener
 
 	def uses(self, listeners=None):
 		if not listeners:
@@ -290,7 +348,7 @@ class ResponseCollector(object):
 			count += self.listeners[l].response_count
 		return count
 
-	def collect(self):
+	def collect(self, mouseclick_boundaries=None):
 		# enter the loop with a cleared event queue
 		sdl2.SDL_PumpEvents()
 		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
@@ -306,18 +364,20 @@ class ResponseCollector(object):
 		self.response_window.start()
 
 		while self.response_window.counting():
-			# for l in self.listeners:
-			# 	if not self.listeners[l].rt_label in Params.tk.periods:
-			# 		Params.tk.start(self.listeners[l].rt_label)
+			pump()
+			event_queue = sdl2.ext.get_events()
 			# respond to ui requests first
 			if not self.__uses[RC_KEYPRESS]:  # else ui_requests are handled automatically by all keypress responders
-				print "here"
-				self.experiment.ui_request()
+				self.experiment.ui_request(event_queue)
 
 			# check for responses of all types that have been assigned in self.uses
 			for l in self.uses():
 				if self.__uses[l] and self.response_window.counting():  # if response_window.finish() called by responder, stop
-					self.listeners[l].collect()
+					try:
+						self.listeners[l].collect(event_queue)
+					except TypeError:
+						self.listeners[l].collect()
+
 
 			# display callback
 
@@ -340,6 +400,10 @@ class ResponseCollector(object):
 				# 	self.responses[l].append(i)
 				while listener.response_count < listener.min_response_count:
 					listener.responses.append( [listener.null_response, TIMEOUT])
+
+	def reset(self):
+		for l in self.listeners:
+			self.listeners[l].reset()
 
 	@property
 	def experiment(self):

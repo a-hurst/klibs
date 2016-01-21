@@ -5,7 +5,7 @@ from klibs.KLDraw import *
 import time
 import math
 from klibs.KLUtilities import *
-
+from klibs.KLDraw import *
 try:
 	import pylink
 	PYLINK_AVAILABLE = True
@@ -83,10 +83,7 @@ if PYLINK_AVAILABLE:
 					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
 			width = boundary[1][1] - boundary[0][1]
 			height = boundary[1][0] - boundary[0][0]
-			bounding_box = self.surface = aggdraw.Draw("RGBA", [width, height], (0, 0, 0, 0))
-			box_pen = self.__stroke = aggdraw.Pen((255,0,0), 3, 255)
-			bounding_box.rectangle([0,0,width,height], box_pen)
-			self.experiment.blit(NumpySurface(bounding_box), position=boundary[0], registration=7)
+			self.experiment.blit(Rectangle(width, height, [3, [255,255,255,255]]).render(), position=(boundary[0][0] - 3,boundary[0][1] -3) , registration=7)
 
 		def remove_gaze_boundary(self, name):
 			try:

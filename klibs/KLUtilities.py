@@ -196,7 +196,8 @@ def mouse_pos(pump_event_queue=True, position=None):
 		return [x.value, y.value]
 	else:
 		# x, y = ctypes.c_int(position[0]), ctypes.c_int(position[1])
-		sdl2.mouse.SDL_WarpMouseInWindow(*position)
+		sdl2.mouse.SDL_WarpMouseGlobal(*position)
+		return position
 
 def hide_mouse_cursor():
 	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)

@@ -45,7 +45,6 @@ if PYLINK_AVAILABLE:
 				self.dummy_mode = False
 			self.clear_gaze_boundaries()
 
-
 		def __eye(self):
 			self.eye = self.eyeAvailable()
 			return self.eye != EL_NO_EYES
@@ -172,10 +171,9 @@ if PYLINK_AVAILABLE:
 				def dc(dc_location, dc_gaze_boundary):
 					hide_mouse_cursor()
 					pump()
-					mouse_pos([Params.screen_c[0] - 200, Params.screen_c[1] - 200])
 					self.experiment.fill()
-					self.custom_display.draw_cal_target(dc_location, flip=False)
 					self.experiment.track_mouse()
+					self.custom_display.draw_cal_target(dc_location, flip=False)
 					self.experiment.flip()
 					in_bounds = self.within_boundary(dc_gaze_boundary, self.gaze())
 					return  in_bounds

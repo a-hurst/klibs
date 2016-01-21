@@ -215,7 +215,17 @@ class Experiment(object):
 		if self.database.current() is None: self.database.init_entry('trials', "trial_{0}".format(Params.trial_number))
 		for attr in trial_data: self.database.log(attr, trial_data[attr])
 		return self.database.insert()
-	
+
+	def any_key(self):
+		pump()
+		any_key_pressed = False
+		while not any_key_pressed:
+			for event in sdl2.ext.get_events():
+				if event.type == sdl2.SDL_KEYDOWN:
+					self.ui_request(event.key.keysym)
+					any_key_pressed = True
+
+
 	def debug_print_trial_factors(self):
 		print  "debug trial factors"
 		msg = "Trial Factors: {0}".format(", ".join(self.debug["trial_factors"]))
@@ -1220,8 +1230,8 @@ class Experiment(object):
 
 		self.start_time = time.time()
 
-	def track_mouse(self):
-		self.blit(cursor(), 7, mouse_pos())
+	def track_mouse(self, mouse_position=None):
+		self.blit(cursor(), 7, mouse_pos(True, mouse_position))
 		return True
 
 	def fill(self, color=None, context=None):

@@ -28,9 +28,15 @@ class ResponseType(object):
 	def max_collected(self):
 		return self.response_count == self.max_response_count
 
-	def collect(self):
+	def collect(self, event_queue, mouse_click_boundaries):
 		if not self.max_collected():
-			self.collect_response()
+			try:
+				self.collect_response(event_queue, mouse_click_boundaries)
+			except TypeError:
+				try:
+					self.collect_response(event_queue)
+				except TypeError:
+					self.collect_response()
 		if self.max_collected() and self.interrupts:
 			self.collector.response_window.finish()
 
@@ -224,7 +230,8 @@ class AudioResponse(ResponseType):
 
 class MouseDownResponse(ResponseType):
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
+		super(MouseDownResponse, self).__init__(*args, **kwargs)
 		self.boundaries = {}
 
 	def add_click_boundary(self, label, bounds):
@@ -255,7 +262,8 @@ class MouseDownResponse(ResponseType):
 
 class MouseUpResponse(ResponseType):
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
+		super(MouseUpResponse, self).__init__(*args, **kwargs)
 		self.boundaries = {}
 
 	def add_click_boundary(self, label, bounds):
@@ -326,8 +334,8 @@ class ResponseCollector(object):
 		# dict of listeners for iterating during collect()
 		self.listeners[RC_AUDIO] = self.audio_listener
 		self.listeners[RC_KEYPRESS] = self.keypress_listener
-		self.listeners[RC_MOUSEDOWN] = self.mousedown_listener
-		self.listeners[RC_MOUSEUP] = self.mouseup_listener
+		# self.listeners[RC_MOUSEDOWN] = self.mousedown_listener
+		# self.listeners[RC_MOUSEUP] = self.mouseup_listener
 
 	def uses(self, listeners=None):
 		if not listeners:
@@ -373,14 +381,10 @@ class ResponseCollector(object):
 			# check for responses of all types that have been assigned in self.uses
 			for l in self.uses():
 				if self.__uses[l] and self.response_window.counting():  # if response_window.finish() called by responder, stop
-					try:
-						self.listeners[l].collect(event_queue)
-					except TypeError:
-						self.listeners[l].collect()
+					self.listeners[l].collect(event_queue, mouseclick_boundaries)
 
 
 			# display callback
-
 			if hasattr(self.display_callback, '__call__'):
 				try:
 					self.display_callback(*self.display_args, **self.display_kwargs)
@@ -486,7 +490,7 @@ class ResponseCollector(object):
 
 	@display_args.setter
 	def display_args(self, args_list):
-		if type(args_list) is not (list, tuple):
+		if type(args_list) not in (list, tuple):
 			raise TypeError("Property 'args_list' must be either a list or a tuple.")
 		self.callbacks['display'][1] = args_list
 

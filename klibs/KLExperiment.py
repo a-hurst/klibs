@@ -170,10 +170,8 @@ class Experiment(object):
 		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1, param_2...]]
 
 		"""
-	
+		pump()
 		args = args[0]
-		# self.debug['trial_factors'] = args[1]
-		# try:
 		if args[1][0] is True:  # ie. if practicing
 			block_base = (Params.block_number * Params.trials_per_practice_block) - Params.trials_per_practice_block 
 			Params.trial_number = block_base + args[0] + 1 - Params.recycle_count
@@ -224,6 +222,7 @@ class Experiment(object):
 				if event.type == sdl2.SDL_KEYDOWN:
 					self.ui_request(event.key.keysym)
 					any_key_pressed = True
+		return True
 
 
 	def debug_print_trial_factors(self):

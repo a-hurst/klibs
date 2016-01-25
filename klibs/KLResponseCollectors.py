@@ -409,6 +409,12 @@ class ResponseCollector(object):
 		for l in self.listeners:
 			self.listeners[l].reset()
 
+	def disable(self, listener):
+		self.__uses[listener] = False
+
+	def enable(self, listener):
+		self.__uses[listener] = True
+
 	@property
 	def experiment(self):
 		return self.__experiment
@@ -427,7 +433,7 @@ class ResponseCollector(object):
 
 	@response_window.setter
 	def response_window(self, duration):
-		self.__response_window = Params.tk.countdown(duration)
+		self.__response_window = Params.tk.countdown(duration, TK_MS)
 
 	@property
 	def null_response_value(self):

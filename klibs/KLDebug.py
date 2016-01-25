@@ -7,11 +7,12 @@ class Debugger(object):
 	logs = []
 	labelled_logs = {}
 	display_location = "RIGHT"
+	visible = True
 
 	def __init__(self, experiment):
 		self.experiment = experiment
 
-	def log(self, value, message=None, label=None, display_print=True, cli_print=True):
+	def log(self, value, message='', label='', display_print=True, cli_print=True):
 		entry = [value, time.time(), message, display_print, cli_print]
 		if label:
 			self.labelled_logs[label] = entry
@@ -24,14 +25,14 @@ class Debugger(object):
 			line = "{0}: {1} {2}".format(l[1], l[0], "({0})".format(l[2]) if l[2] else l[2])
 			if l[3]:
 				display_lines.append(line)
-			if l[4] and cli:
+			if l[4] and cli is True:
 				print line
 		for l in self.labelled_logs:
 			e = self.labelled_logs[l]
 			line = "{0} [{1}]: {2} {3}".format(l, e[1], e[0], "({0})".format(e[2]) if e[2] else e[2])
 			if e[3]:
 				display_lines.append(line)
-			if e[4] and cli:
+			if e[4] and cli is True:
 				print line
 		if display:
 			if len(display_lines):
@@ -39,14 +40,20 @@ class Debugger(object):
 				content = self.experiment.text_manager.render(text, "debug")
 				if self.display_location == "LEFT":
 					panel_h = Params.screen_y
-					panel_w = content.shape[1] + 10
+					try:
+						panel_w = content.width + 10
+					except AttributeError:
+						panel_w = content.shape[1] + 10
 					panel_position = (0,Params.screen_y)
-					panel_registration = 3
+					panel_registration = 1
 					content_position = (5,5)
 					content_registration = 7
 				if self.display_location == "RIGHT":
 					panel_h = Params.screen_y
-					panel_w = content.shape[1] + 10
+					try:
+						panel_w = content.width + 10
+					except AttributeError:
+						panel_w = content.shape[1] + 10
 					panel_position = (Params.screen_x - panel_w, Params.screen_y)
 					panel_registration = 1
 					content_position = (Params.screen_x - 5, 5)
@@ -59,7 +66,6 @@ class Debugger(object):
 				panel = Rectangle(panel_w, panel_h, fill=[0,0,0,125]).render()
 				self.experiment.blit(panel, position=panel_position, registration=panel_registration)
 				self.experiment.blit(content, position=content_position, registration=content_registration)
-
 
 
 

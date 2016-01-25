@@ -135,3 +135,7 @@ AR_CHUNK_READ_SIZE = 1024
 AR_RATE = 44100
 AUDIO_ON = 1
 AUDIO_OFF = 0
+
+# TimeKeeper Constants
+TK_MS = "milliseconds"
+TK_S = "seconds"

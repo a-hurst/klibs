@@ -23,7 +23,7 @@ def argb32_to_rgba(np_array):
 
 class TextStyle(object):
 
-	def __init__(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None):
+	def __init__(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None, anti_alias=True):
 		"""
 
 		:param label:
@@ -45,6 +45,7 @@ class TextStyle(object):
 		self.color = rgb_to_rgba(color) if color else (22, 22, 22, 255)
 		self.bg_color = rgb_to_rgba(bg_color) if bg_color else (0, 0, 0, 0)
 		self.line_height = line_height if line_height else 1.5
+		self.anti_aliased = anti_alias
 
 	def __str__(self):
 		return "klibs.KLTextManager.TextStyle ('{0}') at {1}".format(self.label, hex(id(self)))
@@ -77,7 +78,7 @@ class TextManager(object):
 		self.__build_font_sizes()
 		self.add_font("Anonymous Pro", font_file_basename="AnonymousPro")
 		self.add_font("Frutiger")
-		self.add_style("debug", 12, (255, 255, 255, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro")
+		self.add_style("debug", 12, (255, 255, 255, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro", anti_alias=False)
 		self.add_style("default", "16pt", [22, 22, 22], font_label="Frutiger")
 		sdlttf.TTF_Init()
 
@@ -98,8 +99,8 @@ class TextManager(object):
 
 		return ImageFont.truetype(self.fonts[font], font_size)
 
-	def add_style(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None):
-		self.styles[label] = TextStyle(label, font_size, color, bg_color, line_height, font_label)
+	def add_style(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None, anti_alias=True):
+		self.styles[label] = TextStyle(label, font_size, color, bg_color, line_height, font_label, anti_alias)
 
 	def __wrap(self, text, style, width=None):
 		lines = text.split("\n")
@@ -115,7 +116,11 @@ class TextManager(object):
 			if line.width > text_dims[0]: text_dims[0] = line.width
 			text_dims[1] += int(line_height)
 		for l in lines_surfs:
-			l.resize([text_dims[0], l.height])
+			new = numpy.zeros((l.height, text_dims[0], 4))
+			print new.shape
+			print [l.height, l.width]
+			new[0:l.height,0:l.width,...] = l.foreground
+			lines_surfs[lines_surfs.index(l)] = NumpySurface(new)
 		text_surface = numpy.concatenate([l.render() for l in lines_surfs], 0)
 
 		return text_surface
@@ -139,13 +144,18 @@ class TextManager(object):
 
 		if len(text) == 0:
 			text = " "
-
 		rendering_font = sdlttf.TTF_OpenFont(self.fonts[style.font_label], style.font_size)
-		rendered_text = sdlttf.TTF_RenderText_Blended(rendering_font, text, sdl2.SDL_Color(*style.color)).contents
-		px = numpy.asarray(sdl2.ext.PixelView(rendered_text))
-		surface_array = argb32_to_rgba(px)
-		surface =  NumpySurface(surface_array)
+		if style.anti_aliased:
+			rendered_text = sdlttf.TTF_RenderText_Blended(rendering_font, text, sdl2.SDL_Color(*style.color)).contents
+			px = numpy.asarray(sdl2.ext.PixelView(rendered_text))
+			surface_array = argb32_to_rgba(px)
+		else:
+			rendered_text = sdlttf.TTF_RenderUTF8_Solid(rendering_font, text, sdl2.SDL_Color(*style.color)).contents
+			px = numpy.asarray(sdl2.ext.PixelView(rendered_text))
+			surface_array = numpy.zeros((px.shape[0], px.shape[1], 4));
+			surface_array[...] = px * 255
 
+		surface =  NumpySurface(surface_array)
 		return surface if surface.width < Params.screen_x else self.__wrap(text, style, Params.screen_x - 20)
 
 	def add_font(self, font_name, font_extension="ttf", font_file_basename=None):

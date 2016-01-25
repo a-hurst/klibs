@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
 import time
+from klibs.KLConstants import *
+
 
 class CountDown(object):
 	duration = 0
@@ -55,6 +57,8 @@ class TimeKeeper(object):
 	mean_moments = {}
 	mean_periods = {}
 	countdowns = {}
+
+	# todo: add units argument as between secondds/ ms
 
 	def __init__(self, *args, **kwargs):
 		super(TimeKeeper, self).__init__(*args, **kwargs)
@@ -137,7 +141,9 @@ class TimeKeeper(object):
 	def elapsed(self, label):
 		return time.time() - self.periods[label][0]
 
-	def countdown(self, duration=None, label=None, start=True):
+	def countdown(self, duration=None, unit=TK_S, label=None, start=True):
+		if unit == TK_MS:
+			duration *= 0.001
 		if duration is False:
 			try:
 				return self.countdowns[label]

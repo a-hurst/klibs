@@ -162,7 +162,7 @@ def export(path):
 	os.chdir(path)
 	experiment = imp.load_source(path, "experiment.py")
 	app = getattr(experiment, name)
-	app(name, 1, export=True)
+	app(name, 1, -1, True, False, False)
 
 def post_install(development_mode):
 	# from klibs.KLParams import klibs_version

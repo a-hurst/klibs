@@ -134,8 +134,10 @@ class AudioStream(object):
 		if not self.stream:
 			self.init_stream()
 		# try:
+
 		chunk = self.stream.read(AR_CHUNK_SIZE, False)
 		sample = AudioSample(chunk, self.threshold)
+
 		return sample
 		# except AttributeError:
 		# 	return AudioSample(self.stream.read(AR_CHUNK_SIZE), Params.AR_AUTO_THRESHOLD)
@@ -180,6 +182,9 @@ class AudioStream(object):
 		first_flip_rest = False
 		if message:
 			message = self.experiment.message(message, location=Params.screen_c, registration=5, blit=False)
+		if not self.stream:
+			self.init_stream()
+		self.stream.start_stream()
 		while sample_period.counting():
 			sample = self.sample().peak
 			self.experiment.ui_request()
@@ -200,7 +205,7 @@ class AudioStream(object):
 			if not first_flip_rest:
 				sample_period.start()
 				first_flip_rest = True
-
+		self.stream.stop_stream()
 
 		return local_peak
 

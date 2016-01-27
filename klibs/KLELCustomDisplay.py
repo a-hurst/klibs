@@ -121,7 +121,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 			self.experiment.blit(NumpySurface(numpy.asarray(img)), position=Params.screen_c, registration=5)
 			self.experiment.flip()
 			self.imagebuffer = array.array('I')
-			return
+
 		try:
 			for i in range(0, len(buff)):
 				if type(buff[i]) is int:

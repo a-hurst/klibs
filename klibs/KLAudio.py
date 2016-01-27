@@ -103,18 +103,10 @@ class AudioSample(object):
 
 	def __init__(self, raw_sample, threshold):
 		super(AudioSample, self).__init__()
-		Params.tk.start("arrify")
 		self.array = array('h', raw_sample)
-		Params.tk.stop("arrify")
-		Params.tk.start("finding peak")
 		self.peak = max(self.array)
-		Params.tk.stop("finding peak")
-		Params.tk.start("finding trough")
 		self.trough = min(self.array)
-		Params.tk.stop("finding trough")
-		Params.tk.start("finding mean")
 		self.mean = sum(self.array) / len(self.array)
-		Params.tk.stop("finding mean")
 		self.threshold = None if threshold == AR_AUTO_THRESHOLD else threshold
 
 	def is_below(self, threshold=None):
@@ -139,14 +131,14 @@ class AudioStream(object):
 		# 	self.threshold = threshold
 
 	def sample(self):
-		if self.stream is None:
+		if not self.stream:
 			self.init_stream()
-		try:
-			chunk = self.stream.read(AR_CHUNK_SIZE, False)
-			sample = AudioSample(chunk, self.threshold)
-			return sample
-		except AttributeError:
-			return AudioSample(self.stream.read(AR_CHUNK_SIZE), Params.AR_AUTO_THRESHOLD)
+		# try:
+		chunk = self.stream.read(AR_CHUNK_SIZE, False)
+		sample = AudioSample(chunk, self.threshold)
+		return sample
+		# except AttributeError:
+		# 	return AudioSample(self.stream.read(AR_CHUNK_SIZE), Params.AR_AUTO_THRESHOLD)
 
 	def init_stream(self):
 		try:

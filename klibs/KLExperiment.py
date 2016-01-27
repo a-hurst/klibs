@@ -658,18 +658,24 @@ class Experiment(object):
 			except AttributeError:
 				pass
 
-		if key_press.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
-			if key_press.sym in UI_METHOD_KEYSYMS:
-				if key_press.sym == sdl2.SDLK_q:
-					return self.quit() if execute else [True, "quit"]
-				elif key_press.sym == sdl2.SDLK_c:
-					if Params.eye_tracking and Params.eye_tracker_available:
-						return self.eyelink.calibrate() if execute else [True, "el_calibrate"]
-				elif key_press.sym == sdl2.SDLK_p:
-					if execute:
-						return self.pause()
-					else:
-						return [True, "pause" if not self.paused else "unpause"]
+		try:
+			iter(key_press)
+			for key in key_press:
+				if self.ui_request(key):
+					return True
+		except TypeError:
+			if key_press.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
+				if key_press.sym in UI_METHOD_KEYSYMS:
+					if key_press.sym == sdl2.SDLK_q:
+						return self.quit() if execute else [True, "quit"]
+					elif key_press.sym == sdl2.SDLK_c:
+						if Params.eye_tracking and Params.eye_tracker_available:
+							return self.eyelink.calibrate() if execute else [True, "el_calibrate"]
+					elif key_press.sym == sdl2.SDLK_p:
+						if execute:
+							return self.pause()
+						else:
+							return [True, "pause" if not self.paused else "unpause"]
 		return False
 
 	def listen(self, max_wait=MAX_WAIT, key_map_name="*", el_args=None, null_response=None, response_count=None,

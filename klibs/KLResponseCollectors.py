@@ -179,18 +179,15 @@ class AudioResponse(ResponseType):
 		validation_instruction = "Ok; threshold set. To ensure it's validity, please provide one (and only one) more response."
 		self.collector.experiment.message(validation_instruction, location=Params.screen_c, registration=5)
 		self.collector.experiment.flip()
+		self.start()
 		while validate_counter.counting():
 			self.collector.experiment.ui_request()
 			if self.stream.sample().peak >= self.threshold:
 				validate_counter.finish()
 				self.threshold_valid = True
+		self.stop()
 		if self.threshold_valid:
 			validation_message = "Great, validation was successful. Press any key to continue."
-			# any_key_pressed = False
-			# while not any_key_pressed:
-			# 	for event in sdl2.ext.get_events():
-			# 		if event.type == sdl2.SDL_KEYDOWN:
-			# 			any_key_pressed = True
 		else:
 			validation_message = "Validation wasn't successful. Type C to re-calibrate or V to try validation again."
 		self.collector.experiment.fill()
@@ -205,7 +202,7 @@ class AudioResponse(ResponseType):
 						self.calibrated = True
 						return
 					else:
-						if event.key.keysym == sdl2.SDLK_c:
+						if event.key.sym == sdl2.SDLK_c:
 							self.calibrate()
 						else:
 							self.validate()
@@ -217,7 +214,14 @@ class AudioResponse(ResponseType):
 			if len(self.responses) < self.min_response_count:
 				self.responses.append([self.stream.sample().peak, self.collector.response_window.elapsed()])
 			if self.interrupts:
+				self.stream.stream.stop_stream()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
+
+	def start(self):
+		self.stream.init_stream()
+
+	def stop(self):
+		self.stream.kill_stream()
 
 	@property
 	def threshold(self):
@@ -348,6 +352,9 @@ class ResponseCollector(object):
 			except KeyError:
 				raise ValueError('{0} is not a valid response type.'.format(l))
 
+	def using(self, listener):
+		return listener in self.__uses
+
 	def response_count(self, listener=None):
 		count = 0
 		if listener:
@@ -364,9 +371,13 @@ class ResponseCollector(object):
 		# before flip callback
 		try:
 			self.before_flip_callback(*self.before_flip_args, **self.before_flip_kwargs)
+		except TypeError:
+			self.before_flip_callback(*self.before_flip_args)
 		except KeyError:
 			pass
 
+		if self.using(RC_AUDIO):
+			self.audio_listener.start()
 		if self.flip:
 			self.experiment.flip()
 		self.response_window.start()
@@ -382,7 +393,6 @@ class ResponseCollector(object):
 			for l in self.uses():
 				if self.__uses[l] and self.response_window.counting():  # if response_window.finish() called by responder, stop
 					self.listeners[l].collect(event_queue, mouseclick_boundaries)
-
 
 			# display callback
 			if hasattr(self.display_callback, '__call__'):
@@ -404,6 +414,8 @@ class ResponseCollector(object):
 				# 	self.responses[l].append(i)
 				while listener.response_count < listener.min_response_count:
 					listener.responses.append( [listener.null_response, TIMEOUT])
+		if self.using(RC_AUDIO):
+			self.audio_listener.stop()
 
 	def reset(self):
 		for l in self.listeners:
@@ -479,7 +491,8 @@ class ResponseCollector(object):
 					if type(callback[2]) is dict:
 						cb_kwargs = callback[2]
 					else:
-						raise TypeError("Index 2 of property 'callback' must be a dict or None.")
+						if type(callback[2]) is not None:
+							raise TypeError("Index 2 of property 'callback' must be a dict or None.")
 				except IndexError:
 					pass
 			except TypeError:
@@ -533,7 +546,8 @@ class ResponseCollector(object):
 					if type(callback[2]) is dict:
 						cb_kwargs = callback[2]
 					else:
-						raise TypeError("Index 2 of property 'callback' must be a dict or None.")
+						if callback[2] is not None:
+							raise TypeError("Index 2 of property 'callback' must be a dict or None.")
 				except IndexError:
 					pass
 			except AttributeError:
@@ -550,7 +564,7 @@ class ResponseCollector(object):
 
 	@before_flip_args.setter
 	def before_flip_args(self, args_list):
-		if type(args_list) is not (list, tuple):
+		if type(args_list) not in (list, tuple):
 			raise TypeError("Property 'args_list' must be either a list or a tuple.")
 		self.callbacks['before_flip'][1] = args_list
 
@@ -560,7 +574,7 @@ class ResponseCollector(object):
 
 	@before_flip_args.setter
 	def before_flip_kwargs(self, kwargs_list):
-		if type(kwargs_list) is not (list, tuple):
+		if type(kwargs_list) is not dict:
 			raise TypeError("Property 'kwargs_list' must be a dict.")
 		self.callbacks['before_flip'][2] = kwargs_list
 
@@ -581,10 +595,11 @@ class ResponseCollector(object):
 				else:
 					raise TypeError("Index 1 of property 'callback' must be a list or None.")
 				try:
-					if type(callback[2]) in (dict, None):
+					if type(callback[2]) is dict:
 						cb_kwargs = callback[2]
 					else:
-						raise TypeError("Index 2 of property 'callback' must be a dict or None.")
+						if type(callback[2]) is not None:
+							raise TypeError("Index 2 of property 'callback' must be a dict or None.")
 				except IndexError:
 					pass
 			except AttributeError:
@@ -601,7 +616,7 @@ class ResponseCollector(object):
 
 	@before_return_args.setter
 	def before_return_args(self, args_list):
-		if type(args_list) is not (list, tuple):
+		if type(args_list) not in (list, tuple):
 			raise TypeError('Args list must be either a list or a tuple')
 		self.callbacks['before_return'][1] = args_list
 
@@ -611,7 +626,7 @@ class ResponseCollector(object):
 
 	@before_return_args.setter
 	def before_return_kwargs(self, args_list):
-		if type(args_list) is not (list, tuple):
+		if type(args_list) is not dict:
 			raise TypeError('Args list must be either a list or a tuple')
 		self.callbacks['before_return'][2] = args_list
 

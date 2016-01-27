@@ -117,8 +117,6 @@ class TextManager(object):
 			text_dims[1] += int(line_height)
 		for l in lines_surfs:
 			new = numpy.zeros((l.height, text_dims[0], 4))
-			print new.shape
-			print [l.height, l.width]
 			new[0:l.height,0:l.width,...] = l.foreground
 			lines_surfs[lines_surfs.index(l)] = NumpySurface(new)
 		text_surface = numpy.concatenate([l.render() for l in lines_surfs], 0)

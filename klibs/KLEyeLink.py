@@ -92,8 +92,8 @@ if PYLINK_AVAILABLE:
 				raise KeyError("Key '{0}' not found; No such gaze boundary exists!".format(name))
 
 		def within_boundary(self, boundary, point=None, shape=None):
-			debug = False
-			if debug: print "within_boundary(boundary={0}, point={1}, shape={2}".format(boundary, point, shape)
+
+			self.experiment.debug.log("within_boundary(boundary={0}, point={1}, shape={2}".format(boundary, point, shape))
 			try:
 				boundary_dict = self.__gaze_boundaries[boundary]
 				boundary = boundary_dict["bounds"]

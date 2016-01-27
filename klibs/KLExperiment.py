@@ -555,7 +555,7 @@ class Experiment(object):
 		:raises: AttributeError, TypeError
 		"""
 
-		if Params.development_mode or debug:
+		if (Params.development_mode or debug) and not Params.suppress_debug_pane:
 			try:
 				self.debug.print_logs(cli=False)
 			except AttributeError as e:  # potentially gets called once before the Debugger is intialized during init

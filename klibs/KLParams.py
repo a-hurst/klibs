@@ -45,7 +45,7 @@ audio_initialized = False
 skeleton_mode = False
 debug_level = 3
 development_mode = False  # when True, skips collect_demographics & prints various details to screen
-
+suppress_debug_pane = False
 calibrate_with_audio = True
 calibrate_targets = 9
 

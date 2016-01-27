@@ -124,7 +124,7 @@ class AudioStream(object):
 		super(AudioStream, self).__init__()
 		self.experiment = experiment
 		self.p = pyaudio.PyAudio()
-		self.threshold = 1
+		self.threshold = 250
 		# if threshold == AR_AUTO_THRESHOLD:
 		# 	self.threshold = 3 * self.get_ambient_level()  # this is probably inadequate and should employ a log scale
 		# else:
@@ -144,15 +144,18 @@ class AudioStream(object):
 
 	def init_stream(self):
 		try:
-			self.stream.stop_stream()
-			self.stream.close()
-			self.p.terminate()
+			self.kill_stream()
 		except (AttributeError, IOError) as e:
 			pass  # on first pass, no stream exists; on subsequent passes, extant stream should be stopped & overwritten
 
 		self.p = pyaudio.PyAudio()
 		self.stream = self.p.open(format=pyaudio.paInt16, channels=1, rate=AR_RATE, input=True, output=True, \
 															  frames_per_buffer=AR_CHUNK_SIZE)
+
+	def kill_stream(self):
+			self.stream.stop_stream()
+			self.stream.close()
+			self.p.terminate()
 
 	def get_ambient_level(self, period=1):
 		sample_period = Params.tk.countdown(period)
@@ -184,7 +187,7 @@ class AudioStream(object):
 			message = self.experiment.message(message, location=Params.screen_c, registration=5, blit=False)
 		if not self.stream:
 			self.init_stream()
-		self.stream.start_stream()
+		self.init_stream()
 		while sample_period.counting():
 			sample = self.sample().peak
 			self.experiment.ui_request()
@@ -205,7 +208,7 @@ class AudioStream(object):
 			if not first_flip_rest:
 				sample_period.start()
 				first_flip_rest = True
-		self.stream.stop_stream()
+		self.kill_stream()
 
 		return local_peak
 

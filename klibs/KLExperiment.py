@@ -318,7 +318,7 @@ class Experiment(object):
 		else:
 			self.listen()  # remember that listen calls flip() be default
 
-	def blit(self, source, registration=7, location=(0,0), position=None, context=None):
+	def blit(self, source, registration=7, location=(0,0), position=None):
 		"""
 		Draws passed content to display buffer.
 

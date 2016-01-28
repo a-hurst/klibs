@@ -150,15 +150,18 @@ class AudioResponse(ResponseType):
 
 	def __init__(self, *args, **kwargs):
 		super(AudioResponse, self).__init__(*args, **kwargs)
-		self.__threshold = None
 		self.stream = AudioStream(self.collector.experiment)
 		self.threshold_valid = False
 		self.calibrated = False
 
 	def calibrate(self):
 		peaks = []
-		if Params.development_mode:
-			self.stream.threshold = self.stream.get_ambient_level()
+		if Params.development_mode and Params.dm_auto_threshold:
+			ambient = self.stream.get_ambient_level()
+			if ambient == 0:
+				raise RuntimeError("Ambient level appears to be zero; exit the anachoic chamber or restart the experiment.")
+			print "Ambient: {0}".format(ambient)
+			self.stream.threshold = ambient * 5
 			self.threshold_valid = True
 			self.calibrated = True
 			return
@@ -176,7 +179,7 @@ class AudioResponse(ResponseType):
 						if event.type == sdl2.SDL_KEYDOWN:
 							self.collector.experiment.ui_request(event.key.keysym)
 							any_key_pressed = True
-		self.threshold = min(peaks)
+		self.stream.threshold = min(peaks)
 		self.validate()
 
 	def validate(self):
@@ -188,7 +191,7 @@ class AudioResponse(ResponseType):
 		self.start()
 		while validate_counter.counting():
 			self.collector.experiment.ui_request()
-			if self.stream.sample().peak >= self.threshold:
+			if self.stream.sample().peak >= self.stream.threshold:
 				validate_counter.finish()
 				self.threshold_valid = True
 		self.stop()
@@ -208,7 +211,8 @@ class AudioResponse(ResponseType):
 						self.calibrated = True
 						return
 					else:
-						if event.key.sym == sdl2.SDLK_c:
+						print [event.key.keysym, sdl2.SDLK_c, sdl2.SDLK_v]
+						if event.key.keysym == sdl2.SDLK_c:
 							self.calibrate()
 						else:
 							self.validate()
@@ -216,11 +220,11 @@ class AudioResponse(ResponseType):
 	def collect_response(self):
 		if not self.calibrated:
 			raise RuntimeError("AudioResponse not ready for collection; calibration not completed.")
-		if self.stream.sample().peak >= self.threshold:
+		if self.stream.sample().peak >= self.stream.threshold:
 			if len(self.responses) < self.min_response_count:
 				self.responses.append([self.stream.sample().peak, self.collector.response_window.elapsed()])
 			if self.interrupts:
-				self.stream.stream.stop_stream()
+				self.stop()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
 
 	def start(self):
@@ -228,14 +232,6 @@ class AudioResponse(ResponseType):
 
 	def stop(self):
 		self.stream.kill_stream()
-
-	@property
-	def threshold(self):
-		return self.__threshold
-
-	@threshold.setter
-	def threshold(self, value):
-		self.__threshold = value
 
 
 class MouseDownResponse(ResponseType):

@@ -167,12 +167,11 @@ class AudioStream(object):
 		self.experiment.message(warn_message, location=Params.screen_c, registration=5)
 		self.experiment.flip()
 		sample_period.start()
+		self.experiment.message(sampling_message.format(int(math.ceil(sample_period.remaining())), font_size="48pt"), location=Params.screen_c, registration=5)
+
 		while sample_period.counting():
 			self.experiment.ui_request()
-			self.experiment.fill()
-			self.experiment.message(sampling_message.format(int(math.ceil(sample_period.remaining())), font_size="48pt"), location=Params.screen_c, registration=5)
 			peaks.append(self.sample().peak)
-			self.experiment.flip()
 
 		return sum(peaks) / len(peaks)
 

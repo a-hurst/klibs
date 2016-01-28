@@ -348,9 +348,7 @@ class ResponseCollector(object):
 		# self.listeners[RC_MOUSEDOWN] = self.mousedown_listener
 		# self.listeners[RC_MOUSEUP] = self.mouseup_listener
 
-	def uses(self, listeners=None):
-		if not listeners:
-			return self.__uses
+	def uses(self, listeners):
 		if type(listeners) not in [list, tuple]:
 			listeners = [listeners]
 		for l in listeners:
@@ -359,7 +357,14 @@ class ResponseCollector(object):
 			except KeyError:
 				raise ValueError('{0} is not a valid response type.'.format(l))
 
-	def using(self, listener):
+	def using(self, listener=None):
+		if not listener:
+			in_use = []
+			for l in self.__uses:
+				if self.using(l):
+					in_use.append(l)
+			return in_use
+
 		return self.__uses[listener]
 
 	def response_count(self, listener=None):
@@ -393,33 +398,36 @@ class ResponseCollector(object):
 		self.response_window.start()
 
 		while self.response_window.counting():
-			pump()
-			event_queue = sdl2.ext.get_events()
-			# respond to ui requests first
-			if not self.__uses[RC_KEYPRESS]:  # else ui_requests are handled automatically by all keypress responders
+			event_queue = pump(True)
+			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
 				self.experiment.ui_request(event_queue)
 
-			# check for responses of all types that have been assigned in self.uses
-			for l in self.uses():
-				if self.__uses[l] and self.response_window.counting():  # if response_window.finish() called by responder, stop
-					if self.listeners[l].collect(event_queue, mouseclick_boundaries):  # True = max_collected & interrupts
-						break
+			# get responses for all active listeners
+			interrupt = False
+			for l in self.using():
+				interrupt = self.listeners[l].collect(event_queue, mouseclick_boundaries)
+			if interrupt:
+				Params.tk.start('exiting')
+				break
 			# display callback
-			if hasattr(self.display_callback, '__call__'):
 				try:
 					self.display_callback(*self.display_args, **self.display_kwargs)
 				except TypeError:
 					self.display_callback(*self.display_args)
+				except KeyError:
+					pass
 		# before return callback
 		try:
 			self.before_return_callback(*self.before_return_args, **self.before_return_kwargs)
+		except TypeError:
+			self.before_return_callback(*self.before_return_args)
 		except KeyError:
 			pass
-		for l in self.uses():
-			if self.__uses[l]:
-				listener = self.listeners[l]
-				while listener.response_count < listener.min_response_count:
-					listener.responses.append( [listener.null_response, TIMEOUT])
+
+		for l in self.using():
+			listener = self.listeners[l]
+			while listener.response_count < listener.min_response_count:
+				listener.responses.append( [listener.null_response, TIMEOUT])
 		if self.using(RC_AUDIO):
 			self.audio_listener.stop()
 

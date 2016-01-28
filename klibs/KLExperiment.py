@@ -178,6 +178,7 @@ class Experiment(object):
 		else:
 			block_base = (Params.block_number * Params.trials_per_block) - Params.trials_per_block 
 			Params.trial_number =   block_base + args[0] - Params.recycle_count
+		self.setup_response_collector(args[1])
 		self.trial_prep(args[1])
 		try:
 			trial_data = self.trial(args[1])
@@ -317,7 +318,7 @@ class Experiment(object):
 		else:
 			self.listen()  # remember that listen calls flip() be default
 
-	def blit(self, source, registration=7, position=(0, 0), context=None):
+	def blit(self, source, registration=7, location=(0,0), position=None, context=None):
 		"""
 		Draws passed content to display buffer.
 
@@ -331,7 +332,8 @@ class Experiment(object):
 
 		:raise TypeError:
 		"""
-
+		if position:
+			location = position  # fixing stupid argument name, preserving backwars compatibility
 		height = None
 		width = None
 		content = None
@@ -367,12 +369,12 @@ class Experiment(object):
 		gl.glBegin(gl.GL_QUADS)
 
 		# convert english location strings to x,y coordinates of destination surface
-		if type(position) is str:
-			position = absolute_position(position, Params.screen_x_y)
+		if type(location) is str:
+			position = absolute_position(location, Params.screen_x_y)
 
 		# define boundaries coordinates of region being blit to
-		x_bounds = [position[0], position[0] + width]
-		y_bounds = [position[1], position[1] + height]
+		x_bounds = [location[0], location[0] + width]
+		y_bounds = [location[1], location[1] + height]
 
 		# shift boundary mappings to reflect registration
 		#
@@ -1341,6 +1343,11 @@ class Experiment(object):
 
 	@abc.abstractmethod
 	def trial_clean_up(self, trial_factors):
+		pass
+
+	#  To be abstract in a later release, for now, not required for backwards compatibility
+	# @abc.abstractmethod
+	def setup_response_collector(self, trial_factors):
 		pass
 
 	#  Legacy functions to be removed in a later release

@@ -216,8 +216,10 @@ def peak(v1, v2):
 		return v2
 
 
-def pump():  # a silly wrapper because Jon always forgets the sdl2 call
-	return sdl2.SDL_PumpEvents()
+def pump(get_events=False):  # a silly wrapper because Jon always forgets the sdl2 call
+	sdl2.SDL_PumpEvents()
+	if get_events:
+		return sdl2.ext.get_events()
 
 
 def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepend=None, before_last=None, each_n=None, after_first=None, append=None):

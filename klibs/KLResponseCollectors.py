@@ -38,7 +38,8 @@ class ResponseType(object):
 				except TypeError:
 					self.collect_response()
 		if self.max_collected() and self.interrupts:
-			self.collector.response_window.finish()
+			return True
+		return False
 
 	def reset(self):
 		self.responses = []
@@ -156,6 +157,11 @@ class AudioResponse(ResponseType):
 
 	def calibrate(self):
 		peaks = []
+		if Params.development_mode:
+			self.stream.threshold = self.stream.get_ambient_level()
+			self.threshold_valid = True
+			self.calibrated = True
+			return
 		for i in range(0, 3):
 			message = "Provide a normal sample of your intended response."
 			peaks.append( self.stream.get_peak_during(3, message) )
@@ -316,6 +322,7 @@ class ResponseCollector(object):
 	listeners = {}
 	response_window = None
 	responses = {}
+	post_flip_tk_label = None
 
 	def __init__(self, experiment, display_callback=None, response_window=MAX_WAIT, null_response=NO_RESPONSE, response_count=[0,1], flip=True):
 		super(ResponseCollector, self).__init__()
@@ -353,7 +360,7 @@ class ResponseCollector(object):
 				raise ValueError('{0} is not a valid response type.'.format(l))
 
 	def using(self, listener):
-		return listener in self.__uses
+		return self.__uses[listener]
 
 	def response_count(self, listener=None):
 		count = 0
@@ -380,6 +387,9 @@ class ResponseCollector(object):
 			self.audio_listener.start()
 		if self.flip:
 			self.experiment.flip()
+			Params.tk.sample("ResponseCollectionFlip")
+			if self.post_flip_tk_label:
+				Params.tk.stop(self.post_flip_tk_label)
 		self.response_window.start()
 
 		while self.response_window.counting():
@@ -392,26 +402,22 @@ class ResponseCollector(object):
 			# check for responses of all types that have been assigned in self.uses
 			for l in self.uses():
 				if self.__uses[l] and self.response_window.counting():  # if response_window.finish() called by responder, stop
-					self.listeners[l].collect(event_queue, mouseclick_boundaries)
-
+					if self.listeners[l].collect(event_queue, mouseclick_boundaries):  # True = max_collected & interrupts
+						break
 			# display callback
 			if hasattr(self.display_callback, '__call__'):
 				try:
 					self.display_callback(*self.display_args, **self.display_kwargs)
 				except TypeError:
 					self.display_callback(*self.display_args)
-
 		# before return callback
 		try:
 			self.before_return_callback(*self.before_return_args, **self.before_return_kwargs)
 		except KeyError:
 			pass
-
 		for l in self.uses():
 			if self.__uses[l]:
 				listener = self.listeners[l]
-				# for i in listener.responses:
-				# 	self.responses[l].append(i)
 				while listener.response_count < listener.min_response_count:
 					listener.responses.append( [listener.null_response, TIMEOUT])
 		if self.using(RC_AUDIO):

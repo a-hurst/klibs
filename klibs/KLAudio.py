@@ -124,7 +124,7 @@ class AudioStream(object):
 		super(AudioStream, self).__init__()
 		self.experiment = experiment
 		self.p = pyaudio.PyAudio()
-		self.threshold = 250
+		self.threshold = 1
 		# if threshold == AR_AUTO_THRESHOLD:
 		# 	self.threshold = 3 * self.get_ambient_level()  # this is probably inadequate and should employ a log scale
 		# else:

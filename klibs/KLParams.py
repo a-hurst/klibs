@@ -43,9 +43,6 @@ initialized = False
 audio_initialized = False
 
 skeleton_mode = False
-debug_level = 3
-development_mode = False  # when True, skips collect_demographics & prints various details to screen
-suppress_debug_pane = False
 calibrate_with_audio = True
 calibrate_targets = 9
 
@@ -115,6 +112,13 @@ default_participant_fields = [["userhash", "participant"], "sex", "age", "handed
 default_participant_fields_sf = [["userhash", "participant"], "random_seed", "sex", "age", "handedness"]
 default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
 data_column_format = DB_COL_TITLE
+
+
+# development mode & associated switches
+debug_level = 3
+development_mode = False  # when True, skips collect_demographics & prints various details to screen
+dm_suppress_debug_pane = False
+dm_auto_threshold = True
 
 
 def init_project():

@@ -112,18 +112,22 @@ class TimeKeeper(object):
 	def period(self, label):
 		try:
 			return self.periods[label][1] - self.periods[label][0]
-		except TypeError:
+		except (KeyError, TypeError):
 			self.stop(label)
 			return self.period(label)
 
 	def read(self, label):
+		label_from_key = label.split(".")
 		try:
-			return self.moments[label]
+			return self.mean_periods[label_from_key[0]][label_from_key[1]][1]
 		except KeyError:
 			try:
-				return self.periods[label]
+				return self.moments[label]
 			except KeyError:
-				raise KeyError("{0} not found in either of TimeKeeper.moments or TimeKeeper.periods".format(label))
+				try:
+					return self.periods[label]
+				except KeyError:
+					raise KeyError("{0} not found in either of TimeKeeper.moments or TimeKeeper.periods".format(label))
 
 	def export(self):
 		output = ["Moments"]

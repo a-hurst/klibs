@@ -79,7 +79,7 @@ class TextManager(object):
 		self.add_font("Anonymous Pro", font_file_basename="AnonymousPro")
 		self.add_font("Frutiger")
 		self.add_style("debug", 12, (255, 255, 255, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro", anti_alias=False)
-		self.add_style("default", "16pt", [22, 22, 22], font_label="Frutiger")
+		self.add_style("default", "16pt", Params.default_color, font_label="Frutiger")
 		sdlttf.TTF_Init()
 
 	def __build_font_sizes(self):

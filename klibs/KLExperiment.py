@@ -50,7 +50,7 @@ class Experiment(object):
 	trial_factory = None  # KLTrialFactory instance
 	text_manager = None   # KLTextManager instance
 
-	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available):
+	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available, suppress_debug):
 		"""
 		Initializes a KLExperiment Object
 
@@ -71,12 +71,15 @@ class Experiment(object):
 
 		Params.tk.start("Experiment Init")  # global TimeKeeper is initialized in Params.setup()
 
+		if not eyelink_available:
+			Params.eye_tracker_available = False
+
 		if development_mode:
 			Params.development_mode = True
 			Params.collect_demographics = False
 
-		if not eyelink_available:
-			Params.eye_tracker_available = False
+		print suppress_debug
+		Params.dm_suppress_debug_pane = suppress_debug
 
 
 		#initialize the self.database instance
@@ -858,6 +861,8 @@ class Experiment(object):
 		:return: NumpySurface or Boolean
 			"""
 		if not style:
+			if all([font_size, color, bg_color, font]) is None:
+				style = self.text_manager.styles['default']
 			style_name = "legacy_style_{0}".format(self.text_manager.legacy_styles_count)
 			self.text_manager.legacy_styles_count += 1
 			# font_size=None, color=None, bg_color=None, line_height=None, font=None

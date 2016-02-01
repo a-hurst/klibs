@@ -139,7 +139,7 @@ def update():
 	# 	rc = p.returncode
 
 
-def run(path, screen_size, random_seed, development_mode, no_eyelink):
+def run(path, screen_size, random_seed, development_mode, no_eyelink, suppress_debug_pane):
 	try:
 		import klibs
 	except ImportError as e:
@@ -150,7 +150,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink):
 	os.chdir(path)
 	experiment = imp.load_source(path, "experiment.py")
 	app = getattr(experiment, project_name)
-	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink).run()
+	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, suppress_debug_pane).run()
 
 
 def export(path):
@@ -211,6 +211,7 @@ try:
 	run_parser.add_argument('-rs', '--random_seed',  type=int, help="Providing a random seed will allow an experiment to continue from it's previously completed state." )
 	run_parser.add_argument('-d', '--development_mode', action="store_true", help="Development mode turns off demographics collection and turns on several debugging features." )
 	run_parser.add_argument('-ELx', '--no_eyelink', action="store_false", help="Signals the absence of a connected eyelink unit. Does nothing for non-eyetracking experiments." )
+	run_parser.add_argument('-Dx', '--suppress_debug_pane', action="store_true", help="Suppresses blitting of debug log to screen." )
 	run_parser.set_defaults(func=run)
 
 

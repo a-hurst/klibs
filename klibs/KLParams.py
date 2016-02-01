@@ -64,8 +64,7 @@ default_alert_duration = 1
 
 #  todo: add a lot more default colors, a default font, etc.
 default_fill_color = [45, 45, 45, 255]
-default_response_color = [41,28, 70, 255]
-default_input_color = [45, 25, 28, 255]
+default_color = [41,28, 70, 255]
 default_font_size = 28
 default_font_name = 'Frutiger'
 default_timeout_message = "Too slow!"

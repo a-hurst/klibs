@@ -117,7 +117,7 @@ class KeyPressResponse(ResponseType):
 				if self.key_map:
 					if self.key_map.validate(sdl_keysym):
 						if len(self.responses) < self.min_response_count:
-							self.responses.append([self.key_map.read(sdl_keysym, "data"), self.collector.response_window.elapsed()])
+							self.responses.append([self.key_map.read(sdl_keysym, "data"), self.collector.response_counter.elapsed()])
 						if self.interrupts:
 							return self.responses if self.max_response_count > 1 else self.responses[0]
 					else:
@@ -212,9 +212,9 @@ class AudioResponse(ResponseType):
 						return
 					else:
 						print [event.key.keysym, sdl2.SDLK_c, sdl2.SDLK_v]
-						if event.key.keysym == sdl2.SDLK_c:
+						if event.key.keysym.sym == sdl2.SDLK_c:
 							self.calibrate()
-						else:
+						if event.key.keysym.sym == sdl2.SDLK_v:
 							self.validate()
 
 	def collect_response(self):
@@ -222,7 +222,7 @@ class AudioResponse(ResponseType):
 			raise RuntimeError("AudioResponse not ready for collection; calibration not completed.")
 		if self.stream.sample().peak >= self.stream.threshold:
 			if len(self.responses) < self.min_response_count:
-				self.responses.append([self.stream.sample().peak, self.collector.response_window.elapsed()])
+				self.responses.append([self.stream.sample().peak, self.collector.response_counter.elapsed()])
 			if self.interrupts:
 				self.stop()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
@@ -261,7 +261,7 @@ class MouseDownResponse(ResponseType):
 				if len(self.responses) < self.min_response_count:
 					boundary =  self.within_boundary([event.x, event.y], boundaries)
 					if boundary:
-						self.responses.append( [boundary, self.collector.response_window.elapsed()] )
+						self.responses.append( [boundary, self.collector.response_counter.elapsed()] )
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -293,7 +293,7 @@ class MouseUpResponse(ResponseType):
 				if len(self.responses) < self.min_response_count:
 					boundary = self.within_boundary([event.x, event.y],  boundaries)
 					if boundary:
-						self.responses.append([boundary, self.collector.response_window.elapsed()])
+						self.responses.append([boundary, self.collector.response_counter.elapsed()])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -327,6 +327,7 @@ class ResponseCollector(object):
 		self.__min_response_count = response_count[0]
 		self.__max_response_count = response_count[1]
 		self.__uses = {RC_AUDIO:False, RC_KEYPRESS:False, RC_MOUSEUP:False, RC_MOUSEDOWN:False}
+		self.response_countdown = None
 		self.responses = {RC_AUDIO:[], RC_KEYPRESS:[]}
 		self.display_callback = display_callback
 		self.experiment = experiment
@@ -391,9 +392,10 @@ class ResponseCollector(object):
 			Params.tk.sample("ResponseCollectionFlip")
 			if self.post_flip_tk_label:
 				Params.tk.stop(self.post_flip_tk_label)
-		self.response_window.start()
 
-		while self.response_window.counting():
+		first_pass_complete = False
+		self.response_countdown = Params.tk.countdown(self.response_window, TK_MS)
+		while self.response_countdown.counting():
 			event_queue = pump(True)
 			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
 				self.experiment.ui_request(event_queue)
@@ -403,7 +405,6 @@ class ResponseCollector(object):
 			for l in self.using():
 				interrupt = self.listeners[l].collect(event_queue, mouseclick_boundaries)
 			if interrupt:
-				Params.tk.start('exiting')
 				break
 			# display callback
 				try:
@@ -426,6 +427,7 @@ class ResponseCollector(object):
 				listener.responses.append( [listener.null_response, TIMEOUT])
 		if self.using(RC_AUDIO):
 			self.audio_listener.stop()
+		self.response_countdown = None
 
 	def reset(self):
 		for l in self.listeners:
@@ -455,7 +457,7 @@ class ResponseCollector(object):
 
 	@response_window.setter
 	def response_window(self, duration):
-		self.__response_window = Params.tk.countdown(duration, TK_MS)
+		self.__response_window = duration
 
 	@property
 	def null_response_value(self):

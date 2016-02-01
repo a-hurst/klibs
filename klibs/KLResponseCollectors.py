@@ -381,9 +381,7 @@ class ResponseCollector(object):
 			self.before_flip_callback(*self.before_flip_args, **self.before_flip_kwargs)
 		except TypeError:
 			self.before_flip_callback(*self.before_flip_args)
-			print "BeforeFlip worked"
 		except KeyError:
-			print "BeforeFlip failed"
 			pass
 
 		if self.using(RC_AUDIO):

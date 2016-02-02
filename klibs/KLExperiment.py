@@ -219,6 +219,11 @@ class Experiment(object):
 		return self.database.insert()
 
 	def any_key(self):
+		"""
+		Used for quickly allowing a user to acknowledge something on screen. Not to be used for response collection (see
+		:mod:`~klibs.KLResponseCollectors`).
+		:return Boolean:
+		"""
 		pump()
 		any_key_pressed = False
 		while not any_key_pressed:
@@ -227,12 +232,6 @@ class Experiment(object):
 					self.ui_request(event.key.keysym)
 					any_key_pressed = True
 		return True
-
-
-	def debug_print_trial_factors(self):
-		print  "debug trial factors"
-		msg = "Trial Factors: {0}".format(", ".join(self.debug["trial_factors"]))
-		self.message(msg, location=[10,10], font_size=32, color=(255,255,255,255), bg_color=(126,126,126,255), flip=False)
 
 	def display_init(self, diagonal_in):
 		"""
@@ -923,20 +922,21 @@ class Experiment(object):
 
 	def pause(self):
 		"""
-		Pauses an experiment.
+		Pauses an experiment by displaying a 'paused' message and updating the experiment's :mod:`~klibs.KLResponseCollectors`.\ :class:`~klibs.KLResponseCollectors.ResponseCollector`
+		instance accordingly. Currently undergoing update; do not use.
 
-		.. rst-class:: method-flags
-
-			broken, heavy_modification-planned, backwards_compatibility-expected, interface-command
+		:flag: broken
+		:flag: heavy_modification_planned
+		:flag: backwards_compatibility_expected
+		:flag: interface_command
 
 		"""
 		if not self.paused:
 			pump()
 			while self.paused:
 				self.message('PAUSED', fullscreen=True, location='center', font_size=96, color=(255, 0, 0, 255),
-							 registration=5, blit=False)
+							 registration=5, blit=True)
 				self.ui_listen()
-				self.listen_refresh()
 		else:
 			self.paused = False
 
@@ -944,9 +944,7 @@ class Experiment(object):
 		"""
 		Global configuration of project settings. Slated for future release.
 
-		.. rst-class:: method-flags
-
-			not-implemented
+		:flag: not_implemented
 
 		"""
 
@@ -965,9 +963,8 @@ class Experiment(object):
 		usual parameters, where the first element would be applied to the query string and the second to the response.
 		If normal formatting values are supplied, they are applied to both the query and response text.
 
-		.. rst-class:: method-flags
-
-			relocation-planned, backwards_compatibility-planned
+		:flag: relocation_planned
+		:flag: backwards_compatibility_planned
 
 		:param query: A string of text to present to the participant usually a question or instruction about desired
 		input.
@@ -1181,7 +1178,8 @@ class Experiment(object):
 
 	def quit(self):
 		"""
-		Safely exits the program, ensuring data has been saved and that any connected EyeLink unit's recording is stopped. experimenters should use this, not Python's exit().
+		Safely exits the program, ensuring data has been saved and that any connected EyeLink unit's recording is stopped. This, not Python's exit()
+		should be used to exit an experiment.
 
 		"""
 		try:
@@ -1230,21 +1228,9 @@ class Experiment(object):
 		self.__execute_experiment(*args, **kwargs)
 		self.quit()
 
-	def start(self):
-		"""
-		Sets KLExperiment.start_time to current time for tidily passing a trial's start time between methods.
-
-		.. rst-class:: method-flags
-
-			relocation-planned, deprecation-possible
-
-		"""
-
-		self.start_time = time.time()
 
 	def track_mouse(self, mouse_position=None):
 		self.blit(cursor(), 7, mouse_pos(True, mouse_position))
-		return True
 
 	def fill(self, color=None, context=None):
 		"""

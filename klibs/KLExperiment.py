@@ -163,6 +163,7 @@ class Experiment(object):
 						Params.tk.log(e.message)
 						self.database.current(False)
 						self.clear()
+					self.rc.reset()
 		Params.time_keeper.stop("trial_execution");
 		self.clean_up()
 		self.database.db.commit()
@@ -187,7 +188,6 @@ class Experiment(object):
 			trial_data = self.trial(args[1])
 			trial_id = self.__log_trial(trial_data)
 			self.trial_clean_up(trial_id, args[1])
-			self.rc.reset()
 		except TrialException as e:
 			self.trial_clean_up(False, args[1])
 			raise e

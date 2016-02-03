@@ -16,9 +16,6 @@ from klibs import Params
 # import aggdraw
 # import random
 
-Params.default_fill_color = (100, 100, 100, 255)
-
-Params.debug_level = 0
 Params.collect_demographics = True
 Params.practicing = True
 Params.eye_tracking = True
@@ -37,6 +34,9 @@ class PROJECT_NAME(klibs.Experiment):
 
 	def setup(self):
 		Params.key_maps['PROJECT_NAME_response'] = klibs.KeyMap('PROJECT_NAME_response', [], [], [])
+
+	def setup_response_collector(self, trial_factors):
+		pass
 
 	def block(self, block_num):
 		pass

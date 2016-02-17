@@ -155,11 +155,11 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + TF_DATA
 		else:
 			file_path = Params.data_path
-	else:
-		date = date[5:].replace("-", "")
+	if file_type == EDF:
 		file_extension = EDF_EXT
 		file_path = Params.edf_dir
-		file_name = file_name_str.format(participant_id, date, file_extension)
+		project_name_abbrev = Params.project_name[0:len(str(participant_id)) + 2]
+		file_name = file_name_str.format(participant_id, project_name_abbrev, file_extension)
 		return [file_name, os.path.join(file_path, file_name)]
 
 	file_name = file_name_str.format(participant_id, date, file_extension)  # second format arg = date sliced from date-time
@@ -174,6 +174,12 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 				append += 1
 
 	return os.path.join(file_path, file_name) if as_string else [file_path, file_name]
+
+
+def line_segment_len(a, b):
+	y = b[1] - a[1]
+	x = b[0] - a[0]
+	return math.sqrt(y**2 + x**2)
 
 
 def log(msg, priority):
@@ -198,6 +204,7 @@ def mouse_pos(pump_event_queue=True, position=None):
 		# x, y = ctypes.c_int(position[0]), ctypes.c_int(position[1])
 		sdl2.mouse.SDL_WarpMouseGlobal(*position)
 		return position
+
 
 def hide_mouse_cursor():
 	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)

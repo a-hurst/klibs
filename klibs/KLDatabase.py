@@ -151,8 +151,13 @@ class Database(object):
 			self.cursor = self.db.cursor()
 			table_list = self.__tables()
 			if len(table_list) == 0:
+				print Params.schema_file_path
+				print Params.schema_file_path_legacy
 				if os.path.exists(Params.schema_file_path):
 					self.__deploy_schema(Params.schema_file_path)
+					return True
+				elif os.path.exists(Params.schema_file_path_legacy):
+					self.__deploy_schema(Params.schema_file_path_legacy)
 					return True
 				else:
 					raise RuntimeError("Database exists but no tables were found and no table schema were provided.")

@@ -91,20 +91,24 @@ def create(name, path):
 		temp_exp = temp_exp_f.read().replace('PROJECT_NAME', name).replace('EXPERIMENTER_NAME', " ".join(auth_args.name))
 		open(os.path.join(project_path, "experiment.py"), "w+").write(temp_exp)
 
-		shutil.move(os.path.join(project_path, 'ExpAssets', 'PROJECT_NAME_schema.sql'), os.path.join(project_path, 'ExpAssets', name + '_schema.sql'))
-		temp_sql_f = open(os.path.join(project_path, 'ExpAssets', name + '_schema.sql'), "rt")
-		temp_sql = temp_sql_f.read().replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
-		open(os.path.join(project_path, 'ExpAssets', name + '_schema.sql'), "w+").write(temp_sql)
+		template_files = [['Config', "schema.sql"], ['Config', "config.csv"], ['Config', "events.csv"], ['Config', 'params.csv'], [None,".gitignore"]]
+		for f in template_files:
+			if f[0]:
+				template = os.path.join(project_path, 'ExpAssets', f[0], 'PROJECT_NAME_{0}'.format(f[1]))
+			elif f[1] == ".gitignore":
+				template = os.path.join(project_path, "gitignore.txt")
+			else:
+				template = os.path.join(project_path, 'ExpAssets', 'PROJECT_NAME_{0}'.format(f[1]))
+			if f[0]:
+				project = os.path.join(project_path, 'ExpAssets', f[0], '{0}_{1}'.format(name, f[1]))
+			elif f[1] == ".gitignore":
+				project = os.path.join(project_path, '{0}'.format(f[1]))
+			else:
+				project = os.path.join(project_path, 'ExpAssets', '{0}_{1}'.format(name, f[1]))
 
-		shutil.move(os.path.join(project_path, 'ExpAssets', 'PROJECT_NAME_config.csv'), os.path.join(project_path, 'ExpAssets', name + '_config.csv'))
-		temp_sql_f = open(os.path.join(project_path, 'ExpAssets', name + '_config.csv'), "rt")
-		temp_sql = temp_sql_f.read().replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
-		open(os.path.join(project_path, 'ExpAssets', name + '_config.csv'), "w+").write(temp_sql)
-
-		shutil.move(os.path.join(project_path, 'gitignore.txt'), os.path.join(project_path,".gitignore"))
-		temp_sql_f = open(os.path.join(project_path,".gitignore"), "rt")
-		temp_sql = temp_sql_f.read().replace('PROJECT_NAME', name)
-		open(os.path.join(project_path,".gitignore"), "w+").write(temp_sql)
+			shutil.move(template, project)
+			temp_project_f = open(project, "rt").read().replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
+			open(project, "w+").write(temp_project_f)
 
 		print "\t...Project name '{0}' successfully applied to template files".format(name)
 		print "\033[92m\nProject successfully created at: '\033[94m{0}\033[0m'".format(project_path)
@@ -139,7 +143,7 @@ def update():
 	# 	rc = p.returncode
 
 
-def run(path, screen_size, random_seed, development_mode, no_eyelink, suppress_debug_pane):
+def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane):
 	try:
 		import klibs
 	except ImportError as e:
@@ -150,7 +154,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, suppress_d
 	os.chdir(path)
 	experiment = imp.load_source(path, "experiment.py")
 	app = getattr(experiment, project_name)
-	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, suppress_debug_pane).run()
+	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()
 
 
 def export(path):
@@ -211,7 +215,7 @@ try:
 	run_parser.add_argument('-rs', '--random_seed',  type=int, help="Providing a random seed will allow an experiment to continue from it's previously completed state." )
 	run_parser.add_argument('-d', '--development_mode', action="store_true", help="Development mode turns off demographics collection and turns on several debugging features." )
 	run_parser.add_argument('-ELx', '--no_eyelink', action="store_false", help="Signals the absence of a connected eyelink unit. Does nothing for non-eyetracking experiments." )
-	run_parser.add_argument('-Dx', '--suppress_debug_pane', action="store_true", help="Suppresses blitting of debug log to screen." )
+	run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true", help="Debug log will be blit to translucent panel on screen in real time." )
 	run_parser.set_defaults(func=run)
 
 

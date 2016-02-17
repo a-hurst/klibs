@@ -8,6 +8,10 @@ try:
 	import pylink
 except ImportError:
 	pass
+try:
+	import u3
+except ImportError:
+	pass
 
 from klibs.KLExceptions import *
 from klibs.KLConstants import * # string constants, included for tidyness below basically
@@ -28,6 +32,8 @@ from klibs.KLKeyMap import *
 from klibs.KLEyeLink import *
 from klibs.KLELCustomDisplay import ELCustomDisplay
 from klibs.KLEEG import *
+from klibs.KLLabJack import *
+from klibs.KLEventInterface import *
 from klibs.KLDebug import *
 from klibs.KLExperiment import Experiment
 

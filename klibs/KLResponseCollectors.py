@@ -3,15 +3,12 @@ __author__ = 'jono'
 import abc
 from klibs.KLUtilities import *
 from klibs.KLAudio import AudioStream
+from klibs.KLConstants import *
 
-RC_AUDIO = 'audio'
-RC_KEYPRESS = 'keypress'
-RC_MOUSECLICK = 'mouseclick'
-RC_MOUSEDOWN = 'mousedown'
-RC_MOUSEUP = 'mouseup'
 
 class ResponseType(object):
 	__name__ = None
+	__timed_out = False
 
 	def __init__(self, collector):
 		super(ResponseType, self).__init__()
@@ -43,6 +40,14 @@ class ResponseType(object):
 
 	def reset(self):
 		self.responses = []
+
+	@property
+	def timed_out(self):
+		return self.__timed_out
+
+	@timed_out.setter
+	def timed_out(self, state):
+		self.__timed_out = state == True
 
 	@property
 	def name(self):
@@ -117,7 +122,7 @@ class KeyPressResponse(ResponseType):
 				if self.key_map:
 					if self.key_map.validate(sdl_keysym):
 						if len(self.responses) < self.min_response_count:
-							self.responses.append([self.key_map.read(sdl_keysym, "data"), self.collector.response_counter.elapsed()])
+							self.responses.append([self.key_map.read(sdl_keysym, "data"), self.collector.response_countdown.elapsed()])
 						if self.interrupts:
 							return self.responses if self.max_response_count > 1 else self.responses[0]
 					else:
@@ -222,7 +227,7 @@ class AudioResponse(ResponseType):
 			raise RuntimeError("AudioResponse not ready for collection; calibration not completed.")
 		if self.stream.sample().peak >= self.stream.threshold:
 			if len(self.responses) < self.min_response_count:
-				self.responses.append([self.stream.sample().peak, self.collector.response_counter.elapsed()])
+				self.responses.append([self.stream.sample().peak, self.collector.response_countdown.elapsed()])
 			if self.interrupts:
 				self.stop()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
@@ -261,7 +266,7 @@ class MouseDownResponse(ResponseType):
 				if len(self.responses) < self.min_response_count:
 					boundary =  self.within_boundary([event.x, event.y], boundaries)
 					if boundary:
-						self.responses.append( [boundary, self.collector.response_counter.elapsed()] )
+						self.responses.append( [boundary, self.collector.response_countdown.elapsed()] )
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -293,7 +298,7 @@ class MouseUpResponse(ResponseType):
 				if len(self.responses) < self.min_response_count:
 					boundary = self.within_boundary([event.x, event.y],  boundaries)
 					if boundary:
-						self.responses.append([boundary, self.collector.response_counter.elapsed()])
+						self.responses.append([boundary, self.collector.response_countdown.elapsed()])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -306,6 +311,53 @@ class JoystickResponse(ResponseType):
 		pass
 
 
+class SaccadeResponse(ResponseType):
+	__origin = None
+	__destination = None
+	include_start = True
+	include_end = False
+
+	def __init__(self, collector):
+		super(SaccadeResponse, self).__init__(collector)
+		self.el = self.collector.experiment.eyelink
+
+	def collect_response(self):
+		for e in self.el.get_event_queue([self.el.eyelink.ENDSACC]):
+			origin_ok = True
+			destination_ok = True
+			if self.origin:
+				origin_ok = self.el.within_boundary(self.origin, e.getStartGaze())
+			if self.destination:
+				destination_ok = self.el.within_boundary(self.destination, e.getEndGaze())
+			if origin_ok and destination_ok:
+				if self.saccade_type == EL_SACCADE_START:
+					self.responses.append([True, e.getStartTime() - self.collector.tracker_time])
+				if self.saccade_type == EL_SACCADE_END:
+					self.responses.append([True, e.getEndTime() - self.collector.tracker_time])
+
+	@property
+	def origin(self):
+		return self.el.fetch_gaze_boundary(self.__origin) if self.__origin is not None else None
+
+	@origin.setter
+	def origin(self, bounds):
+		# bounds = [boundary coordinates, shape]
+		self.__origin = self.el.add_gaze_boundary(bounds[0], bounds[1])
+
+	@property
+	def destination(self):
+		return self.el.fetch_gaze_boundary(self.__destination) if self.__destination is not None else None
+
+	@destination.setter
+	def destination(self, bounds):
+		# bounds = [boundary coordinates, shape]
+		self.__destination = self.el.add_gaze_boundary(bounds[0], bounds[1])
+
+
+class FixationResponse(ResponseType):
+	pass
+
+
 class ResponseCollector(object):
 	__experiment = None
 	__max_wait = None
@@ -314,6 +366,7 @@ class ResponseCollector(object):
 	__max_response_count = None
 	__interrupt = None
 	__uses = None
+	tracker_time = None
 	callbacks = {}
 	listeners = {}
 	response_window = None
@@ -338,10 +391,14 @@ class ResponseCollector(object):
 		self.keypress_listener = KeyPressResponse(self)
 		self.mousedown_listener = MouseDownResponse(self)
 		self.mouseup_listener = MouseUpResponse(self)
+		self.saccade_listener = SaccadeResponse(self)
+		self.fixation_listener = FixationResponse(self)
 
 		# dict of listeners for iterating during collect()
 		self.listeners[RC_AUDIO] = self.audio_listener
 		self.listeners[RC_KEYPRESS] = self.keypress_listener
+		self.listeners[RC_SACCADE] = self.saccade_listener
+		self.listeners[RC_FIXATION] = self.fixation_listener
 		# self.listeners[RC_MOUSEDOWN] = self.mousedown_listener
 		# self.listeners[RC_MOUSEUP] = self.mouseup_listener
 
@@ -393,8 +450,8 @@ class ResponseCollector(object):
 			if self.post_flip_tk_label:
 				Params.tk.stop(self.post_flip_tk_label)
 
-		first_pass_complete = False
 		self.response_countdown = Params.tk.countdown(self.response_window, TK_MS)
+		self.tracker_time = self.experiment.eyelink.now()
 		while self.response_countdown.counting():
 			event_queue = pump(True)
 			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
@@ -424,6 +481,8 @@ class ResponseCollector(object):
 		for l in self.using():
 			listener = self.listeners[l]
 			while listener.response_count < listener.min_response_count:
+				if listener.max_response_count == 1:
+					listener.timed_out = True
 				listener.responses.append( [listener.null_response, TIMEOUT])
 		if self.using(RC_AUDIO):
 			self.audio_listener.stop()

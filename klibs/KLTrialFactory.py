@@ -126,7 +126,7 @@ class TrialFactory(object):
 			blocks.append(block.tolist())
 		return blocks
 
-	def __generate_trials_from_stimfile(self):
+	def __generate_trials_from_stim_file(self):
 		for row in self.exp_parameters:
 			trial = []
 			for el in row:
@@ -147,8 +147,10 @@ class TrialFactory(object):
 				except IndexError:
 					pass
 				self.config_file_rows.append(row)
-				self.__parse_parameters_row(row, header=row_count == 0)
+				self.__parse_parameters_row(row, header= row_count == 0)
 				row_count += 1
+		else:
+			raise ValueError("No config file found at provided path..")
 		if len(self.exp_parameters) == 0: return True
 		# Strip out trial_count column if it exists but doesn't contain integers
 		if self.exp_parameters[-1][0] in [TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC]:

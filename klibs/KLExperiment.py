@@ -3,12 +3,13 @@ __author__ = 'jono'
 import OpenGL.GL as gl
 import sdl2.ext
 import AppKit
-
+import imp
 import math
 import time
 import aggdraw
 import sys
 import hashlib
+import csv
 from klibs.KLAudio import AudioManager
 from klibs.KLEyeLink import *
 from klibs.KLExceptions import *
@@ -20,11 +21,19 @@ from klibs.KLDraw import *
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLDebug import Debugger
 from klibs.KLResponseCollectors import ResponseCollector
-
-
+from klibs.KLLabJack import LabJack
+from klibs.KLEventInterface import EventInterface
 
 #  TODO: Pull all the interface commands, keymaps, overwatch, etc. into KLInterface and stick it on a separate process
-#  TODO: Multiprocessing
+
+def import_project_params(file_path):
+	try:
+		project_params =  imp.load_source("*", file_path)
+		for k, v in project_params.__dict__.iteritems():
+				setattr(Params, k, v)
+	except IOError:
+		pass
+
 
 class Experiment(object):
 	"""
@@ -50,7 +59,7 @@ class Experiment(object):
 	trial_factory = None  # KLTrialFactory instance
 	text_manager = None   # KLTextManager instance
 
-	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available, suppress_debug):
+	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available, show_debug_overlay):
 		"""
 		Initializes a KLExperiment Object
 
@@ -68,8 +77,10 @@ class Experiment(object):
 
 		if not Params.setup(project_name, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
+		import_project_params(Params.params_file_path)
 
 		Params.tk.start("Experiment Init")  # global TimeKeeper is initialized in Params.setup()
+
 
 		if not eyelink_available:
 			Params.eye_tracker_available = False
@@ -77,9 +88,8 @@ class Experiment(object):
 		if development_mode:
 			Params.development_mode = True
 			Params.collect_demographics = False
-
-		print suppress_debug
-		Params.dm_suppress_debug_pane = suppress_debug
+		print "ShowDebugOverlay: {0}".format(show_debug_overlay)
+		Params.dm_suppress_debug_pane = show_debug_overlay == False
 
 
 		#initialize the self.database instance
@@ -105,6 +115,7 @@ class Experiment(object):
 		self.audio = AudioManager(self)
 
 
+
 		# initialize eyelink
 		self.eyelink = EyeLink(self)
 		self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
@@ -125,10 +136,16 @@ class Experiment(object):
 		self.response_collector = ResponseCollector(self)
 		self.rc = self.response_collector  # alias for convenience
 
+		# initialize EventInterface
+		self.evi = EventInterface(self)
+
 		Params.time_keeper.start("Trial Generation")
 		self.trial_factory = TrialFactory(self)
 		if Params.manual_trial_generation is False:
-			self.trial_factory.import_stim_file(Params.config_file_path)
+			try:
+				self.trial_factory.import_stim_file(Params.config_file_path)
+			except ValueError:
+				self.trial_factory.import_stim_file(Params.config_file_path_legacy)
 			self.trial_factory.generate()
 		Params.time_keeper.stop("Trial Generation")
 
@@ -191,6 +208,8 @@ class Experiment(object):
 		except TrialException as e:
 			self.trial_clean_up(False, args[1])
 			raise e
+		if Params.eye_tracking and Params.eye_tracker_available:
+			self.eyelink.stop()
 
 	def __database_init(self, *args):
 		"""
@@ -222,6 +241,7 @@ class Experiment(object):
 		"""
 		Used for quickly allowing a user to acknowledge something on screen. Not to be used for response collection (see
 		:mod:`~klibs.KLResponseCollectors`).
+
 		:return Boolean:
 		"""
 		pump()
@@ -413,6 +433,8 @@ class Experiment(object):
 
 	def block_break(self, message=None):
 		"""
+		``heavy_modification_planned`` ``removal_possible``
+
 		Display a break message between blocks
 
 		:flag: heavy_modification_planned
@@ -491,18 +513,19 @@ class Experiment(object):
 
 	def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
 		"""
+		``canonical_wrapper``
+
 		Performs a drift correction, or simulates one via the mouse when eye tracker is unavailable.
 		Wraps method of same name in
 		:mod:`~klibs.KLEyeLink`.\ :class:`~klibs.KLEyeLink.EyeLink`.\ :func:`~klibs.KLEyeLink.EyeLink.drift_correct`
 		and original PyLink method.
 
-		:flag: canonical_wrapper
-
 		:param location: X-Y Location of drift correct target; if not provided, defaults to screen center.
 		:type location: Iterable of Integers
 		:param events: see PyLink documentation
 		:param samples: see PyLink documentation
-		:return Eyelink response code; see `PyLink documentation<http:kleinlab.psychology.dal.ca/pylink`_:
+		:return: Eyelink response code; see `PyLink documentation<http:kleinlab.psychology.dal.ca/pylink>`
+
 		"""
 
 		self.clear()
@@ -510,11 +533,10 @@ class Experiment(object):
 
 	def draw_fixation(self, location=BL_CENTER, size=None, stroke=None, color=None, fill_color=None, flip=False):
 		"""
+		``heavy_modification_possible`` ``relocation_planned``
+
 		Creates and renders a FixationCross (see :mod:`~klibs.KLDraw` inside an optional background circle at provided or
 		default location.
-
-		:flag: heavy_modification_possible
-		:flag: relocation_planned
 
 		:param location: X-Y Location of drift correct target; if not provided, defaults to screen center.
 		:type location: Interable of Integers or `Relative Location Constant`
@@ -538,7 +560,7 @@ class Experiment(object):
 
 	def exempt(self, index, state=True):
 		"""
-		:flag: deprecated
+		``deprecated``
 
 		.. warning:: This function is deprecated and slated for removal; do not use.
 		"""
@@ -582,10 +604,10 @@ class Experiment(object):
 
 	def add_keymap(self, name, ui_labels=None, data_labels=None, sdl_keysyms=None):
 		"""
+		``relocation_planned``
+
 		A convenience method that creates a :mod:`~klibs.KLKeyMap`.\ :class:`~klibs.KLKeyMap.KeyMap` instance from
 		supplied information.
-
-		:flag: relocation_planned
 
 		Equivalent to::
 
@@ -618,11 +640,9 @@ class Experiment(object):
 
 	def instructions(self, instructions_text=None):
 		"""
-		Presents contents of instructions.txt to participant.
+		``not_implemented`` ``heavy_modification_planned`` ``relocation_planned``
 
-		:flag: not_implemented
-		:flag: heavy_modification_planned
-		:flag: relocation_planned
+		Presents contents of instructions.txt to participant.
 
 		:param instructions_text: Instructions text or path to file containing the same; defaults to contents of default instructions.txt file if it exists.
 		:type instructions_text: String
@@ -638,10 +658,10 @@ class Experiment(object):
 
 	def ui_request(self, key_press=None, execute=True):
 		"""
+		``extension_planned``
+
 		Inspects a keypress for interface commands like "quit", "pause", etc.. Primarily used by
 		:func:`~klibs.KLExperiment.Experiment.over_watch`; Currently only "quit" is implemented.
-
-		:flag: extension_planned
 
 		:param key_press:
 		:param execute:
@@ -685,13 +705,12 @@ class Experiment(object):
 	def listen(self, max_wait=MAX_WAIT, key_map_name="*", el_args=None, null_response=None, response_count=None,
 			   interrupt=True, flip=True, wait_callback=None, *wait_args, **wait_kwargs):
 		"""
+		``deprecated`` ``backwards_compatibility_planned``
+
 		Used for interacting with the participant via key presses; this is the primary method for collecting responses of any kind. See manual for extensive documentation.
 
-		.. warning:: This method is slated for removal and will be completely replaced with the module ``KLListener`` in a future release.
+		.. warning:: This method has been deprecated and is slated for removal. See :class:`~klibs.KLResponseCollectors` instead.
 
-		:flag: relocation_planned
-		:flag: heavy_modification_planned
-		:flag: backwards_compatibility_planned
 
 		:param max_wait: Maximum time in seconds to await participant response. Default is an indefinite period.
 		:type max_wait: Integer
@@ -824,15 +843,17 @@ class Experiment(object):
 	def message(self, message, style=None, font=None, font_size=None, color=None, bg_color=None, location=None, registration=None,
 				wrap_width=None, blit=True, flip=False, padding=None):
 		"""
+		``heavy_modification_planned`` ``backwards_compatibility_planned``
+
 		Generates and optionally renders formatted text to the display.
 
-		.. warning:: This method will take a single argument, a KLTextManager.TextStyle object, in a future release. Backwards compatibility is tentatively planned.
+		.. warning:: While this method supports the arguments listed, only :class:`~klibs.KLTextManager.TextStyle` should now be used.
 
-		:flag: heavy_modification_planned
-		:flag: backwards_compatibility_planned
 
 		:param message: Text to be displayed.
 		:type message: String
+		:param style: Name of :class:`~klibs.KLTextManager.TextStyle` to be used.
+		:type style: String
 		:param font: Name of font to be used. Default is Helvetica. Must be a font installed on the system.
 		:type font: String
 		:param font_size: Font size in points to be used for the message text; default is :class:`~klibs.KLParams`.\ `default_font_size`.
@@ -922,14 +943,10 @@ class Experiment(object):
 
 	def pause(self):
 		"""
+		``broken`` ``heavy_modification_planned`` ``backwards_compatibility_expected``
+
 		Pauses an experiment by displaying a 'paused' message and updating the experiment's :mod:`~klibs.KLResponseCollectors`.\ :class:`~klibs.KLResponseCollectors.ResponseCollector`
 		instance accordingly. Currently undergoing update; do not use.
-
-		:flag: broken
-		:flag: heavy_modification_planned
-		:flag: backwards_compatibility_expected
-		:flag: interface_command
-
 		"""
 		if not self.paused:
 			pump()
@@ -942,9 +959,10 @@ class Experiment(object):
 
 	def project_config(self):
 		"""
+		``not_implemented``
+
 		Global configuration of project settings. Slated for future release.
 
-		:flag: not_implemented
 
 		"""
 
@@ -953,6 +971,8 @@ class Experiment(object):
 
 	def query(self, query=None, password=False, font=None, font_size=None, color=None, locations=None, registration=5, return_type=None, accepted=None):
 		"""
+		``relocation_planned`` ``backwards_compatibility_planned``
+
 		Convenience function for collecting participant input with real-time visual feedback.
 
 		Presents a string (ie. a question or response instruction) to the participant. Then listens for keyboard input
@@ -963,13 +983,8 @@ class Experiment(object):
 		usual parameters, where the first element would be applied to the query string and the second to the response.
 		If normal formatting values are supplied, they are applied to both the query and response text.
 
-		:flag: relocation_planned
-		:flag: backwards_compatibility_planned
-
-		:param query: A string of text to present to the participant usually a question or instruction about desired
-		input.
-		:param password: When true participant input will appear on screen in asterisks, though real key presses are
-		recorded.
+		:param query: A string of text to present to the participant usually a question or instruction about desired input.
+		:param password: When true participant input will appear on screen in asterisks, though real key presses are recorded.
 		:param font: See Experiment.message()
 		:param font_size: See Experiment.message()
 		:param color: See Experiment.message()
@@ -979,6 +994,7 @@ class Experiment(object):
 		:param accepted:
 		:return: boolean
 		:raise TypeError:
+
 
 		**Example**
 

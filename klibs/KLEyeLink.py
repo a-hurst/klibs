@@ -6,6 +6,8 @@ import time
 import math
 from klibs.KLUtilities import *
 from klibs.KLDraw import *
+from klibs.KLExceptions import *
+
 try:
 	import pylink
 	PYLINK_AVAILABLE = True
@@ -24,6 +26,7 @@ except:
 if PYLINK_AVAILABLE:
 	class EyeLink(pylink.EyeLink):
 		__dummy_mode = None
+		__anonymous_boundaries = 0
 		experiment = None
 		__gaze_boundaries = {}
 		custom_display = None
@@ -55,10 +58,19 @@ if PYLINK_AVAILABLE:
 		def fetch_gaze_boundary(self, name=None):
 			return self.__gaze_boundaries[name] if name is not None else self.__gaze_boundaries
 
-		def add_gaze_boundary(self, name, bounds, shape=EL_RECT_BOUNDARY):
+		def add_gaze_boundary(self, bounds, name=None, shape=EL_RECT_BOUNDARY):
+			#  resolving legacy use of this function prior (ie. commit 451b634e1584e2ba2d37eb58fa5f707dd7554ca8 & earlier)
+			if type(bounds) is str and type(name) in [list, tuple]:
+				__bounds = name
+				name = bounds
+				bounds = __bounds
+			if name is None:
+				name = "anonymous_{0}".format(self.__anonymous_boundaries)
+
 			if shape not in [EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY]:
 				raise ValueError("Argument 'shape' must be a shape constant (ie. EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY).")
 			# TODO:  handling for when a extant boundary would be over-written
+
 			self.__gaze_boundaries[name] = {"shape": shape, "bounds": bounds}
 			return True
 
@@ -206,6 +218,22 @@ if PYLINK_AVAILABLE:
 
 			return [int(sample[0]), int(sample[1])] if return_integers else sample
 
+		def get_event_queue(self, include=[], exclude=[]):
+			queue = []
+			pumping = True
+			while pumping:
+				data = self.eyelink.getNextData()
+				if data == 0:
+					break
+				if len(include) and data in include:
+					queue.append(self.eyelink.getFloatData())
+				elif data not in exclude:
+					queue.append(self.eyelink.getFloatData())
+			return queue
+
+		def now(self):
+			return self.getTrackerTime() if not Params.development_mode else time.time()
+
 		def sample(self):			
 			self.__current_sample = self.getNewestSample()
 			if self.__current_sample == 0:
@@ -226,7 +254,7 @@ if PYLINK_AVAILABLE:
 				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setLinkEventFilter("FIXATION,SACCADE,BLINK")
 				self.openDataFile(self.edf_filename[0])
-				self.sendMessage("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
+				self.write("DISPLAY_COORDS 0 0 {0} {1}".format(Params.screen_x, Params.screen_y))
 				self.setSaccadeVelocityThreshold(Params.saccadic_velocity_threshold)
 				self.setAccelerationThreshold(Params.saccadic_acceleration_threshold)
 				self.setMotionThreshold(Params.saccadic_motion_threshold)
@@ -239,9 +267,9 @@ if PYLINK_AVAILABLE:
 			start = self.startRecording(samples, events, link_samples, link_events)
 			if start == 0:
 				if self.__eye():
-					self.sendMessage("TRIAL_ID {0}".format(str(trial_number)))
-					self.sendMessage("TRIAL_START")
-					self.sendMessage("SYNCTIME {0}".format('0.0'))
+					self.write("TRIAL_ID {0}".format(str(trial_number)))
+					self.write("TRIAL_START")
+					self.write("SYNCTIME {0}".format('0.0'))
 					return start - time.time()  # ie. delay spent initializing the recording
 				else:
 					return False
@@ -251,13 +279,19 @@ if PYLINK_AVAILABLE:
 		def stop(self):
 			self.stopRecording()
 
-		def shut_down_eyelink(self):
+		def shut_down(self):
 			if self.isRecording() == 0: 
 				self.stopRecording()
 			self.setOfflineMode()
 			self.closeDataFile()
 			self.receiveDataFile(self.edf_filename[0], self.edf_filename[1])
 			return self.close()
+
+		def write(self, message):
+			if all(ord(c) < 128 for c in message):
+				self.sendMessage(message)
+			else:
+				raise EyeLinkError("Only ASCII text may be written to an EDF file.")
 
 		@abc.abstractmethod
 		def listen(self, **kwargs):
@@ -270,4 +304,8 @@ if PYLINK_AVAILABLE:
 		@dummy_mode.setter
 		def dummy_mode(self, status):
 				self.__dummy_mode = status
+
+		# legacy function with stupid name
+		def shut_down_eyelink(self):
+			self.shut_down()
 

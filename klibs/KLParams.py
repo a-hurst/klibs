@@ -14,6 +14,7 @@ klibs_dir = klibs_dir = "/usr/local/lib/klibs"
 global project_name
 global asset_dir
 global image_dir
+global config_dir
 global database_filename
 global log_filename
 global log_file_path
@@ -21,11 +22,15 @@ global database_path
 global database_backup_path
 global edf_dir
 global schema_file_path
+global schema_file_path_legacy
 global schema_filename
 global data_path
 global incomplete_data_path
 global config_filename
 global config_file_path
+global config_file_path_legacy
+global params_file_path
+global events_file_path
 global initialized
 global random_seed
 global time_keeper
@@ -123,10 +128,15 @@ dm_suppress_debug_pane = False
 dm_auto_threshold = True
 
 
+# labjack
+labjack_available = True
+labjacking = False
+
 def init_project():
 	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
 	global project_name
 	global asset_dir
+	global config_dir
 	global database_filename
 	global log_filename
 	global log_file_path
@@ -134,25 +144,38 @@ def init_project():
 	global database_backup_path
 	global edf_dir
 	global schema_file_path
+	global schema_file_path_legacy
 	global schema_filename
 	global data_path
 	global incomplete_data_path
 	global config_filename
 	global config_file_path
+	global config_file_path_legacy
+	global params_file_path
+	global events_file_path
 	global initialized
 
+	# file names
 	database_filename = str(project_name) + DB_EXT
 	schema_filename = str(project_name) + SCHEMA_EXT
 	log_filename = str(project_name) + LOG_EXT
 	config_filename = str(project_name) + CONFIG_EXT
+	params_filename = str(project_name) + PARAMS_EXT
+	events_filename = str(project_name) + EVENTS_EXT
+
+	# project paths
 	edf_dir = os.path.join(asset_dir, "EDF")  # todo: write edf management
 	log_file_path = os.path.join(asset_dir, log_filename)
-	schema_file_path = os.path.join(asset_dir, schema_filename)
+	schema_file_path = os.path.join(config_dir, schema_filename)
+	schema_file_path_legacy = os.path.join(asset_dir, schema_filename)
 	database_path = os.path.join(asset_dir, database_filename)
 	database_backup_path = database_path + BACK_EXT
 	data_path = os.path.join(asset_dir, "Data")
 	incomplete_data_path = os.path.join(data_path, "incomplete")
-	config_file_path = os.path.join(asset_dir, config_filename)
+	config_file_path = os.path.join(config_dir, config_filename)
+	config_file_path_legacy = os.path.join(asset_dir, config_filename)
+	params_file_path = os.path.join(config_dir, params_filename)
+	events_file_path = os.path.join(config_dir, events_filename)
 	initialized = True
 	return True
 
@@ -165,6 +188,7 @@ def setup(project_name_str, previous_random_seed):
 	global anonymous_username
 	global exp_font_dir
 	global image_dir
+	global config_dir
 
 	anonymous_username = "demo_user_{0}".format(now(True))
 	time_keeper = TimeKeeper()
@@ -177,4 +201,5 @@ def setup(project_name_str, previous_random_seed):
 	asset_dir = "ExpAssets"
 	exp_font_dir = os.path.join(asset_dir, "Resources", "font")
 	image_dir = os.path.join(asset_dir, "Resources", "image")
+	config_dir = os.path.join(asset_dir, "Config")
 	return init_project()

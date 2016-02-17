@@ -10,6 +10,8 @@ BACK_EXT = ".backup"
 LOG_EXT = "_log.txt"
 SCHEMA_EXT = "_schema.sql"
 CONFIG_EXT = "_config.csv"
+PARAMS_EXT = "_params.py"
+EVENTS_EXT = "_events.csv"
 INCH = "in"
 CM = "cm"
 TAB = "\t"
@@ -93,6 +95,10 @@ PARALLEL_AVAILABLE = False
 MAX_DRIFT_DEG = 3
 INIT_SAC_DIST = 3  # Min. distance (degrees) before eye movement == initiating saccade for response direction
 EL_TEMP_FILE = "temp_participant{0}".format(EDF)
+# these mirror eyelink event codes where their counterpart exists
+EL_SACCADE_START = 5
+EL_SACCADE_END = 8
+EL_SACCADE_BOTH = [5,8]
 
 # lists of sdl2 key representations needed by klibs
 MOD_KEYS = {"Left Shift": 1, "Right Shift": 2, "Left Ctrl": 64, "Right Ctrl": 128,  # todo: make __mod_keysyms
@@ -139,3 +145,15 @@ AUDIO_OFF = 0
 # TimeKeeper Constants
 TK_MS = "milliseconds"
 TK_S = "seconds"
+
+# LabJack Constants
+LABJACK_AVAILABLE = True
+
+# ResponseCollector Constants
+RC_AUDIO = 'audio'
+RC_KEYPRESS = 'keypress'
+RC_MOUSECLICK = 'mouseclick'
+RC_MOUSEDOWN = 'mousedown'
+RC_MOUSEUP = 'mouseup'
+RC_SACCADE = 'saccade'
+RC_FIXATION = 'fixation'

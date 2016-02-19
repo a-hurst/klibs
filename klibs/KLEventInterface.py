@@ -69,14 +69,14 @@ class EventInterface(object):
 			print "\t\033[94mEvent (\033[92mEEG\033[94m): \033[0m'{0}".format(eeg_send)
 
 	def send(self, label, max_per_trial=1, args=None):
-		if label in self.sent and self.sent[label] > max_per_trial:
+		if label in self.sent and self.sent[label] >= max_per_trial:
 			return
 		if label not in self.sent:
 			self.sent[label] = 1
 		else:
 			self.sent[label] += 1
 		e = self.events[label]
-		self.sent.append(label)
+
 		if e.code:
 			self.write(e.code, False, True)
 		if e.message:

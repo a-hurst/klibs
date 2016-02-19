@@ -1,3 +1,5 @@
 .*
-ExpAssets/Data
-ExpAssets/EDF
+ExpAssets/Data/*.csv
+ExpAssets/Data/incomplete/*.csv
+ExpAssets/EDF/*.edf
+ExpAssets/EDF/incomplete/*.edf

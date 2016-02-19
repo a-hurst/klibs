@@ -58,6 +58,8 @@ class Experiment(object):
 	database = None       # KLDatabase instance
 	trial_factory = None  # KLTrialFactory instance
 	text_manager = None   # KLTextManager instance
+	block_break_message = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
+	block_break_messages = []
 
 	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available, show_debug_overlay):
 		"""
@@ -138,6 +140,11 @@ class Experiment(object):
 
 		# initialize EventInterface
 		self.evi = EventInterface(self)
+
+		if Params.pre_render_block_messages:
+			for i in range(1, Params.blocks_per_experiment):
+				msg = self.message(self.block_break_message.format(i, Params.blocks_per_experiment), blit=False)
+				self.block_break_messages.append(msg)
 
 		Params.time_keeper.start("Trial Generation")
 		self.trial_factory = TrialFactory(self)
@@ -446,12 +453,14 @@ class Experiment(object):
 		"""
 		if Params.block_number == 1:
 			return
-		default = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key.".format(
-			Params.block_number - 1, Params.blocks_per_experiment)
+		default = self.block_break_message.format(Params.block_number - 1, Params.blocks_per_experiment)
 		if Params.testing: return
 		if not message: message = default
 		self.fill()
-		self.message(message, location='center', registration=5)
+		if Params.pre_render_block_messages:
+			self.blit(self.block_break_messages[Params.block_number], location=Params.screen_c, registration=5)
+		else:
+			self.message(message, location='center', registration=5)
 		self.listen()
 
 	def collect_demographics(self, anonymous_user=False):

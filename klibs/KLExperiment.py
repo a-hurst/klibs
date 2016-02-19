@@ -140,12 +140,13 @@ class Experiment(object):
 
 		# initialize EventInterface
 		self.evi = EventInterface(self)
-
+		
 		if Params.pre_render_block_messages:
-			for i in range(1, Params.blocks_per_experiment):
-				msg = self.message(self.block_break_message.format(i, Params.blocks_per_experiment), blit=False)
-				self.block_break_messages.append(msg)
-
+			print range(1, Params.blocks_per_experiment, 1)
+			for i in range(1, Params.blocks_per_experiment, 1):
+				msg = self.block_break_message.format(i, Params.blocks_per_experiment)
+				r_msg = self.message(msg, blit=False)
+				self.block_break_messages.append(rmsg)
 		Params.time_keeper.start("Trial Generation")
 		self.trial_factory = TrialFactory(self)
 		if Params.manual_trial_generation is False:
@@ -1114,7 +1115,6 @@ class Experiment(object):
 		else:
 			raise ValueError("A default query string was not set and argument 'query' was not provided")
 
-		print type(query_surface)
 		query_baseline = (Params.screen_y // 2) - vertical_padding
 		input_baseline = (Params.screen_y // 2) + vertical_padding
 		horizontal_center = Params.screen_x // 2

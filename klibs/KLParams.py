@@ -112,7 +112,7 @@ practice_blocks_per_experiment = 0
 trials_per_participant = 0
 recycle_count = 0  # reset on a per-block basis
 manual_trial_generation = False
-
+pre_render_block_messages = False
 # database
 data_columns = None
 default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]

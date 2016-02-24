@@ -58,6 +58,8 @@ class Experiment(object):
 	database = None       # KLDatabase instance
 	trial_factory = None  # KLTrialFactory instance
 	text_manager = None   # KLTextManager instance
+	block_break_message = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
+	block_break_messages = []
 
 	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available, show_debug_overlay):
 		"""
@@ -138,7 +140,12 @@ class Experiment(object):
 
 		# initialize EventInterface
 		self.evi = EventInterface(self)
-
+		
+		if Params.pre_render_block_messages:
+			for i in range(1, Params.blocks_per_experiment, 1):
+				msg = self.block_break_message.format(i, Params.blocks_per_experiment)
+				r_msg = self.message(msg, blit=False)
+				self.block_break_messages.append(r_msg)
 		Params.time_keeper.start("Trial Generation")
 		self.trial_factory = TrialFactory(self)
 		if Params.manual_trial_generation is False:
@@ -446,12 +453,14 @@ class Experiment(object):
 		"""
 		if Params.block_number == 1:
 			return
-		default = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key.".format(
-			Params.block_number - 1, Params.blocks_per_experiment)
+		default = self.block_break_message.format(Params.block_number - 1, Params.blocks_per_experiment)
 		if Params.testing: return
 		if not message: message = default
 		self.fill()
-		self.message(message, location='center', registration=5)
+		if Params.pre_render_block_messages:
+			self.blit(self.block_break_messages[Params.block_number - 2], location=Params.screen_c, registration=5)
+		else:
+			self.message(message, location='center', registration=5)
 		self.listen()
 
 	def collect_demographics(self, anonymous_user=False):
@@ -867,12 +876,8 @@ class Experiment(object):
 		:type location: Iterable of Integers or `Location Constant`
 		:param registration: Location about message surface perimeter to be placed at supplied location. Default is center.
 		:type registration: Integer
-		:param wrap: When True, text will wrap when edge of screen is reached, or if line reaches wrap_width.
-		:type wrap: Boolean
 		:param wrap_width: Maximum width (px) of text line before breaking.
 		:type wrap_width: Integer
-		:param line_delimiter: Symbol or string indicating a line break. Default is unix new line operator, ie. "\\n".
-		:type line_delimiter: String
 		:param blit: Toggles whether message surface is automatically :func:`~klibs.KLExperiment.Experiment.blit` to the display buffer.
 		:type blit: Boolean
 		:param flip: Toggles whether :func:`~klibs.KLExperiment.Experiment.flip` is automatically called after blit.
@@ -884,10 +889,11 @@ class Experiment(object):
 		if not style:
 			if all([font_size, color, bg_color, font]) is None:
 				style = self.text_manager.styles['default']
-			style_name = "legacy_style_{0}".format(self.text_manager.legacy_styles_count)
-			self.text_manager.legacy_styles_count += 1
-			# font_size=None, color=None, bg_color=None, line_height=None, font=None
-			style = TextStyle(style_name, font_size, color, bg_color, font)
+			else:
+				style_name = "legacy_style_{0}".format(self.text_manager.legacy_styles_count)
+				self.text_manager.legacy_styles_count += 1
+				# font_size=None, color=None, bg_color=None, line_height=None, font=None
+				style = TextStyle(style_name, font_size, color, bg_color, font)
 		else:
 			try:
 				style = self.text_manager.styles[style]
@@ -1105,7 +1111,6 @@ class Experiment(object):
 		else:
 			raise ValueError("A default query string was not set and argument 'query' was not provided")
 
-		print type(query_surface)
 		query_baseline = (Params.screen_y // 2) - vertical_padding
 		input_baseline = (Params.screen_y // 2) + vertical_padding
 		horizontal_center = Params.screen_x // 2

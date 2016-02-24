@@ -155,7 +155,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + TF_DATA
 		else:
 			file_path = Params.data_path
-	if file_type == EDF:
+	if file_type == EDF_FILE:
 		file_extension = EDF_EXT
 		file_path = Params.edf_dir
 		project_name_abbrev = Params.project_name[0:len(str(participant_id)) + 2]

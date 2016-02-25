@@ -77,6 +77,20 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 			self.__target_beep__done__.play()
 
 	def get_input_key(self):
+		# if tracker_mode in [pylink.EL_VALIDATE_MODE, pylink.EL_CALIBRATE_MODE]:
+		# 	return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
+		# else:
+		# 	-
+		# 	return False
+		# 	+
+		# 	return 0
+		# 	if ui_request:
+		# 		-
+		# 	if ui_request == sdl2.SDLK_c and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
+		# 		+
+		# 		if ui_request == sdl2.SDLK_c: #and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
+		# 			return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
+		# 	return [pylink.KeyInput(keysym.sym, keysym.mod)]
 		tracker_mode = self.tracker.getTrackerMode()
 		sdl2.SDL_PumpEvents()
 		for event in sdl2.ext.get_events():
@@ -109,27 +123,29 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		pass
 
 	def draw_image_line(self, width, line, totlines, buff):
+
 		i = 0
 		while i < width:
 			if buff[i]>=len(self.pal):
 				buff[i] = len(self.pal)-1
 			self.imagebuffer.append(self.pal[buff[i]&0x000000FF])
-			i = i+1
+			i += 1
 		if line == totlines:
 			img = Image.fromstring('RGBX', (width,totlines), self.imagebuffer.tostring())
 			img = img.convert('RGBA')
 			self.experiment.blit(NumpySurface(numpy.asarray(img)), position=Params.screen_c, registration=5)
 			self.experiment.flip()
 			self.imagebuffer = array.array('I')
-
-		try:
-			for i in range(0, len(buff)):
-				if type(buff[i]) is int:
-					buff[i] = 3*[buff[i]]
-			surf = NumpySurface(numpy.array(buff))
-			self.experiment.blit(surf, location=[0, line], context=self.window)
-		except:
-			pass
+			return
+		#
+		# try:
+		# 	for i in range(0, len(buff)):
+		# 		if type(buff[i]) is int:
+		# 			buff[i] = 3*[buff[i]]
+		# 	surf = NumpySurface(numpy.array(buff))
+		# 	self.experiment.blit(surf, location=[0, line], context=self.window)
+		# except:
+		# 	pass
 
 	def draw_lozenge(self, x, y, width, height, colorindex):
 		pass
@@ -150,4 +166,4 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 				self.pal.append((rf<<16) | (gf<<8) | (bf))
 			else:
 				self.pal.append((bf<<24) |  (gf<<16) | (rf<<8)) #for mac
-			i = i+1
+			i +=1

@@ -90,7 +90,6 @@ class Experiment(object):
 		if development_mode:
 			Params.development_mode = True
 			Params.collect_demographics = False
-		print "ShowDebugOverlay: {0}".format(show_debug_overlay)
 		Params.dm_suppress_debug_pane = show_debug_overlay == False
 
 

@@ -90,7 +90,7 @@ class Experiment(object):
 		if development_mode:
 			Params.development_mode = True
 			Params.collect_demographics = False
-		print "ShowDebugOverlay: {0}".format(show_debug_overlay)
+			
 		Params.dm_suppress_debug_pane = show_debug_overlay == False
 
 
@@ -137,6 +137,9 @@ class Experiment(object):
 		# initialize response collector
 		self.response_collector = ResponseCollector(self)
 		self.rc = self.response_collector  # alias for convenience
+
+		# initialize labjack
+		self.labjack = LabJack(self)
 
 		# initialize EventInterface
 		self.evi = EventInterface(self)

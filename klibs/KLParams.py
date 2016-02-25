@@ -58,9 +58,16 @@ key_maps = dict()  # todo: create a class, KeyMapper, to manage key maps
 id_field_name = "participant_id"
 collect_demographics = True
 demographics_collected = False
+
+# eye tracking
 eye_tracking = False
 eye_tracker_available = False
 exp_factors = None
+
+# labjack
+labjack_available = True
+labjacking = "puppies"
+
 instructions = False  # todo: instructions file
 practicing = False
 paused = False
@@ -127,10 +134,6 @@ development_mode = False  # when True, skips collect_demographics & prints vario
 dm_suppress_debug_pane = False
 dm_auto_threshold = True
 
-
-# labjack
-labjack_available = True
-labjacking = False
 
 def init_project():
 	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)

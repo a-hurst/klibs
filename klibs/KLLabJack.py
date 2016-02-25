@@ -38,10 +38,10 @@ class LabJack(object):
 				raise IndexError("Number of labels and values must be equal.")
 
 	def write(self, state):
-		self.labjack.getFeedback(u3.PortStateWrite(state))
+		self.labjack.getFeedback(u3.PortStateWrite([state, 0, 0]))
 
 	def read(self, state):
-		self.labjack.getFeedback(u3.PortStateRead(state))
+		self.labjack.getFeedback(u3.PortStateRead([state, 0, 0]))
 
 
 

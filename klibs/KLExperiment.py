@@ -214,7 +214,7 @@ class Experiment(object):
 		except TrialException as e:
 			self.trial_clean_up(False, args[1])
 			raise e
-		self.evi.sent = []
+		self.evi.sent = {}
 		if Params.eye_tracking and Params.eye_tracker_available:
 			self.eyelink.stop()
 

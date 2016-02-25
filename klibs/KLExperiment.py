@@ -4,12 +4,7 @@ import OpenGL.GL as gl
 import sdl2.ext
 import AppKit
 import imp
-import math
-import time
-import aggdraw
-import sys
 import hashlib
-import csv
 from klibs.KLAudio import AudioManager
 from klibs.KLEyeLink import *
 from klibs.KLExceptions import *
@@ -21,7 +16,6 @@ from klibs.KLDraw import *
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLDebug import Debugger
 from klibs.KLResponseCollectors import ResponseCollector
-from klibs.KLLabJack import LabJack
 from klibs.KLEventInterface import EventInterface
 
 #  TODO: Pull all the interface commands, keymaps, overwatch, etc. into KLInterface and stick it on a separate process
@@ -362,10 +356,7 @@ class Experiment(object):
 		:raise TypeError:
 		"""
 		if position:
-			location = position  # fixing stupid argument name, preserving backwars compatibility
-		height = None
-		width = None
-		content = None
+			location = position  # fixing stupid argument name, preserving backwards compatibility
 		if type(source) is NumpySurface:
 			height = source.height
 			width = source.width
@@ -399,7 +390,7 @@ class Experiment(object):
 
 		# convert english location strings to x,y coordinates of destination surface
 		if type(location) is str:
-			position = absolute_position(location, Params.screen_x_y)
+			location = absolute_position(location, Params.screen_x_y)
 
 		# define boundaries coordinates of region being blit to
 		x_bounds = [location[0], location[0] + width]

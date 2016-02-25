@@ -17,6 +17,7 @@ from klibs.KLTrialFactory import TrialFactory
 from klibs.KLDebug import Debugger
 from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLEventInterface import EventInterface
+from klibs.KLLabJack import LabJack
 
 #  TODO: Pull all the interface commands, keymaps, overwatch, etc. into KLInterface and stick it on a separate process
 
@@ -84,7 +85,7 @@ class Experiment(object):
 		if development_mode:
 			Params.development_mode = True
 			Params.collect_demographics = False
-			
+
 		Params.dm_suppress_debug_pane = show_debug_overlay == False
 
 
@@ -1211,10 +1212,17 @@ class Experiment(object):
 		except:  # TODO: Determine exception tpye
 			print "Database.close() unsuccessful."
 		try:
-			self.eyelink.shut_down_eyelink()
+			self.eyelink.shut_down()
 		except:
 			if Params.eye_tracking and Params.eye_tracker_available:
-				print "EyeLink.stopRecording()  unsuccessful.\n ****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******"
+				print "EyeLink.stopRecording() unsuccessful.\n \033[91m****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******\033[0m"
+
+		try:
+			self.labjack.shut_down()
+		except:
+			if Params.labjacking and Params.labjack_available:
+				print "LabJack.shutdown() unsuccessful. \n\033[91m****** DISCONNECT & RECONNECT LABJACK PLEASE & THANKS! *******\033[0m"
+
 		try:
 			Params.time_keeper.stop("experiment")
 		except KeyError:

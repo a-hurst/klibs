@@ -78,7 +78,7 @@ class TextManager(object):
 		self.__build_font_sizes()
 		self.add_font("Anonymous Pro", font_file_basename="AnonymousPro")
 		self.add_font("Frutiger")
-		self.add_style("debug", 12, (255, 255, 255, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro", anti_alias=False)
+		self.add_style("debug", 12, (225, 145, 85, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro", anti_alias=False)
 		self.add_style("default", "16pt", Params.default_color, font_label="Frutiger")
 		sdlttf.TTF_Init()
 
@@ -109,21 +109,29 @@ class TextManager(object):
 		lines_surfs = []
 		for line in lines:
 			if len(line):
-				lines_surfs.append(self.render(line, style))
+				lines_surfs.append(self.render(line, style, True))
 		text_dims = [0,0]
-		line_height = style.line_height * lines_surfs[0].height
+		# line_height = style.line_height * lines_surfs[0].height
+		line_height = style.line_height * lines_surfs[0].shape[0]
 		for line in lines_surfs:
-			if line.width > text_dims[0]: text_dims[0] = line.width
+			# if line.width > text_dims[0]: text_dims[0] = line.width
+			if line.shape[1] > text_dims[0]: text_dims[0] = line.shape[1]
 			text_dims[1] += int(line_height)
+		original_surfs = []
 		for l in lines_surfs:
-			new = numpy.zeros((l.height, text_dims[0], 4))
-			new[0:l.height,0:l.width,...] = l.foreground
-			lines_surfs[lines_surfs.index(l)] = NumpySurface(new)
-		text_surface = numpy.concatenate([l.render() for l in lines_surfs], 0)
+			original_surfs.append(l)
+			# new = numpy.zeros((l.height, text_dims[0], 4))
+			new = numpy.zeros((l.shape[0], text_dims[0], 4))
+			# new[0:l.height,0:l.width,...] = l.foreground
+			new[0:l.shape[0],0:l.shape[1],...] = l
+			# lines_surfs[lines_surfs.index(l)] = NumpySurface(new)
+			lines_surfs[lines_surfs.index(l)] = new
+		#text_surface = numpy.concatenate([l.render() for l in lines_surfs], 0)
+		text_surface = numpy.concatenate([l for l in lines_surfs], 0)
 
-		return text_surface
+		return [text_surface, original_surfs]
 
-	def render(self, text, style="default"):
+	def render(self, text, style="default", from_wrap=False):
 		"""
 
 		:param text:
@@ -138,6 +146,7 @@ class TextManager(object):
 			style = self.styles[style]
 
 		if len(text.split("\n")) > 1:
+			print "yes maam"
 			return self.__wrap(text, style)
 
 		if len(text) == 0:
@@ -152,8 +161,11 @@ class TextManager(object):
 			px = numpy.asarray(sdl2.ext.PixelView(rendered_text))
 			surface_array = numpy.zeros((px.shape[0], px.shape[1], 4));
 			surface_array[...] = px * 255
-
-		surface =  NumpySurface(surface_array)
+		if not from_wrap:
+			surface =  NumpySurface(surface_array)
+		else:
+			surface = surface_array
+			return surface if surface.shape[1] < Params.screen_x else self.__wrap(text, style, Params.screen_x - 20)
 		return surface if surface.width < Params.screen_x else self.__wrap(text, style, Params.screen_x - 20)
 
 	def add_font(self, font_name, font_extension="ttf", font_file_basename=None):

@@ -17,9 +17,10 @@ class LabJack(object):
 
 	def __init__(self, experiment):
 		self.experiment = experiment
-		self.labjack = u3.U3()
-		self.labjack.configU3()
-		self.labjack.getFeedback(u3.LED(State=False))
+		if Params.labjacking:
+			self.labjack = u3.U3()
+			self.labjack.configU3()
+			self.labjack.getFeedback(u3.LED(State=False))
 
 	def shut_down(self):
 		self.labjack.getFeedback(u3.PortStateWrite(State=[0, 0, 0]))

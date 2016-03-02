@@ -38,6 +38,11 @@ class Debugger(object):
 			if len(display_lines):
 				text = "\n".join(display_lines)
 				content = self.experiment.text_manager.render(text, "debug")
+				surfs = content[1]
+				content = content[0]
+				surf_height = surfs[0].height
+				for s in surfs:
+					self.experiment.blit(s.render(), location=(0, surf_height * surfs.index(s)), registration=7)
 				if self.display_location == "LEFT":
 					panel_h = Params.screen_y
 					try:

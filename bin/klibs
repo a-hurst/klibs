@@ -20,13 +20,8 @@ import sys
 pylink_install_required = False
 klibs_version = "0.9.1.4"
 
+#  todo: add in Ross's april fools idea
 
-
-	# if not os.path.exists("/Library/Python/2.7/site-packages/pylink"):
-	# 	pylink_install_required = True
-	# 	# if str(e) == "cannot import name request_cross_hair_draw":
-	# else:
-	# 	#  todo: add in Ross's april fools idea
 def print_warning(exc_type, exc_value, exc_traceback):
 	print "\n\033[91m*** Fatal Error: Unable to load klibs ***\033[0m"
 	print "\n\033[0mStack Trace (if you don't understand this, skip forward to 'What To Do If KLIBs Wasn't Found'"
@@ -155,11 +150,11 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	experiment = imp.load_source(path, "experiment.py")
 	app = getattr(experiment, project_name)
 
-	try:
-		app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()
-	except:
-		app.quit()
-		print traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2], limit=5, file=sys.stdout)
+	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()
+	# try:  todo: work this out
+	# 	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()
+	# except:
+	# 	print traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2], limit=5, file=sys.stdout)
 
 
 def export(path):

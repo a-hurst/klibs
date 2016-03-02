@@ -86,7 +86,7 @@ def create(name, path):
 		temp_exp = temp_exp_f.read().replace('PROJECT_NAME', name).replace('EXPERIMENTER_NAME', " ".join(auth_args.name))
 		open(os.path.join(project_path, "experiment.py"), "w+").write(temp_exp)
 
-		template_files = [['Config', "schema.sql"], ['Config', "config.csv"], ['Config', "events.csv"], ['Config', 'params.csv'], [None,".gitignore"]]
+		template_files = [['Config', "schema.sql"], ['Config', "config.csv"], ['Config', "events.csv"], ['Config', 'params.py'], [None,".gitignore"]]
 		for f in template_files:
 			if f[0]:
 				template = os.path.join(project_path, 'ExpAssets', f[0], 'PROJECT_NAME_{0}'.format(f[1]))

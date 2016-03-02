@@ -111,23 +111,23 @@ class TextManager(object):
 			if len(line):
 				lines_surfs.append(self.render(line, style, True))
 		text_dims = [0,0]
-		# line_height = style.line_height * lines_surfs[0].height
-		line_height = style.line_height * lines_surfs[0].shape[0]
+		line_height = style.line_height * lines_surfs[0].height
+		#line_height = style.line_height * lines_surfs[0].shape[0]
 		for line in lines_surfs:
-			# if line.width > text_dims[0]: text_dims[0] = line.width
-			if line.shape[1] > text_dims[0]: text_dims[0] = line.shape[1]
+			if line.width > text_dims[0]: text_dims[0] = line.width
+			#if line.shape[1] > text_dims[0]: text_dims[0] = line.shape[1]
 			text_dims[1] += int(line_height)
 		original_surfs = []
 		for l in lines_surfs:
 			original_surfs.append(l)
-			# new = numpy.zeros((l.height, text_dims[0], 4))
-			new = numpy.zeros((l.shape[0], text_dims[0], 4))
-			# new[0:l.height,0:l.width,...] = l.foreground
-			new[0:l.shape[0],0:l.shape[1],...] = l
-			# lines_surfs[lines_surfs.index(l)] = NumpySurface(new)
-			lines_surfs[lines_surfs.index(l)] = new
-		#text_surface = numpy.concatenate([l.render() for l in lines_surfs], 0)
-		text_surface = numpy.concatenate([l for l in lines_surfs], 0)
+			new = numpy.zeros((l.height, text_dims[0], 4))
+			#new = numpy.zeros((l.shape[0], text_dims[0], 4))
+			new[0:l.height,0:l.width,...] = l.foreground
+			#new[0:l.shape[0],0:l.shape[1],...] = l
+			lines_surfs[lines_surfs.index(l)] = NumpySurface(new)
+			#lines_surfs[lines_surfs.index(l)] = new
+		text_surface = numpy.concatenate([l.render() for l in lines_surfs], 0)
+		#text_surface = numpy.concatenate([l for l in lines_surfs], 0)
 
 		return [text_surface, original_surfs]
 
@@ -164,8 +164,9 @@ class TextManager(object):
 		if not from_wrap:
 			surface =  NumpySurface(surface_array)
 		else:
-			surface = surface_array
-			return surface if surface.shape[1] < Params.screen_x else self.__wrap(text, style, Params.screen_x - 20)
+			surface =  NumpySurface(surface_array)
+			#surface = surface_array
+			#return surface if surface.shape[1] < Params.screen_x else self.__wrap(text, style, Params.screen_x - 20)
 		return surface if surface.width < Params.screen_x else self.__wrap(text, style, Params.screen_x - 20)
 
 	def add_font(self, font_name, font_extension="ttf", font_file_basename=None):

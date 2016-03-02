@@ -7,7 +7,7 @@ try:
 except ImportError:
 	Params.labjack_available = False
 	if Params.labjacking:
-		print "\n\033[91m\t - Unable to import LabJack library, 'u3'. Fix installation or install from here: https://labjack.com/support/software/examples/ud/labjackpython 033[0m"
+		print "\n\033[91m\t - Unable to import LabJack library, 'u3'. Fix installation or install from here: https://labjack.com/support/software/examples/ud/labjackpython \033[0m"
 
 
 class LabJack(object):
@@ -17,7 +17,7 @@ class LabJack(object):
 
 	def __init__(self, experiment):
 		self.experiment = experiment
-		if Params.labjacking:
+		if Params.labjacking and Parms.labjack_available:
 			self.labjack = u3.U3()
 			self.labjack.configU3()
 			self.labjack.getFeedback(u3.LED(State=False))

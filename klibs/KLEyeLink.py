@@ -232,7 +232,7 @@ if PYLINK_AVAILABLE:
 			return queue
 
 		def now(self):
-			return self.getTrackerTime() if not Params.development_mode else time.time()
+			return self.trackerTime() if not Params.development_mode else time.time()
 
 		def sample(self):			
 			self.__current_sample = self.getNewestSample()

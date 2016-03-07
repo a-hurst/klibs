@@ -146,7 +146,6 @@ class TextManager(object):
 			style = self.styles[style]
 
 		if len(text.split("\n")) > 1:
-			print "yes maam"
 			return self.__wrap(text, style)
 
 		if len(text) == 0:

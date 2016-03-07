@@ -100,8 +100,8 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 				if keysym.sym == sdl2.SDLK_ESCAPE:  # don't allow escape to control tracker unless calibrating
 					if tracker_mode in [pylink.EL_VALIDATE_MODE, pylink.EL_CALIBRATE_MODE]:
 						return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
-					else:
-						return 0
+					# else:
+					# 	return 0
 				if ui_request:
 					if ui_request == sdl2.SDLK_c: #and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
 						return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
@@ -123,7 +123,6 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		pass
 
 	def draw_image_line(self, width, line, totlines, buff):
-
 		i = 0
 		while i < width:
 			if buff[i]>=len(self.pal):
@@ -137,7 +136,6 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		self.experiment.flip()
 		self.imagebuffer = array.array('I')
 		return
-
 
 	def draw_lozenge(self, x, y, width, height, colorindex):
 		pass

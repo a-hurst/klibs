@@ -448,6 +448,12 @@ class ResponseCollector(object):
 			Params.tk.sample("ResponseCollectionFlip")
 			if self.post_flip_tk_label:
 				Params.tk.stop(self.post_flip_tk_label)
+			try:
+				self.after_flip_callback(*self.after_flip_args, **self.after_flip_kwargs)
+			except TypeError:
+				self.after_flip_callback(*self.after_flip_args)
+			except KeyError:
+				pass
 
 		self.response_countdown = Params.tk.countdown(self.response_window, TK_MS)
 		self.tracker_time = self.experiment.eyelink.now()
@@ -647,6 +653,58 @@ class ResponseCollector(object):
 		if type(kwargs_list) is not dict:
 			raise TypeError("Property 'kwargs_list' must be a dict.")
 		self.callbacks['before_flip'][2] = kwargs_list
+
+	@property
+	def after_flip_callback(self):
+		return self.callbacks['after_flip'][0]
+
+	@after_flip_callback.setter
+	def after_flip_callback(self, callback):
+		cb_method = callback
+		cb_args = []
+		cb_kwargs = {}
+		if not hasattr(callback, '__call__'):
+			try:
+				iter(callback)
+				if type(callback[1]) in (list, tuple):
+					cb_args = callback[1]
+				else:
+					raise TypeError("Index 1 of property 'callback' must be a list or None.")
+				try:
+					if type(callback[2]) is dict:
+						cb_kwargs = callback[2]
+					else:
+						if callback[2] is not None:
+							raise TypeError("Index 2 of property 'callback' must be a dict or None.")
+				except IndexError:
+					pass
+			except AttributeError:
+				raise TypeError(
+					"Property 'after_flip_callback' must be a function or list of function and supporting arguments.")
+		try:
+			self.callbacks['after_flip'][0] = cb_method
+		except KeyError:
+			self.callbacks['after_flip'] = [cb_method, cb_args, cb_kwargs]
+
+	@property
+	def after_flip_args(self):
+		return self.callbacks['after_flip'][1]
+
+	@after_flip_args.setter
+	def after_flip_args(self, args_list):
+		if type(args_list) not in (list, tuple):
+			raise TypeError("Property 'args_list' must be either a list or a tuple.")
+		self.callbacks['after_flip'][1] = args_list
+
+	@property
+	def after_flip_kwargs(self):
+		return self.callbacks['after_flip'][2]
+
+	@after_flip_args.setter
+	def after_flip_kwargs(self, kwargs_list):
+		if type(kwargs_list) is not dict:
+			raise TypeError("Property 'kwargs_list' must be a dict.")
+		self.callbacks['after_flip'][2] = kwargs_list
 
 	@property
 	def before_return_callback(self):

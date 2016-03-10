@@ -139,6 +139,9 @@ if PYLINK_AVAILABLE:
 		def is_gaze_boundary(self, string):
 			return type(string) is str and string in self.__gaze_boundaries
 
+		def in_setup(self):
+			return self.inSetup() != 0
+
 		def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
 			"""
 

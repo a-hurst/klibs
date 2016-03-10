@@ -22,6 +22,7 @@ def argb32_to_rgba(np_array):
 		return out
 
 class TextStyle(object):
+	__font_size = None
 
 	def __init__(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None, anti_alias=True):
 		"""
@@ -46,6 +47,18 @@ class TextStyle(object):
 		self.bg_color = rgb_to_rgba(bg_color) if bg_color else (0, 0, 0, 0)
 		self.line_height = line_height if line_height else 1.5
 		self.anti_aliased = anti_alias
+
+	@property
+	def font_size(self):
+		return self.__font_size
+
+	@font_size.setter
+	def font_size(self, size):
+		try:
+			self.__font_size = int(size)
+		except ValueError:
+			self.__font_size = int(math.floor(1.0 / 72 * Params.ppi * int(size[0:-2])))
+
 
 	def __str__(self):
 		return "klibs.KLTextManager.TextStyle ('{0}') at {1}".format(self.label, hex(id(self)))
@@ -79,7 +92,9 @@ class TextManager(object):
 		self.add_font("Anonymous Pro", font_file_basename="AnonymousPro")
 		self.add_font("Frutiger")
 		self.add_style("debug", 12, (225, 145, 85, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro", anti_alias=False)
-		self.add_style("default", "16pt", Params.default_color, font_label="Frutiger")
+		self.default_font_size = Params.default_font_size
+		self.default_color = Params.default_color
+		self.add_style("default", Params.default_font_size, Params.default_color, font_label="Frutiger")
 		sdlttf.TTF_Init()
 
 	def __build_font_sizes(self):
@@ -129,7 +144,8 @@ class TextManager(object):
 		text_surface = numpy.concatenate([l.render() for l in lines_surfs], 0)
 		#text_surface = numpy.concatenate([l for l in lines_surfs], 0)
 
-		return [text_surface, original_surfs]
+		# return [text_surface, original_surfs]
+		return text_surface
 
 	def render(self, text, style="default", from_wrap=False):
 		"""

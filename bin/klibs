@@ -147,10 +147,10 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		path = path[:-1]
 	project_name = os.path.split(path)[-1]
 	os.chdir(path)
-	experiment = imp.load_source(path, "experiment.py")
-	app = getattr(experiment, project_name)
+	experiment_file = imp.load_source(path, "experiment.py")
+	experiment = getattr(experiment_file, project_name)
 
-	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()
+	experiment(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()
 	# try:  todo: work this out
 	# 	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()
 	# except:

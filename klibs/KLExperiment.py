@@ -96,14 +96,11 @@ class Experiment(object):
 			export = [export]
 		self.__database_init(*export)
 
+		# initialize screen surface and screen parameters
+		self.display_init(display_diagonal_in)
 
 		# initialize the text management for the experiment
 		self.text_manager = TextManager()
-		if Params.default_font_size:
-			self.text_manager.default_font_size = Params.default_font_size
-
-		# initialize screen surface and screen parameters
-		self.display_init(display_diagonal_in)
 
 		# init debugger
 		self.debug = Debugger(self)
@@ -167,12 +164,17 @@ class Experiment(object):
 		:param args:
 		:param kwargs:
 		"""
-
-		phases = 2 if Params.practicing else 1
+		phases = 2 if Params.run_practice_blocks else 1
 		Params.time_keeper.start("trial_execution")
 		for i in range(phases):
-			practicing = phases == 2 and i == 1
-			for block in self.trial_factory.export_trials(practicing):
+			Params.practicing = phases == 2 and i == 0
+			if Params.show_practice_messages:
+				if phases == 2 and i == 1:
+					self.block_break("Practice complete. Press any key to start experiment.")
+				if phases == 2 and i == 0:
+					practice_msg = "Before the experiment begins you will complete {0} blocks of practice trials. Press any key to begin."
+					self.block_break(practice_msg.format(Params.practice_blocks_per_experiment))
+			for block in self.trial_factory.export_trials():
 				Params.recycle_count = 0
 				Params.block_number = block[0]
 				self.block(block[0])    # ie. block number
@@ -186,7 +188,7 @@ class Experiment(object):
 						self.database.current(False)
 						self.clear()
 					self.rc.reset()
-		Params.time_keeper.stop("trial_execution");
+		Params.time_keeper.stop("trial_execution")
 		self.clean_up()
 		self.database.db.commit()
 		self.database.db.close()
@@ -285,8 +287,9 @@ class Experiment(object):
 		self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), SCREEN_FLAGS)
 		Params.screen_diagonal_in = diagonal_in
 		Params.screen_c = (Params.screen_x / 2, Params.screen_y / 2)
-		Params.diagonal_px = int(math.sqrt(Params.screen_x * Params.screen_x + Params.screen_y * Params.screen_y))
-		Params.ppi = Params.diagonal_px // diagonal_in
+
+		Params.diagonal_px = math.sqrt(Params.screen_x**2.0  + Params.screen_y**2.0)
+		Params.ppi = int(Params.diagonal_px / diagonal_in)
 		Params.monitor_x = Params.screen_x / Params.ppi
 		Params.monitor_y = Params.screen_y / Params.ppi
 		Params.screen_degrees_x = math.degrees(math.atan((2.55 * Params.monitor_x / 2.0) / Params.view_distance) * 2)
@@ -698,8 +701,8 @@ class Experiment(object):
 					if key_press.sym == sdl2.SDLK_q:
 						return self.quit() if execute else [True, "quit"]
 					elif key_press.sym == sdl2.SDLK_c:
-						if Params.eye_tracking and Params.eye_tracker_available:
-							return self.eyelink.calibrate() if execute else [True, "el_calibrate"]
+						# if Params.eye_tracking and Params.eye_tracker_available:
+						return self.eyelink.calibrate() if execute else [True, "el_calibrate"]
 					elif key_press.sym == sdl2.SDLK_p:
 						if execute:
 							return self.pause()
@@ -882,9 +885,10 @@ class Experiment(object):
 		:return: NumpySurface or Boolean
 			"""
 		if not style:
-			if all([font_size, color, bg_color, font]) is None:
+			if all(i is None for i in [font_size, color, bg_color, font]):
 				style = self.text_manager.styles['default']
 			else:
+				print "Nope, here: {0}".format([font_size, color, bg_color, font])
 				style_name = "legacy_style_{0}".format(self.text_manager.legacy_styles_count)
 				self.text_manager.legacy_styles_count += 1
 				# font_size=None, color=None, bg_color=None, line_height=None, font=None

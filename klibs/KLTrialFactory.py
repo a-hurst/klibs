@@ -196,8 +196,8 @@ class TrialFactory(object):
 						self.exp_parameters[col][1].append(param_label)
 			col += 1
 
-	def export_trials(self, practicing=False):
-		return BlockIterator(self.practice_blocks) if practicing else BlockIterator(self.blocks)
+	def export_trials(self):
+		return BlockIterator(self.practice_blocks) if Params.practicing else BlockIterator(self.blocks)
 
 	def add_factor_by_inference(self, factor_name, generator, argument_list):
 		self.exp_parameters[factor_name] = {"f": generator, "arg_list": argument_list}

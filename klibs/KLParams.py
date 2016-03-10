@@ -69,7 +69,6 @@ labjack_available = True
 labjacking = "puppies"
 
 instructions = False  # todo: instructions file
-practicing = False
 paused = False
 testing = False
 default_alert_duration = 1
@@ -117,6 +116,9 @@ block_number = 0
 blocks_per_experiment = 0
 practice_blocks_per_experiment = 0
 trials_per_participant = 0
+run_practice_blocks = True
+show_practice_messages = True
+practicing = True
 recycle_count = 0  # reset on a per-block basis
 manual_trial_generation = False
 pre_render_block_messages = False

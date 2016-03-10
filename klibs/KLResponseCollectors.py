@@ -165,7 +165,6 @@ class AudioResponse(ResponseType):
 			ambient = self.stream.get_ambient_level()
 			if ambient == 0:
 				raise RuntimeError("Ambient level appears to be zero; exit the anachoic chamber or restart the experiment.")
-			print "Ambient: {0}".format(ambient)
 			self.stream.threshold = ambient * 5
 			self.threshold_valid = True
 			self.calibrated = True

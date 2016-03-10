@@ -77,33 +77,19 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 			self.__target_beep__done__.play()
 
 	def get_input_key(self):
-		# if tracker_mode in [pylink.EL_VALIDATE_MODE, pylink.EL_CALIBRATE_MODE]:
-		# 	return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
-		# else:
-		# 	-
-		# 	return False
-		# 	+
-		# 	return 0
-		# 	if ui_request:
-		# 		-
-		# 	if ui_request == sdl2.SDLK_c and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
-		# 		+
-		# 		if ui_request == sdl2.SDLK_c: #and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
-		# 			return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
-		# 	return [pylink.KeyInput(keysym.sym, keysym.mod)]
-		tracker_mode = self.tracker.getTrackerMode()
 		sdl2.SDL_PumpEvents()
 		for event in sdl2.ext.get_events():
 			if event.type == sdl2.SDL_KEYDOWN:
 				keysym = event.key.keysym
+				keysym.sym = pylink.ENTER_KEY if keysym.sym == sdl2.SDLK_RETURN else keysym.sym
 				ui_request = self.experiment.ui_request(keysym)
 				if keysym.sym == sdl2.SDLK_ESCAPE:  # don't allow escape to control tracker unless calibrating
-					if tracker_mode in [pylink.EL_VALIDATE_MODE, pylink.EL_CALIBRATE_MODE]:
-						return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
-					# else:
-					# 	return 0
+					if self.tracker.in_setup():
+						return [pylink.KeyInput(pylink.ESC_KEY, 0)]
+					else:
+						return 0
 				if ui_request:
-					if ui_request == sdl2.SDLK_c: #and tracker_mode == pylink.EL_DRIFT_CORR_MODE:  # cmd+c returns to setup
+					if ui_request == sdl2.SDLK_c and not self.tracker.in_setup():
 						return [pylink.KeyInput(sdl2.SDLK_ESCAPE, 0)]
 				return [pylink.KeyInput(keysym.sym, keysym.mod)]
 

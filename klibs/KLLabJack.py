@@ -17,7 +17,7 @@ class LabJack(object):
 
 	def __init__(self, experiment):
 		self.experiment = experiment
-		if Params.labjacking and Parms.labjack_available:
+		if Params.labjacking and Params.labjack_available:
 			self.labjack = u3.U3()
 			self.labjack.configU3()
 			self.labjack.getFeedback(u3.LED(State=False))

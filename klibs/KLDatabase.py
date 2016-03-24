@@ -151,8 +151,6 @@ class Database(object):
 			self.cursor = self.db.cursor()
 			table_list = self.__tables()
 			if len(table_list) == 0:
-				print Params.schema_file_path
-				print Params.schema_file_path_legacy
 				if os.path.exists(Params.schema_file_path):
 					self.__deploy_schema(Params.schema_file_path)
 					return True
@@ -439,7 +437,7 @@ class Database(object):
 	def export_header(self, user_id=None):
 		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export--probably this should be added to the participant table at run time
 		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", Params.klibs_version], ["Display Diagonal Inches", Params.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*Params.screen_x_y)], ["Random Seed", random_seed]]
-		klibs_vars = [ "KLIBS INFO", ["KLIBs Version", Params.klibs_version]]
+		klibs_vars = [ "KLIBS INFO", ["KLIBs Commit", Params.klibs_commit]]
 		if user_id:  # if building a header for a single participant, include the random seed
 			q = "SELECT `random_seed` from `participants` WHERE `participants`.`id` = '{0}'".format(user_id)
 			klibs_vars.append(["random_seed", self.query(q).fetchall()[0][0]])

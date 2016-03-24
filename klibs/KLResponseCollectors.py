@@ -430,7 +430,7 @@ class ResponseCollector(object):
 
 	def collect(self, mouseclick_boundaries=None):
 		# enter the loop with a cleared event queue
-		sdl2.SDL_PumpEvents()
+		pump()
 		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
 
 		# before flip callback

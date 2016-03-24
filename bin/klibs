@@ -17,6 +17,8 @@ import imp
 import time
 import sys
 
+
+
 pylink_install_required = False
 klibs_version = "0.9.1.4"
 
@@ -136,6 +138,9 @@ def update():
 	print err
 	#
 	# 	rc = p.returncode
+
+
+
 
 
 def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane):

@@ -2,6 +2,7 @@
 __author__ = 'jono'
 import time
 from klibs.KLConstants import *
+from klibs import KLParams as Params
 
 
 class CountDown(object):
@@ -157,5 +158,56 @@ class TimeKeeper(object):
 		if label is not None:
 			self.countdowns[label] = countdown
 		return countdown
+
+
+class TrialClock(object):
+
+	def __init__(self, experiment):
+		self.stages = []
+		self.tasks = []
+		self.events = []
+		self.stages_index = {}
+		self.start_time = None
+		self.started = False
+		self.experiment = experiment
+
+	def register_stage(self, stage, start_time, duration):
+		self.stages.append = [stage, start_time, duration]
+		self.stages_index[stage] = len(self.stages) - 1
+
+	def report_sequence(self):
+		return sorted(self.stages, key=lambda start_time: start_time[1]).reverse()
+
+	def started(self, stage):
+		if not self.started:
+			raise RuntimeError('TrialClock has not been started.')
+		if not stage in self.start_index:
+			raise ValueError('No stage named {0} defined.'.format(stage))
+
+		return self.stages[self.stage_index[stage]][1] > time.time() - self.start_time
+
+	def ended(self, stage):
+		if not self.started:
+			raise RuntimeError('TrialClock has not been started.')
+		if not stage in self.start_index:
+			raise ValueError('No stage named {0} defined.'.format(stage))
+		stage = self.stages[self.stage_index[stage]]
+		return stage[1] + stage[2] > time.time() - self.start_time
+
+	def start(self):
+		self.started = True
+		self.start_time = time.time()
+		data = [Params.participant_id, EVI_CLOCK_START, self.start_time, self.experiment.eyelink.now()]
+		self.experiment.database.insert(data, TBL_EVENTS, False)
+
+	def stop(self):
+		pass
+	# def register_task(self, at, do):
+
+
+
+
+
+
 
 

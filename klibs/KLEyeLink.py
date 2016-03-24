@@ -235,7 +235,7 @@ if PYLINK_AVAILABLE:
 			return queue
 
 		def now(self):
-			return self.trackerTime() if not Params.development_mode else time.time()
+			return self.trackerTime() if not Params.development_mode else now()
 
 		def sample(self):			
 			self.__current_sample = self.getNewestSample()
@@ -264,7 +264,7 @@ if PYLINK_AVAILABLE:
 				self.calibrate()
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
-			start = time.time()
+			start = now()
 			# ToDo: put some exceptions n here
 			if self.dummy_mode: return True
 			start = self.startRecording(samples, events, link_samples, link_events)
@@ -273,7 +273,7 @@ if PYLINK_AVAILABLE:
 					self.write("TRIAL_ID {0}".format(str(trial_number)))
 					self.write("TRIAL_START")
 					self.write("SYNCTIME {0}".format('0.0'))
-					return start - time.time()  # ie. delay spent initializing the recording
+					return start - now()  # ie. delay spent initializing the recording
 				else:
 					return False
 			else:

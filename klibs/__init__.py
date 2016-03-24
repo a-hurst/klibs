@@ -4,6 +4,8 @@ import sys
 import time
 import datetime
 import thread
+import multiprocessing
+
 try:
 	import pylink
 except ImportError:
@@ -15,8 +17,8 @@ except ImportError:
 
 from klibs.KLExceptions import *
 from klibs.KLConstants import * # string constants, included for tidyness below basically
-from klibs.KLTimeKeeper import TimeKeeper
 from klibs import KLParams as Params
+from klibs.KLTimeKeeper import TimeKeeper
 from klibs.KLAudio import *
 from klibs.KLUtilities import *
 from klibs.KLNumpySurface import *

@@ -5,6 +5,8 @@ import sdl2.ext
 import AppKit
 import imp
 import hashlib
+import Queue
+import threading
 from klibs.KLAudio import AudioManager
 from klibs.KLEyeLink import *
 from klibs.KLExceptions import *
@@ -18,6 +20,7 @@ from klibs.KLDebug import Debugger
 from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLEventInterface import EventInterface
 from klibs.KLLabJack import LabJack
+from klibs.KLTimeKeeper import *
 
 #  TODO: Pull all the interface commands, keymaps, overwatch, etc. into KLInterface and stick it on a separate process
 
@@ -75,7 +78,8 @@ class Experiment(object):
 		if not Params.setup(project_name, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 		import_project_params(Params.params_file_path)
-
+		Params.time_keeper = TimeKeeper()
+		Params.tk = Params.time_keeper
 		Params.tk.start("Experiment Init")  # global TimeKeeper is initialized in Params.setup()
 
 
@@ -155,7 +159,9 @@ class Experiment(object):
 
 		if not Params.collect_demographics:
 			self.collect_demographics(True)
+
 		Params.tk.stop("Experiment Init")
+
 
 	def __execute_experiment(self, *args, **kwargs):
 		"""
@@ -164,7 +170,8 @@ class Experiment(object):
 		:param args:
 		:param kwargs:
 		"""
-		phases = 2 if Params.run_practice_blocks else 1
+
+		phases = 2 if Params.run_practice_blocks and Params.practice_blocks_per_experiment > 0 else 1
 		Params.time_keeper.start("trial_execution")
 		for i in range(phases):
 			Params.practicing = phases == 2 and i == 0
@@ -185,6 +192,7 @@ class Experiment(object):
 						block[1].recycle()
 						Params.recycle_count += 1
 						Params.tk.log(e.message)
+						self.evi.send('trial_recycled')
 						self.database.current(False)
 						self.clear()
 					self.rc.reset()
@@ -341,9 +349,9 @@ class Experiment(object):
 		self.message(alert_string, color=(255, 0, 0, 255), location='center', registration=5,
 					 font_size=self.text_manager.default_font_size * 2, blit=True)
 		if display_for > 0:
-			start = time.time()
+			start = now()
 			self.flip()
-			while (time.time() - start) < display_for:
+			while (now() - start) < display_for:
 				pass
 			return
 		else:
@@ -488,7 +496,7 @@ class Experiment(object):
 		# names must be unique; returns True if unique, False otherwise
 		if self.database.is_unique('participants', 'userhash', name):
 			if anonymous_user:
-				sex = "m" if time.time() % 2 > 0  else "f"
+				sex = "m" if now() % 2 > 0  else "f"
 				handedness = "a"
 				age = 0
 			else:
@@ -602,8 +610,8 @@ class Experiment(object):
 			return
 		if type(duration) in (int, float):
 			if duration > 0:
-				start = time.time()
-				while time.time() - start < duration:
+				start = now()
+				while now() - start < duration:
 					self.ui_request()
 			else:
 				raise AttributeError("Duration must be a positive number, '{0}' was passed".format(duration))
@@ -770,7 +778,7 @@ class Experiment(object):
 		response = None
 		rt = -1
 
-		start_time = time.time()
+		start_time = now()
 		waiting = True
 
 		# enter with a clean event queue
@@ -784,9 +792,9 @@ class Experiment(object):
 		sdl_keysym = None
 		key_name = None
 		wrong_key = False
-		# then = time.time()
+		# then = now()
 		while waiting:
-			# now = time.time()
+			# now = now()
 			# then = now
 			try:
 				self.eyelink.listen(**el_args)
@@ -799,7 +807,7 @@ class Experiment(object):
 				wait_resp = wait_callback(*wait_args, **wait_kwargs)
 				if wait_resp:
 					waiting = False
-					return [wait_resp, time.time() - start_time]
+					return [wait_resp, now() - start_time]
 				# except Exception as e:
 				# 	err_message = "wait callback failed with following message: {0}".format(e.message)
 				# 	raise RuntimeError(err_message)
@@ -807,7 +815,7 @@ class Experiment(object):
 
 			for event in sdl2.ext.get_events():
 				if event.type == sdl2.SDL_KEYDOWN:
-					rt = time.time() - start_time
+					rt = now() - start_time
 					if not response:  # only record a response once per call to listen()
 						key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
 						sdl_keysym = key.keysym.sym
@@ -837,7 +845,7 @@ class Experiment(object):
 						# wrong_key_message = "Please respond using '{0}'.".format(key_map.valid_keys())
 						# self.alert(wrong_key_message)
 						# wrong_key = False
-			if (time.time() - start_time) > max_wait:
+			if (now() - start_time) > max_wait:
 				waiting = False
 				return [TIMEOUT, -1]
 		if not response:
@@ -1232,7 +1240,7 @@ class Experiment(object):
 		except KeyError:
 			pass
 		sdl2.SDL_Quit()
-		Params.time_keeper.log("exit")
+		Params.tk.log("exit")
 		print "\n\n\033[92m*** '{0}' successfully shutdown. ***\033[0m\n\n".format(Params.project_name)
 		sys.exit()
 
@@ -1356,6 +1364,7 @@ class Experiment(object):
 	def trial(self, trial_factors):
 		pass
 
+
 	@abc.abstractmethod
 	def trial_prep(self, trial_id, trial_factors):
 		pass
@@ -1363,6 +1372,7 @@ class Experiment(object):
 	@abc.abstractmethod
 	def trial_clean_up(self, trial_factors):
 		pass
+
 
 	#  To be abstract in a later release, for now, not required for backwards compatibility
 	# @abc.abstractmethod

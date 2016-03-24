@@ -26,6 +26,7 @@ class EventInterface(object):
 	sent = {}  # reset on each trial
 
 	def __init__(self, experiment):
+		#todo: add default events like recycled trials, etc.
 		self.experiment = experiment
 		self.import_events()
 

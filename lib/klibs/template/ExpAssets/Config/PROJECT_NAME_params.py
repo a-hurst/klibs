@@ -13,8 +13,8 @@ labjacking = False
 #########################################
 # Environment Aesthetic Defaults
 #########################################
-default_fill_color = [45, 45, 45, 255]
-default_color = [255, 255, 255, 255]
+default_fill_color = (45, 45, 45, 255)
+default_color = (255, 255, 255, 255)
 default_response_color = default_color
 default_input_color = default_color
 default_font_size = 28

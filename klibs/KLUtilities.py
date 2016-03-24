@@ -6,6 +6,7 @@ import math
 import sys
 import os
 import KLParams as Params
+# from KLParams import process_queue
 from klibs.KLConstants import *
 import datetime
 import sdl2
@@ -13,7 +14,17 @@ import ctypes
 import time
 import datetime
 import re
+import multiprocessing
 
+# multiprocessing & event
+
+def threaded(func):
+	def threaded_func(*args, **kwargs):
+		p = multiprocessing.Process(target=func, args=args, kwargs=kwargs)
+		p.start()
+		return p
+
+	return threaded_func
 
 def absolute_position(position, destination):
 	height = None
@@ -225,6 +236,19 @@ def peak(v1, v2):
 
 def pump(get_events=False):  # a silly wrapper because Jon always forgets the sdl2 call
 	sdl2.SDL_PumpEvents()
+	Params.process_queue.put(["pump", "was called"])
+	while not Params.process_queue.empty():
+		e = Params.process_queue.get()
+		ev = sdl2.SDL_Event()
+		ev.type = sdl2.SDL_RegisterEvents(1)
+		code = ctypes.create_string_buffer(e[1])
+		ev.user.data1 = ctypes.c_void_p(id(code))
+		success = sdl2.SDL_PushEvent(ev)
+		Params.process_queue_data[ev.type] = e
+		if success == 0:
+			print sdl2.SDL_GetError()
+			exit()
+
 	if get_events:
 		return sdl2.ext.get_events()
 
@@ -369,7 +393,7 @@ def safe_flag_string(flags, prefix=None, uc=True):
 
 
 def now(format_time=False, format_template=DATETIME_STAMP):
-	return datetime.datetime.fromtimestamp(time.time()).strftime(format_template) if format_time else time.time()
+	return datetime.datetime.fromtimestamp(time.clock() * 100000).strftime(format_template) if format_time else time.clock()
 
 
 class RGBCLI:

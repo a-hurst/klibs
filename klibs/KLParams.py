@@ -4,10 +4,11 @@ author = 'jono'
 from random import seed
 
 from klibs.KLUtilities import *
-from klibs.KLTimeKeeper import TimeKeeper
+# from klibs.KLTimeKeeper import TimeKeeper
 from time import time
 
-klibs_version = "0.9.1.4"
+
+klibs_commit = "113282ae9cdbfb9d66e2eae7a071e546fc0d54bf"
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -33,8 +34,6 @@ global params_file_path
 global events_file_path
 global initialized
 global random_seed
-global time_keeper
-global tk
 global anonymous_username
 
 exp = None
@@ -65,8 +64,8 @@ eye_tracker_available = False
 exp_factors = None
 
 # labjack
-labjack_available = True
-labjacking = "puppies"
+labjack_available = False  # todo: put this back to true you fucking monkey
+labjacking = False
 
 instructions = False  # todo: instructions file
 paused = False
@@ -74,8 +73,8 @@ testing = False
 default_alert_duration = 1
 
 #  todo: add a lot more default colors, a default font, etc.
-default_fill_color = [45, 45, 45, 255]
-default_color = [255, 255, 255, 255]
+default_fill_color = (45, 45, 45, 255)
+default_color = (255, 255, 255, 255)
 default_response_color = default_color
 default_input_color = default_color
 default_font_size = 28
@@ -136,6 +135,9 @@ development_mode = False  # when True, skips collect_demographics & prints vario
 dm_suppress_debug_pane = False
 dm_auto_threshold = True
 
+process_queue = multiprocessing.Queue()
+process_queue_data = {}
+
 
 def init_project():
 	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
@@ -188,16 +190,13 @@ def setup(project_name_str, previous_random_seed):
 	global project_name
 	global asset_dir
 	global random_seed
-	global time_keeper
-	global tk
 	global anonymous_username
 	global exp_font_dir
 	global image_dir
 	global config_dir
 
 	anonymous_username = "demo_user_{0}".format(now(True))
-	time_keeper = TimeKeeper()
-	tk = time_keeper  # shorthand alias, just convenience
+
 
 	#  seed the experiment with either a passed random_seed or else the current unix time
 	random_seed = previous_random_seed if previous_random_seed else time()

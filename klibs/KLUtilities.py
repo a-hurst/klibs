@@ -20,9 +20,7 @@ import multiprocessing
 
 def threaded(func):
 	def threaded_func(*args, **kwargs):
-		p = multiprocessing.Process(target=func, args=args, kwargs=kwargs)
-		p.start()
-		return p
+		multiprocessing.Process(target=func, args=args, kwargs=kwargs).start()
 
 	return threaded_func
 

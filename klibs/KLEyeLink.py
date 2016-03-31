@@ -177,7 +177,12 @@ if PYLINK_AVAILABLE:
 			events = EL_TRUE if events in [EL_TRUE, True] else EL_FALSE
 			samples = EL_TRUE if samples in [EL_TRUE, True] else EL_FALSE
 			if not self.dummy_mode:
-				self.doDriftCorrect(location[0], location[1], events, samples)
+				try:
+					self.doDriftCorrect(location[0], location[1], events, samples)
+				except RuntimeError:
+					print "WE GOT TO THAT STUPID ERROR AND PASSED IT YAAAAAAY!!!"
+					self.setOfflineMode()
+					return self.drift_correct()
 				return self.applyDriftCorrect()
 			else:
 				def dc(dc_location, dc_gaze_boundary):
@@ -280,7 +285,8 @@ if PYLINK_AVAILABLE:
 				return False
 
 		def stop(self):
-			self.stopRecording()
+			if self.isRecording() == 0: 
+				self.stopRecording()
 
 		def shut_down(self):
 			if self.isRecording() == 0: 

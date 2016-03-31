@@ -280,7 +280,8 @@ if PYLINK_AVAILABLE:
 				return False
 
 		def stop(self):
-			self.stopRecording()
+			if self.isRecording() == 0:
+				self.stopRecording()
 
 		def shut_down(self):
 			if self.isRecording() == 0: 

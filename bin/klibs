@@ -9,6 +9,7 @@ col = {"@P": '\033[95m',  # purple
 
 import argparse
 import os
+from signal import SIGKILL
 import shutil
 from subprocess import Popen, PIPE
 import traceback
@@ -88,7 +89,7 @@ def create(name, path):
 		temp_exp = temp_exp_f.read().replace('PROJECT_NAME', name).replace('EXPERIMENTER_NAME', " ".join(auth_args.name))
 		open(os.path.join(project_path, "experiment.py"), "w+").write(temp_exp)
 
-		template_files = [['Config', "schema.sql"], ['Config', "config.csv"], ['Config', "events.csv"], ['Config', 'params.py'], [None,".gitignore"]]
+		template_files = [['Config', "schema.sql"], ['Config', "config.csv"], ['Config', "messaging.csv"], ['Config', 'params.py'], [None,".gitignore"]]
 		for f in template_files:
 			if f[0]:
 				template = os.path.join(project_path, 'ExpAssets', f[0], 'PROJECT_NAME_{0}'.format(f[1]))
@@ -154,8 +155,15 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	os.chdir(path)
 	experiment_file = imp.load_source(path, "experiment.py")
 	experiment = getattr(experiment_file, project_name)
+	exp = experiment(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane)
+	try:
+		exp.run()
+	except SystemExit:
+		pass
+	except:
+		os.kill(exp.clock.p.pid, SIGKILL)
+		print traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2], limit=5, file=sys.stdout)
 
-	experiment(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()
 	# try:  todo: work this out
 	# 	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()
 	# except:

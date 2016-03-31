@@ -7,6 +7,7 @@ import imp
 import hashlib
 import Queue
 import threading
+import sys
 from klibs.KLAudio import AudioManager
 from klibs.KLEyeLink import *
 from klibs.KLExceptions import *
@@ -78,10 +79,12 @@ class Experiment(object):
 		if not Params.setup(project_name, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 		import_project_params(Params.params_file_path)
-		Params.time_keeper = TimeKeeper()
+		Params.time_keeper = TimeKeeper(self)
 		Params.tk = Params.time_keeper
 		Params.tk.start("Experiment Init")  # global TimeKeeper is initialized in Params.setup()
-
+		# Params.clock = Params.tk.clock
+		Params.clock = Params.tk.clock
+		self.clock = Params.clock  # this is ONLY for having the KLIBS cli end the program on an error
 
 		if not eyelink_available:
 			Params.eye_tracker_available = False
@@ -111,8 +114,6 @@ class Experiment(object):
 
 		# initialize audio management for the experiment
 		self.audio = AudioManager(self)
-
-
 
 		# initialize eyelink
 		self.eyelink = EyeLink(self)
@@ -162,7 +163,6 @@ class Experiment(object):
 
 		Params.tk.stop("Experiment Init")
 
-
 	def __execute_experiment(self, *args, **kwargs):
 		"""
 		Private method, launches and manages the experiment after KLExperiment object's run() method is called.
@@ -187,6 +187,10 @@ class Experiment(object):
 				self.block(block[0])    # ie. block number
 				for trial in block[1]:  # ie. list of trials
 					try:
+						try:
+							Params.trial_id = self.database.last_id_from('trials') + 1
+						except TypeError:
+							Params.trial_id = 1
 						self.__trial(trial)
 					except TrialException as e:
 						block[1].recycle()
@@ -197,13 +201,14 @@ class Experiment(object):
 						self.clear()
 					self.rc.reset()
 		Params.time_keeper.stop("trial_execution")
+		Params.clock.terminate()
 		self.clean_up()
 		self.database.db.commit()
 		self.database.db.close()
 
 	def __trial(self, *args, **kwargs):
 		"""
-		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1, param_2...]]
+		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1,...param_n]]
 
 		"""
 		pump()
@@ -213,19 +218,25 @@ class Experiment(object):
 			Params.trial_number = block_base + args[0] + 1 - Params.recycle_count
 		else:
 			block_base = (Params.block_number * Params.trials_per_block) - Params.trials_per_block 
-			Params.trial_number =   block_base + args[0] - Params.recycle_count
+			Params.trial_number = block_base + args[0] - Params.recycle_count
 		self.setup_response_collector(args[1])
 		self.trial_prep(args[1])
+		tx = None
 		try:
+			Params.clock.start()
 			trial_data = self.trial(args[1])
-			trial_id = self.__log_trial(trial_data)
-			self.trial_clean_up(trial_id, args[1])
+			Params.clock.stop()
+			self.__log_trial(trial_data)
+			self.trial_clean_up(Params.trial_id, args[1])
 		except TrialException as e:
 			self.trial_clean_up(False, args[1])
-			raise e
-		self.evi.sent = {}
+			Params.clock.stop()
+			tx = e
 		if Params.eye_tracking and Params.eye_tracker_available:
 			self.eyelink.stop()
+		self.evi.sent = {}
+		if tx:
+			raise tx
 
 	def __database_init(self, *args):
 		"""
@@ -1239,6 +1250,9 @@ class Experiment(object):
 			Params.time_keeper.stop("experiment")
 		except KeyError:
 			pass
+
+		Params.clock.p.terminate()
+
 		sdl2.SDL_Quit()
 		Params.tk.log("exit")
 		print "\n\n\033[92m*** '{0}' successfully shutdown. ***\033[0m\n\n".format(Params.project_name)

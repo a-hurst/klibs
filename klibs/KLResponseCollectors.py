@@ -4,7 +4,7 @@ import abc
 from klibs.KLUtilities import *
 from klibs.KLAudio import AudioStream
 from klibs.KLConstants import *
-
+import sys
 
 class ResponseType(object):
 	__name__ = None
@@ -18,6 +18,8 @@ class ResponseType(object):
 		self.__null_response_value = NO_RESPONSE
 		self.__min_response_count = 0
 		self.__max_response_count = 1
+		self.inactive_phases = []
+		self.active_phases = []
 
 	def clear_responses(self):
 		self.responses = []
@@ -369,8 +371,10 @@ class ResponseCollector(object):
 	callbacks = {}
 	listeners = {}
 	response_window = None
+	end_collection_event = None
 	responses = {}
 	post_flip_tk_label = None
+	terminate_after = None
 
 	def __init__(self, experiment, display_callback=None, response_window=MAX_WAIT, null_response=NO_RESPONSE, response_count=[0,1], flip=True):
 		super(ResponseCollector, self).__init__()
@@ -378,7 +382,7 @@ class ResponseCollector(object):
 		self.__null_response_value = null_response
 		self.__min_response_count = response_count[0]
 		self.__max_response_count = response_count[1]
-		self.__uses = {RC_AUDIO:False, RC_KEYPRESS:False, RC_MOUSEUP:False, RC_MOUSEDOWN:False}
+		self.__uses = {RC_AUDIO:False, RC_KEYPRESS:False, RC_MOUSEUP:False, RC_MOUSEDOWN:False, RC_FIXATION:False, RC_SACCADE:False}
 		self.response_countdown = None
 		self.responses = {RC_AUDIO:[], RC_KEYPRESS:[]}
 		self.display_callback = display_callback
@@ -429,6 +433,8 @@ class ResponseCollector(object):
 		return count
 
 	def collect(self, mouseclick_boundaries=None):
+		if len(self.enabled()) == 0:
+			raise RuntimeError("Nothing to collect; no response listener(s) enabled.")
 		# enter the loop with a cleared event queue
 		pump()
 		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
@@ -455,10 +461,25 @@ class ResponseCollector(object):
 			except KeyError:
 				pass
 
-		self.response_countdown = Params.tk.countdown(self.response_window, TK_MS)
 		self.tracker_time = self.experiment.eyelink.now()
-		while self.response_countdown.counting():
+		while True:
+			if Params.development_mode:
+				try:
+					t = self.experiment.clock.trial_time
+					if self.terminate_after[1] == TK_MS:
+						t *= 1000
+					if t > self.terminate_after[0]:
+						print "Broke due to force timeout."
+						break
+				except TypeError:
+					pass
 			event_queue = pump(True)
+			for e in event_queue:
+				if e.type in Params.process_queue_data:
+					print Params.process_queue_data[e.type].label, self.end_collection_event
+					if Params.process_queue_data[e.type].label == self.end_collection_event:
+						print "broke due to end event"
+						break
 			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
 				self.experiment.ui_request(event_queue)
 
@@ -502,6 +523,13 @@ class ResponseCollector(object):
 
 	def enable(self, listener):
 		self.__uses[listener] = True
+
+	def enabled(self):
+		en = []
+		for l in self.listeners:
+			if self.__uses[l]:
+				en.append(l)
+		return en
 
 	@property
 	def experiment(self):

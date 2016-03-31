@@ -3,10 +3,13 @@ author = 'jono'
 
 from random import seed
 
-from klibs.KLUtilities import *
+# from klibs.KLUtilities import *
 # from klibs.KLTimeKeeper import TimeKeeper
-from time import time
-
+import time
+from datetime import datetime
+from klibs.KLConstants import *
+import os
+import multiprocessing
 
 klibs_commit = "113282ae9cdbfb9d66e2eae7a071e546fc0d54bf"
 
@@ -108,6 +111,7 @@ cue_size = 1  # deg of visual angle
 cue_back_size = 1  # deg of visual angle
 verbosity = -1  # 0-10, with 0 being no errors and 10 being all errors todo: actually implement this hahaha, so fail
 
+trial_id = None
 trial_number = 0
 trials_per_block = 0
 trials_per_practice_block = 0
@@ -168,7 +172,7 @@ def init_project():
 	log_filename = str(project_name) + LOG_EXT
 	config_filename = str(project_name) + CONFIG_EXT
 	params_filename = str(project_name) + PARAMS_EXT
-	events_filename = str(project_name) + EVENTS_EXT
+	events_filename = str(project_name) + MESSSAGING_EXT
 
 	# project paths
 	edf_dir = os.path.join(asset_dir, "EDF")  # todo: write edf management
@@ -195,11 +199,11 @@ def setup(project_name_str, previous_random_seed):
 	global image_dir
 	global config_dir
 
-	anonymous_username = "demo_user_{0}".format(now(True))
+	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
 
 
 	#  seed the experiment with either a passed random_seed or else the current unix time
-	random_seed = previous_random_seed if previous_random_seed else time()
+	random_seed = previous_random_seed if previous_random_seed else time.time()
 	seed(random_seed)
 	project_name = project_name_str
 	asset_dir = "ExpAssets"

@@ -261,6 +261,22 @@ class Database(object):
 		except IndexError:
 			raise IndexError("Table {0} not found in the KLDatabase.table_schemas.".format(table_name))
 
+	def last_id_from(self, table, id_column='id'):
+		if not table in self.table_schemas:
+			raise ValueError("Table '{0}' not found in current database".format(table))
+
+		found = False
+		for col in self.table_schemas[table]:
+			if col[0] == id_column:
+				found = True
+		if not found:
+			raise ValueError("Table '{0}' does not have column '{1}'.".format(table, id_column))
+		query = "SELECT max(`{0}`) from `{1}`".format(id_column, table)
+		return self.query(query).fetchall()[0][0]
+		# try:
+		# except IndexError:
+		# 	return False
+
 	def empty(self, table):
 		pass
 
@@ -336,17 +352,15 @@ class Database(object):
 				raise RuntimeError("Table not found; provide table reference or ensure KLDatabase.__default_table is set.")
 		columns = []
 		values = []
+		if template[0][0] == 'id':
+			template = template[1:]
 		try:
 			for column in template:
 				column_index = template.index(column)
 				try:
 					data_value = data[column_index]
 				except KeyError:
-					try:
-						data_value = data[column[0]]
-					except KeyError:
-						if column[0] == 'id':
-							continue
+					data_value = data[column[0]]
 				if boolean_to_logical(data_value): data_value = boolean_to_logical(data_value)
 				if type_str(data_value) == column[1]['type']:
 					if column[1]['type'] in (PY_INT, PY_FLOAT):
@@ -354,12 +368,12 @@ class Database(object):
 					else:
 						data_value = "'{0}'".format(data_value)
 				else:
-					error_data = [column[1]['type'], column[0], type_str(data_value)]
-					raise TypeError("Expected '{0}' for column '{1}', got '{2}'.".format(*error_data))
+					error_data = [column[1]['type'], column[0], type_str(data_value), data_value]
+					raise TypeError("Expected '{0}' for column '{1}', got '{2}' ({3}).".format(*error_data))
 				values.append(data_value)
 				columns.append(column[0])
 			if column_index + 1 > len(data):
-				raise AttributeError('Cannot map data to table: more data elements than columns.')
+				raise ValueError('Cannot map data to table: more data elements than columns.')
 		except IndexError:
 			raise AttributeError('Cannot map data to table: fewer data elements than columns.')
 		columns_str = ",".join(columns)

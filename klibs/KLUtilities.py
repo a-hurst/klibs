@@ -3,12 +3,10 @@
 __author__ = 'jono'
 
 import math
-import sys
+# import sys
 import os
 import KLParams as Params
-# from KLParams import process_queue
 from klibs.KLConstants import *
-import datetime
 import sdl2
 import ctypes
 import time
@@ -18,11 +16,15 @@ import multiprocessing
 
 # multiprocessing & event
 
+
+
 def threaded(func):
 	def threaded_func(*args, **kwargs):
-		multiprocessing.Process(target=func, args=args, kwargs=kwargs).start()
-
+		p = multiprocessing.Process(target=func, args=args, kwargs=kwargs)
+		p.start()
+		return p
 	return threaded_func
+
 
 def absolute_position(position, destination):
 	height = None
@@ -217,7 +219,7 @@ def mouse_pos(pump_event_queue=True, position=None):
 
 def hide_mouse_cursor():
 	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
-	return sdl2.SDL_PumpEvents()
+	# return sdl2.SDL_PumpEvents()
 
 
 def show_mouse_cursor():
@@ -232,20 +234,20 @@ def peak(v1, v2):
 		return v2
 
 
-def pump(get_events=False):  # a silly wrapper because Jon always forgets the sdl2 call
+def pump(get_events=False):
+	from klibs.KLEventInterface import *
 	sdl2.SDL_PumpEvents()
-	Params.process_queue.put(["pump", "was called"])
 	while not Params.process_queue.empty():
-		e = Params.process_queue.get()
-		ev = sdl2.SDL_Event()
-		ev.type = sdl2.SDL_RegisterEvents(1)
-		code = ctypes.create_string_buffer(e[1])
-		ev.user.data1 = ctypes.c_void_p(id(code))
-		success = sdl2.SDL_PushEvent(ev)
-		Params.process_queue_data[ev.type] = e
+		event = Params.process_queue.get()
+		sdl_event = sdl2.SDL_Event()
+		sdl_event.type = sdl2.SDL_RegisterEvents(1)
+		# code = ctypes.create_string_buffer(e[0])
+		# ev.user.data1 = ctypes.c_void_p(id(code))
+		# ev.user.data2 = ctypes.c_void_p(e[1])
+		success = sdl2.SDL_PushEvent(sdl_event)
+		Params.process_queue_data[sdl_event.type] = TrialEvent(event[0], event[1], event[2], sdl_event.type)
 		if success == 0:
-			print sdl2.SDL_GetError()
-			exit()
+			raise RuntimeError(sdl2.SDL_GetError())
 
 	if get_events:
 		return sdl2.ext.get_events()
@@ -391,7 +393,7 @@ def safe_flag_string(flags, prefix=None, uc=True):
 
 
 def now(format_time=False, format_template=DATETIME_STAMP):
-	return datetime.datetime.fromtimestamp(time.clock() * 100000).strftime(format_template) if format_time else time.clock()
+	return datetime.datetime.fromtimestamp(time.time()).strftime(format_template) if format_time else time.time()
 
 
 class RGBCLI:

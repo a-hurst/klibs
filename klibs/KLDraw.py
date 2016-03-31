@@ -327,28 +327,14 @@ class Rectangle(Drawbject):
 
 class Asterisk(Drawbject):
 
-	def __init__(self, size, color, auto_draw=True):
-		# size = int(1.2 * size)
-		size = int(math.floor(size * 72 / Params.ppi) * 1.5)
-		stroke_size = int(0.25 * size)
-		super(Asterisk, self).__init__(size, size, (stroke_size, color), fill=None)
+	def __init__(self, size, color, stroke=1, auto_draw=True):
+		stroke = int(0.2 * size)
+		super(Asterisk, self).__init__(size, size, (stroke, color), fill=None)
 		self.size = size
 		if auto_draw:
 			self.draw()
 
 	def draw(self):
-		# Params.exp.text_manager.add_style("asterisk", font_size=self.size)
-		# text_surface = Params.exp.message("*", "asterisk", blit=False).foreground
-		# # this solution taken from http://stackoverflow.com/questions/34730738/remove-empty-rows-and-columns-from-3d-numpy-pixel-array
-		# print text_surface
-		# mask = text_surface == [22,22,22,0]
-		# all_white = mask.sum(axis=2) == 0
-		# rows = numpy.flatnonzero(~all_white.sum(axis=0))
-		# cols = numpy.flatnonzero(~all_white.sum(axis=1))
-		#
-		# cropped_surface = text_surface[cols.min():cols.max(), rows.min():rows.max(), :]
-		# cropped_surface.scale(self.surface_width)
-		# return cropped_surface
 		x_os = int(self.surface_width * 0.925)
 		y_os = int(self.surface_height * 0.75)
 		l1 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height - 1]
@@ -359,11 +345,42 @@ class Asterisk(Drawbject):
 		self.surface.line([l3[0], l3[1], l3[2],l3[3]], self.stroke)
 		return self.surface
 
-	# def render(self):
-	# 	return self.draw()
-
-
-
 	@property
 	def __name__(self):
 		return "Asterisk"
+
+
+class Line(Drawbject):
+
+	def __init__(self, length, color, thickness, rotation=0, auto_draw=True):
+		self.rotation = rotation
+		if rotation % 90 != 0:
+			self.x1 = thickness // 2
+			self.y1 = thickness // 2
+			self.x2 = int(math.sin(math.radians(float(self.rotation))) * length)
+			self.y2 = int(math.cos(math.radians(float(self.rotation))) * length)
+			s_width = self.x2 + int(0.5 * thickness)
+			s_height = self.y2 + int(0.5 * thickness)
+		else:
+			if rotation in [0, 180]:
+				s_width = thickness
+				s_height = length
+				self.x1 = thickness // 2
+				self.y1 = 1
+				self.x2 = self.x1
+				self.y2 = length
+			else:
+				s_width = length
+				s_height = thickness
+				self.x1 = 1
+				self.y1 = thickness // 2
+				self.x2 = length
+				self.y2 = self.x1
+		super(Line, self).__init__(s_width, s_height, [thickness, color, STROKE_INNER], fill=None)
+
+		if auto_draw:
+			self.draw()
+
+	def draw(self):
+		self.surface.line((self.x1, self.y1, self.x2, self.y2), self.stroke)
+		return self.surface

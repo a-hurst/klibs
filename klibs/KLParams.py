@@ -17,6 +17,7 @@ klibs_commit = "113282ae9cdbfb9d66e2eae7a071e546fc0d54bf"
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
 global project_name
 global asset_dir
+global resource_dir
 global image_dir
 global config_dir
 global database_filename
@@ -198,6 +199,7 @@ def setup(project_name_str, previous_random_seed):
 	global exp_font_dir
 	global image_dir
 	global config_dir
+	global resource_dir
 
 	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
 
@@ -207,7 +209,8 @@ def setup(project_name_str, previous_random_seed):
 	seed(random_seed)
 	project_name = project_name_str
 	asset_dir = "ExpAssets"
-	exp_font_dir = os.path.join(asset_dir, "Resources", "font")
-	image_dir = os.path.join(asset_dir, "Resources", "image")
+	resource_dir = os.path.join(asset_dir, "Resources")
+	exp_font_dir = os.path.join(resource_dir, "font")
+	image_dir = os.path.join(resource_dir, "image")
 	config_dir = os.path.join(asset_dir, "Config")
 	return init_project()

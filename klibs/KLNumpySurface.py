@@ -62,18 +62,20 @@ def ad_stroke(color, width=1, opacity=255):
 	return aggdraw.Pen(color, width, opacity)
 
 
-def from_aggdraw_context(draw_context):
+def aggdraw_to_array(draw_obj):
+	try:
+		draw_context_bytes = Image.frombytes(draw_obj.mode, draw_obj.size, draw_obj.tostring())  # old aggdraw
+	except Exception:
+		draw_context_bytes = Image.frombytes(draw_obj.mode, draw_obj.size, draw_obj.tobytes()) # new aggdraw
+	return numpy.asarray(draw_context_bytes)
+
+def aggdraw_to_numpy_surface(draw_context):
 	"""
 
 	:param draw_context:
 	:return:
 	"""
-	try:
-		draw_context_bytes = Image.frombytes(draw_context.mode, draw_context.size, draw_context.tostring())  # old aggdraw
-	except Exception:
-		draw_context_bytes = Image.frombytes(draw_context.mode, draw_context.size, draw_context.tobytes()) # new aggdraw
-
-	return NumpySurface(numpy.asarray(draw_context_bytes))
+	return NumpySurface(aggdraw_to_array(draw_context))
 
 
 def add_alpha_channel(numpy_array, alpha_value=255):
@@ -116,6 +118,7 @@ def grey_scale_to_alpha(self, img):
 class NumpySurface(object):
 	# todo: save states! save diffs between operations! so cool and unnecessary!
 	# todo: default alpha value for render
+	# todo: fg/bg dichotomy stupid and unwieldy; just use indexed layers
 
 	def __init__(self, foreground=None, background=None, fg_offset=None, bg_offset=None, width=None, height=None):
 		self.__foreground = None
@@ -140,49 +143,12 @@ class NumpySurface(object):
 		self.height = height
 		self.fg_offset = fg_offset
 		self.bg_offset = bg_offset
-		self.init_layers(foreground, background)
+		self.foreground = foreground
+		self.background = background
 		self.init_canvas()
 
-	def init_layers(self, foreground, background):
-		if background is not None:
-			if type(background) is numpy.ndarray:
-				self.background = add_alpha_channel(background)
-			elif type(background) is str:
-				self.layer_from_file(background, True, self.fg_offset)
-			elif type(background) is NumpySurface:
-				self.background = background.background
-			elif type(background) is aggdraw.Draw:
-				self.background = from_aggdraw_context(background)
-			else:
-				raise TypeError("Background content was not a valid type for initializing a NumpySurface layer.")
-		if foreground is not None:
-			if type(foreground) is numpy.ndarray:
-				self.foreground = add_alpha_channel(foreground)
-			elif type(foreground) is str:
-				self.layer_from_file(foreground, True, self.fg_offset)
-			elif type(foreground) is NumpySurface:
-				self.foreground = foreground.foreground
-			elif type(foreground) is aggdraw.Draw:
-				self.foreground = from_aggdraw_context(foreground)
-			else:
-				raise TypeError("foreground content was not a valid type for initializing a NumpySurface layer.")
-		# if foreground is not None:
-		# 	try:
-		# 		# self.foreground = foreground
-		# 		self.foreground = add_alpha_channel(foreground)
-		# 	except AttributeError:
-		# 		self.layer_from_file(foreground, True, self.fg_offset)
-		# 	except TypeError:
-		# 		try:
-		# 			# if it renders, it's a KLDraw.Drawbject, which returns a Numpy
-		# 			foreground = foreground.render().surface
-		# 		except AttributeError:
-		# 			pass
-		# 		foreground = numpy.asarray(Image.frombytes(foreground.mode, foreground.size, foreground.tostring()))
-		# 		self.foreground = add_alpha_channel(foreground)
-
 	def init_canvas(self):
-		if all([self.background, self.foreground, self.width, self.height]) is None:
+		if all(i is None for i in [self.background, self.foreground, self.width, self.height]):
 			self.foreground = numpy.zeroes((1,1,4))
 			self.background = numpy.zeroes((1,1,4))
 		else:
@@ -345,7 +311,7 @@ class NumpySurface(object):
 		if layer == NS_FOREGROUND:
 			self.foreground = image_content
 		elif layer == NS_BACKGROUND:
-			self.background = image_content
+			self.__set_background(image_content)
 		else:
 			TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
 
@@ -624,6 +590,22 @@ class NumpySurface(object):
 
 		return True
 
+	def __set_foreground(self, foreground_content=None):
+		if foreground_content.shape[1] > self.width:
+			self.width = foreground_content.shape[1]
+		if foreground_content.shape[0] > self.height:
+			self.height = foreground_content.shape[0]
+		self.__foreground = foreground_content
+		self.fg = self.__foreground  # convenience alias
+
+	def __set_background(self, background_content):
+		if background_content.shape[1] > self.width:
+			self.width = background_content.shape[1]
+		if background_content.shape[0] > self.height:
+			self.height = background_content.shape[0]
+		self.__background = background_content
+		self.bg = self.__background  # convenience alias
+
 	@property
 	def height(self):
 		return self.__height
@@ -652,12 +634,32 @@ class NumpySurface(object):
 
 	@foreground.setter
 	def foreground(self, foreground_content):
-		# TODO: handle passing drawbjects, PIL objects or file paths
-		if foreground_content.shape[1] > self.width:
-			self.width = foreground_content.shape[1]
-		if foreground_content.shape[0] > self.height:
-			self.height = foreground_content.shape[0]
-		self.__foreground = foreground_content
+		if foreground_content is None:
+			self.__foreground = None
+			self.fg = self.__foreground
+			return
+		try:
+			fg_array = add_alpha_channel(foreground_content)  # ie. numpy.ndarray
+		except AttributeError:
+			try:
+				self.layer_from_file(foreground_content, True, self.fg_offset)  # ie. path (string)
+				return
+			except AttributeError:
+				try:
+					fg_array = foreground_content.foreground  # ie. KLNumpySurface.NumpySurface
+				except AttributeError:
+					try:
+						fg_array = foreground_content.render().foreground  # ie. KLDraw.Drawbject
+					except AttributeError:
+						try:
+							fg_array = aggdraw_to_array(foreground_content)
+						except:
+							raise TypeError("Invalid type for initializing a NumpySurface layer.")
+		if fg_array.shape[1] > self.width:
+			self.width = fg_array.shape[1]
+		if fg_array.shape[0] > self.height:
+			self.height = fg_array.shape[0]
+		self.__foreground = fg_array
 		self.fg = self.__foreground  # convenience alias
 
 
@@ -667,12 +669,32 @@ class NumpySurface(object):
 
 	@background.setter
 	def background(self, background_content):
-		# TODO: handle passing drawbjects, PIL objects or file paths
-		if background_content.shape[1] > self.width:
-			self.width = background_content.shape[1]
-		if background_content.shape[0] > self.height:
-			self.height = background_content.shape[0]
-		self.__background = background_content
+		if background_content is None:
+			self.__background = None
+			self.bg = self.__background
+			return
+		try:
+			bg_array = add_alpha_channel(background_content)  # ie. numpy.ndarray
+		except AttributeError:
+			try:
+				self.layer_from_file(background_content, True, self.bg_offset)  # ie. path (string)
+				return
+			except AttributeError:
+				try:
+					bg_array = background_content.background  # ie. KLNumpySurface.NumpySurface
+				except AttributeError:
+					try:
+						bg_array = background_content.render().background  # ie. KLDraw.Drawbject
+					except AttributeError:
+						try:
+							bg_array = aggdraw_to_array(background_content)
+						except:
+							raise TypeError("Invalid type for initializing a NumpySurface layer.")
+		if bg_array.shape[1] > self.width:
+			self.width = bg_array.shape[1]
+		if bg_array.shape[0] > self.height:
+			self.height = bg_array.shape[0]
+		self.__background = bg_array
 		self.bg = self.__background  # convenience alias
 
 	@property

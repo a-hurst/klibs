@@ -5,6 +5,8 @@ from klibs.KLUtilities import *
 from klibs.KLAudio import AudioStream
 from klibs.KLConstants import *
 import sys
+from klibs.KLDraw import colors
+from klibs.KLNumpySurface import NumpySurface
 
 class ResponseType(object):
 	__name__ = None
@@ -124,7 +126,7 @@ class KeyPressResponse(ResponseType):
 				if self.key_map:
 					if self.key_map.validate(sdl_keysym):
 						if len(self.responses) < self.min_response_count:
-							self.responses.append([self.key_map.read(sdl_keysym, "data"), self.collector.response_countdown.elapsed()])
+							self.responses.append([self.key_map.read(sdl_keysym, "data"), Params.clock.trial_time])
 						if self.interrupts:
 							return self.responses if self.max_response_count > 1 else self.responses[0]
 					else:
@@ -228,7 +230,7 @@ class AudioResponse(ResponseType):
 			raise RuntimeError("AudioResponse not ready for collection; calibration not completed.")
 		if self.stream.sample().peak >= self.stream.threshold:
 			if len(self.responses) < self.min_response_count:
-				self.responses.append([self.stream.sample().peak, self.collector.response_countdown.elapsed()])
+				self.responses.append([self.stream.sample().peak, Params.clock.trial_time])
 			if self.interrupts:
 				self.stop()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
@@ -267,7 +269,7 @@ class MouseDownResponse(ResponseType):
 				if len(self.responses) < self.min_response_count:
 					boundary =  self.within_boundary([event.x, event.y], boundaries)
 					if boundary:
-						self.responses.append( [boundary, self.collector.response_countdown.elapsed()] )
+						self.responses.append( [boundary, Params.clock.trial_time] )
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -299,7 +301,7 @@ class MouseUpResponse(ResponseType):
 				if len(self.responses) < self.min_response_count:
 					boundary = self.within_boundary([event.x, event.y],  boundaries)
 					if boundary:
-						self.responses.append([boundary, self.collector.response_countdown.elapsed()])
+						self.responses.append([boundary, Params.clock.trial_time])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -359,6 +361,65 @@ class FixationResponse(ResponseType):
 	pass
 
 
+class ColorSelectionResponse(ResponseType):
+	__palette = []
+	__surface = None
+	__x_offset = None
+	__y_offset = None
+	require_alpha = True
+
+	def __init__(self, collector):
+		super(ColorSelectionResponse, self).__init__(collector)
+
+	def collect(self, event_queue):
+		for e in event_queue:
+			if e.type == sdl2.SDL_MOUSEBUTTONUP:
+				pos = [e.button.x - self.__x_offset, e.button.y - self.__y_offset]
+				pixel = self.__surface.get_pixel_value(pos)
+				try:
+					pixel_value = pixel.tolist()
+					print pixel_value
+					if self.require_alpha and len(pixel_value) == 3:
+						pixel_value.append(255)
+					if tuple(pixel_value) in self.palette:
+						if len(self.responses) < self.min_response_count:
+							self.responses.append([pixel_value, Params.clock.trial_time])
+							if self.interrupts:
+								return self.responses if self.max_response_count > 1 else self.responses[0]
+				except AttributeError as e:
+					print e
+					continue
+
+	def target(self, surface, location, registration=7):
+		try:
+			if registration in [8,5,2]:
+				surf_offset_x = surface.width // 2
+			elif registration in [9,6,3]:
+				surf_offset_x = surface.width
+			else:
+				surf_offset_x = 0
+			self.__x_offset =  location[0] + surf_offset_x
+			if registration in [4,5,6]:
+				surf_offset_y = surface.height // 2
+			elif registration in [1,2,3]:
+				surf_offset_y = surface.height
+			else:
+				surf_offset_y = 0
+			self.__y_offset =  location[1] + surf_offset_y
+			self.__surface = surface
+		except AttributeError:
+			self.target(NumpySurface(surface), location, registration)
+
+	@property
+	def palette(self):
+		return self.__palette
+
+	@palette.setter
+	def palette(self, color_list):
+		iter(color_list)
+		self.__palette = color_list
+
+
 class ResponseCollector(object):
 	__experiment = None
 	__max_wait = None
@@ -382,7 +443,13 @@ class ResponseCollector(object):
 		self.__null_response_value = null_response
 		self.__min_response_count = response_count[0]
 		self.__max_response_count = response_count[1]
-		self.__uses = {RC_AUDIO:False, RC_KEYPRESS:False, RC_MOUSEUP:False, RC_MOUSEDOWN:False, RC_FIXATION:False, RC_SACCADE:False}
+		self.__uses = {RC_AUDIO:False,
+					   RC_KEYPRESS:False,
+					   RC_MOUSEUP:False,
+					   RC_MOUSEDOWN:False,
+					   RC_FIXATION:False,
+					   RC_SACCADE:False,
+					   RC_COLORSELECT: False}
 		self.response_countdown = None
 		self.responses = {RC_AUDIO:[], RC_KEYPRESS:[]}
 		self.display_callback = display_callback
@@ -396,17 +463,19 @@ class ResponseCollector(object):
 		self.mouseup_listener = MouseUpResponse(self)
 		self.saccade_listener = SaccadeResponse(self)
 		self.fixation_listener = FixationResponse(self)
+		self.color_selection_listener = ColorSelectionResponse(self)
 
 		# dict of listeners for iterating during collect()
 		self.listeners[RC_AUDIO] = self.audio_listener
 		self.listeners[RC_KEYPRESS] = self.keypress_listener
 		self.listeners[RC_SACCADE] = self.saccade_listener
 		self.listeners[RC_FIXATION] = self.fixation_listener
-		# self.listeners[RC_MOUSEDOWN] = self.mousedown_listener
-		# self.listeners[RC_MOUSEUP] = self.mouseup_listener
+		self.listeners[RC_MOUSEDOWN] = self.mousedown_listener
+		self.listeners[RC_MOUSEUP] = self.mouseup_listener
+		self.listeners[RC_COLORSELECT] = self.color_selection_listener
 
 	def uses(self, listeners):
-		if type(listeners) not in [list, tuple]:
+		if not iterable(listeners):
 			listeners = [listeners]
 		for l in listeners:
 			try:
@@ -421,7 +490,11 @@ class ResponseCollector(object):
 				if self.using(l):
 					in_use.append(l)
 			return in_use
-
+		if iterable(listener):
+			in_use = []
+			for l in self.__uses:
+				in_use.append(self.using(l))
+ 			return in_use
 		return self.__uses[listener]
 
 	def response_count(self, listener=None):
@@ -449,6 +522,8 @@ class ResponseCollector(object):
 
 		if self.using(RC_AUDIO):
 			self.audio_listener.start()
+		if self.using(RC_MOUSEDOWN) or self.using(RC_MOUSEUP) or self.using(RC_COLORSELECT):
+			show_mouse_cursor()
 		if self.flip:
 			self.experiment.flip()
 			Params.tk.sample("ResponseCollectionFlip")
@@ -461,41 +536,9 @@ class ResponseCollector(object):
 			except KeyError:
 				pass
 
-		self.tracker_time = self.experiment.eyelink.now()
-		while True:
-			if Params.development_mode:
-				try:
-					t = self.experiment.clock.trial_time
-					if self.terminate_after[1] == TK_MS:
-						t *= 1000
-					if t > self.terminate_after[0]:
-						print "Broke due to force timeout."
-						break
-				except TypeError:
-					pass
-			event_queue = pump(True)
-			for e in event_queue:
-				if e.type in Params.process_queue_data:
-					print Params.process_queue_data[e.type].label, self.end_collection_event
-					if Params.process_queue_data[e.type].label == self.end_collection_event:
-						print "broke due to end event"
-						break
-			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
-				self.experiment.ui_request(event_queue)
+		# the actual response collection loop
+		self.__collect(mouseclick_boundaries)
 
-			# get responses for all active listeners
-			interrupt = False
-			for l in self.using():
-				interrupt = self.listeners[l].collect(event_queue, mouseclick_boundaries)
-			if interrupt:
-				break
-			# display callback
-				try:
-					self.display_callback(*self.display_args, **self.display_kwargs)
-				except TypeError:
-					self.display_callback(*self.display_args)
-				except KeyError:
-					pass
 		# before return callback
 		try:
 			self.before_return_callback(*self.before_return_args, **self.before_return_kwargs)
@@ -509,10 +552,49 @@ class ResponseCollector(object):
 			while listener.response_count < listener.min_response_count:
 				if listener.max_response_count == 1:
 					listener.timed_out = True
-				listener.responses.append( [listener.null_response, TIMEOUT])
+				listener.responses.append([listener.null_response, TIMEOUT])
 		if self.using(RC_AUDIO):
 			self.audio_listener.stop()
 		self.response_countdown = None
+
+	def __collect(self, mouseclick_boundaries):
+		self.tracker_time = self.experiment.eyelink.now()
+		while True:
+			if Params.development_mode:
+				try:
+					t = self.experiment.clock.trial_time
+					if self.terminate_after[1] == TK_MS: t *= 1000
+					if t > self.terminate_after[0]:
+						print "Broke due to force timeout."
+						break
+				except TypeError:
+					pass
+			event_queue = pump(True)
+			for e in event_queue:
+				if e.type in Params.process_queue_data:
+					if Params.process_queue_data[e.type].label == self.end_collection_event:
+						raise RuntimeError('Forced exit from response collection due to timeout.')
+			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
+				self.experiment.ui_request(event_queue)
+
+			# get responses for all active listeners
+			interrupt = False
+			for l in self.using():
+				try:
+					interrupt = self.listeners[l].collect(event_queue, mouseclick_boundaries)
+				except TypeError:
+					interrupt = self.listeners[l].collect(event_queue)
+			if interrupt:
+				break
+			# display callback
+			try:
+				self.display_callback(*self.display_args, **self.display_kwargs)
+			except TypeError:
+				self.display_callback(*self.display_args)
+			except KeyError:
+				pass
+		hide_mouse_cursor()
+
 
 	def reset(self):
 		for l in self.listeners:

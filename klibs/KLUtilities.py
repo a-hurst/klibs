@@ -441,3 +441,10 @@ def sdl_key_code_to_str(sdl_keysym):
 def mean(values, as_int=False):
 	mean_val = sum(values) / len(values)
 	return mean_val if not as_int else int(mean_val)
+
+
+def img(name, sub_dirs=None):
+	if sub_dirs:
+		sub_dirs = os.path.join(*sub_dirs)
+		return os.path.join(Params.image_dir, sub_dirs, name)
+	return os.path.join(Params.image_dir, name)

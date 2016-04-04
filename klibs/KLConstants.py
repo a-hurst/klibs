@@ -157,7 +157,7 @@ LABJACK_AVAILABLE = True
 # ResponseCollector Constants
 RC_AUDIO = 'audio'
 RC_KEYPRESS = 'keypress'
-RC_MOUSECLICK = 'mouseclick'
+RC_COLORSELECT = 'color_selection'
 RC_MOUSEDOWN = 'mousedown'
 RC_MOUSEUP = 'mouseup'
 RC_SACCADE = 'saccade'

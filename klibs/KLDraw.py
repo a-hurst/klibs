@@ -6,7 +6,8 @@ import aggdraw
 from klibs.KLNumpySurface import *
 from klibs.KLUtilities import *
 from klibs.KLTextManager import TextStyle
-
+from math import pi as PI
+from imp import load_source
 
 
 ######################################################################
@@ -52,11 +53,7 @@ def drift_correct_target():
 
 	return from_aggdraw_context(draw_context)
 
-
-#  to handle legacy code in which KLIBs had a Circle object rather than an Ellipse object
-def Circle(diameter, stroke=None, fill=None, auto_draw=True):
-	return Ellipse(diameter, diameter, stroke, fill, auto_draw)
-
+colors = load_source("*", os.path.join(Params.klibs_dir, "color_wheel_color_list.py")).colors
 
 class Drawbject(object):
 	transparent_brush = aggdraw.Brush((255, 0, 0), 0)
@@ -175,7 +172,7 @@ class Drawbject(object):
 		return self
 
 	@abc.abstractmethod
-	def draw(self):
+	def draw(self, as_numpy_surface=False):
 		pass
 
 	@property
@@ -193,7 +190,7 @@ class FixationCross(Drawbject):
 		if auto_draw:
 			self.draw()
 
-	def draw(self):
+	def draw(self, as_numpy_surface=False):
 		if not self.fill:
 			self.surface.line((self.surface_width // 2, 1, self.surface_width // 2, self.surface_width - 1), self.stroke)
 			self.surface.line((1, self.surface_height // 2, self.surface_height - 1, self.surface_height // 2), self.stroke)
@@ -201,6 +198,7 @@ class FixationCross(Drawbject):
 			str_h1 = self.surface_height // 2 - self.stroke_width // 2
 			str_h2 = self.surface_height // 2 + self.stroke_width // 2
 			self.surface.rectangle([1, str_h1, self.surface_width - 1, str_h2])
+		return self
 
 	@property
 	def __name__(self):
@@ -216,7 +214,7 @@ class Ellipse(Drawbject):
 		if auto_draw:
 			self.draw()
 
-	def draw(self):
+	def draw(self, as_numpy_surface=False):
 		xy_1 = self.stroke_width + 1
 		x_2 = self.surface_width - 1
 		y_2 = self.surface_height - 1
@@ -279,7 +277,7 @@ class Annulus(Drawbject):
 			self.draw()
 
 
-	def draw(self):
+	def draw(self,  as_numpy_surface=False):
 		if self.stroke:
 			stroked_path_pen = aggdraw.Pen(tuple(self.stroke_color), self.ring_width)
 			xy_1 = 2 + self.ring_width
@@ -289,7 +287,8 @@ class Annulus(Drawbject):
 		xy_2 = self.surface_width - (2 + self.ring_width)
 		path_pen = aggdraw.Pen(tuple(self.fill_color), self.ring_inner_width)
 		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
-		return self.surface
+
+		return self
 
 	@property
 	def __name__(self):
@@ -305,7 +304,7 @@ class Rectangle(Drawbject):
 		if auto_draw:
 			self.draw()
 
-	def draw(self):
+	def draw(self, as_numpy_surface=False):
 		x1 = self.stroke_width + 1
 		y1 = self.stroke_width + 1
 		x2 = self.surface_width - (self.stroke_width + 1)
@@ -318,7 +317,7 @@ class Rectangle(Drawbject):
 		else:
 			self.surface.rectangle((1, 1, self.surface_width - 1, self.surface_height - 1), self.fill)
 
-		return self.surface
+		return self
 
 	@property
 	def __name__(self):
@@ -334,7 +333,7 @@ class Asterisk(Drawbject):
 		if auto_draw:
 			self.draw()
 
-	def draw(self):
+	def draw(self, as_numpy_surface=False):
 		x_os = int(self.surface_width * 0.925)
 		y_os = int(self.surface_height * 0.75)
 		l1 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height - 1]
@@ -343,7 +342,8 @@ class Asterisk(Drawbject):
 		self.surface.line([l1[0], l1[1], l1[2],l1[3]], self.stroke)
 		self.surface.line([l2[0], l2[1], l2[2],l2[3]], self.stroke)
 		self.surface.line([l3[0], l3[1], l3[2],l3[3]], self.stroke)
-		return self.surface
+
+		return self
 
 	@property
 	def __name__(self):
@@ -381,6 +381,54 @@ class Line(Drawbject):
 		if auto_draw:
 			self.draw()
 
-	def draw(self):
+	def draw(self, as_numpy_surface=False):
 		self.surface.line((self.x1, self.y1, self.x2, self.y2), self.stroke)
+
 		return self.surface
+
+class ColorWheel(Drawbject):
+
+	def __init__(self, diameter, thickness=None,  rotation=0, auto_draw=True):
+		# self.stroke_pad = int(diameter * 0.01)
+		super(ColorWheel, self).__init__(diameter, diameter, stroke=None, fill=None)
+		self.rotation = rotation
+		self.diameter = diameter
+		self.radius = self.diameter // 2
+		self.thickness = 0.25 * diameter if not thickness else thickness
+
+		if auto_draw:
+			self.draw()
+
+	def draw(self, as_numpy_surface=True):
+		for i in range(360):
+			brush = aggdraw.Brush(colors[i])
+			center = self.surface_width // 2
+			inner_radius = self.radius - 2
+			self.surface.polygon((center, center,
+						   int(round(inner_radius + math.sin((self.rotation - .25) * PI / 180) * inner_radius)),
+						   int(round(inner_radius + math.cos((self.rotation - .25) * PI / 180) * inner_radius)),
+						   int(round(inner_radius + math.sin((self.rotation + 1.25) * PI / 180) * inner_radius)),
+						   int(round(inner_radius + math.cos((self.rotation + 1.25) * PI / 180) * inner_radius))),
+						  brush)
+			self.rotation += 1
+			if self.rotation > 360:
+				self.rotation -= 360
+		inner_xy1 = self.thickness // 2
+		inner_xy2 = self.surface_width - self.thickness // 2
+		outer_xy1 = 0
+		outer_xy2 = self.surface_width
+		self.surface.ellipse((inner_xy1, inner_xy1, inner_xy2, inner_xy2), aggdraw.Brush((0,0,0,255)))
+
+		return self
+		# self.surface.ellipse((0, 0, outer_xy2, outer_xy2), aggdraw.Pen((0, 0, 0, 255), self.stroke_pad))
+		# print self.surface
+		# return self.surface if not as_numpy_surface else NumpySurface(self.surface)
+
+	@property
+	def __name__(self):
+		return "ColorWheel"
+
+
+#  to handle legacy code in which KLIBs had a Circle object rather than an Ellipse object
+def Circle(diameter, stroke=None, fill=None, auto_draw=True):
+	return Ellipse(diameter, diameter, stroke, fill, auto_draw)

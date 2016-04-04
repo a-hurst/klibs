@@ -69,12 +69,15 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		if flip: self.experiment.flip()
 
 	def play_beep(self, clip):
-		if clip == pylink.DC_TARG_BEEP or clip == pylink.CAL_TARG_BEEP:
-			self.__target_beep__.play()
-		elif clip == pylink.CAL_ERR_BEEP or clip == pylink.DC_ERR_BEEP:
-			self.__target_beep__error__.play()
-		else:
-			self.__target_beep__done__.play()
+		try:
+			if clip == pylink.DC_TARG_BEEP or clip == pylink.CAL_TARG_BEEP:
+				self.__target_beep__.play()
+			elif clip == pylink.CAL_ERR_BEEP or clip == pylink.DC_ERR_BEEP:
+				self.__target_beep__error__.play()
+			else:
+				self.__target_beep__done__.play()
+		except:
+			pass
 
 	def get_input_key(self):
 		sdl2.SDL_PumpEvents()

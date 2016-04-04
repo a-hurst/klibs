@@ -142,11 +142,11 @@ if PYLINK_AVAILABLE:
 		def in_setup(self):
 			return self.inSetup() != 0
 
-		def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
+		def drift_correct(self, location=None, el_draw_fixation=EL_TRUE, samples=EL_TRUE):
 			"""
 
 			:param location:
-			:param events:
+			:param el_draw_fixation:
 			:param samples:
 			:return: :raise ValueError:
 			"""
@@ -174,10 +174,10 @@ if PYLINK_AVAILABLE:
 					print e.message
 					raise ValueError("Argument 'location' wasn't understood; must be an x,y location or gaze boundary name.")
 
-			events = EL_TRUE if events in [EL_TRUE, True] else EL_FALSE
+			el_draw_fixation = EL_TRUE if el_draw_fixation in [EL_TRUE, True] else EL_FALSE
 			samples = EL_TRUE if samples in [EL_TRUE, True] else EL_FALSE
 			if not self.dummy_mode:
-				self.doDriftCorrect(location[0], location[1], events, samples)
+				self.doDriftCorrect(location[0], location[1], el_draw_fixation, samples)
 				return self.applyDriftCorrect()
 			else:
 				def dc(dc_location, dc_gaze_boundary):

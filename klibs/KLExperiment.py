@@ -221,6 +221,7 @@ class Experiment(object):
 			Params.trial_number = block_base + args[0] - Params.recycle_count
 		self.setup_response_collector(args[1])
 		self.trial_prep(args[1])
+		self.window.refresh()
 		tx = None
 		try:
 			Params.clock.start()
@@ -494,6 +495,10 @@ class Experiment(object):
 
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
 		self.database.log("random_seed", Params.random_seed)
+		try:
+			self.database.log("klibs_commit", Params.klibs_commit)
+		except:
+			pass  # older versions of klibs did not include this param/db entry
 		if anonymous_user:
 			name = Params.anonymous_username
 		else:

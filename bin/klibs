@@ -43,6 +43,17 @@ def print_warning(exc_type, exc_value, exc_traceback):
 	print "\n... if the links don't work it's because Jon likely only wrote this; try: this.impetus@gmail.com!\n"
 
 
+def full_trace(e):
+	exception_list = traceback.format_stack()
+	exception_list = exception_list[:-2]
+	exception_list.extend(traceback.format_tb(sys.exc_info()[2]))
+	exception_list.extend(traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]))
+
+	exception_str = "Traceback (most recent call last):\n"
+	exception_str += "".join(exception_list)
+	# Removing the last \n
+	return exception_str[:-1]
+
 def create(name, path):
 	try:
 		import klibs
@@ -160,9 +171,10 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		exp.run()
 	except SystemExit:
 		pass
-	except:
+	except Exception as e:
 		os.kill(exp.clock.p.pid, SIGKILL)
-		print traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2], limit=5, file=sys.stdout)
+		print full_trace(e)
+		# print traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2], limit=5, file=sys.stdout)
 
 	# try:  todo: work this out
 	# 	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()

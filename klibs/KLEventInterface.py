@@ -17,6 +17,7 @@ class KlibsEvent(object):
 			for key in data:
 				setattr(self, key, data[key])
 
+
 class DataEvent(KlibsEvent):
 
 	def __init__(self, label, arg_count, eeg_code_to_edf, code, message):
@@ -85,16 +86,24 @@ class EventInterface(object):
 				print "Event Table not found; if this is an old KLIBs experiment, consider updating the SQL schema to the new standard."
 				break
 
-	def event_sent(self, label):
-		for e in pump(True):
-			self.experiment.ui_request(e)
-			try:
-				e_data = Params.process_queue_data[e.type]
-				if e_data.label == label:
-					return True
-			except KeyError:
-				pass
+	def after(self, label, pump_events=False):
+		if pump_events:
+			self.experiment.ui_request(pump())
+		for e in Params.process_queue_data:
+			if Params.process_queue_data[e].label == label:
+				return True
 		return False
+
+	def before(self, label, pump_events=False):
+		if pump_events:
+			self.experiment.ui_request(pump())
+		for e in Params.process_queue_data:
+			if Params.process_queue_data[e].label == label:
+				return False
+		return True
+
+	def between(self, event_1, event_2):
+		return self.after(event_1) and not self.after(event_2)
 
 	def write(self, message, edf=True, eeg=True):
 		if type(message) in [list, tuple]:

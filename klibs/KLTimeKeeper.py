@@ -171,7 +171,6 @@ class TimeKeeper(object):
 class EventClock(object):
 
 	def __init__(self, experiment):
-		self.events = []
 		self.tasks = []
 		self.events = []
 		self.sent_events = []
@@ -258,12 +257,6 @@ class EventClock(object):
 		self.start_time = self.pipe.recv()
 		el_val = self.experiment.eyelink.now() if Params.eye_tracking and Params.eye_tracker_available else -1
 		self.experiment.evi.log_trial_event(EVI_CLOCK_START, self.start_time, el_val)
-		# data = [Params.participant_id, Params.trial_id, Params.trial_number, EVI_CLOCK_START, self.start_time, el_val]
-		# try:
-		# 	self.experiment.database.query_str_from_raw_data(TBL_EVENTS, data)
-		# 	self.experiment.database.insert(data, TBL_EVENTS, False)
-		# except RuntimeError:
-		# 	print "Event Table not found; if this is an old KLIBs experiment, consider updating the SQL schema to the new standard."
 
 	def stop(self):
 		"""
@@ -272,7 +265,14 @@ class EventClock(object):
 		"""
 		el_val = self.experiment.eyelink.now() if Params.eye_tracking and Params.eye_tracker_available else -1
 		self.experiment.evi.log_trial_event(EVI_CLOCK_STOP, self.trial_time, el_val)
+		Params.process_queue_data = {}
 		self.register_event(EVI_CLOCK_RESET)
+		self.tasks = []
+		self.events = []
+		self.sent_events = []
+		self.stages = []
+		self.events_index = {}
+		self.start_time = None
 		self.__sync()
 
 	def deregister(self, event_label=None):
@@ -352,7 +352,7 @@ def __event_clock__(pipe):
 					events = []
 					stages = []
 					sent = []
-					continue
+					break
 
 				if e == EVI_TRIAL_START:
 					sent.append(e)
@@ -394,7 +394,9 @@ def __event_clock__(pipe):
 					events.remove(e)
 					continue
 
-				if (time.time() - start) * 1000  >= e[0]:
+				if (time.time() - start) * 1000  >= e[0] or e[0] == 0:  # ie. something should happen IMMEDIATELY
+					if Params.development_mode or True:
+						print "\t...Sent '{0}' at {1}".format(e[1], time.time() - start)
 					sent.append(e)
 					try:
 						Params.process_queue.put([e[1], e[2],  time.time(), time.time() - start])

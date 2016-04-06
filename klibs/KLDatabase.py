@@ -506,6 +506,7 @@ class Database(object):
 				data_file = open(os.path.join(file_strings[1]), "w+")
 				data_file.write("\n".join([header, column_names, "\n".join(data_set[1])]))
 				data_file.close()
+				print "\n\n\033[92m\t- Participant {0} successfully exported. ***\033[0m\n\n".format(p_id)
 
 	@property
 	def default_table(self):

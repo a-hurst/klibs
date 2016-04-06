@@ -60,7 +60,7 @@ class Experiment(object):
 	block_break_message = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
 	block_break_messages = []
 
-	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available, show_debug_overlay):
+	def __init__(self, project_name, display_diagonal_in, random_seed, development_mode, eyelink_available, show_debug_overlay):
 		"""
 		Initializes a KLExperiment Object
 
@@ -97,12 +97,10 @@ class Experiment(object):
 
 
 		#initialize the self.database instance
-		try:
-			iter(export)
-		except TypeError:
-			export = [export]
-		self.__database_init(*export)
+		self.__database_init()
 
+		if display_diagonal_in == -1:  # ie. database operation called
+			self.quit()
 		# initialize screen surface and screen parameters
 		self.display_init(display_diagonal_in)
 
@@ -220,8 +218,8 @@ class Experiment(object):
 			block_base = (Params.block_number * Params.trials_per_block) - Params.trials_per_block 
 			Params.trial_number = block_base + args[0] - Params.recycle_count
 		self.setup_response_collector(args[1])
+		# self.window.refresh()
 		self.trial_prep(args[1])
-		self.window.refresh()
 		tx = None
 		try:
 			Params.clock.start()
@@ -230,6 +228,9 @@ class Experiment(object):
 			self.__log_trial(trial_data)
 			self.trial_clean_up(Params.trial_id, args[1])
 		except TrialException as e:
+			print "4"
+			if Params.eye_tracking and Params.eye_tracker_available:
+				self.eyelink.stop()
 			self.trial_clean_up(False, args[1])
 			Params.clock.stop()
 			tx = e
@@ -239,7 +240,7 @@ class Experiment(object):
 		if tx:
 			raise tx
 
-	def __database_init(self, *args):
+	def __database_init(self):
 		"""
 		Initializes the project database; if export instructions are provided, also exports data and exits program.
 
@@ -248,9 +249,6 @@ class Experiment(object):
 		#  todo: probably, should just be a global variable called database, but I didn't want to implement just now
 		self.database = Database()
 		Params.database = self.database
-		if args[0]:
-			self.database.export(*args[1:])
-			exit()
 
 	def __log_trial(self, trial_data, auto_id=True):
 		"""
@@ -388,12 +386,18 @@ class Experiment(object):
 		if type(source) is NumpySurface:
 			height = source.height
 			width = source.width
-			content = source.render()
+			if source.rendered is None:
+				content = source.render()
+			else:
+				content = source.rendered
+
 		elif issubclass(type(source), Drawbject):
 			height = source.surface_height
 			width = source.surface_width
-			# source.draw()
-			content = source.render().render()
+			if source.rendered is None:
+				content = source.render()
+			else:
+				content = source.rendered
 		elif type(source) is numpy.ndarray:
 			height = source.shape[0]
 			width = source.shape[1]
@@ -511,19 +515,26 @@ class Experiment(object):
 
 		# names must be unique; returns True if unique, False otherwise
 		if self.database.is_unique('participants', 'userhash', name):
-			if anonymous_user:
-				sex = "m" if now() % 2 > 0  else "f"
-				handedness = "a"
-				age = 0
-			else:
-				sex_str = "What is your sex? \nAnswer with:  (m)ale,(f)emale"
-				sex = self.query(sex_str, accepted=('m', 'M', 'f', 'F'))
-				handedness_str = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
-				handedness = self.query(handedness_str, accepted=('r', 'R', 'l', 'L', 'a', 'A'))
-				age = self.query('What is  your age?', return_type='int')
-			self.database.log('sex', sex)
-			self.database.log('handedness', handedness)
-			self.database.log('age', age)
+			try:
+				for q in Params.demographic_questions:
+					if anonymous_user:
+						self.database.log(q[0], q[4])
+					else:
+						self.database.log(q[0], self.query(q[1],accepted=q[2], return_type=q[3]))
+			except AttributeError:
+				if anonymous_user:
+					sex = "m" if now() % 2 > 0  else "f"
+					handedness = "a"
+					age = 0
+				else:
+					sex_str = "What is your sex? \nAnswer with:  (m)ale,(f)emale"
+					sex = self.query(sex_str, accepted=('m', 'M', 'f', 'F'))
+					handedness_str = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
+					handedness = self.query(handedness_str, accepted=('r', 'R', 'l', 'L', 'a', 'A'))
+					age = self.query('What is  your age?', return_type='int')
+					self.database.log('sex', sex)
+					self.database.log('handedness', handedness)
+					self.database.log('age', age)
 			self.database.log('created', now(True))
 			if not Params.demographics_collected:
 				Params.participant_id = self.database.insert()

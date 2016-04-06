@@ -3,7 +3,7 @@
 __author__ = 'jono'
 
 import math
-# import sys
+import sys
 import os
 import KLParams as Params
 from klibs.KLConstants import *
@@ -13,17 +13,7 @@ import time
 import datetime
 import re
 import multiprocessing
-
-# multiprocessing & event
-
-
-
-def threaded(func):
-	def threaded_func(*args, **kwargs):
-		p = multiprocessing.Process(target=func, args=args, kwargs=kwargs)
-		p.start()
-		return p
-	return threaded_func
+import traceback
 
 
 def absolute_position(position, destination):
@@ -32,7 +22,7 @@ def absolute_position(position, destination):
 	try:  # ie. a numpy array
 		height = destination.shape[0]
 		width = destination.shape[1]
-	except:
+	except AttributeError:
 		pass
 	if height is None and width is None:
 		try:  # ie. a NumpySurface object
@@ -84,6 +74,20 @@ def arg_error_str(arg_name, given, expected, kw=True):
 	return err_string.format(arg_name, type(given), type(expected))
 
 
+def bool_to_int(boolean_val):
+	if boolean_val is False: return 0
+	if boolean_val is True: return 1
+	raise ValueError("Non-boolean value passed ('{0}')".format(type(boolean_val)))
+
+def boolean_to_logical(value, convert_integers=False):
+	if value in ["false", "False"] or value is False: return "FALSE"
+	if value in ["true", "True"] or value is True: return "TRUE"
+	if convert_integers is True:
+		if value in [1,"1"]: return "TRUE"
+		if value in [0,"0"]: return "FALSE"
+	return None
+
+
 def bounded_by(pos, left, right, top, bottom):
 		"""
 
@@ -128,6 +132,10 @@ def build_registrations(source_height, source_width):
 		(0, 0),
 		(-1.0 * source_width / 2.0, 0),
 		(-1.0 * source_width, 0))
+
+
+def camel_to_snake(string):
+	return re.sub('([a-z0-9])([A-Z])', r'\1_\2', re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)).lower()
 
 
 def deg_to_px(deg):
@@ -187,6 +195,40 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 	return os.path.join(file_path, file_name) if as_string else [file_path, file_name]
 
 
+def full_trace():
+	exception_list = traceback.format_stack()
+	exception_list = exception_list[:-2]
+	exception_list.extend(traceback.format_tb(sys.exc_info()[2]))
+	exception_list.extend(traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]))
+
+	exception_str = "Traceback (most recent call last):\n"
+	exception_str += "".join(exception_list)
+	# Removing the last \n
+	return exception_str[:-1]
+
+
+def hide_mouse_cursor():
+	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
+
+
+def img(name, sub_dirs=None):
+	if sub_dirs:
+		sub_dirs = os.path.join(*sub_dirs)
+		return os.path.join(Params.image_dir, sub_dirs, name)
+	return os.path.join(Params.image_dir, name)
+
+
+def iterable(obj, exclude_strings=True):
+	if exclude_strings:
+		return hasattr(obj, '__iter__')
+	else:
+		try:
+			iter(obj)
+			return True
+		except AttributeError:
+			return False
+
+
 def line_segment_len(a, b):
 	y = b[1] - a[1]
 	x = b[0] - a[0]
@@ -204,6 +246,11 @@ def log(msg, priority):
 	return True
 
 
+def mean(values, as_int=False):
+	mean_val = sum(values) / len(values)
+	return mean_val if not as_int else int(mean_val)
+
+
 def mouse_pos(pump_event_queue=True, position=None):
 	if pump_event_queue:
 		sdl2.SDL_PumpEvents()
@@ -212,19 +259,12 @@ def mouse_pos(pump_event_queue=True, position=None):
 		sdl2.mouse.SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
 		return [x.value, y.value]
 	else:
-		# x, y = ctypes.c_int(position[0]), ctypes.c_int(position[1])
 		sdl2.mouse.SDL_WarpMouseGlobal(*position)
 		return position
 
 
-def hide_mouse_cursor():
-	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
-	# return sdl2.SDL_PumpEvents()
-
-
-def show_mouse_cursor():
-	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_ENABLE)
-	return sdl2.SDL_PumpEvents()
+def now(format_time=False, format_template=DATETIME_STAMP):
+	return datetime.datetime.fromtimestamp(time.time()).strftime(format_template) if format_time else time.time()
 
 
 def peak(v1, v2):
@@ -236,19 +276,15 @@ def peak(v1, v2):
 
 def pump(get_events=False):
 	from klibs.KLEventInterface import *
-	sdl2.SDL_PumpEvents()
 	while not Params.process_queue.empty():
 		event = Params.process_queue.get()
 		sdl_event = sdl2.SDL_Event()
 		sdl_event.type = sdl2.SDL_RegisterEvents(1)
-		# code = ctypes.create_string_buffer(e[0])
-		# ev.user.data1 = ctypes.c_void_p(id(code))
-		# ev.user.data2 = ctypes.c_void_p(e[1])
 		success = sdl2.SDL_PushEvent(sdl_event)
 		Params.process_queue_data[sdl_event.type] = TrialEvent(event[0], event[1], event[2], sdl_event.type)
 		if success == 0:
 			raise RuntimeError(sdl2.SDL_GetError())
-
+	sdl2.SDL_PumpEvents()
 	if get_events:
 		return sdl2.ext.get_events()
 
@@ -329,17 +365,6 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepe
 	return output
 
 
-def iterable(obj, exclude_strings=True):
-	if exclude_strings:
-		return hasattr(obj, '__iter__')
-	else:
-		try:
-			iter(obj)
-			return True
-		except AttributeError:
-			return False
-
-
 def pt_to_px(pt_size):
 	if type(pt_size) is not int:
 		raise TypeError("Argument 'pt_size' must be an integer.")
@@ -361,14 +386,9 @@ def rgb_to_rgba(rgb):
 	return tuple(rgb) if len(rgb) == 4 else (rgb[0], rgb[1], rgb[2], 255)
 
 
-def type_str(var):
-	return type(var).__name__
-
-
-def bool_to_int(boolean_val):
-	if boolean_val is False: return 0
-	if boolean_val is True: return 1
-	raise ValueError("Non-boolean value passed ('{0}')".format(type(boolean_val)))
+def show_mouse_cursor():
+	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_ENABLE)
+	return sdl2.SDL_PumpEvents()
 
 
 def safe_flag_string(flags, prefix=None, uc=True):
@@ -392,23 +412,6 @@ def safe_flag_string(flags, prefix=None, uc=True):
 	return eval(flag_string)
 
 
-def now(format_time=False, format_template=DATETIME_STAMP):
-	return datetime.datetime.fromtimestamp(time.time()).strftime(format_template) if format_time else time.time()
-
-
-class RGBCLI:
-	col = {"@P": '\033[95m',  # purple
-		   "@B": '\033[94m',  # blue
-		   "@R": '\033[91m',  # red
-		   "@T": '\033[1m',   # teal
-		   "@E": '\033[0m'    # return to normal
-	}
-
-
-def camel_to_snake(string):
-	return re.sub('([a-z0-9])([A-Z])', r'\1_\2', re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)).lower()
-
-
 def snake_to_camel(string):
 	words = string.split('_')
 	return words[0] + "".join(x.title() for x in words[1:])
@@ -417,15 +420,6 @@ def snake_to_camel(string):
 def snake_to_title(string):
 	words = string.split('_')
 	return words[0] + "".join(x.title() for x in words)
-
-
-def boolean_to_logical(value, convert_integers=False):
-	if value in ["false", "False"] or value is False: return "FALSE"
-	if value in ["true", "True"] or value is True: return "TRUE"
-	if convert_integers is True:
-		if value in [1,"1"]: return "TRUE"
-		if value in [0,"0"]: return "FALSE"
-	return None
 
 
 def sdl_key_code_to_str(sdl_keysym):
@@ -438,13 +432,23 @@ def sdl_key_code_to_str(sdl_keysym):
 		key_name = key_name.lower()
 	return key_name if len(key_name) == 1 else False  # to cover all keys that aren't alphanumeric or handled here
 
-def mean(values, as_int=False):
-	mean_val = sum(values) / len(values)
-	return mean_val if not as_int else int(mean_val)
+
+def threaded(func):
+	def threaded_func(*args, **kwargs):
+		p = multiprocessing.Process(target=func, args=args, kwargs=kwargs)
+		p.start()
+		return p
+	return threaded_func
 
 
-def img(name, sub_dirs=None):
-	if sub_dirs:
-		sub_dirs = os.path.join(*sub_dirs)
-		return os.path.join(Params.image_dir, sub_dirs, name)
-	return os.path.join(Params.image_dir, name)
+def type_str(var):
+	return type(var).__name__
+
+
+class RGBCLI:
+	col = {"@P": '\033[95m',  # purple
+		   "@B": '\033[94m',  # blue
+		   "@R": '\033[91m',  # red
+		   "@T": '\033[1m',   # teal
+		   "@E": '\033[0m'    # return to normal
+	}

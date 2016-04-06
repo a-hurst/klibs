@@ -39,7 +39,7 @@ CREATE TABLE participants (
 	age integer not null, 
 	handedness text not null,
 	created text not null,
-	klibs_commit text not null,
+	klibs_commit text not null
 
 );
 

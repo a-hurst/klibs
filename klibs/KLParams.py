@@ -47,6 +47,14 @@ user_font_dir = "~/Library/Fonts"
 klibs_font_dir = os.path.join(klibs_dir, "font")
 font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
 
+
+demographic_questions = [
+	['sex', "What is your sex? \nAnswer with:  (m)ale,(f)emale", ('m', 'M', 'f', 'F'), 'str', 'f'],
+	['handedness', "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous.",
+	 ('r', 'R', 'l', 'L', 'a', 'A'), 'str', 'r'],
+	['age', 'What is  your age?', None, 'int', -1]
+]
+
 initialized = False
 audio_initialized = False
 

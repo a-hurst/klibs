@@ -8,7 +8,7 @@ from klibs.KLUtilities import *
 from klibs.KLTextManager import TextStyle
 from math import pi as PI
 from imp import load_source
-
+import re
 
 ######################################################################
 #
@@ -35,7 +35,7 @@ def cursor(color=None):
 	brush = aggdraw.Brush(tuple(cursor_color), 255)
 	pen = aggdraw.Pen((255,255,255), 1, 255)
 	dc.polygon(cursor_xy_list, pen, brush)
-	cursor_surface = from_aggdraw_context(dc)
+	cursor_surface = aggdraw_to_numpy_surface(dc)
 	return cursor_surface
 
 
@@ -51,9 +51,10 @@ def drift_correct_target():
 	wd_bot = 2 * draw_context_length // 3
 	draw_context.ellipse([wd_top, wd_top, wd_bot, wd_bot], white_brush)
 
-	return from_aggdraw_context(draw_context)
+	return aggdraw_to_numpy_surface(draw_context)
 
 colors = load_source("*", os.path.join(Params.klibs_dir, "color_wheel_color_list.py")).colors
+
 
 class Drawbject(object):
 	transparent_brush = aggdraw.Brush((255, 0, 0), 0)
@@ -73,6 +74,7 @@ class Drawbject(object):
 		self.surface_width = None
 		self.surface_height = None
 		self.surface = None
+		self.rendered = None
 
 		try:
 			iter(stroke)
@@ -109,7 +111,8 @@ class Drawbject(object):
 		self.init_surface()
 		self.draw()
 		surface_bytes = Image.frombytes(self.surface.mode, self.surface.size, self.surface.tostring())
-		return NumpySurface(numpy.asarray(surface_bytes))
+		self.rendered = NumpySurface(numpy.asarray(surface_bytes)).render()
+		return self.rendered
 
 	@abc.abstractproperty
 	def __name__(self):
@@ -427,6 +430,178 @@ class ColorWheel(Drawbject):
 	@property
 	def __name__(self):
 		return "ColorWheel"
+
+
+class FreeDraw(Drawbject):
+
+	def __init__(self, width, height, stroke, origin=None, fill=None, auto_draw=True):
+		super(FreeDraw, self).__init__(width, height, stroke, fill)
+		self.origin = origin if origin else (0,0)
+		self.at = self.origin
+		self.closed = False
+		self.sequence = []
+		self.close_at = None
+
+	def line(self, destination, origin=None):
+		origin = self.__validate_ends(destination, origin)
+		self.sequence.append([KLD_LINE, (origin[0], origin[1], destination[0], destination[1])])
+		self.at = destination
+
+		return self
+
+	def arc(self, destination, control, origin=None):
+		origin = self.__validate_ends(destination, origin)
+		x_ctrl = (destination[0] + control[0] // 2, control[1])
+		y_ctrl = (control[0], destination[1] + control[1] // 2)
+		self.__validate_ends([], x_ctrl)
+		self.__validate_ends([], y_ctrl)
+		self.sequence.append([KLD_ARC, (origin[0], origin[1], destination[0], destination[1]), control[0], control[1]])
+		self.at = destination
+
+		return self
+
+	def path(self, sequence, origin=None):
+		# origin = self.__validate_ends(sequence, origin)
+		# sequence.insert(0, origin)
+		self.sequence.append([KLD_PATH, sequence])
+		# self.at = sequence[-1]
+
+		return self
+
+	def move(self, location):
+		self.__validate_ends([], location)
+		self.sequence.append([KLD_MOVE, location])
+
+	def draw(self):
+		self.surface.rectangle([0,0,self.object_width, self.object_height], aggdraw.Brush((255,255,255,255)))
+		path_str = "M{0},{1}".format(*self.origin)
+		for s in self.sequence:
+			if s[0]  == KLD_LINE:
+				path_str += "L{0},{1}".format(*s[1])
+				# self.surface.line(s[1], self.stroke)
+			if s[0]  == KLD_ARC:
+				path_str += "S{0},{1},{2},{3},{4},{5}".format(*s[1])
+				# self.surface.arc(s[1], s[2], s[3], self.stroke)
+			if s[0]  == KLD_PATH:
+				for p in s[1]:
+					path_str += "L{0},{1}".format(*p)
+				# self.surface.line(s[1], self.stroke)
+		path_str += "{0},{1}z".format(*self.close_at)
+		p = aggdraw.Symbol(path_str)
+		self.surface.symbol((0,0), p, self.stroke, self.fill)
+
+		return self
+
+	def __validate_ends(self, sequence, origin):
+		if not origin:
+			if not self.at:
+				return ValueError("Parameter 'at' not currently set and no origin provided.")
+			origin = self.at
+		try:
+			if type(sequence[0]) is int:
+				sequence = [sequence]
+		except IndexError:
+			pass
+		# for loc in sequence:
+		# 	if loc[0] not in range(0, self.object_width) or loc[1] not in range(0, self.object_height):
+		# 		raise ValueError("Location ({0}, {1}) does not fall within surface bounds.".format(*loc))
+		return origin
+
+	@property
+	def __name__(self):
+		return "FreeDraw"
+
+class Bezier(Drawbject):
+	path_str = "m{0},{1} c{2},{3} {4},{5} {6},{7} z"
+	path_str_2 = "m{0},{1} c{2},{3} {4},{5} {6},{7} s{8},{9} {10},{11} z"
+
+	def __init__(self, height, width, origin, destination, ctrl1_s, ctrl1_e, ctrl2_s=None, ctrl2_e=None, stroke=None, fill=None, auto_draw=True):
+		super(Bezier, self).__init__(width, height, stroke, fill)
+		self.origin = origin
+		self.destination = destination
+		self.ctrl_start = ctrl1_s
+		self.ctrl_end = ctrl1_e
+		self.ctrl_2_start = ctrl2_s
+		self.ctrl_2_end = ctrl2_e
+
+		if auto_draw:
+			self.draw()
+
+	def draw(self):
+		data = self.origin + self.ctrl_start + self.ctrl_end + self.destination
+		path_str = self.path_str
+		if self.ctrl_2_start and self.ctrl_2_end:
+			data += self.ctrl_2_start
+			data += self.ctrl_2_end
+			path_str = self.path_str_2
+		sym = aggdraw.Symbol(path_str.format(*data))
+		self.surface.path((0,0), sym, self.stroke, self.fill)
+		print self.fill_color
+		print self.fill
+		return self
+
+
+	# # The following functions [bezier_curve() and pascal_row()]were written by the StackOverflow user @unutbu (#notypo)
+	# # http://stackoverflow.com/questions/246525/how-can-i-draw-a-bezier-curve-using-pythons-pil
+	# def __bezier_curve(self, xys):
+	# 	# xys should be a sequence of 2-tuples (Bezier control points)
+	# 	n = len(xys)
+	# 	combinations = self.__pascal_row(n-1)
+	# 	def bezier(ts):
+	# 		# This uses the generalized formula for bezier curves
+	# 		# http://en.wikipedia.org/wiki/B%C3%A9zier_curve#Generalization
+	# 		result = []
+	# 		for t in ts:
+	# 			t_powers = (t**i for i in range(n))
+	# 			u_powers = reversed([(1-t)**i for i in range(n)])
+	# 			coeffficients = [c*a*b for c, a, b in zip(combinations, t_powers, u_powers)]
+	# 			result.append(
+	# 				tuple(sum([c*p for c, p in zip(coeffficients, ps)]) for ps in zip(*xys)))
+	# 		return result
+	# 	return bezier
+	#
+	# def __pascal_row(self, n):
+	# 	# This returns the nth row of Pascal's Triangle
+	# 	result = [1]
+	# 	x, numerator = 1, n
+	# 	for denominator in range(1, n//2+1):
+	# 		# print(numerator,denominator,x)
+	# 		x *= numerator
+	# 		x /= denominator
+	# 		result.append(x)
+	# 		numerator -= 1
+	# 	if n&1 == 0:
+	# 		# n is even
+	# 		result.extend(reversed(result[:-1]))
+	# 	else:
+	# 		result.extend(reversed(result))
+	# 	return result
+
+# class SVG(Drawbject):
+#
+# 	def __init__(self, filename, auto_draw=True):
+# 		svg_start = re.compile("<path.*d=(.*)")
+# 		svg_end = re.compile("(.*)/>\n")
+# 		fpath = os.path.join(Params.image_dir, filename+".svg")
+# 		paths = []
+# 		img = open(fpath).readlines()
+# 		started = False
+# 		for l in open(self.edf_path).readlines():
+# 			if P_ID.match(l) is not None:
+# 				id = P_ID.match(l).group(1)
+# 			if START.match(l) is not None:
+# 				t = Trial(START_TIME.match(l).group(1))
+# 				continue
+# 			if END.match(l) is not None:
+# 				t.end = END_TIME.match(l).group(1)
+# 				self.add_trial(t)
+# 				t = None
+# 				continue
+# 			if t:
+# 				t.add_line(l)
+# 		for l in img:
+# 			if svg_start.match()
+#
 
 
 #  to handle legacy code in which KLIBs had a Circle object rather than an Ellipse object

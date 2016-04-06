@@ -32,6 +32,7 @@ if PYLINK_AVAILABLE:
 		custom_display = None
 		dc_width = None  # ie. drift-correct width
 		edf_filename = None
+		unresolved_exceptions = 0
 
 		def __init__(self, experiment_instance):
 			self.experiment = experiment_instance
@@ -177,7 +178,21 @@ if PYLINK_AVAILABLE:
 			el_draw_fixation = EL_TRUE if el_draw_fixation in [EL_TRUE, True] else EL_FALSE
 			samples = EL_TRUE if samples in [EL_TRUE, True] else EL_FALSE
 			if not self.dummy_mode:
-				self.doDriftCorrect(location[0], location[1], el_draw_fixation, samples)
+				try:
+					self.doDriftCorrect(location[0], location[1], el_draw_fixation, samples)
+				except RuntimeError:
+					self.setOfflineMode()
+					try:
+						self.waitForModeReady(500)
+					except RuntimeError as e:
+						self.unresolved_exceptions += 1
+						if self.unresolved_exceptions > 5:
+							print "\n\033[91m*** Fatal Error: Unresolvable EyeLink Error ***\033[0m"
+							print full_trace(e)
+
+						raise TrialException("EyeLink not ready.")
+					return self.drift_correct()
+
 				return self.applyDriftCorrect()
 			else:
 				def dc(dc_location, dc_gaze_boundary):
@@ -280,8 +295,7 @@ if PYLINK_AVAILABLE:
 				return False
 
 		def stop(self):
-			if self.isRecording() == 0:
-				self.stopRecording()
+			self.stopRecording()
 
 		def shut_down(self):
 			if self.isRecording() == 0: 

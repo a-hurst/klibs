@@ -4,6 +4,52 @@ from klibs.KLUtilities import *
 import os
 import csv
 import time
+import abc
+
+class EventTicket(object):
+
+	def __init__(self, label, onset, data=None, unit=TK_MS):
+		self.__onset = None
+		self.__label = None
+		self.__unit = None
+		self.label = label
+		self.onset = onset
+		self.data = data
+		self.unit = unit
+
+	def __str__(self):
+		return "<klibs.KLEventInterface.EventTicket, ('{0}': {1}, at {3})".format(self.label, self.onset, self.message, hex(id(self)))
+
+	@property
+	def onset(self):
+		return self.__onset
+
+	@onset.setter
+	def onset(self, time_val):
+		if type(time_val) is not int or time_val < 0:
+			raise TypeError("Property 'onset' must be a positive integer.")
+		self.__onset = time_val
+
+	@property
+	def label(self):
+		return self.__label
+
+	@label.setter
+	def label(self, val):
+		if type(val) is not str:
+			raise TypeError("Property 'label' must be a string.")
+		self.__label = val
+
+	@property
+	def unit(self):
+		return self.__unit
+
+	@unit.setter
+	def unit(self, val):
+		if val not in [TK_S, TK_MS]:
+			raise TypeError("Property 'unit' must be a valid KLTimeKeeper constant.")
+		self.__unit = val
+
 
 class KlibsEvent(object):
 
@@ -16,6 +62,10 @@ class KlibsEvent(object):
 		if type(data) is dict:
 			for key in data:
 				setattr(self, key, data[key])
+
+	@abc.abstractmethod
+	def __str__(self):
+		pass
 
 
 class DataEvent(KlibsEvent):
@@ -88,7 +138,7 @@ class EventInterface(object):
 
 	def after(self, label, pump_events=False):
 		if pump_events:
-			self.experiment.ui_request(pump())
+			self.experiment.ui_request(pump(True))
 		for e in Params.process_queue_data:
 			if Params.process_queue_data[e].label == label:
 				return True

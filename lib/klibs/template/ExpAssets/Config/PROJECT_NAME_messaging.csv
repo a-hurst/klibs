@@ -34,4 +34,4 @@
 # *** The bracketed values (ie. [text]) in first row, below, are placeholders only.
 #	  Replace these values with your first event and then create new rows as needed. ***
 
-[LABEL], [ARGUMENT COUNT], [PREPEND EEG TO EDF], [EEG CODE], [EDF MESSAGE]
+# [LABEL], [ARGUMENT COUNT], [PREPEND EEG TO EDF], [EEG CODE], [EDF MESSAGE]

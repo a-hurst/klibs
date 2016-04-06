@@ -184,11 +184,18 @@ class EventClock(object):
 		self.pipe, child = Pipe()
 		self.p = __event_clock__(child)
 
-	def register_events(self, events, unit=TK_MS):
+	def register_events(self, events):
 		for e in events:
-			self.register_event(e, unit)
+		# 	if e not in
+		# EVI_CONSTANTS and type(e) is not EventTicket:
+		# 		raise ValueError("register_events() requires an iterable of EventTickets or KLEventInterface constants./"
+		# 						 "Please use register_event() to register a single event.")
+		# 	else:
+		# 		if not iterable(e):
+			self.register_event(e)
 
-	def register_event(self, event, unit=TK_MS):
+
+	def register_event(self, event):
 		"""
 		Inserts passed event into the Trial Clock's event queue. Event can be a string constant (see Event Interface
 		constants) or a list of length 2 or 3. The first element must be the time at which the event should be issued;
@@ -201,7 +208,7 @@ class EventClock(object):
 
 		Example 1: No data attribute
 
-		Params.clock.register_event([300, 'MyEvent'], TK_MS)
+		Params.clock.register_event(300, 'MyEvent', TK_MS)
 
 		At 300ms an event, "MyEVent" will be issued; at the next call to KlUtilities.pump(), a TrialEvent object will be
 		generated and made available at Params.process_queue_data['MyEvent'], ie:
@@ -231,8 +238,6 @@ class EventClock(object):
 		:type event: String or List
 		:param unit:
 		"""
-		if unit == TK_S and iterable(event):
-			event[0] *= 1000
 		self.events.append(event)
 		self.__sync(stages=False)
 
@@ -251,12 +256,15 @@ class EventClock(object):
 		Starts the trial clock. This is automatically called by the parent KLExperiment object.
 
 		"""
-		self.register_event(EVI_TRIAL_START)
-		while not self.pipe.poll():
-			pass
-		self.start_time = self.pipe.recv()
-		el_val = self.experiment.eyelink.now() if Params.eye_tracking and Params.eye_tracker_available else -1
-		self.experiment.evi.log_trial_event(EVI_CLOCK_START, self.start_time, el_val)
+		try:
+			self.register_event(EVI_TRIAL_START)
+			while not self.pipe.poll():
+				pass
+			self.start_time = self.pipe.recv()
+			el_val = self.experiment.eyelink.now() if Params.eye_tracking and Params.eye_tracker_available else -1
+			self.experiment.evi.log_trial_event(EVI_CLOCK_START, self.start_time, el_val)
+		except:
+			full_trace()
 
 	def stop(self):
 		"""
@@ -347,46 +355,46 @@ def __event_clock__(pipe):
 				if new_s:
 					stages += new_s
 			for e in events:
-				if e == EVI_CLOCK_RESET:
-					trial_started = False
-					events = []
-					stages = []
-					sent = []
-					break
+				if e in EVI_CONSTANTS:
+					if e == EVI_CLOCK_RESET:
+						trial_started = False
+						events = []
+						stages = []
+						sent = []
+						break
 
-				if e == EVI_TRIAL_START:
-					sent.append(e)
-					events.remove(e)
-					start = time.time()
-					trial_started = True
-					pipe.send(start)
-					continue
-
-				if e == EVI_EXP_END:
-					return
-
-				if e == EVI_SEND_TIME:
-					if not trial_started:
-						pipe.send(RuntimeError("Trial has not started."))
-					events.remove(e)
-					sent.append(e)
-					pipe.send(time.time() - start)
-					continue
-
-				if e == EVI_SEND_TIMESTAMP:
-					if not trial_started:
-						pipe.send(RuntimeError("Trial has not started."))
-					events.remove(e)
-					pipe.send(time.time())
-					continue
-
-				if e[1] == EVI_DEREGISTER_EVENT:
-					try:
+					if e == EVI_TRIAL_START:
+						sent.append(e)
 						events.remove(e)
-						pipe.send(True)
-					except ValueError:
-						pipe.send(False)
+						start = time.time()
+						trial_started = True
+						pipe.send(start)
+						continue
 
+					if e == EVI_EXP_END:
+						return
+
+					if e == EVI_SEND_TIME:
+						if not trial_started:
+							pipe.send(RuntimeError("Trial has not started."))
+						events.remove(e)
+						sent.append(e)
+						pipe.send(time.time() - start)
+						continue
+
+					if e == EVI_SEND_TIMESTAMP:
+						if not trial_started:
+							pipe.send(RuntimeError("Trial has not started."))
+						events.remove(e)
+						pipe.send(time.time())
+						continue
+
+					if e == EVI_DEREGISTER_EVENT:
+						try:
+							events.remove(e)
+							pipe.send(True)
+						except ValueError:
+							pipe.send(False)
 				if not trial_started:  # allows for registration during setup(), trial_prep(), etc.
 					continue
 
@@ -394,13 +402,13 @@ def __event_clock__(pipe):
 					events.remove(e)
 					continue
 
-				if (time.time() - start) * 1000  >= e[0] or e[0] == 0:  # ie. something should happen IMMEDIATELY
+				if (time.time() - start) * 1000  >= e.onset or e.onset == 0:  # ie. something should happen IMMEDIATELY
 					if Params.development_mode or True:
-						print "\t...Sent '{0}' at {1}".format(e[1], time.time() - start)
+						print "\t...Sent '{0}' at {1}".format(e.label, time.time() - start)
 					sent.append(e)
 					try:
-						Params.process_queue.put([e[1], e[2],  time.time(), time.time() - start])
+						Params.process_queue.put([e.label, e.data,  time.time(), time.time() - start])
 					except IndexError:
-						Params.process_queue.put([e[1], None, time.time(), time.time() - start])
+						Params.process_queue.put([e.label, None, time.time(), time.time() - start])
 	except Exception as e:
-		pipe.send(e)
+		pipe.send(full_trace())

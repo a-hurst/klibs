@@ -134,7 +134,7 @@ class NumpySurface(object):
 		self.__height = None
 		self.__width = None
 		self.__bg_color = None
-		self.__prerender = None
+		self.rendered = None
 		self.bg = None
 		self.fg = None
 		self.bg_offset = None
@@ -547,11 +547,9 @@ class NumpySurface(object):
 		# todo: add functionality for not using a copy, ie. permanently render
 		"""
 
-		:param prerendering:
+		:param prerendering:  Legacy argument; left in for backwards compatibility
 		:return: :raise ValueError:
 		"""
-		if self.__prerender is not None and prerendering is False:
-			return self.__prerender
 
 		if self.background is None and self.foreground is None:
 			raise ValueError('Nothing to render; NumpySurface has been initialized but not content has been added.')
@@ -572,11 +570,8 @@ class NumpySurface(object):
 			render_surface[bg_y1: bg_y2, bg_x1: bg_x2] = self.background
 			render_surface[fg_y1: fg_y2, fg_x1: fg_x2] = self.foreground
 
-		if prerendering:
-			self.__prerender = render_surface
-			return True
-		else:
-			return render_surface.astype(numpy.uint8)
+		self.rendered = render_surface.astype(numpy.uint8)
+		return self.rendered
 
 	def __update_shape(self):
 		for surface in [self.foreground, self.background]:

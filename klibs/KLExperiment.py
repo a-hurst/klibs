@@ -2,7 +2,7 @@
 __author__ = 'jono'
 import OpenGL.GL as gl
 import sdl2.ext
-import AppKit
+# import AppKit
 import imp
 import hashlib
 import Queue
@@ -85,81 +85,84 @@ class Experiment(object):
 		# Params.clock = Params.tk.clock
 		Params.clock = Params.tk.clock
 		self.clock = Params.clock  # this is ONLY for having the KLIBS cli end the program on an error
+		try:
+			if not eyelink_available:
+				Params.eye_tracker_available = False
 
-		if not eyelink_available:
-			Params.eye_tracker_available = False
+			if development_mode:
+				Params.development_mode = True
+				Params.collect_demographics = False
 
-		if development_mode:
-			Params.development_mode = True
-			Params.collect_demographics = False
-
-		Params.dm_suppress_debug_pane = show_debug_overlay == False
+			Params.dm_suppress_debug_pane = show_debug_overlay == False
 
 
-		#initialize the self.database instance
-		self.__database_init()
+			#initialize the self.database instance
+			self.__database_init()
 
-		if display_diagonal_in == -1:  # ie. database operation called
-			self.quit()
-		# initialize screen surface and screen parameters
-		self.display_init(display_diagonal_in)
+			if display_diagonal_in == -1:  # ie. database operation called
+				self.quit()
+			# initialize screen surface and screen parameters
+			self.display_init(display_diagonal_in)
 
-		# initialize the text management for the experiment
-		self.text_manager = TextManager()
+			# initialize the text management for the experiment
+			self.text_manager = TextManager()
 
-		# init debugger
-		self.debug = Debugger(self)
+			# init debugger
+			self.debug = Debugger(self)
 
-		# initialize audio management for the experiment
-		self.audio = AudioManager(self)
+			# initialize audio management for the experiment
+			self.audio = AudioManager(self)
 
-		# initialize eyelink
-		self.eyelink = EyeLink(self)
-		self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
-		self.eyelink.dummy_mode = Params.eye_tracker_available is False
+			# initialize eyelink
+			self.eyelink = EyeLink(self)
+			self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
+			self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
-		Params.key_maps["*"] = KeyMap("*", [], [], [])
-		Params.key_maps["*"].any_key = True
-		Params.key_maps["over_watch"] = KeyMap("over_watch", [], [], [])
-		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
-		Params.key_maps["eyelink"] = KeyMap("eyelink",
-											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
-											[sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
-											 sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
-											 sdl2.SDLK_RIGHT],
-											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
+			Params.key_maps["*"] = KeyMap("*", [], [], [])
+			Params.key_maps["*"].any_key = True
+			Params.key_maps["over_watch"] = KeyMap("over_watch", [], [], [])
+			Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
+			Params.key_maps["eyelink"] = KeyMap("eyelink",
+												["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
+												[sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
+												 sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
+												 sdl2.SDLK_RIGHT],
+												["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 
-		# initialize response collector
-		self.response_collector = ResponseCollector(self)
-		self.rc = self.response_collector  # alias for convenience
+			# initialize response collector
+			self.response_collector = ResponseCollector(self)
+			self.rc = self.response_collector  # alias for convenience
 
-		# initialize labjack
-		self.labjack = LabJack(self)
+			# initialize labjack
+			self.labjack = LabJack(self)
 
-		# initialize EventInterface
-		self.evi = EventInterface(self)
-		
-		if Params.pre_render_block_messages:
-			for i in range(1, Params.blocks_per_experiment, 1):
-				msg = self.block_break_message.format(i, Params.blocks_per_experiment)
-				r_msg = self.message(msg, blit=False)
-				self.block_break_messages.append(r_msg)
-		Params.time_keeper.start("Trial Generation")
-		self.trial_factory = TrialFactory(self)
-		if Params.manual_trial_generation is False:
-			try:
-				self.trial_factory.import_stim_file(Params.config_file_path)
-			except ValueError:
-				self.trial_factory.import_stim_file(Params.config_file_path_legacy)
-			self.trial_factory.generate()
-		Params.time_keeper.stop("Trial Generation")
+			# initialize EventInterface
+			self.evi = EventInterface(self)
 
-		self.event_code_generator = None
+			if Params.pre_render_block_messages:
+				for i in range(1, Params.blocks_per_experiment, 1):
+					msg = self.block_break_message.format(i, Params.blocks_per_experiment)
+					r_msg = self.message(msg, blit=False)
+					self.block_break_messages.append(r_msg)
+			Params.time_keeper.start("Trial Generation")
+			self.trial_factory = TrialFactory(self)
+			if Params.manual_trial_generation is False:
+				try:
+					self.trial_factory.import_stim_file(Params.config_file_path)
+				except ValueError:
+					self.trial_factory.import_stim_file(Params.config_file_path_legacy)
+				self.trial_factory.generate()
+			Params.time_keeper.stop("Trial Generation")
 
-		if not Params.collect_demographics:
-			self.collect_demographics(True)
+			self.event_code_generator = None
 
-		Params.tk.stop("Experiment Init")
+			if not Params.collect_demographics:
+				self.collect_demographics(True)
+
+			Params.tk.stop("Experiment Init")
+		except:
+			os.kill(self.clock.p.pid, SIGKILL)
+			print full_trace()
 
 	def __execute_experiment(self, *args, **kwargs):
 		"""
@@ -292,17 +295,13 @@ class Experiment(object):
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()
-		screens = 0
-		for screen in AppKit.NSScreen.screens():
-			screens += 1
-			if screens > 1:
-				pass
-				# TODO: throw an error
-			else:
-				Params.screen_x = int(screen.frame().size.width)
-				Params.screen_y = int(screen.frame().size.height)
-				Params.screen_x_y = [Params.screen_x, Params.screen_y]
-		self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), SCREEN_FLAGS)
+		self.window = sdl2.ext.Window("experiment", (1,1), (0, 0), SCREEN_FLAGS)
+		self.window.maximize()
+		x, y = ctypes.c_int(0), ctypes.c_int(0)
+		sdl2.video.SDL_GL_GetDrawableSize(self.window.window, x, y)
+		Params.screen_x = x.value
+		Params.screen_y = y.value
+		Params.screen_x_y = (x.value, y.value)
 		Params.screen_diagonal_in = diagonal_in
 		Params.screen_c = (Params.screen_x / 2, Params.screen_y / 2)
 
@@ -316,6 +315,7 @@ class Experiment(object):
 
 		# these next six lines essentially assert a 2d, pixel-based rendering context; copied-and-pasted from Mike!
 		sdl2.SDL_GL_CreateContext(self.window.window)
+
 		gl.glMatrixMode(gl.GL_PROJECTION)
 		gl.glLoadIdentity()
 		gl.glOrtho(0, Params.screen_x, Params.screen_y, 0, 0, 1)
@@ -323,8 +323,6 @@ class Experiment(object):
 		gl.glDisable(gl.GL_DEPTH_TEST)
 
 		pump()
-
-		self.clear()
 		try:
 			brand_period = Params.tk.count_down(2)
 			while brand_period.counting():
@@ -333,6 +331,8 @@ class Experiment(object):
 				self.flip()
 		except AttributeError:
 			pass
+		print self.window.size
+		self.quit()
 		Params.display_initialized = True
 
 	def alert(self, alert_string, blit=True, display_for=0):

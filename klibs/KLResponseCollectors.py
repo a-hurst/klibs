@@ -8,6 +8,7 @@ import sys
 from klibs.KLDraw import colors, FreeDraw
 from klibs.KLNumpySurface import NumpySurface
 import aggdraw
+from KLNumpySurface import aggdraw_to_array
 
 class BoundaryInspector(object):
 
@@ -40,7 +41,7 @@ class BoundaryInspector(object):
 				return center_point_dist <= r
 		return False
 
-
+# sdfsf sd fsf
 class ResponseType(object):
 	__name__ = None
 	__timed_out = False
@@ -497,19 +498,19 @@ class DrawResponse(ResponseType, BoundaryInspector):
 				print "Stopping! {0}".format(Params.clock.trial_time)
 				self.stopped = True
 				self.responses.append([self.points, Params.clock.trial_time])
-			if self.interrupts:
-				return self.responses if self.max_response_count > 1 else self.responses[0]
+				if self.interrupts:
+					return self.responses if self.max_response_count > 1 else self.responses[0]
 
 		if not self.within_boundary(mp, self.start_boundary) and not self.stop_eligible and self.started:
 			print "Stop eligible! {0}".format(Params.clock.trial_time)
 			self.stop_eligible = True
 		if self.started and not self.stopped: # and self.within_boundary(mp, self.canvas_boundary):
-			self.points.append(mp)
-			# try:
-			# 	if mp != self.points[-1]:
-			# 		# self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset))
-			# except IndexError:
-			# 		# self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset))
+			# self.points.append(mp)
+			try:
+				if mp != self.points[-1]:
+					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset))
+			except IndexError:
+					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset))
 
 	def render_progress(self):
 		if not self.started:
@@ -519,19 +520,23 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		# s = FreeDraw(self.canvas_size[0], self.canvas_size[1], self.stroke, self.points[-1], self.fill)
 		# # s.close_at = self.points[-1]
 		# s.close_at = (0,0)
-		# return s.path(self.points).render()
 		m_str = ""
+		# return s.path(self.points).render()
 		for p in self.points:
 			if m_str == "":
-				m_str = "M{0},{1}".format(*p),
+				m_str = "M{0},{1}".format(p[0], p[1])
 			else:
-				m_str += "L{0},{1}".format(*p)
-			# m_str += "z"
-			s = aggdraw.Symbol(m_str)
-			test_p = aggdraw.Draw("RGBA", [800,800], (255,255,255,50))
-			test_p.setantialias(True)
-			test_p.symbol((0,0), s, aggdraw.Pen((255,80, 125), 1, 255))
+				m_str += "L{0},{1}".format(p[0], p[1])
+		# m_str += "{0},{1}z".format(*self.points[-1])
+		s = aggdraw.Symbol(m_str)
+		test_p = aggdraw.Draw("RGBA", [800,800], (255,255,255,50))
+		test_p.setantialias(True)
+		test_p.symbol((0,0), s, aggdraw.Pen((255,80, 125), 1, 255))
+		return aggdraw_to_array(test_p)
 
+	@property
+	def active(self):
+		return self.started and not self.stopped
 
 class ResponseCollector(object):
 	__experiment = None

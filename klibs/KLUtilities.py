@@ -379,7 +379,7 @@ def pt_to_px(pt_size):
 
 
 def px_to_deg(length):  # length = px
-	return int(length / Params.ppd)
+	return length / Params.ppd
 
 
 def rgb_to_rgba(rgb):

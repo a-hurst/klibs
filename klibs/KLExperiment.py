@@ -292,16 +292,16 @@ class Experiment(object):
 		:raise TypeError:
 		"""
 
+		import Tkinter
+
+		root = Tkinter.Tk()
+		Params.screen_x = root.winfo_screenwidth()
+		Params.screen_y = root.winfo_screenheight()
+		Params.screen_x_y = (Params.screen_x, Params.screen_y)
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()
-		self.window = sdl2.ext.Window("experiment", (1,1), (0, 0), SCREEN_FLAGS)
-		self.window.maximize()
-		x, y = ctypes.c_int(0), ctypes.c_int(0)
-		sdl2.video.SDL_GL_GetDrawableSize(self.window.window, x, y)
-		Params.screen_x = x.value
-		Params.screen_y = y.value
-		Params.screen_x_y = (x.value, y.value)
+		self.window = sdl2.ext.Window("experiment", Params.screen_x_y, (0, 0), SCREEN_FLAGS)
 		Params.screen_diagonal_in = diagonal_in
 		Params.screen_c = (Params.screen_x / 2, Params.screen_y / 2)
 
@@ -331,8 +331,6 @@ class Experiment(object):
 				self.flip()
 		except AttributeError:
 			pass
-		print self.window.size
-		self.quit()
 		Params.display_initialized = True
 
 	def alert(self, alert_string, blit=True, display_for=0):

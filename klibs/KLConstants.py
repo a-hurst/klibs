@@ -48,7 +48,7 @@ NS_BACKGROUND = 0  # NumpySurface background layer
 MAX_WAIT = 9999999
 OVER_WATCH = "over_watch"
 ANY_KEY = "ANY_KEY"
-TIMEOUT = "TIMEOUT"
+TIMEOUT = -1
 NO_RESPONSE = "NO_RESPONSE"
 
 

@@ -695,7 +695,7 @@ class ResponseCollector(object):
 			for e in event_queue:
 				if e.type in Params.process_queue_data:
 					if Params.process_queue_data[e.type].label == self.end_collection_event:
-						raise RuntimeError('Forced exit from response collection due to timeout.')
+						break
 			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
 				self.experiment.ui_request(event_queue)
 

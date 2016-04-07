@@ -567,7 +567,9 @@ class ResponseCollector(object):
 					   RC_MOUSEDOWN:False,
 					   RC_FIXATION:False,
 					   RC_SACCADE:False,
-					   RC_COLORSELECT: False}
+					   RC_COLORSELECT: False,
+					   RC_DRAW: False
+					   }
 		self.response_countdown = None
 		self.responses = {RC_AUDIO:[], RC_KEYPRESS:[]}
 		self.display_callback = display_callback

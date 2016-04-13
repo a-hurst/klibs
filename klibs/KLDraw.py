@@ -443,52 +443,76 @@ class FreeDraw(Drawbject):
 		self.close_at = None
 
 	def line(self, destination, origin=None):
-		origin = self.__validate_ends(destination, origin)
-		self.sequence.append([KLD_LINE, (origin[0], origin[1], destination[0], destination[1])])
-		self.at = destination
+		# if origin and origin != self.at:
+		# 	self.move(origin)
+		# else:
+		# 	self.move(self.at)
+		self.sequence.append([KLD_LINE, (destination[0], destination[1])])
+		# self.at = destination
 
 		return self
 
 	def arc(self, destination, control, origin=None):
-		origin = self.__validate_ends(destination, origin)
-		x_ctrl = (destination[0] + control[0] // 2, control[1])
-		y_ctrl = (control[0], destination[1] + control[1] // 2)
-		self.__validate_ends([], x_ctrl)
-		self.__validate_ends([], y_ctrl)
-		self.sequence.append([KLD_ARC, (origin[0], origin[1], destination[0], destination[1]), control[0], control[1]])
-		self.at = destination
+		# origin = self.__validate_ends(destination, origin)
+		# x_ctrl = (destination[0] + control[0] // 2, control[1])
+		# y_ctrl = (control[0], destination[1] + control[1] // 2)
+		# self.__validate_ends([], x_ctrl)
+		# self.__validate_ends([], y_ctrl)
+		# if origin and origin != self.at:
+		# 	self.move(origin)
+		# else:
+		# 	self.move(self.at)
+		# arc_el =
+		self.sequence.append([KLD_ARC, (list(origin) + list(control) + list(destination))])
+		# self.move(destination)
+		# self.at = destination
 
 		return self
 
 	def path(self, sequence, origin=None):
-		# origin = self.__validate_ends(sequence, origin)
-		# sequence.insert(0, origin)
 		self.sequence.append([KLD_PATH, sequence])
-		# self.at = sequence[-1]
+		self.at = sequence[-1]
 
 		return self
 
 	def move(self, location):
-		self.__validate_ends([], location)
 		self.sequence.append([KLD_MOVE, location])
 
-	def draw(self):
-		self.surface.rectangle([0,0,self.object_width, self.object_height], aggdraw.Brush((255,255,255,255)))
-		path_str = "M{0},{1}".format(*self.origin)
+	def draw_points(self, sequence):
+		def chunks(s, n):
+			for i in range(0, len(s), n):
+				yield s[i:i + n]
+		e_size = 3
+		for s in chunks(sequence, 2):
+			x1 = s[0] - e_size
+			x2 = s[0] + e_size
+			y1 = s[1] - e_size
+			y2 = s[1] + e_size
+			b = aggdraw.Brush((0,0,0))
+			self.surface.ellipse([x1,y1,x2,y2], b)
+			print "CHUNK! {0}".format([x1,y1,x2,y2])
+
+	def draw(self, with_points=False):
+		self.surface.rectangle([0,0,self.object_width, self.object_height], aggdraw.Brush((245, 245, 245)))
+
+		# path_str = "M{0},{1}".format(*self.origin)
+		path_str = ""
 		for s in self.sequence:
+			# if self.sequence[0] == s:
+			# 	path_str += "M{0},{1}".format(s[1][0], s[1][1])
+			if s[0] == KLD_MOVE:
+				path_str += " M{0},{1}".format(s[1][0], s[1][1])
 			if s[0]  == KLD_LINE:
-				path_str += "L{0},{1}".format(*s[1])
-				# self.surface.line(s[1], self.stroke)
+				path_str += " L{0},{1}".format(*s[1])
 			if s[0]  == KLD_ARC:
-				path_str += "S{0},{1},{2},{3},{4},{5}".format(*s[1])
-				# self.surface.arc(s[1], s[2], s[3], self.stroke)
+				path_str += " S{0},{1},{2},{3},{4},{5}".format(*s[1])
 			if s[0]  == KLD_PATH:
 				for p in s[1]:
 					path_str += "L{0},{1}".format(*p)
-				# self.surface.line(s[1], self.stroke)
-		path_str += "{0},{1}z".format(*self.close_at)
+		if self.close_at:
+			path_str += " {0},{1}z".format(*self.close_at)
 		p = aggdraw.Symbol(path_str)
-		self.surface.symbol((0,0), p, self.stroke, self.fill)
+		self.surface.symbol((0,0), p, self.stroke)
 
 		return self
 

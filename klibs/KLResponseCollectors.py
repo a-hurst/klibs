@@ -4,11 +4,9 @@ import abc
 from klibs.KLUtilities import *
 from klibs.KLAudio import AudioStream
 from klibs.KLConstants import *
-import sys
-from klibs.KLDraw import colors, FreeDraw
 from klibs.KLNumpySurface import NumpySurface
-import aggdraw
 from KLNumpySurface import aggdraw_to_array
+import aggdraw
 
 class BoundaryInspector(object):
 
@@ -41,7 +39,7 @@ class BoundaryInspector(object):
 				return center_point_dist <= r
 		return False
 
-# sdfsf sd fsf
+
 class ResponseType(object):
 	__name__ = None
 	__timed_out = False
@@ -486,23 +484,19 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		mp = mouse_pos()
 		if not self.stop_boundary or not self.start_boundary:
 			self.started = True
-			print "No boundaries... {0}".format(Params.clock.trial_time)
 
 		if not self.started:
 			if self.within_boundary(mp, self.start_boundary):
 				self.started = True
-				print "Started! {0}".format(Params.clock.trial_time)
 
 		if self.within_boundary(mp, self.stop_boundary):
 			if self.stop_eligible and not self.stopped:
-				print "Stopping! {0}".format(Params.clock.trial_time)
 				self.stopped = True
 				self.responses.append([self.points, Params.clock.trial_time])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
 		if not self.within_boundary(mp, self.start_boundary) and not self.stop_eligible and self.started:
-			print "Stop eligible! {0}".format(Params.clock.trial_time)
 			self.stop_eligible = True
 		if self.started and not self.stopped: # and self.within_boundary(mp, self.canvas_boundary):
 			# self.points.append(mp)
@@ -512,22 +506,24 @@ class DrawResponse(ResponseType, BoundaryInspector):
 			except IndexError:
 					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset))
 
+	def reset(self):
+		self.responses = []
+		self.points = []
+		self.started = False
+		self.stopped = False
+		self.stop_eligible = False
+
 	def render_progress(self):
 		if not self.started:
 			return False
 		if len(self.points) < 2:
 			return False
-		# s = FreeDraw(self.canvas_size[0], self.canvas_size[1], self.stroke, self.points[-1], self.fill)
-		# # s.close_at = self.points[-1]
-		# s.close_at = (0,0)
 		m_str = ""
-		# return s.path(self.points).render()
 		for p in self.points:
 			if m_str == "":
 				m_str = "M{0},{1}".format(p[0], p[1])
 			else:
 				m_str += "L{0},{1}".format(p[0], p[1])
-		# m_str += "{0},{1}z".format(*self.points[-1])
 		s = aggdraw.Symbol(m_str)
 		test_p = aggdraw.Draw("RGBA", [800,800], (255,255,255,50))
 		test_p.setantialias(True)
@@ -553,7 +549,7 @@ class ResponseCollector(object):
 	end_collection_event = None
 	responses = {}
 	post_flip_tk_label = None
-	terminate_after = None
+	terminate_after = 10  # seconds
 
 	def __init__(self, experiment, display_callback=None, response_window=MAX_WAIT, null_response=NO_RESPONSE, response_count=[0,1], flip=True):
 		super(ResponseCollector, self).__init__()
@@ -682,7 +678,7 @@ class ResponseCollector(object):
 	def __collect(self, mouseclick_boundaries):
 		self.tracker_time = self.experiment.eyelink.now()
 		while True:
-			if Params.development_mode:
+			if Params.development_mode and not self.end_collection_event:
 				try:
 					t = self.experiment.clock.trial_time
 					if self.terminate_after[1] == TK_MS: t *= 1000

@@ -100,6 +100,7 @@ class EventInterface(object):
 	last_trial = None
 	sent = {}  # reset on each trial
 	trial_event_log = []
+	events_dumped = False
 
 	def __init__(self, experiment):
 		#todo: add default events like recycled trials, etc.
@@ -125,9 +126,13 @@ class EventInterface(object):
 
 	def log_trial_event(self, label, trial_time, eyelink_time=-1 ):
 		e = [Params.participant_id, Params.trial_id, Params.trial_number, label, trial_time, eyelink_time]
+		print "Logging: {0}".format(e)
 		self.trial_event_log.append(e)
 
 	def dump_events(self):
+		for ev in Params.process_queue_data:
+			e = Params.process_queue_data[ev]
+			self.log_trial_event(e.label, e.trial_time)
 		for e in self.trial_event_log:
 			try:
 				self.experiment.database.query_str_from_raw_data(TBL_EVENTS, e)
@@ -135,6 +140,7 @@ class EventInterface(object):
 			except RuntimeError:
 				print "Event Table not found; if this is an old KLIBs experiment, consider updating the SQL schema to the new standard."
 				break
+		self.events_dumped = True
 
 	def after(self, label, pump_events=False):
 		if pump_events:

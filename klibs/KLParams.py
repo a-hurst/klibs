@@ -127,7 +127,8 @@ trials_per_practice_block = 0
 block_number = 0
 blocks_per_experiment = 0
 practice_blocks_per_experiment = 0
-trials_per_participant = 0
+between_subject_conditions = None
+
 run_practice_blocks = True
 show_practice_messages = True
 practicing = True

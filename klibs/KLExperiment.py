@@ -204,6 +204,7 @@ class Experiment(object):
 		Params.time_keeper.stop("trial_execution")
 		Params.clock.terminate()
 		self.clean_up()
+		self.evi.dump_events()
 		self.database.db.commit()
 		self.database.db.close()
 
@@ -221,7 +222,7 @@ class Experiment(object):
 			block_base = (Params.block_number * Params.trials_per_block) - Params.trials_per_block 
 			Params.trial_number = block_base + args[0] - Params.recycle_count
 		self.setup_response_collector(args[1])
-		# self.window.refresh()
+
 		self.trial_prep(args[1])
 		tx = None
 		try:
@@ -598,18 +599,6 @@ class Experiment(object):
 		if flip: self.flip()
 		return True
 
-	def exempt(self, index, state=True):
-		"""
-		``deprecated``
-
-		.. warning:: This function is deprecated and slated for removal; do not use.
-		"""
-		if index in self.exemptions.keys():
-			if state == 'on' or True:
-				self.exemptions[index] = True
-			if state == 'off' or False:
-				self.exemptions[index] = False
-
 	def flip(self, duration=0, debug=False):
 		"""
 		Transfers content of draw buffer to current display then waits for either of:
@@ -920,7 +909,6 @@ class Experiment(object):
 			if all(i is None for i in [font_size, color, bg_color, font]):
 				style = self.text_manager.styles['default']
 			else:
-				print "Nope, here: {0}".format([font_size, color, bg_color, font])
 				style_name = "legacy_style_{0}".format(self.text_manager.legacy_styles_count)
 				self.text_manager.legacy_styles_count += 1
 				# font_size=None, color=None, bg_color=None, line_height=None, font=None
@@ -1236,17 +1224,32 @@ class Experiment(object):
 
 		"""
 		try:
-			self.database.db.commit()
+			os.kill(self.clock.p.pid, SIGKILL)
 		except Exception as e:
-			if e.message == "Cannot operate on a closed database.":
-				pass
-			else:
-				print "Commit() to self.database failed."
-				raise e
+			print full_trace()
+
 		try:
-			self.database.db.close()
-		except:  # TODO: Determine exception tpye
-			print "Database.close() unsuccessful."
+			if not self.evi.events_dumped:
+				self.evi.dump_events()
+		except:
+			pass
+
+		try:
+			try:
+				self.database.db.commit()
+			except Exception as e:
+				if e.message == "Cannot operate on a closed database.":
+					pass
+				else:
+					print "Commit() to self.database failed."
+					raise e
+			try:
+				self.database.db.close()
+			except Exception as e:  # TODO: Determine exception tpye
+				print "Database.close() unsuccessful."
+				raise e
+		except Exception:
+			print full_trace()
 		try:
 			self.eyelink.shut_down()
 		except:
@@ -1263,8 +1266,6 @@ class Experiment(object):
 			Params.time_keeper.stop("experiment")
 		except KeyError:
 			pass
-
-		Params.clock.p.terminate()
 
 		sdl2.SDL_Quit()
 		Params.tk.log("exit")

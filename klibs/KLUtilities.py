@@ -14,6 +14,7 @@ import datetime
 import re
 import multiprocessing
 import traceback
+from math import sin, cos, radians, pi, atan2, degrees
 
 
 def absolute_position(position, destination):
@@ -74,10 +75,19 @@ def arg_error_str(arg_name, given, expected, kw=True):
 	return err_string.format(arg_name, type(given), type(expected))
 
 
+def angle_between(a, b):
+	dx = a[0] - b[0]
+	dy = a[1] - b[1]
+	rads = atan2(-dy, dx)
+	rads %= 2 * pi
+	return degrees(rads)
+
+
 def bool_to_int(boolean_val):
 	if boolean_val is False: return 0
 	if boolean_val is True: return 1
 	raise ValueError("Non-boolean value passed ('{0}')".format(type(boolean_val)))
+
 
 def boolean_to_logical(value, convert_integers=False):
 	if value in ["false", "False"] or value is False: return "FALSE"
@@ -136,6 +146,12 @@ def build_registrations(source_height, source_width):
 
 def camel_to_snake(string):
 	return re.sub('([a-z0-9])([A-Z])', r'\1_\2', re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)).lower()
+
+
+def chunk(items, chunk_size):
+    """Yield successive chunk-sized chunks from items."""
+    for i in range(0, len(items), chunk_size):
+        yield items[i:i+chunk_size]
 
 
 def deg_to_px(deg):
@@ -246,6 +262,10 @@ def log(msg, priority):
 	return True
 
 
+def midpoint(p1, p2):
+    return int((p1[0]+p2[0])/2), int((p1[1]+p2[1])/2)
+
+
 def mean(values, as_int=False):
 	mean_val = sum(values) / len(values)
 	return mean_val if not as_int else int(mean_val)
@@ -274,8 +294,13 @@ def peak(v1, v2):
 		return v2
 
 
+def point_pos(x, y, amplitude, angle):
+	theta_rad = pi / 2 - radians(angle)
+	return int(x + amplitude * cos(theta_rad)), int(y + amplitude * sin(theta_rad))
+
+
 def pump(get_events=False):
-	from klibs.KLEventInterface import *
+	from klibs.KLEventInterface import TrialEvent
 	while not Params.process_queue.empty():
 		event = Params.process_queue.get()
 		sdl_event = sdl2.SDL_Event()

@@ -1,6 +1,6 @@
 __author__ = 'jono'
 from klibs.KLConstants import *
-from klibs.KLParams import *
+from klibs import KLParams as Params
 
 try:
 	import u3

@@ -2,11 +2,12 @@
 __author__ = 'jono'
 import OpenGL.GL as gl
 import sdl2.ext
-import AppKit
+# import AppKit
 import imp
 import hashlib
 import Queue
 import threading
+import sys
 from klibs.KLAudio import AudioManager
 from klibs.KLEyeLink import *
 from klibs.KLExceptions import *
@@ -59,7 +60,7 @@ class Experiment(object):
 	block_break_message = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
 	block_break_messages = []
 
-	def __init__(self, project_name, display_diagonal_in, random_seed, export, development_mode, eyelink_available, show_debug_overlay):
+	def __init__(self, project_name, display_diagonal_in, random_seed, development_mode, eyelink_available, show_debug_overlay):
 		"""
 		Initializes a KLExperiment Object
 
@@ -78,90 +79,90 @@ class Experiment(object):
 		if not Params.setup(project_name, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 		import_project_params(Params.params_file_path)
-		Params.time_keeper = TimeKeeper()
+		Params.time_keeper = TimeKeeper(self)
 		Params.tk = Params.time_keeper
 		Params.tk.start("Experiment Init")  # global TimeKeeper is initialized in Params.setup()
-
-
-		if not eyelink_available:
-			Params.eye_tracker_available = False
-
-		if development_mode:
-			Params.development_mode = True
-			Params.collect_demographics = False
-
-		Params.dm_suppress_debug_pane = show_debug_overlay == False
-
-
-		#initialize the self.database instance
+		# Params.clock = Params.tk.clock
+		Params.clock = Params.tk.clock
+		self.clock = Params.clock  # this is ONLY for having the KLIBS cli end the program on an error
 		try:
-			iter(export)
-		except TypeError:
-			export = [export]
-		self.__database_init(*export)
+			if not eyelink_available:
+				Params.eye_tracker_available = False
 
-		# initialize screen surface and screen parameters
-		self.display_init(display_diagonal_in)
+			if development_mode:
+				Params.development_mode = True
+				Params.collect_demographics = False
 
-		# initialize the text management for the experiment
-		self.text_manager = TextManager()
-
-		# init debugger
-		self.debug = Debugger(self)
-
-		# initialize audio management for the experiment
-		self.audio = AudioManager(self)
+			Params.dm_suppress_debug_pane = show_debug_overlay == False
 
 
+			#initialize the self.database instance
+			self.__database_init()
 
-		# initialize eyelink
-		self.eyelink = EyeLink(self)
-		self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
-		self.eyelink.dummy_mode = Params.eye_tracker_available is False
+			if display_diagonal_in == -1:  # ie. database operation called
+				self.quit()
+			# initialize screen surface and screen parameters
+			self.display_init(display_diagonal_in)
 
-		Params.key_maps["*"] = KeyMap("*", [], [], [])
-		Params.key_maps["*"].any_key = True
-		Params.key_maps["over_watch"] = KeyMap("over_watch", [], [], [])
-		Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
-		Params.key_maps["eyelink"] = KeyMap("eyelink",
-											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
-											[sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
-											 sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
-											 sdl2.SDLK_RIGHT],
-											["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
+			# initialize the text management for the experiment
+			self.text_manager = TextManager()
 
-		# initialize response collector
-		self.response_collector = ResponseCollector(self)
-		self.rc = self.response_collector  # alias for convenience
+			# init debugger
+			self.debug = Debugger(self)
 
-		# initialize labjack
-		self.labjack = LabJack(self)
+			# initialize audio management for the experiment
+			self.audio = AudioManager(self)
 
-		# initialize EventInterface
-		self.evi = EventInterface(self)
-		
-		if Params.pre_render_block_messages:
-			for i in range(1, Params.blocks_per_experiment, 1):
-				msg = self.block_break_message.format(i, Params.blocks_per_experiment)
-				r_msg = self.message(msg, blit=False)
-				self.block_break_messages.append(r_msg)
-		Params.time_keeper.start("Trial Generation")
-		self.trial_factory = TrialFactory(self)
-		if Params.manual_trial_generation is False:
-			try:
-				self.trial_factory.import_stim_file(Params.config_file_path)
-			except ValueError:
-				self.trial_factory.import_stim_file(Params.config_file_path_legacy)
-			self.trial_factory.generate()
-		Params.time_keeper.stop("Trial Generation")
+			# initialize eyelink
+			self.eyelink = EyeLink(self)
+			self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
+			self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
-		self.event_code_generator = None
+			Params.key_maps["*"] = KeyMap("*", [], [], [])
+			Params.key_maps["*"].any_key = True
+			Params.key_maps["over_watch"] = KeyMap("over_watch", [], [], [])
+			Params.key_maps["drift_correct"] = KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"])
+			Params.key_maps["eyelink"] = KeyMap("eyelink",
+												["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
+												[sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
+												 sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
+												 sdl2.SDLK_RIGHT],
+												["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])
 
-		if not Params.collect_demographics:
-			self.collect_demographics(True)
+			# initialize response collector
+			self.response_collector = ResponseCollector(self)
+			self.rc = self.response_collector  # alias for convenience
 
-		Params.tk.stop("Experiment Init")
+			# initialize labjack
+			self.labjack = LabJack(self)
 
+			# initialize EventInterface
+			self.evi = EventInterface(self)
+
+			if Params.pre_render_block_messages:
+				for i in range(1, Params.blocks_per_experiment, 1):
+					msg = self.block_break_message.format(i, Params.blocks_per_experiment)
+					r_msg = self.message(msg, blit=False)
+					self.block_break_messages.append(r_msg)
+			Params.time_keeper.start("Trial Generation")
+			self.trial_factory = TrialFactory(self)
+			if Params.manual_trial_generation is False:
+				try:
+					self.trial_factory.import_stim_file(Params.config_file_path)
+				except ValueError:
+					self.trial_factory.import_stim_file(Params.config_file_path_legacy)
+				self.trial_factory.generate()
+			Params.time_keeper.stop("Trial Generation")
+
+			self.event_code_generator = None
+
+			if not Params.collect_demographics:
+				self.collect_demographics(True)
+
+			Params.tk.stop("Experiment Init")
+		except:
+			os.kill(self.clock.p.pid, SIGKILL)
+			print full_trace()
 
 	def __execute_experiment(self, *args, **kwargs):
 		"""
@@ -187,6 +188,10 @@ class Experiment(object):
 				self.block(block[0])    # ie. block number
 				for trial in block[1]:  # ie. list of trials
 					try:
+						try:
+							Params.trial_id = self.database.last_id_from('trials') + 1
+						except TypeError:
+							Params.trial_id = 1
 						self.__trial(trial)
 					except TrialException as e:
 						block[1].recycle()
@@ -197,13 +202,14 @@ class Experiment(object):
 						self.clear()
 					self.rc.reset()
 		Params.time_keeper.stop("trial_execution")
+		Params.clock.terminate()
 		self.clean_up()
 		self.database.db.commit()
 		self.database.db.close()
 
 	def __trial(self, *args, **kwargs):
 		"""
-		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1, param_2...]]
+		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1,...param_n]]
 
 		"""
 		pump()
@@ -213,23 +219,30 @@ class Experiment(object):
 			Params.trial_number = block_base + args[0] + 1 - Params.recycle_count
 		else:
 			block_base = (Params.block_number * Params.trials_per_block) - Params.trials_per_block 
-			Params.trial_number =   block_base + args[0] - Params.recycle_count
+			Params.trial_number = block_base + args[0] - Params.recycle_count
 		self.setup_response_collector(args[1])
+		# self.window.refresh()
 		self.trial_prep(args[1])
+		tx = None
 		try:
+			Params.clock.start()
 			trial_data = self.trial(args[1])
-			trial_id = self.__log_trial(trial_data)
-			self.trial_clean_up(trial_id, args[1])
+			Params.clock.stop()
+			self.__log_trial(trial_data)
+			self.trial_clean_up(Params.trial_id, args[1])
 		except TrialException as e:
 			if Params.eye_tracking and Params.eye_tracker_available:
 				self.eyelink.stop()
 			self.trial_clean_up(False, args[1])
-			raise e
-		self.evi.sent = {}
+			Params.clock.stop()
+			tx = e
 		if Params.eye_tracking and Params.eye_tracker_available:
 			self.eyelink.stop()
+		self.evi.sent = {}
+		if tx:
+			raise tx
 
-	def __database_init(self, *args):
+	def __database_init(self):
 		"""
 		Initializes the project database; if export instructions are provided, also exports data and exits program.
 
@@ -238,9 +251,6 @@ class Experiment(object):
 		#  todo: probably, should just be a global variable called database, but I didn't want to implement just now
 		self.database = Database()
 		Params.database = self.database
-		if args[0]:
-			self.database.export(*args[1:])
-			exit()
 
 	def __log_trial(self, trial_data, auto_id=True):
 		"""
@@ -281,20 +291,16 @@ class Experiment(object):
 		:raise TypeError:
 		"""
 
+		import Tkinter
+
+		root = Tkinter.Tk()
+		Params.screen_x = root.winfo_screenwidth()
+		Params.screen_y = root.winfo_screenheight()
+		Params.screen_x_y = (Params.screen_x, Params.screen_y)
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()
-		screens = 0
-		for screen in AppKit.NSScreen.screens():
-			screens += 1
-			if screens > 1:
-				pass
-				# TODO: throw an error
-			else:
-				Params.screen_x = int(screen.frame().size.width)
-				Params.screen_y = int(screen.frame().size.height)
-				Params.screen_x_y = [Params.screen_x, Params.screen_y]
-		self.window = sdl2.ext.Window(Params.project_name, Params.screen_x_y, (0, 0), SCREEN_FLAGS)
+		self.window = sdl2.ext.Window("experiment", Params.screen_x_y, (0, 0), SCREEN_FLAGS)
 		Params.screen_diagonal_in = diagonal_in
 		Params.screen_c = (Params.screen_x / 2, Params.screen_y / 2)
 
@@ -308,6 +314,7 @@ class Experiment(object):
 
 		# these next six lines essentially assert a 2d, pixel-based rendering context; copied-and-pasted from Mike!
 		sdl2.SDL_GL_CreateContext(self.window.window)
+
 		gl.glMatrixMode(gl.GL_PROJECTION)
 		gl.glLoadIdentity()
 		gl.glOrtho(0, Params.screen_x, Params.screen_y, 0, 0, 1)
@@ -315,8 +322,6 @@ class Experiment(object):
 		gl.glDisable(gl.GL_DEPTH_TEST)
 
 		pump()
-
-		self.clear()
 		try:
 			brand_period = Params.tk.count_down(2)
 			while brand_period.counting():
@@ -378,12 +383,18 @@ class Experiment(object):
 		if type(source) is NumpySurface:
 			height = source.height
 			width = source.width
-			content = source.render()
+			if source.rendered is None:
+				content = source.render()
+			else:
+				content = source.rendered
+
 		elif issubclass(type(source), Drawbject):
 			height = source.surface_height
 			width = source.surface_width
-			# source.draw()
-			content = source.render().render()
+			if source.rendered is None:
+				content = source.render()
+			else:
+				content = source.rendered
 		elif type(source) is numpy.ndarray:
 			height = source.shape[0]
 			width = source.shape[1]
@@ -485,6 +496,10 @@ class Experiment(object):
 
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
 		self.database.log("random_seed", Params.random_seed)
+		try:
+			self.database.log("klibs_commit", Params.klibs_commit)
+		except:
+			pass  # older versions of klibs did not include this param/db entry
 		if anonymous_user:
 			name = Params.anonymous_username
 		else:
@@ -497,19 +512,26 @@ class Experiment(object):
 
 		# names must be unique; returns True if unique, False otherwise
 		if self.database.is_unique('participants', 'userhash', name):
-			if anonymous_user:
-				sex = "m" if now() % 2 > 0  else "f"
-				handedness = "a"
-				age = 0
-			else:
-				sex_str = "What is your sex? \nAnswer with:  (m)ale,(f)emale"
-				sex = self.query(sex_str, accepted=('m', 'M', 'f', 'F'))
-				handedness_str = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
-				handedness = self.query(handedness_str, accepted=('r', 'R', 'l', 'L', 'a', 'A'))
-				age = self.query('What is  your age?', return_type='int')
-			self.database.log('sex', sex)
-			self.database.log('handedness', handedness)
-			self.database.log('age', age)
+			try:
+				for q in Params.demographic_questions:
+					if anonymous_user:
+						self.database.log(q[0], q[4])
+					else:
+						self.database.log(q[0], self.query(q[1],accepted=q[2], return_type=q[3]))
+			except AttributeError:
+				if anonymous_user:
+					sex = "m" if now() % 2 > 0  else "f"
+					handedness = "a"
+					age = 0
+				else:
+					sex_str = "What is your sex? \nAnswer with:  (m)ale,(f)emale"
+					sex = self.query(sex_str, accepted=('m', 'M', 'f', 'F'))
+					handedness_str = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
+					handedness = self.query(handedness_str, accepted=('r', 'R', 'l', 'L', 'a', 'A'))
+					age = self.query('What is  your age?', return_type='int')
+					self.database.log('sex', sex)
+					self.database.log('handedness', handedness)
+					self.database.log('age', age)
 			self.database.log('created', now(True))
 			if not Params.demographics_collected:
 				Params.participant_id = self.database.insert()
@@ -1241,6 +1263,9 @@ class Experiment(object):
 			Params.time_keeper.stop("experiment")
 		except KeyError:
 			pass
+
+		Params.clock.p.terminate()
+
 		sdl2.SDL_Quit()
 		Params.tk.log("exit")
 		print "\n\n\033[92m*** '{0}' successfully shutdown. ***\033[0m\n\n".format(Params.project_name)

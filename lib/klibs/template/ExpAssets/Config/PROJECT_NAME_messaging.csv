@@ -6,15 +6,15 @@
 #   Partial: CuedTrial, 0,, "Cued"
 #
 # Column 1: Label
-#	a string you'll use to reference this event later; aim for short'n'sweet but
+#	A string you'll use to reference this message later; aim for short'n'sweet but
 #	human-readably meaningful (ie. "c" is less useful than "cue" but "asterisk cue for
 #	endo trials" is overkill)
 #
 # Column 2: Argument Count
 #	Number of supplied arguments required when EDF markup should include information only
 #	available during runtime, such as trial conditions or some inferred value. The
-#	arguments themselves are supplied at run time, and this number of args must always be
-#	supplied.
+#	arguments themselves are supplied at run time, and the number in this column constitutes the
+#   number of args must *always* be supplied.
 #
 # Column 3, Prepend EEG Code to EDF
 #	If true, the integer code being sent to the EEG will be prepended to the accompanying
@@ -34,4 +34,4 @@
 # *** The bracketed values (ie. [text]) in first row, below, are placeholders only.
 #	  Replace these values with your first event and then create new rows as needed. ***
 
-[LABEL], [ARGUMENT COUNT], [PREPEND EEG TO EDF], [EEG CODE], [EDF MESSAGE]
+# [LABEL], [ARGUMENT COUNT], [PREPEND EEG TO EDF], [EEG CODE], [EDF MESSAGE]

@@ -6,8 +6,9 @@ import aggdraw
 from klibs.KLNumpySurface import *
 from klibs.KLUtilities import *
 from klibs.KLTextManager import TextStyle
-
-
+from math import pi as PI
+from imp import load_source
+import re
 
 ######################################################################
 #
@@ -34,7 +35,7 @@ def cursor(color=None):
 	brush = aggdraw.Brush(tuple(cursor_color), 255)
 	pen = aggdraw.Pen((255,255,255), 1, 255)
 	dc.polygon(cursor_xy_list, pen, brush)
-	cursor_surface = from_aggdraw_context(dc)
+	cursor_surface = aggdraw_to_numpy_surface(dc)
 	return cursor_surface
 
 
@@ -50,12 +51,9 @@ def drift_correct_target():
 	wd_bot = 2 * draw_context_length // 3
 	draw_context.ellipse([wd_top, wd_top, wd_bot, wd_bot], white_brush)
 
-	return from_aggdraw_context(draw_context)
+	return aggdraw_to_numpy_surface(draw_context)
 
-
-#  to handle legacy code in which KLIBs had a Circle object rather than an Ellipse object
-def Circle(diameter, stroke=None, fill=None, auto_draw=True):
-	return Ellipse(diameter, diameter, stroke, fill, auto_draw)
+colors = load_source("*", os.path.join(Params.klibs_dir, "color_wheel_color_list.py")).colors
 
 
 class Drawbject(object):
@@ -76,6 +74,7 @@ class Drawbject(object):
 		self.surface_width = None
 		self.surface_height = None
 		self.surface = None
+		self.rendered = None
 
 		try:
 			iter(stroke)
@@ -112,7 +111,8 @@ class Drawbject(object):
 		self.init_surface()
 		self.draw()
 		surface_bytes = Image.frombytes(self.surface.mode, self.surface.size, self.surface.tostring())
-		return NumpySurface(numpy.asarray(surface_bytes))
+		self.rendered = NumpySurface(numpy.asarray(surface_bytes)).render()
+		return self.rendered
 
 	@abc.abstractproperty
 	def __name__(self):
@@ -175,7 +175,7 @@ class Drawbject(object):
 		return self
 
 	@abc.abstractmethod
-	def draw(self):
+	def draw(self, as_numpy_surface=False):
 		pass
 
 	@property
@@ -193,7 +193,7 @@ class FixationCross(Drawbject):
 		if auto_draw:
 			self.draw()
 
-	def draw(self):
+	def draw(self, as_numpy_surface=False):
 		if not self.fill:
 			self.surface.line((self.surface_width // 2, 1, self.surface_width // 2, self.surface_width - 1), self.stroke)
 			self.surface.line((1, self.surface_height // 2, self.surface_height - 1, self.surface_height // 2), self.stroke)
@@ -201,6 +201,7 @@ class FixationCross(Drawbject):
 			str_h1 = self.surface_height // 2 - self.stroke_width // 2
 			str_h2 = self.surface_height // 2 + self.stroke_width // 2
 			self.surface.rectangle([1, str_h1, self.surface_width - 1, str_h2])
+		return self
 
 	@property
 	def __name__(self):
@@ -216,7 +217,7 @@ class Ellipse(Drawbject):
 		if auto_draw:
 			self.draw()
 
-	def draw(self):
+	def draw(self, as_numpy_surface=False):
 		xy_1 = self.stroke_width + 1
 		x_2 = self.surface_width - 1
 		y_2 = self.surface_height - 1
@@ -279,7 +280,7 @@ class Annulus(Drawbject):
 			self.draw()
 
 
-	def draw(self):
+	def draw(self,  as_numpy_surface=False):
 		if self.stroke:
 			stroked_path_pen = aggdraw.Pen(tuple(self.stroke_color), self.ring_width)
 			xy_1 = 2 + self.ring_width
@@ -289,7 +290,8 @@ class Annulus(Drawbject):
 		xy_2 = self.surface_width - (2 + self.ring_width)
 		path_pen = aggdraw.Pen(tuple(self.fill_color), self.ring_inner_width)
 		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
-		return self.surface
+
+		return self
 
 	@property
 	def __name__(self):
@@ -305,7 +307,7 @@ class Rectangle(Drawbject):
 		if auto_draw:
 			self.draw()
 
-	def draw(self):
+	def draw(self, as_numpy_surface=False):
 		x1 = self.stroke_width + 1
 		y1 = self.stroke_width + 1
 		x2 = self.surface_width - (self.stroke_width + 1)
@@ -318,7 +320,7 @@ class Rectangle(Drawbject):
 		else:
 			self.surface.rectangle((1, 1, self.surface_width - 1, self.surface_height - 1), self.fill)
 
-		return self.surface
+		return self
 
 	@property
 	def __name__(self):
@@ -327,28 +329,14 @@ class Rectangle(Drawbject):
 
 class Asterisk(Drawbject):
 
-	def __init__(self, size, color, auto_draw=True):
-		# size = int(1.2 * size)
-		size = int(math.floor(size * 72 / Params.ppi) * 1.5)
-		stroke_size = int(0.25 * size)
-		super(Asterisk, self).__init__(size, size, (stroke_size, color), fill=None)
+	def __init__(self, size, color, stroke=1, auto_draw=True):
+		stroke = int(0.2 * size)
+		super(Asterisk, self).__init__(size, size, (stroke, color), fill=None)
 		self.size = size
 		if auto_draw:
 			self.draw()
 
-	def draw(self):
-		# Params.exp.text_manager.add_style("asterisk", font_size=self.size)
-		# text_surface = Params.exp.message("*", "asterisk", blit=False).foreground
-		# # this solution taken from http://stackoverflow.com/questions/34730738/remove-empty-rows-and-columns-from-3d-numpy-pixel-array
-		# print text_surface
-		# mask = text_surface == [22,22,22,0]
-		# all_white = mask.sum(axis=2) == 0
-		# rows = numpy.flatnonzero(~all_white.sum(axis=0))
-		# cols = numpy.flatnonzero(~all_white.sum(axis=1))
-		#
-		# cropped_surface = text_surface[cols.min():cols.max(), rows.min():rows.max(), :]
-		# cropped_surface.scale(self.surface_width)
-		# return cropped_surface
+	def draw(self, as_numpy_surface=False):
 		x_os = int(self.surface_width * 0.925)
 		y_os = int(self.surface_height * 0.75)
 		l1 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height - 1]
@@ -357,13 +345,265 @@ class Asterisk(Drawbject):
 		self.surface.line([l1[0], l1[1], l1[2],l1[3]], self.stroke)
 		self.surface.line([l2[0], l2[1], l2[2],l2[3]], self.stroke)
 		self.surface.line([l3[0], l3[1], l3[2],l3[3]], self.stroke)
-		return self.surface
 
-	# def render(self):
-	# 	return self.draw()
-
-
+		return self
 
 	@property
 	def __name__(self):
 		return "Asterisk"
+
+
+class Line(Drawbject):
+
+	def __init__(self, length, color, thickness, rotation=0, auto_draw=True):
+		self.rotation = rotation
+		if rotation % 90 != 0:
+			self.x1 = thickness // 2
+			self.y1 = thickness // 2
+			self.x2 = int(math.sin(math.radians(float(self.rotation))) * length)
+			self.y2 = int(math.cos(math.radians(float(self.rotation))) * length)
+			s_width = self.x2 + int(0.5 * thickness)
+			s_height = self.y2 + int(0.5 * thickness)
+		else:
+			if rotation in [0, 180]:
+				s_width = thickness
+				s_height = length
+				self.x1 = thickness // 2
+				self.y1 = 1
+				self.x2 = self.x1
+				self.y2 = length
+			else:
+				s_width = length
+				s_height = thickness
+				self.x1 = 1
+				self.y1 = thickness // 2
+				self.x2 = length
+				self.y2 = self.x1
+		super(Line, self).__init__(s_width, s_height, [thickness, color, STROKE_INNER], fill=None)
+
+		if auto_draw:
+			self.draw()
+
+	def draw(self, as_numpy_surface=False):
+		self.surface.line((self.x1, self.y1, self.x2, self.y2), self.stroke)
+
+		return self.surface
+
+class ColorWheel(Drawbject):
+
+	def __init__(self, diameter, thickness=None,  rotation=0, auto_draw=True):
+		# self.stroke_pad = int(diameter * 0.01)
+		super(ColorWheel, self).__init__(diameter, diameter, stroke=None, fill=None)
+		self.rotation = rotation
+		self.diameter = diameter
+		self.radius = self.diameter // 2
+		self.thickness = 0.25 * diameter if not thickness else thickness
+
+		if auto_draw:
+			self.draw()
+
+	def draw(self, as_numpy_surface=True):
+		for i in range(360):
+			brush = aggdraw.Brush(colors[i])
+			center = self.surface_width // 2
+			inner_radius = self.radius - 2
+			self.surface.polygon((center, center,
+						   int(round(inner_radius + math.sin((self.rotation - .25) * PI / 180) * inner_radius)),
+						   int(round(inner_radius + math.cos((self.rotation - .25) * PI / 180) * inner_radius)),
+						   int(round(inner_radius + math.sin((self.rotation + 1.25) * PI / 180) * inner_radius)),
+						   int(round(inner_radius + math.cos((self.rotation + 1.25) * PI / 180) * inner_radius))),
+						  brush)
+			self.rotation += 1
+			if self.rotation > 360:
+				self.rotation -= 360
+		inner_xy1 = self.thickness // 2
+		inner_xy2 = self.surface_width - self.thickness // 2
+		outer_xy1 = 0
+		outer_xy2 = self.surface_width
+		self.surface.ellipse((inner_xy1, inner_xy1, inner_xy2, inner_xy2), aggdraw.Brush((0,0,0,255)))
+
+		return self
+		# self.surface.ellipse((0, 0, outer_xy2, outer_xy2), aggdraw.Pen((0, 0, 0, 255), self.stroke_pad))
+		# print self.surface
+		# return self.surface if not as_numpy_surface else NumpySurface(self.surface)
+
+	@property
+	def __name__(self):
+		return "ColorWheel"
+
+
+class FreeDraw(Drawbject):
+
+	def __init__(self, width, height, stroke, origin=None, fill=None, auto_draw=True):
+		super(FreeDraw, self).__init__(width, height, stroke, fill)
+		self.origin = origin if origin else (0,0)
+		self.at = self.origin
+		self.closed = False
+		self.sequence = []
+		self.close_at = None
+
+	def line(self, destination, origin=None):
+		origin = self.__validate_ends(destination, origin)
+		self.sequence.append([KLD_LINE, (origin[0], origin[1], destination[0], destination[1])])
+		self.at = destination
+
+		return self
+
+	def arc(self, destination, control, origin=None):
+		origin = self.__validate_ends(destination, origin)
+		x_ctrl = (destination[0] + control[0] // 2, control[1])
+		y_ctrl = (control[0], destination[1] + control[1] // 2)
+		self.__validate_ends([], x_ctrl)
+		self.__validate_ends([], y_ctrl)
+		self.sequence.append([KLD_ARC, (origin[0], origin[1], destination[0], destination[1]), control[0], control[1]])
+		self.at = destination
+
+		return self
+
+	def path(self, sequence, origin=None):
+		# origin = self.__validate_ends(sequence, origin)
+		# sequence.insert(0, origin)
+		self.sequence.append([KLD_PATH, sequence])
+		# self.at = sequence[-1]
+
+		return self
+
+	def move(self, location):
+		self.__validate_ends([], location)
+		self.sequence.append([KLD_MOVE, location])
+
+	def draw(self):
+		self.surface.rectangle([0,0,self.object_width, self.object_height], aggdraw.Brush((255,255,255,255)))
+		path_str = "M{0},{1}".format(*self.origin)
+		for s in self.sequence:
+			if s[0]  == KLD_LINE:
+				path_str += "L{0},{1}".format(*s[1])
+				# self.surface.line(s[1], self.stroke)
+			if s[0]  == KLD_ARC:
+				path_str += "S{0},{1},{2},{3},{4},{5}".format(*s[1])
+				# self.surface.arc(s[1], s[2], s[3], self.stroke)
+			if s[0]  == KLD_PATH:
+				for p in s[1]:
+					path_str += "L{0},{1}".format(*p)
+				# self.surface.line(s[1], self.stroke)
+		path_str += "{0},{1}z".format(*self.close_at)
+		p = aggdraw.Symbol(path_str)
+		self.surface.symbol((0,0), p, self.stroke, self.fill)
+
+		return self
+
+	def __validate_ends(self, sequence, origin):
+		if not origin:
+			if not self.at:
+				return ValueError("Parameter 'at' not currently set and no origin provided.")
+			origin = self.at
+		try:
+			if type(sequence[0]) is int:
+				sequence = [sequence]
+		except IndexError:
+			pass
+		# for loc in sequence:
+		# 	if loc[0] not in range(0, self.object_width) or loc[1] not in range(0, self.object_height):
+		# 		raise ValueError("Location ({0}, {1}) does not fall within surface bounds.".format(*loc))
+		return origin
+
+	@property
+	def __name__(self):
+		return "FreeDraw"
+
+class Bezier(Drawbject):
+	path_str = "m{0},{1} c{2},{3} {4},{5} {6},{7} z"
+	path_str_2 = "m{0},{1} c{2},{3} {4},{5} {6},{7} s{8},{9} {10},{11} z"
+
+	def __init__(self, height, width, origin, destination, ctrl1_s, ctrl1_e, ctrl2_s=None, ctrl2_e=None, stroke=None, fill=None, auto_draw=True):
+		super(Bezier, self).__init__(width, height, stroke, fill)
+		self.origin = origin
+		self.destination = destination
+		self.ctrl_start = ctrl1_s
+		self.ctrl_end = ctrl1_e
+		self.ctrl_2_start = ctrl2_s
+		self.ctrl_2_end = ctrl2_e
+
+		if auto_draw:
+			self.draw()
+
+	def draw(self):
+		data = self.origin + self.ctrl_start + self.ctrl_end + self.destination
+		path_str = self.path_str
+		if self.ctrl_2_start and self.ctrl_2_end:
+			data += self.ctrl_2_start
+			data += self.ctrl_2_end
+			path_str = self.path_str_2
+		sym = aggdraw.Symbol(path_str.format(*data))
+		self.surface.path((0,0), sym, self.stroke, self.fill)
+		print self.fill_color
+		print self.fill
+		return self
+
+
+	# # The following functions [bezier_curve() and pascal_row()]were written by the StackOverflow user @unutbu (#notypo)
+	# # http://stackoverflow.com/questions/246525/how-can-i-draw-a-bezier-curve-using-pythons-pil
+	# def __bezier_curve(self, xys):
+	# 	# xys should be a sequence of 2-tuples (Bezier control points)
+	# 	n = len(xys)
+	# 	combinations = self.__pascal_row(n-1)
+	# 	def bezier(ts):
+	# 		# This uses the generalized formula for bezier curves
+	# 		# http://en.wikipedia.org/wiki/B%C3%A9zier_curve#Generalization
+	# 		result = []
+	# 		for t in ts:
+	# 			t_powers = (t**i for i in range(n))
+	# 			u_powers = reversed([(1-t)**i for i in range(n)])
+	# 			coeffficients = [c*a*b for c, a, b in zip(combinations, t_powers, u_powers)]
+	# 			result.append(
+	# 				tuple(sum([c*p for c, p in zip(coeffficients, ps)]) for ps in zip(*xys)))
+	# 		return result
+	# 	return bezier
+	#
+	# def __pascal_row(self, n):
+	# 	# This returns the nth row of Pascal's Triangle
+	# 	result = [1]
+	# 	x, numerator = 1, n
+	# 	for denominator in range(1, n//2+1):
+	# 		# print(numerator,denominator,x)
+	# 		x *= numerator
+	# 		x /= denominator
+	# 		result.append(x)
+	# 		numerator -= 1
+	# 	if n&1 == 0:
+	# 		# n is even
+	# 		result.extend(reversed(result[:-1]))
+	# 	else:
+	# 		result.extend(reversed(result))
+	# 	return result
+
+# class SVG(Drawbject):
+#
+# 	def __init__(self, filename, auto_draw=True):
+# 		svg_start = re.compile("<path.*d=(.*)")
+# 		svg_end = re.compile("(.*)/>\n")
+# 		fpath = os.path.join(Params.image_dir, filename+".svg")
+# 		paths = []
+# 		img = open(fpath).readlines()
+# 		started = False
+# 		for l in open(self.edf_path).readlines():
+# 			if P_ID.match(l) is not None:
+# 				id = P_ID.match(l).group(1)
+# 			if START.match(l) is not None:
+# 				t = Trial(START_TIME.match(l).group(1))
+# 				continue
+# 			if END.match(l) is not None:
+# 				t.end = END_TIME.match(l).group(1)
+# 				self.add_trial(t)
+# 				t = None
+# 				continue
+# 			if t:
+# 				t.add_line(l)
+# 		for l in img:
+# 			if svg_start.match()
+#
+
+
+#  to handle legacy code in which KLIBs had a Circle object rather than an Ellipse object
+def Circle(diameter, stroke=None, fill=None, auto_draw=True):
+	return Ellipse(diameter, diameter, stroke, fill, auto_draw)

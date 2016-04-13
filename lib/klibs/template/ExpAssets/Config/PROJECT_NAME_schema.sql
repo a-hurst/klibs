@@ -39,22 +39,26 @@ CREATE TABLE participants (
 	age integer not null, 
 	handedness text not null,
 	created text not null,
+	klibs_commit text not null
+
 );
 
 CREATE TABLE events (
 	id integer primary key autoincrement not null,
-	user_id text not null,
+	user_id integer not null,
+	trial_id integer not null,
+	trial_num integer not null,
 	label text not null,
-	trial_clock text not null,
-	eyelink_clock integer,
+	trial_clock float not null,
+	eyelink_clock integer
 );
 
 CREATE TABLE logs (
 	id integer primary key autoincrement not null,
-	user_id text not null,
+	user_id integer not null,
 	message text not null,
-	trial_clock text not null,
-	eyelink_clock integer,
+	trial_clock float not null,
+	eyelink_clock integer
 );
 
 CREATE TABLE trials (

@@ -38,14 +38,6 @@ from klibs.KLEventInterface import *
 from klibs.KLDebug import *
 from klibs.KLExperiment import Experiment
 
-def track_mouse():
-	"""
-	Utility method for
-
-	:return:
-	"""
-	KLExperiment.blit(cursor(), 7, mouse_pos())
-	return True
 
 #####################################################
 #

@@ -3,10 +3,13 @@ author = 'jono'
 
 from random import seed
 
-from klibs.KLUtilities import *
+# from klibs.KLUtilities import *
 # from klibs.KLTimeKeeper import TimeKeeper
-from time import time
-
+import time
+from datetime import datetime
+from klibs.KLConstants import *
+import os
+import multiprocessing
 
 klibs_commit = "113282ae9cdbfb9d66e2eae7a071e546fc0d54bf"
 
@@ -14,6 +17,7 @@ klibs_commit = "113282ae9cdbfb9d66e2eae7a071e546fc0d54bf"
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
 global project_name
 global asset_dir
+global resource_dir
 global image_dir
 global config_dir
 global database_filename
@@ -42,6 +46,14 @@ sys_font_dir = "/Library/Fonts"
 user_font_dir = "~/Library/Fonts"
 klibs_font_dir = os.path.join(klibs_dir, "font")
 font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
+
+
+demographic_questions = [
+	['sex', "What is your sex? \nAnswer with:  (m)ale,(f)emale", ('m', 'M', 'f', 'F'), 'str', 'f'],
+	['handedness', "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous.",
+	 ('r', 'R', 'l', 'L', 'a', 'A'), 'str', 'r'],
+	['age', 'What is  your age?', None, 'int', -1]
+]
 
 initialized = False
 audio_initialized = False
@@ -108,6 +120,7 @@ cue_size = 1  # deg of visual angle
 cue_back_size = 1  # deg of visual angle
 verbosity = -1  # 0-10, with 0 being no errors and 10 being all errors todo: actually implement this hahaha, so fail
 
+trial_id = None
 trial_number = 0
 trials_per_block = 0
 trials_per_practice_block = 0
@@ -168,7 +181,7 @@ def init_project():
 	log_filename = str(project_name) + LOG_EXT
 	config_filename = str(project_name) + CONFIG_EXT
 	params_filename = str(project_name) + PARAMS_EXT
-	events_filename = str(project_name) + EVENTS_EXT
+	events_filename = str(project_name) + MESSSAGING_EXT
 
 	# project paths
 	edf_dir = os.path.join(asset_dir, "EDF")  # todo: write edf management
@@ -194,16 +207,18 @@ def setup(project_name_str, previous_random_seed):
 	global exp_font_dir
 	global image_dir
 	global config_dir
+	global resource_dir
 
-	anonymous_username = "demo_user_{0}".format(now(True))
+	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
 
 
 	#  seed the experiment with either a passed random_seed or else the current unix time
-	random_seed = previous_random_seed if previous_random_seed else time()
+	random_seed = previous_random_seed if previous_random_seed else time.time()
 	seed(random_seed)
 	project_name = project_name_str
 	asset_dir = "ExpAssets"
-	exp_font_dir = os.path.join(asset_dir, "Resources", "font")
-	image_dir = os.path.join(asset_dir, "Resources", "image")
+	resource_dir = os.path.join(asset_dir, "Resources")
+	exp_font_dir = os.path.join(resource_dir, "font")
+	image_dir = os.path.join(resource_dir, "image")
 	config_dir = os.path.join(asset_dir, "Config")
 	return init_project()

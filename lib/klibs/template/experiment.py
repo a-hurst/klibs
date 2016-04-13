@@ -4,29 +4,6 @@ __author__ = "EXPERIMENTER_NAME"
 
 from klibs import Params
 
-# Below are some commonly required additional libraries; uncomment as needed.
-
-# import os
-# import time
-# from PIL import Image
-# import sdl2
-# import sdl2.ext
-# import numpy
-# import math
-# import aggdraw
-# import random
-
-Params.collect_demographics = True
-Params.practicing = True
-Params.eye_tracking = True
-Params.eye_tracker_available = False
-
-Params.blocks_per_experiment = 2
-Params.trials_per_block = 5
-Params.practice_blocks_per_experiment = 3
-Params.trials_per_practice_block = 3
-
-
 class PROJECT_NAME(klibs.Experiment):
 
 	def __init__(self, *args, **kwargs):
@@ -35,10 +12,10 @@ class PROJECT_NAME(klibs.Experiment):
 	def setup(self):
 		Params.key_maps['PROJECT_NAME_response'] = klibs.KeyMap('PROJECT_NAME_response', [], [], [])
 
-	def setup_response_collector(self, trial_factors):
+	def block(self, block_num):
 		pass
 
-	def block(self, block_num):
+	def setup_response_collector(self, trial_factors):
 		pass
 
 	def trial_prep(self, trial_factors):
@@ -53,7 +30,6 @@ class PROJECT_NAME(klibs.Experiment):
 
 	def trial_clean_up(self, trial_id, trial_factors):
 		pass
-
 
 	def clean_up(self):
 		pass

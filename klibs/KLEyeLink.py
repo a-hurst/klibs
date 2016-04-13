@@ -192,8 +192,6 @@ if PYLINK_AVAILABLE:
 
 						raise TrialException("EyeLink not ready.")
 					return self.drift_correct()
-
-				return self.applyDriftCorrect()
 			else:
 				def dc(dc_location, dc_gaze_boundary):
 					hide_mouse_cursor()

@@ -69,12 +69,15 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 		if flip: self.experiment.flip()
 
 	def play_beep(self, clip):
-		if clip == pylink.DC_TARG_BEEP or clip == pylink.CAL_TARG_BEEP:
-			self.__target_beep__.play()
-		elif clip == pylink.CAL_ERR_BEEP or clip == pylink.DC_ERR_BEEP:
-			self.__target_beep__error__.play()
-		else:
-			self.__target_beep__done__.play()
+		try:
+			if clip == pylink.DC_TARG_BEEP or clip == pylink.CAL_TARG_BEEP:
+				self.__target_beep__.play()
+			elif clip == pylink.CAL_ERR_BEEP or clip == pylink.DC_ERR_BEEP:
+				self.__target_beep__error__.play()
+			else:
+				self.__target_beep__done__.play()
+		except:
+			pass
 
 	def get_input_key(self):
 		sdl2.SDL_PumpEvents()
@@ -115,23 +118,28 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
 				buff[i] = len(self.pal)-1
 			self.imagebuffer.append(self.pal[buff[i]&0x000000FF])
 			i += 1
-			
-		img = Image.frombytes('RGBX', (width,totlines), self.imagebuffer.tostring())
-		img = img.convert('RGBA')
-		self.experiment.blit(NumpySurface(numpy.asarray(img)), position=Params.screen_c, registration=5)
-		self.experiment.flip()
-		self.imagebuffer = array.array('I')
+		try:
+			img = Image.frombytes('RGBX', (width,totlines), self.imagebuffer.tostring())
+			img = img.convert('RGBA')
+			self.experiment.blit(NumpySurface(numpy.asarray(img)), position=Params.screen_c, registration=5)
+			self.experiment.flip()
+			self.imagebuffer = array.array('I')
+		except:
+			pass
 		return
 
 	def draw_lozenge(self, x, y, width, height, colorindex):
 		pass
 
 	def draw_line(self, x1, y1, x2, y2, colorindex):
-		print "Draw Line: {0}".format(x1, x2,y1,y2, colorindex)
-		line = Image.Draw("RGBA",[x2 - x1, y2 - y1])
-		p = Image.Pen((255,255,255), 2)
-		line.line((0, 0, x2, y2), p)
-		self.experiment.blit(from_aggdraw_context(line), position=Params.screen_c, registration=5)
+		try:
+			print "Draw Line: {0}".format(x1, x2,y1,y2, colorindex)
+			line = Image.Draw("RGBA",[x2 - x1, y2 - y1])
+			p = Image.Pen((255,255,255), 2)
+			line.line((0, 0, x2, y2), p)
+			self.experiment.blit(from_aggdraw_context(line), position=Params.screen_c, registration=5)
+		except:
+			pass
 
 	def set_image_palette(self, r, g, b):
 		self.imagebuffer = array.array('I')

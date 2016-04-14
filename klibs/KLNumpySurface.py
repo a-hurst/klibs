@@ -99,7 +99,7 @@ def import_image_file(path):
 		return add_alpha_channel(numpy.array(Image.open(path)))
 
 
-def grey_scale_to_alpha(self, img):
+def grey_scale_to_alpha(img):
 		"""
 
 		:param img:

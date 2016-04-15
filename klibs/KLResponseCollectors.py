@@ -8,6 +8,7 @@ from klibs.KLNumpySurface import NumpySurface
 from KLNumpySurface import aggdraw_to_array
 import aggdraw
 
+
 class BoundaryInspector(object):
 
 	def __init__(self):
@@ -102,7 +103,6 @@ class ResponseType(object):
 		if len(self.responses) >= index+1:
 			return self.responses[index][0] != self.null_response
 		return False
-
 
 	@property
 	def timed_out(self):
@@ -405,7 +405,6 @@ class ColorSelectionResponse(ResponseType):
 				pixel = self.__surface.get_pixel_value(pos)
 				try:
 					pixel_value = pixel.tolist()
-					print pixel_value
 					if self.require_alpha and len(pixel_value) == 3:
 						pixel_value.append(255)
 					if tuple(pixel_value) in self.palette:
@@ -533,6 +532,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 	@property
 	def active(self):
 		return self.started and not self.stopped
+
 
 class ResponseCollector(object):
 	__experiment = None

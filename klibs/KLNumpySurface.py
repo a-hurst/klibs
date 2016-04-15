@@ -99,20 +99,20 @@ def import_image_file(path):
 		return add_alpha_channel(numpy.array(Image.open(path)))
 
 
-def grey_scale_to_alpha(img):
+def grey_scale_to_alpha(source):
 		"""
 
-		:param img:
+		:param source:
 		:return: :raise TypeError:
 		"""
-		if type(img) is NumpySurface:
-			img = img.render()
-		elif type(img) is str:
-			img = import_image_file(img)
-		elif type(img) is not numpy.ndarray:
+		if type(source) is NumpySurface:
+			source = source.render()
+		elif type(source) is str:
+			source = import_image_file(source)
+		elif type(source) is not numpy.ndarray:
 			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
-		img[0: -1, 0: -1, 3] = img[0: -1, 0: -1, 0]
-		return img
+		source[0: -1, 0: -1, 3] = source[0: -1, 0: -1, 0]
+		return source
 
 
 class NumpySurface(object):

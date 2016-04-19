@@ -122,16 +122,14 @@ verbosity = -1  # 0-10, with 0 being no errors and 10 being all errors todo: act
 
 trial_id = None
 trial_number = 0
-trials_per_block = 0
-trials_per_practice_block = 0
 block_number = 0
+trials_per_block = 0
 blocks_per_experiment = 0
-practice_blocks_per_experiment = 0
 between_subject_conditions = None
 
 run_practice_blocks = True
 show_practice_messages = True
-practicing = True
+practicing = False
 recycle_count = 0  # reset on a per-block basis
 manual_trial_generation = False
 pre_render_block_messages = False

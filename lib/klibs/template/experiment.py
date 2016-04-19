@@ -12,7 +12,7 @@ class PROJECT_NAME(klibs.Experiment):
 	def setup(self):
 		Params.key_maps['PROJECT_NAME_response'] = klibs.KeyMap('PROJECT_NAME_response', [], [], [])
 
-	def block(self, block_num):
+	def block(self):
 		pass
 
 	def setup_response_collector(self, trial_factors):

@@ -8,6 +8,9 @@ import hashlib
 import Queue
 import threading
 import sys
+import re
+from subprocess import check_output
+
 from klibs.KLAudio import AudioManager
 from klibs.KLEyeLink import *
 from klibs.KLExceptions import *
@@ -23,7 +26,6 @@ from klibs.KLEventInterface import EventInterface
 from klibs.KLLabJack import LabJack
 from klibs.KLTimeKeeper import *
 
-#  TODO: Pull all the interface commands, keymaps, overwatch, etc. into KLInterface and stick it on a separate process
 
 def import_project_params(file_path):
 	try:
@@ -59,6 +61,7 @@ class Experiment(object):
 	text_manager = None   # KLTextManager instance
 	block_break_message = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
 	block_break_messages = []
+	blocks = None
 
 	def __init__(self, project_name, display_diagonal_in, random_seed, development_mode, eyelink_available, show_debug_overlay):
 		"""
@@ -100,7 +103,7 @@ class Experiment(object):
 			self.__database_init()
 
 			if display_diagonal_in == -1:  # ie. database operation called
-				self.quit()
+				return
 			# initialize screen surface and screen parameters
 			self.display_init(display_diagonal_in)
 
@@ -172,35 +175,32 @@ class Experiment(object):
 		:param kwargs:
 		"""
 
-		phases = 2 if Params.run_practice_blocks and Params.practice_blocks_per_experiment > 0 else 1
-		Params.time_keeper.start("trial_execution")
-		for i in range(phases):
-			Params.practicing = phases == 2 and i == 0
-			if Params.show_practice_messages:
-				if phases == 2 and i == 1:
-					self.block_break("Practice complete. Press any key to start experiment.")
-				if phases == 2 and i == 0:
-					practice_msg = "Before the experiment begins you will complete {0} blocks of practice trials. Press any key to begin."
-					self.block_break(practice_msg.format(Params.practice_blocks_per_experiment))
-			for block in self.trial_factory.export_trials():
-				Params.recycle_count = 0
-				Params.block_number = block[0]
-				self.block(block[0])    # ie. block number
-				for trial in block[1]:  # ie. list of trials
+
+		for block in self.blocks:
+			Params.recycle_count = 0
+			Params.block_number = self.blocks.i
+			Params.practicing = block.practice
+			print Params.practicing, block.practice
+			self.block()    # ie. block number
+			Params.trial_number = 1
+			for trial in block:  # ie. list of trials
+				try:
 					try:
-						try:
-							Params.trial_id = self.database.last_id_from('trials') + 1
-						except TypeError:
-							Params.trial_id = 1
-						self.__trial(trial)
-					except TrialException as e:
-						block[1].recycle()
-						Params.recycle_count += 1
-						Params.tk.log(e.message)
-						self.evi.send('trial_recycled')
-						self.database.current(False)
-						self.clear()
-					self.rc.reset()
+						Params.trial_id = self.database.last_id_from('trials') + 1
+					except TypeError:
+						Params.trial_id = 1
+					# block_base = (Params.block_number * Params.trials_per_block) - Params.trials_per_block
+					# Params.trial_number = block_base + block.i + 1 - Params.recycle_count
+					self.__trial(trial, block.practice)
+					Params.trial_number += 1
+				except TrialException as e:
+					block.recycle()
+					Params.recycle_count += 1
+					Params.tk.log(e.message)
+					self.evi.send('trial_recycled')
+					self.database.current(False)
+					self.clear()
+				self.rc.reset()
 		Params.time_keeper.stop("trial_execution")
 		Params.clock.terminate()
 		self.clean_up()
@@ -208,33 +208,32 @@ class Experiment(object):
 		self.database.db.commit()
 		self.database.db.close()
 
-	def __trial(self, *args, **kwargs):
+	def __trial(self, trial, practice):
 		"""
 		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1,...param_n]]
 
 		"""
 		pump()
-		args = args[0]
-		if args[1][0] is True:  # ie. if practicing
-			block_base = (Params.block_number * Params.trials_per_practice_block) - Params.trials_per_practice_block 
-			Params.trial_number = block_base + args[0] + 1 - Params.recycle_count
-		else:
-			block_base = (Params.block_number * Params.trials_per_block) - Params.trials_per_block 
-			Params.trial_number = block_base + args[0] - Params.recycle_count
-		self.setup_response_collector(args[1])
+		for p in self.trial_factory.exp_parameters:
+			attr_name = p[0]
+			attr_val = trial[self.trial_factory.exp_parameters.index(p)]
+			setattr(self, attr_name, attr_val)
 
-		self.trial_prep(args[1])
+		self.setup_response_collector()
+
+		self.trial_prep()
 		tx = None
 		try:
 			Params.clock.start()
-			trial_data = self.trial(args[1])
+			trial_data = self.trial()
 			Params.clock.stop()
 			self.__log_trial(trial_data)
-			self.trial_clean_up(Params.trial_id, args[1])
+			self.trial_clean_up()
 		except TrialException as e:
+			Params.trial_id = False
 			if Params.eye_tracking and Params.eye_tracker_available:
 				self.eyelink.stop()
-			self.trial_clean_up(False, args[1])
+			self.trial_clean_up()
 			Params.clock.stop()
 			tx = e
 		if Params.eye_tracking and Params.eye_tracker_available:
@@ -250,7 +249,7 @@ class Experiment(object):
 		:param args:
 		"""
 		#  todo: probably, should just be a global variable called database, but I didn't want to implement just now
-		self.database = Database()
+		self.database = Database(self)
 		Params.database = self.database
 
 	def __log_trial(self, trial_data, auto_id=True):
@@ -313,6 +312,7 @@ class Experiment(object):
 		Params.pixels_per_degree = Params.screen_x // Params.screen_degrees_x
 		Params.ppd = Params.pixels_per_degree  # alias for convenience
 
+
 		# these next six lines essentially assert a 2d, pixel-based rendering context; copied-and-pasted from Mike!
 		sdl2.SDL_GL_CreateContext(self.window.window)
 
@@ -321,7 +321,8 @@ class Experiment(object):
 		gl.glOrtho(0, Params.screen_x, Params.screen_y, 0, 0, 1)
 		gl.glMatrixMode(gl.GL_MODELVIEW)
 		gl.glDisable(gl.GL_DEPTH_TEST)
-
+		self.fill()
+		self.window.show()
 		pump()
 		try:
 			brand_period = Params.tk.count_down(2)
@@ -551,6 +552,23 @@ class Experiment(object):
 				time.sleep(2)
 				self.quit()
 		self.database.current(False)
+
+	def insert_practice_block(self, block_nums, trial_counts=None, factor_masks=None):
+		try:
+			iter(block_nums)
+		except TypeError:
+			block_nums = [block_nums]
+		try:
+			iter(trial_counts)
+		except TypeError:
+			trial_counts = ([Params.trials_per_block]  if trial_counts is None else [trial_counts]) * len(block_nums)
+		while len(trial_counts) < len(block_nums):
+			trial_counts.append(Params.trials_per_block)
+		if list_dimensions(factor_masks) == 2:
+			factor_masks = [factor_masks] * len(block_nums)
+		for i in range(0, len(block_nums)):
+			self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_masks[i])
+			Params.blocks_per_experiment += 1
 
 	def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
 		"""
@@ -1288,6 +1306,7 @@ class Experiment(object):
 
 		if Params.eye_tracking and Params.eye_tracker_available:
 			self.eyelink.setup()
+		self.blocks = self.trial_factory.export_trials()
 		self.setup()
 		self.__execute_experiment(*args, **kwargs)
 		self.quit()
@@ -1385,7 +1404,7 @@ class Experiment(object):
 		pass
 
 	@abc.abstractmethod
-	def block(self, block_num):
+	def block(self):
 		pass
 
 	@abc.abstractmethod

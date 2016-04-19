@@ -124,8 +124,10 @@ class Database(object):
 	schema = None
 	db_backup_path = None
 	table_schemas = {}
+	experiment = None
 
-	def __init__(self):
+	def __init__(self, experiment):
+		self.experiment = experiment
 		self.__init_db()
 		self.build_table_schemas()
 
@@ -249,7 +251,7 @@ class Database(object):
 			self.__open_entries = {}
 			self.__current_entry = None
 			print  "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
-			quit()
+			self.experiment.quit()
 
 	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
 
@@ -330,15 +332,20 @@ class Database(object):
 		if data is None:
 			try:
 				data = self.current()
+				if not table:
+					table = data.table_name
 			except RuntimeError:  # exception below is a more informative account of the current problem
 				raise RuntimeError("No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
-			if not table: table = data.table_name
 
 		try:
 			self.cursor.execute(data.insert_query())
 			if clear_current and self.current().name == data.name: self.current(False)
 		except AttributeError:
 			self.cursor.execute(self.query_str_from_raw_data(table, data))
+		except sqlite3.OperationalError:
+			print full_trace()
+			print "Tried to match the following:\n\t{0}\nwith\n\t{1}".format(self.table_schemas[table], data.insert_query())
+			self.experiment.quit()
 		self.db.commit()
 		return self.cursor.lastrowid
 

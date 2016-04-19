@@ -15,6 +15,7 @@ from math import ceil
 class BlockIterator(object):
 	def __init__(self, blocks):
 		self.blocks = blocks
+		self.practice_blocks = []
 		self.length = len(blocks)
 		self.i = 0
 
@@ -30,13 +31,24 @@ class BlockIterator(object):
 	def __setitem__(self, i, x):
 		self.blocks[i] = x
 
+	def insert(self, index, block, practice):
+		if self.i <= index:
+			self.practice_blocks.append(index)
+			self.blocks.insert(index, block)
+		else:
+			raise ValueError("Can't insert block at index {0}; it has already passed.".format(index))
+
 	def next(self):
 		if self.i >= self.length:
 			raise StopIteration
 		else:
 			self.i += 1
 			trials = TrialIterator(self.blocks[self.i - 1])
-			return [self.i, trials]
+			trials.practice = self.i - 1 in self.practice_blocks
+
+			return trials
+
+
 
 
 class TrialIterator(BlockIterator):
@@ -45,13 +57,14 @@ class TrialIterator(BlockIterator):
 		self.trials = block_of_trials
 		self.length = len(block_of_trials)
 		self.i = 0
+		self.__practice = False
 
 	def next(self):
 		if self.i >= self.length:
 			raise StopIteration
 		else:
 			self.i += 1
-			return [self.i, self.trials[self.i - 1]]
+			return self.trials[self.i - 1]
 
 	def recycle(self):
 		self.trials.append(self.trials[self.i - 1])
@@ -59,6 +72,14 @@ class TrialIterator(BlockIterator):
 		random.shuffle(temp)
 		self.trials[self.i:] = temp
 		self.length += 1
+
+	@property
+	def practice(self):
+		return self.__practice
+
+	@practice.setter
+	def practice(self, practicing):
+		self.__practice = practicing == True
 
 
 class TrialFactory(object):
@@ -82,27 +103,26 @@ class TrialFactory(object):
 		self.param_weight_search = compile("^.*[ ]*\[([0-9]{1,3})\]$")
 		self.param_label_search = compile("^(.*)([ ]*\[[0-9]{1,3}\])$")
 
-	def __generate_trials(self, practice_trials=False ):
-		trial_set = list(product(*[factor[1][:] for factor in self.exp_parameters]))
-		if len(trial_set) == 0: trial_set = [ [] ]
+	def __generate_trials(self, factors=None, block_count=None, trial_count=None):
+		#  by default just process self.exp_parameters, but, if a well-formatted factor list is passed, use that
+		if factors is None:
+			factors = self.exp_parameters
+		trial_tuples = list(product(*[factor[1][:] for factor in factors]))
+		if len(trial_tuples) == 0: trial_tuples = [ [] ]
+
 		# convert each trial tuple to list and insert at the front of it a boolean indicating if it is a practice trial
-		for i in range( len(trial_set) ):
-			trial_set[i] = list(trial_set[i])
-			trial_set[i].insert(0, practice_trials)
+		trial_set = []
+		for t in trial_tuples:
+			trial_set.append( list(t) )
 
 		trial_set_count = len(trial_set)
 		trials = copy(trial_set)
 		random.shuffle(trials)
 
-		block_count = None
-		trial_count = None
-
 		# Run one complete set of trials in no values are supplied for trial & block length
-		if practice_trials:
-			block_count = 1 if not Params.practice_blocks_per_experiment > 0 else Params.practice_blocks_per_experiment
-			trial_count = trial_set_count if not Params.trials_per_practice_block > 0 else Params.trials_per_practice_block
-		else:
+		if block_count is None:
 			block_count = 1 if not Params.blocks_per_experiment > 0 else Params.blocks_per_experiment
+		if trial_count is None:
 			trial_count = trial_set_count if not Params.trials_per_block > 0 else Params.trials_per_block
 
 		total_trials = block_count * trial_count
@@ -162,13 +182,8 @@ class TrialFactory(object):
 	def generate(self):
 		try:
 			self.blocks = self.trial_generator(self.exp_parameters)
-			if Params.practicing:
-				self.practice_blocks = self.trial_generator(self.exp_parameters)
 		except TypeError:
 			self.blocks = self.__generate_trials()
-			if Params.practicing:
-				self.practice_blocks = self.__generate_trials(True)
-		return True
 
 	def __parse_parameters_row(self, row, header=False):
 		col = 0
@@ -177,7 +192,7 @@ class TrialFactory(object):
 				column_name = el.split(".")
 				try:
 					if column_name[1] == TF_PARAM:
-						self.exp_parameters.append([column_name[0], []])
+						self.exp_parameters.append([column_name[0].replace(" ", ""), []])
 				except:
 					continue
 			else:
@@ -197,10 +212,29 @@ class TrialFactory(object):
 			col += 1
 
 	def export_trials(self):
-		return BlockIterator(self.practice_blocks) if Params.practicing else BlockIterator(self.blocks)
+		return BlockIterator(self.blocks)
 
 	def add_factor_by_inference(self, factor_name, generator, argument_list):
 		self.exp_parameters[factor_name] = {"f": generator, "arg_list": argument_list}
+
+	def insert_block(self, block_num, practice, trial_count="*", factor_mask=None):
+		factors = []
+		col_index = 0
+		for col in factor_mask:
+			val_index = 0
+			col_name = self.exp_parameters[col_index][0]
+			vals = []
+			for val in col:
+				for i in range(0,val):
+					try:
+						vals.append(self.exp_parameters[col_index][1][val_index])
+					except IndexError:
+						pass
+				val_index += 1
+			col_index += 1
+			factors.append([col_name, vals if len(vals) else [None]])
+		block = self.__generate_trials(factors, 1, trial_count)
+		self.experiment.blocks.insert(block_num - 1, block[0], practice)  # there is no "zero" block from the UI/UX perspective
 
  	def define_trial(self, rule, quantity):
 		pass

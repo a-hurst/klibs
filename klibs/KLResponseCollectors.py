@@ -6,7 +6,9 @@ from klibs.KLAudio import AudioStream
 from klibs.KLConstants import *
 from klibs.KLNumpySurface import NumpySurface
 from KLNumpySurface import aggdraw_to_array
+from klibs.KLDraw import Drawbject, ColorWheel
 import aggdraw
+from bisect import bisect
 
 
 class BoundaryInspector(object):
@@ -389,34 +391,31 @@ class FixationResponse(ResponseType):
 
 
 class ColorSelectionResponse(ResponseType):
-	__palette = []
 	__surface = None
 	__x_offset = None
 	__y_offset = None
+	__rotation = 0
 	require_alpha = True
+	target_location = None
 
 	def __init__(self, collector):
 		super(ColorSelectionResponse, self).__init__(collector)
 
 	def collect_response(self, event_queue):
+		# todo: add some logic for excluding certain colors (ie. the background color)
 		for e in event_queue:
 			if e.type == sdl2.SDL_MOUSEBUTTONUP:
 				pos = [e.button.x - self.__x_offset, e.button.y - self.__y_offset]
-				pixel = self.__surface.get_pixel_value(pos)
-				try:
-					pixel_value = pixel.tolist()
-					if self.require_alpha and len(pixel_value) == 3:
-						pixel_value.append(255)
-					if tuple(pixel_value) in self.palette:
-						if len(self.responses) < self.min_response_count:
-							self.responses.append([tuple(pixel_value), Params.clock.trial_time])
-							if self.interrupts:
-								return self.responses if self.max_response_count > 1 else self.responses[0]
-				except AttributeError as e:
-					print e
-					continue
+				angle = self.color_to_wheel_angle(self.__mouse_angle_to_color(mouse_angle(False, pos)))
+				if len(self.responses) < self.min_response_count:
+					self.responses.append([angle, Params.clock.trial_time])
+					if self.interrupts:
+						return self.responses if self.max_response_count > 1 else self.responses[0]
 
-	def target(self, surface, location, registration=7):
+	def target(self, surface, location=(0,0), registration=7):
+		if isinstance(surface, ColorWheel):
+			self.rotation = surface.rotation
+		self.target_location = location
 		try:
 			if registration in [8,5,2]:
 				surf_offset_x = surface.width // 2
@@ -436,14 +435,70 @@ class ColorSelectionResponse(ResponseType):
 		except AttributeError:
 			self.target(NumpySurface(surface), location, registration)
 
-	@property
-	def palette(self):
-		return self.__palette
+	def __mouse_angle_to_color(self, angle):
+		angle = float(angle - self.__rotation + 360 if angle < self.__rotation else angle - self.__rotation)
 
-	@palette.setter
-	def palette(self, color_list):
-		iter(color_list)
-		self.__palette = color_list
+		thick = angle // 60 % 2 and 1 - (angle % 60) / 60 or (angle % 60) / 60
+		colors = [[60, 1, thick, 0], # [...to_angle, red, green, blue],
+				  [120, thick, 1, 0],
+				  [180, 0, 1, thick],
+				  [240, 0, thick, 1],
+				  [360, thick, 0, 1],
+				  [float('inf'), 1, 0, thick]]
+		return colors[bisect([x[0] for x in colors], angle)][1:]
+		# if angle < 60:
+		# 	red = 1
+		# 	green = angle / 60
+		# 	blue = 0
+		# elif angle < 120:
+		# 	red = 1 - (angle - 60) / 60
+		# 	green = 1
+		# 	blue = 0
+		# elif angle < 180:
+		# 	red = 0
+		# 	green = 1
+		# 	blue = (angle - 120) / 60
+		# elif angle < 240:
+		# 	red = 0
+		# 	green = 1 - (angle - 180) / 60
+		# 	blue = 1
+		# elif angle < 300:
+		# 	red = (angle - 240) / 60
+		# 	green = 0
+		# 	blue = 1
+		# else:
+		# 	red = 1
+		# 	green = 0
+		# 	blue = 1 - (angle - 300) / 60
+		# return tuple(red * 255, green * 255, blue * 255, 255)
+
+	def color_to_wheel_angle(self, color):
+		color = [i/255 for i in color]
+		if color[0] == 1:
+			if color[2] == 0:
+				angle = color[1] * 60
+			else:
+				angle = 300 + (1 - color[2]) * 60
+		elif color[1] == 1:
+			if color[2] == 0:
+				angle = 60 + (1 - color[0]) * 60
+			else:
+				angle = 120 + color[2] * 60
+		else:
+			if color[0] == 0:
+				angle = 180 + (1 - color[1]) * 60
+			else:
+				angle = 240 + color[0] * 60
+
+		return angle - self.__rotation + 360 if angle < self.__rotation else angle - self.__rotation
+
+	@property
+	def rotation(self):
+		return self.__rotation
+
+	@rotation.setter
+	def rotation(self, angle):
+		self.__rotation = angle
 
 
 class DrawResponse(ResponseType, BoundaryInspector):

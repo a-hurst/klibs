@@ -251,6 +251,19 @@ def line_segment_len(a, b):
 	return math.sqrt(y**2 + x**2)
 
 
+def list_dimensions(target, dim=0):
+	"""
+	Tests if testlist is a list and how many dimensions it has
+	returns -1 if it is no list at all, 0 if list is empty
+	and otherwise the dimensions of it
+	http://stackoverflow.com/questions/15985389/python-check-if-list-is-multidimensional-or-one-dimensional, u: bunkus
+	"""
+	if isinstance(target, list):
+		return dim if not len(target) else list_dimensions(target[0], dim + 1)
+	else:
+		return -1 if dim == 0 else dim
+
+
 def log(msg, priority):
 	"""Log an event
 	:param msg: The string to log
@@ -281,6 +294,16 @@ def mouse_pos(pump_event_queue=True, position=None):
 	else:
 		sdl2.mouse.SDL_WarpMouseGlobal(*position)
 		return position
+
+
+def mouse_angle(pump_event_queue=True, position=None):
+	if pump_event_queue:
+		sdl2.SDL_PumpEvents()
+	if not position:
+		position = Params.screen_c
+	m_pos = mouse_pos()
+	angle = math.atan2(float(m_pos[0] - position[0]), float(m_pos[1] - position[1]) * 180 / math.pi)
+	return angle if angle < 0 else angle + 360
 
 
 def now(format_time=False, format_template=DATETIME_STAMP):
@@ -395,12 +418,9 @@ def pt_to_px(pt_size):
 		raise TypeError("Argument 'pt_size' must be an integer.")
 	if 512 < pt_size < 2:
 		raise ValueError("Argument 'pt_size' must be between 2 and 512.")
-	if Params.dpi is not None:
-		dpi = Params.dpi
-	else:
-		dpi = 96  # CRT default
+	# dpi = 96  # CRT default
 
-	return int(math.floor(1.0 / 72 * dpi * pt_size))
+	return int(math.floor(1.0 / 72 * Params.ppi * pt_size))
 
 
 def px_to_deg(length):  # length = px

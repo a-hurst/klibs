@@ -23,7 +23,7 @@ def argb32_to_rgba(np_array):
 
 class TextStyle(object):
 	__font_size = None
-
+	#todo: render_size(str, width)
 	def __init__(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None, anti_alias=True):
 		"""
 
@@ -52,13 +52,16 @@ class TextStyle(object):
 	def font_size(self):
 		return self.__font_size
 
+	@property
+	def font_size_px(self):
+		return pt_to_px(self.__font_size)
+
 	@font_size.setter
 	def font_size(self, size):
 		try:
 			self.__font_size = int(size)
 		except ValueError:
 			self.__font_size = int(math.floor(1.0 / 72 * Params.ppi * int(size[0:-2])))
-
 
 	def __str__(self):
 		return "klibs.KLTextManager.TextStyle ('{0}') at {1}".format(self.label, hex(id(self)))

@@ -1408,22 +1408,22 @@ class Experiment(object):
 		pass
 
 	@abc.abstractmethod
-	def trial(self, trial_factors):
+	def trial(self):
 		pass
 
 
 	@abc.abstractmethod
-	def trial_prep(self, trial_id, trial_factors):
+	def trial_prep(self):
 		pass
 
 	@abc.abstractmethod
-	def trial_clean_up(self, trial_factors):
+	def trial_clean_up(self):
 		pass
 
 
 	#  To be abstract in a later release, for now, not required for backwards compatibility
 	# @abc.abstractmethod
-	def setup_response_collector(self, trial_factors):
+	def setup_response_collector(self):
 		pass
 
 	#  Legacy functions to be removed in a later release

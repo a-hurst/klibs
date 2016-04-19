@@ -166,6 +166,8 @@ class TrialFactory(object):
 						continue
 				except IndexError:
 					pass
+				for i in range(0, len(row)):
+					row[i] = row[i].replace(" ", "")
 				self.config_file_rows.append(row)
 				self.__parse_parameters_row(row, header= row_count == 0)
 				row_count += 1

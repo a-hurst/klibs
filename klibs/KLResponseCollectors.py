@@ -737,7 +737,7 @@ class ResponseCollector(object):
 		self.response_countdown = None
 
 	def __collect(self, mouseclick_boundaries):
-		self.tracker_time = self.experiment.eyelink.now()
+		self.tracker_time = self.experiment.eyelink.now() if Params.eye_tracker_available else -1
 		while True:
 			if Params.development_mode and not self.end_collection_event:
 				try:

@@ -436,44 +436,49 @@ class ColorSelectionResponse(ResponseType):
 			self.target(NumpySurface(surface), location, registration)
 
 	def __mouse_angle_to_color(self, angle):
-		angle = float(angle - self.__rotation + 360 if angle < self.__rotation else angle - self.__rotation)
-
-		thick = angle // 60 % 2 and 1 - (angle % 60) / 60 or (angle % 60) / 60
-		colors = [[60, 1, thick, 0], # [...to_angle, red, green, blue],
-				  [120, thick, 1, 0],
-				  [180, 0, 1, thick],
-				  [240, 0, thick, 1],
-				  [360, thick, 0, 1],
-				  [float('inf'), 1, 0, thick]]
-		return colors[bisect([x[0] for x in colors], angle)][1:]
-		# if angle < 60:
-		# 	red = 1
-		# 	green = angle / 60
-		# 	blue = 0
-		# elif angle < 120:
-		# 	red = 1 - (angle - 60) / 60
-		# 	green = 1
-		# 	blue = 0
-		# elif angle < 180:
-		# 	red = 0
-		# 	green = 1
-		# 	blue = (angle - 120) / 60
-		# elif angle < 240:
-		# 	red = 0
-		# 	green = 1 - (angle - 180) / 60
-		# 	blue = 1
-		# elif angle < 300:
-		# 	red = (angle - 240) / 60
-		# 	green = 0
-		# 	blue = 1
-		# else:
-		# 	red = 1
-		# 	green = 0
-		# 	blue = 1 - (angle - 300) / 60
-		# return tuple(red * 255, green * 255, blue * 255, 255)
+		# angle = float(angle - self.__rotation + 360 if angle < self.__rotation else angle - self.__rotation)
+		#
+		# thick = angle // 60 % 2 and 1 - (angle % 60) / 60 or (angle % 60) / 60
+		# colors = [[60, 1, thick, 0], # [...to_angle, red, green, blue],
+		# 		  [120, thick, 1, 0],
+		# 		  [180, 0, 1, thick],
+		# 		  [240, 0, thick, 1],
+		# 		  [360, thick, 0, 1],
+		# 		  [float('inf'), 1, 0, thick]]
+		# return colors[bisect([x[0] for x in colors], angle)][1:]
+		angle = float(angle)
+		if angle < self.rotation:
+			angle = angle - self.rotation + 360
+		else:
+			angle = angle - self.rotation
+		if angle < 60:
+			red = 1
+			green = angle / 60
+			blue = 0
+		elif angle < 120:
+			red = 1 - (angle - 60) / 60
+			green = 1
+			blue = 0
+		elif angle < 180:
+			red = 0
+			green = 1
+			blue = (angle - 120) / 60
+		elif angle < 240:
+			red = 0
+			green = 1 - (angle - 180) / 60
+			blue = 1
+		elif angle < 300:
+			red = (angle - 240) / 60
+			green = 0
+			blue = 1
+		else:
+			red = 1
+			green = 0
+			blue = 1 - (angle - 300) / 60
+		return [red, green, blue]
 
 	def color_to_wheel_angle(self, color):
-		color = [i/255 for i in color]
+		# color = [i/255 for i in color]
 		if color[0] == 1:
 			if color[2] == 0:
 				angle = color[1] * 60
@@ -489,8 +494,9 @@ class ColorSelectionResponse(ResponseType):
 				angle = 180 + (1 - color[1]) * 60
 			else:
 				angle = 240 + color[0] * 60
+		angle -= self.__rotation
 
-		return angle - self.__rotation + 360 if angle < self.__rotation else angle - self.__rotation
+		return  angle + 360 if angle < self.__rotation else angle
 
 	@property
 	def rotation(self):

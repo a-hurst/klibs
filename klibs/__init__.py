@@ -32,7 +32,8 @@ from klibs.KLDatabase import Database
 from klibs.KLTextManager import TextManager
 from klibs.KLKeyMap import *
 from klibs.KLEyeLink import *
-from klibs.KLELCustomDisplay import ELCustomDisplay
+if PYLINK_AVAILABLE:
+	from klibs.KLELCustomDisplay import ELCustomDisplay
 from klibs.KLLabJack import *
 from klibs.KLEventInterface import *
 from klibs.KLDebug import *

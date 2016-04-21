@@ -9,12 +9,13 @@ from klibs.KLDraw import *
 from klibs.KLExceptions import *
 
 try:
-	import pylink
+	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue
 	PYLINK_AVAILABLE = True
 except ImportError:
 	print "\t* Warning: Pylink library not found; eye tracking will not be available."
 	PYLINK_AVAILABLE = False
 
+print "pylink available: {0}".format(PYLINK_AVAILABLE)
 try:
 	mouse = mouse_pos(True)
 	if (type(x) is int for x in mouse):
@@ -24,7 +25,7 @@ except:
 
 
 if PYLINK_AVAILABLE:
-	class EyeLink(pylink.EyeLink):
+	class EyeLink(EyeLink):
 		__dummy_mode = None
 		__anonymous_boundaries = 0
 		experiment = None
@@ -39,7 +40,7 @@ if PYLINK_AVAILABLE:
 			self.__current_sample = False
 			if Params.eye_tracker_available:
 				try:
-					pylink.EyeLink.__init__(self)
+					EyeLink.__init__(self)
 				except RuntimeError as e:
 					if e.message == "Could not connect to tracker at 100.1.1.1":
 						print "Could not connect to tracker at 100.1.1.1. If EyeLink machine is on, ready & connected try turning off the wifi on this machine."
@@ -260,10 +261,10 @@ if PYLINK_AVAILABLE:
 			if self.custom_display is None:
 				self.openGraphics(Params.screen_x_y)
 			else:
-				pylink.openGraphicsEx(self.custom_display)
+				openGraphicsEx(self.custom_display)
 			if not self.dummy_mode:
 				self.edf_filename = exp_file_name(EDF_FILE)
-				pylink.flushGetkeyQueue()
+				flushGetkeyQueue()
 				self.setOfflineMode()
 				# TODO: have a default "can't connect to tracker; do you want to switch to dummy_mode" UI pop up
 				# Running this with pylink installed whilst unconnected to a tracker throws: RuntimeError: Link terminated

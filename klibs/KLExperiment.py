@@ -17,7 +17,8 @@ from klibs.KLExceptions import *
 from klibs.KLDatabase import *
 from klibs.KLKeyMap import KeyMap
 from klibs.KLTextManager import *
-from klibs.KLELCustomDisplay import ELCustomDisplay
+if PYLINK_AVAILABLE:
+	from klibs.KLELCustomDisplay import ELCustomDisplay
 from klibs.KLDraw import *
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLDebug import Debugger
@@ -117,9 +118,10 @@ class Experiment(object):
 			self.audio = AudioManager(self)
 
 			# initialize eyelink
-			self.eyelink = EyeLink(self)
-			self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
-			self.eyelink.dummy_mode = Params.eye_tracker_available is False
+			if PYLINK_AVAILABLE:
+				self.eyelink = EyeLink(self)
+				self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
+				self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
 			Params.key_maps["*"] = KeyMap("*", [], [], [])
 			Params.key_maps["*"].any_key = True
@@ -217,7 +219,7 @@ class Experiment(object):
 			attr_name = p[0]
 			attr_val = trial[self.trial_factory.exp_parameters.index(p)]
 			setattr(self, attr_name, attr_val)
-
+		print "Trial Factors: {0}".format(trial)
 		self.setup_response_collector()
 
 		self.trial_prep()

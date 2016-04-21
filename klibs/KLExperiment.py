@@ -292,7 +292,7 @@ class Experiment(object):
 		"""
 
 		import Tkinter
-
+		splash = NumpySurface(os.path.join(Params.klibs_dir, "splash.png")).render()
 		root = Tkinter.Tk()
 		Params.screen_x = root.winfo_screenwidth()
 		Params.screen_y = root.winfo_screenheight()
@@ -321,17 +321,14 @@ class Experiment(object):
 		gl.glOrtho(0, Params.screen_x, Params.screen_y, 0, 0, 1)
 		gl.glMatrixMode(gl.GL_MODELVIEW)
 		gl.glDisable(gl.GL_DEPTH_TEST)
-		self.fill()
-		self.window.show()
 		pump()
-		try:
-			brand_period = Params.tk.count_down(2)
-			while brand_period.counting():
-				self.fill()
-				self.blit(NumpySurface(os.path.join(Params.klibs_dir, "splash.png")), 5, 'center')
-				self.flip()
-		except AttributeError:
-			pass
+		self.window.show()
+		self.fill()
+		self.blit(splash, 5, Params.screen_c)
+		self.flip()
+		self.any_key()
+		# except AttributeError:
+		# 	pass
 		Params.display_initialized = True
 
 	def alert(self, alert_string, blit=True, display_for=0):

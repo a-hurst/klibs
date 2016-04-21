@@ -201,7 +201,6 @@ class Experiment(object):
 					self.database.current(False)
 					self.clear()
 				self.rc.reset()
-		Params.time_keeper.stop("trial_execution")
 		Params.clock.terminate()
 		self.clean_up()
 		self.evi.dump_events()

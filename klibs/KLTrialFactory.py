@@ -35,6 +35,7 @@ class BlockIterator(object):
 		if self.i <= index:
 			self.practice_blocks.append(index)
 			self.blocks.insert(index, block)
+			self.length = len(self.blocks)
 		else:
 			raise ValueError("Can't insert block at index {0}; it has already passed.".format(index))
 

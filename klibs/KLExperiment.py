@@ -28,13 +28,15 @@ from klibs.KLLabJack import LabJack
 from klibs.KLTimeKeeper import *
 
 
-def import_project_params(file_path):
+def import_project_params(file_path=None):
+	if not file_path:
+		file_path = Params.params_file_path
 	try:
 		project_params =  imp.load_source("*", file_path)
 		for k, v in project_params.__dict__.iteritems():
-				setattr(Params, k, v)
+			setattr(Params, k, v)
 	except IOError:
-		pass
+		return None
 
 
 class Experiment(object):
@@ -82,11 +84,10 @@ class Experiment(object):
 
 		if not Params.setup(project_name, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
-		import_project_params(Params.params_file_path)
+		import_project_params()
 		Params.time_keeper = TimeKeeper(self)
 		Params.tk = Params.time_keeper
 		Params.tk.start("Experiment Init")  # global TimeKeeper is initialized in Params.setup()
-		# Params.clock = Params.tk.clock
 		Params.clock = Params.tk.clock
 		self.clock = Params.clock  # this is ONLY for having the KLIBS cli end the program on an error
 		try:
@@ -103,7 +104,9 @@ class Experiment(object):
 			#initialize the self.database instance
 			self.__database_init()
 
+			#todo: what the dear fuck jon. separate database from experiment, period
 			if display_diagonal_in == -1:  # ie. database operation called
+				self.clock.terminate()
 				return
 			# initialize screen surface and screen parameters
 			self.display_init(display_diagonal_in)
@@ -182,7 +185,6 @@ class Experiment(object):
 			Params.recycle_count = 0
 			Params.block_number = self.blocks.i
 			Params.practicing = block.practice
-			print Params.practicing, block.practice
 			self.block()    # ie. block number
 			Params.trial_number = 1
 			for trial in block:  # ie. list of trials
@@ -219,7 +221,6 @@ class Experiment(object):
 			attr_name = p[0]
 			attr_val = trial[self.trial_factory.exp_parameters.index(p)]
 			setattr(self, attr_name, attr_val)
-		print "Trial Factors: {0}".format(trial)
 		self.setup_response_collector()
 
 		self.trial_prep()
@@ -249,9 +250,9 @@ class Experiment(object):
 
 		:param args:
 		"""
-		#  todo: probably, should just be a global variable called database, but I didn't want to implement just now
+
 		self.database = Database(self)
-		Params.database = self.database
+		# Params.database = self.database
 
 	def __log_trial(self, trial_data, auto_id=True):
 		"""

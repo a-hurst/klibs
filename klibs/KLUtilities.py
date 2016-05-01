@@ -75,12 +75,29 @@ def arg_error_str(arg_name, given, expected, kw=True):
 	return err_string.format(arg_name, type(given), type(expected))
 
 
-def angle_between(a, b):
-	dx = a[0] - b[0]
-	dy = a[1] - b[1]
-	rads = atan2(-dy, dx)
-	rads %= 2 * pi
-	return degrees(rads)
+# if clockwise:
+# 	angle = -1 * rotation - (angle - 90)
+# else:
+# 	angle = rotation - ( 360 - (angle + 90))
+
+
+def angle_between(a, b, rotation=0, clockwise=False):
+	if rotation > 360:
+		rotation %= 360
+	dX = float(a[0] - b[0]) if not clockwise else float(a[1] - b[1])
+	dY = float(a[1] - b[1]) if not clockwise else float(a[0] - b[0])
+	dV = 90 if not clockwise else 180
+	angle = rotation - (degrees(math.atan2(dX * 180 / math.pi, dY * 180 / math.pi)) + dV)
+	if angle > 0:
+		angle = 360 - angle
+	else:
+		angle *= -1
+	return 0 if clockwise and angle == 360 else angle
+	# if angle > 0:
+	# else:
+	# 	return 360 - (360 + angle) if clockwise else 360 + angle
+	# angle %= 360
+	# return 360 - angle if clockwise else angle
 
 
 def bool_to_int(boolean_val):
@@ -180,8 +197,8 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 	duplicate_file_name_str = "p{0}.{1}_{2}{3}"
 
 	if date is None:
-		date_query = "SELECT `created` FROM `participants` WHERE `id` = {0}".format(participant_id)
-		date = Params.database.query(date_query).fetchall()[0][0][:10]
+		date_query = "SELECT `created` FROM `participants` WHERE `id` = ?"
+		date = Params.database.query(date_query, q_vars=tuple([participant_id])).fetchall()[0][0][:10]
 	if file_type == PARTICIPANT_FILE:
 		file_extension = TF_DATA
 		if incomplete:
@@ -296,14 +313,18 @@ def mouse_pos(pump_event_queue=True, position=None):
 		return position
 
 
-def mouse_angle(pump_event_queue=True, position=None):
+def mouse_angle(pump_event_queue=True, reference=None, rotation=0, clockwise=False):
+
 	if pump_event_queue:
 		sdl2.SDL_PumpEvents()
-	if not position:
-		position = Params.screen_c
-	m_pos = mouse_pos()
-	angle = math.atan2(float(m_pos[0] - position[0]), float(m_pos[1] - position[1]) * 180 / math.pi)
-	return angle if angle < 0 else angle + 360
+	if reference is None:
+		reference = Params.screen_c
+	m = mouse_pos()
+	return angle_between(reference, mouse_pos(), rotation, clockwise)
+	# angle = degrees(math.atan2(float(m[0] - reference[0]), float(m[1] - reference[1]) * 180 / math.pi)) - 90
+	# angle += rotation
+	# angle %= 360
+	# return angle if clockwise else 360 - angle
 
 
 def now(format_time=False, format_template=DATETIME_STAMP):
@@ -317,9 +338,16 @@ def peak(v1, v2):
 		return v2
 
 
-def point_pos(x, y, amplitude, angle):
+def point_pos(origin, amplitude, angle, rotation=0, clockwise=False):
+	# angle = rotation - angle if clockwise else 360 - (rotation - angle)
+	if clockwise:
+		angle = -1 * rotation - (angle - 90)
+	else:
+		angle = rotation - ( 360 - (angle + 90))
+	if angle < 0:
+		angle += 360
 	theta_rad = pi / 2 - radians(angle)
-	return int(x + amplitude * cos(theta_rad)), int(y + amplitude * sin(theta_rad))
+	return int(origin[0] + amplitude * cos(theta_rad)), int(origin[1] + amplitude * sin(theta_rad))
 
 
 def pump(get_events=False):
@@ -428,7 +456,7 @@ def px_to_deg(length):  # length = px
 
 
 def rgb_to_rgba(rgb):
-	return tuple(rgb) if len(rgb) == 4 else (rgb[0], rgb[1], rgb[2], 255)
+	return tuple(rgb) if len(rgb) == 4 else tuple([rgb[0], rgb[1], rgb[2], 255])
 
 
 def show_mouse_cursor():

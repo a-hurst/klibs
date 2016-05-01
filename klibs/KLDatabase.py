@@ -3,7 +3,7 @@ __author__ = 'jono'
 import shutil
 import sqlite3
 from klibs.KLUtilities import *
-
+import klibs.KLParams as Params
 
 class EntryTemplate(object):
 	null_field = "DELETE_THIS_FIELD"
@@ -125,9 +125,18 @@ class Database(object):
 	db_backup_path = None
 	table_schemas = {}
 	experiment = None
+	data_columns = None
+	default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]
+	default_participant_fields_sf = [["userhash", "participant"], "random_seed", "sex", "age", "handedness"]
+	default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
+	data_column_format = DB_COL_TITLE
 
-	def __init__(self, experiment):
+	def __init__(self, experiment=None, project_name=None):
 		self.experiment = experiment
+		if not experiment:  # ie. exporting
+			from klibs.KLExperiment import import_project_params
+			Params.setup(project_name, None)
+			import_project_params()
 		self.__init_db()
 		self.build_table_schemas()
 
@@ -147,7 +156,7 @@ class Database(object):
 			quit()
 
 	def __init_db(self):
-		if os.path.exists(Params.database_path):
+		try:
 			shutil.copy(Params.database_path, Params.database_backup_path)
 			self.db = sqlite3.connect(Params.database_path)
 			self.cursor = self.db.cursor()
@@ -161,7 +170,7 @@ class Database(object):
 					return True
 				else:
 					raise RuntimeError("Database exists but no tables were found and no table schema were provided.")
-		else:
+		except sqlite3.OperationalError:
 			self.__catch_db_not_found()
 
 	def __tables(self):
@@ -387,8 +396,13 @@ class Database(object):
 		values_str = ",".join(values)
 		return "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
 
-	def query(self, query, query_type=QUERY_SEL, return_result=True):
-		result = self.cursor.execute(query)
+	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True):
+		try:
+			result = self.cursor.execute(query, tuple(q_vars))
+		except:
+			if q_vars:
+				full_trace()
+			result = self.cursor.execute(query)
 		if query_type != QUERY_SEL: self.db.commit()
 		return result if return_result else True
 
@@ -422,33 +436,43 @@ class Database(object):
 		self.db.commit()
 		return self.cursor.lastrowid
 
-	def collect_export_data(self, multi_file=True):
+	def collect_export_data(self, multi_file=True,  join_tables=[]):
 		participant_ids = self.query("SELECT `id`, `userhash` FROM `participants`").fetchall()
 		participant_ids.insert(0, (-1,))  # for test data collected before anonymous_user added to collect_demographics()
+		default_fields = Params.default_participant_fields if multi_file else Params.default_participant_fields_sf
+
+		t_cols = []
 		data = []
 
-		#  build query strings for retrieving data as/if configured by experimenter
-		p_field_str = ""
-		t_field_str = ""
-
 		#  random_seed has to be added to every participant row when exporting to multi-file
-		default_fields = Params.default_participant_fields if multi_file else Params.default_participant_fields_sf
-		for field in default_fields:
-			if iterable(field):  # ie. the id/userhash field--id used internally, userhash for output
-				p_field_str += "`participants`.`{0}` AS `{1}`, ".format(*field)
-			else:
-				p_field_str += "`participants`.`{0}`, ".format(field)
-		for field in self.table_schemas['trials']:
-			if field[0] not in [ID, Params.id_field_name]:
-				t_field_str += "`trials`.`{0}`, ".format(field[0])
-		t_field_str = t_field_str[:-2]  # remove additional comma & space
+		p_cols = [f for f in default_fields]
+		for t in ['trials'] + join_tables:
+			for field in self.table_schemas[t]:
+				if field[0] not in [ID, Params.id_field_name]:
+					t_cols.append(field[0])
+
+
 		for p in participant_ids:
-			if p[0] == -1:  # legacy test data collected before anonymous_user added to collect_demographics()
-				q = "SELECT {0} FROM `trials` WHERE `trials`.`participant_id` = -1".format(t_field_str)
-			else:
-				q = "SELECT {0} {1} FROM `trials` JOIN `participants` ON `trials`.`participant_id` = {2} WHERE `participant` = '{3}'".format(p_field_str, t_field_str, p[0], p[1])
+			wc_count = 0
+			q_wildcards = []
+			q_vars = []
+			cols = p_cols + t_cols if p[0] != -1 else t_cols
+			for c in cols:
+				if not iterable(c):
+					q_vars.append(c)
+					q_wildcards.append( "`{"+str(wc_count)+"}`")
+					wc_count += 1
+				else:
+					q_vars += c
+					q_wildcards.append("`{"+str(wc_count)+"}` AS `{"+ str(wc_count + 1)+"}`")
+					wc_count += 2
+			q = "SELECT " + ",".join(q_wildcards) + " FROM `trials` "
+			for t in ['participants'] + join_tables if p[0] != -1 else join_tables:
+				q += " JOIN {0}".format(t)
+			q += " WHERE `trials`.`participant_id` = ?"
+			q = q.format(*q_vars)
 			p_data = []
-			for trial in self.query(q).fetchall():
+			for trial in self.query(q, q_vats=tuple([p[0]])).fetchall():
 				row_str = TAB.join(str(col) for col in trial)
 				if p[0] == -1: row_str = TAB.join([Params.default_demo_participant_str, row_str])
 				p_data.append(row_str) if multi_file else data.append(row_str)
@@ -459,18 +483,19 @@ class Database(object):
 		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export--probably this should be added to the participant table at run time
 		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", Params.klibs_version], ["Display Diagonal Inches", Params.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*Params.screen_x_y)], ["Random Seed", random_seed]]
 		klibs_vars = [ "KLIBS INFO", ["KLIBs Commit", Params.klibs_commit]]
-		if user_id:  # if building a header for a single participant, include the random seed
-			q = "SELECT `random_seed` from `participants` WHERE `participants`.`id` = '{0}'".format(user_id)
-			klibs_vars.append(["random_seed", self.query(q).fetchall()[0][0]])
+		try:
+			if user_id:  # if building a header for a single participant, include the random seed
+				q = "SELECT `random_seed` from `participants` WHERE `participants`.`id` = '{0}'".format(user_id)
+				klibs_vars.append(["random_seed", self.query(q).fetchall()[0][0]])
+		except sqlite3.OperationalError:
+			pass  # older klibs databases won't have this column
 		eyelink_vars = [ "EYELINK SETTINGS",
 						 ["Saccadic Velocity Threshold", Params.saccadic_velocity_threshold],
 						 ["Saccadic Acceleration Threshold", Params.saccadic_acceleration_threshold],
 						 ["Saccadic Motion Threshold", Params.saccadic_motion_threshold]]
 		exp_vars = [ "EXPERIMENT SETTINGS",
 					 ["Trials Per Block", Params.trials_per_block],
-					 ["Trials Per Practice Block", Params.trials_per_practice_block],
-					 ["Blocks Per Experiment", Params.blocks_per_experiment],
-					 ["Practice Blocks Per Experiment", Params.practice_blocks_per_experiment] ]
+					 ["Blocks Per Experiment", Params.blocks_per_experiment]]
 		header = ""
 		for info in [klibs_vars, eyelink_vars, exp_vars]:
 			header += "# >>> {0}\n".format(info[0])
@@ -480,19 +505,20 @@ class Database(object):
 
 		return header
 
-	def build_column_header(self, multi_file=True):
+	def build_column_header(self, multi_file=True, join_tables=[]):
 		column_names = []
 		for field in (Params.default_participant_fields if multi_file else Params.default_participant_fields_sf):
 			column_names.append(field[1]) if iterable(field) else column_names.append(field)
 		column_names = [snake_to_camel(col) for col in column_names]
-
-		for field in self.table_schemas['trials']:
-			if field[0][-2:] != "id": column_names.append(field[0])
+		for t in ['trials'] + join_tables:
+			for field in self.table_schemas[t]:
+				if field[0][-2:] != "id": column_names.append(field[0])
 		return  TAB.join(column_names)
 
 	def export(self, multi_file=True, join_tables=None):
-		column_names = self.build_column_header()
-		data = self.collect_export_data(multi_file)
+		join_tables = join_tables.split(",")
+		column_names = self.build_column_header(multi_file, join_tables)
+		data = self.collect_export_data(multi_file, join_tables)
 
 		for data_set in data:
 			p_id = data_set[0]
@@ -513,7 +539,7 @@ class Database(object):
 				data_file = open(os.path.join(file_strings[1]), "w+")
 				data_file.write("\n".join([header, column_names, "\n".join(data_set[1])]))
 				data_file.close()
-				print "\n\n\033[92m\t- Participant {0} successfully exported. ***\033[0m\n\n".format(p_id)
+				print "\033[92m\t- Participant {0} successfully exported.\033[0m".format(p_id)
 
 	@property
 	def default_table(self):

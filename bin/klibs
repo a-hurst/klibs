@@ -177,17 +177,19 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	# 	print traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2], limit=5, file=sys.stdout)
 
 
-def export(path, mutlifile=True, join_table=None):
+def export(path, multi_file=True, join_tables=None):
 	try:
-		import klibs
-	except ImportError as e:
+		from klibs.KLDatabase import Database
+		# import klibs.KLParams as Params
+	except ImportError:
 		print_warning(*sys.exc_info())
 	name = os.path.split(path)[-1]
 	os.chdir(path)
-	experiment = imp.load_source(path, "experiment.py")
-	exp = getattr(experiment, name)
-	exp = exp(name, -1, -1, False, False, False)
-	exp.database.export(multi_file=True, join_tables=None)
+	# experiment = imp.load_source(path, "experiment.py")
+	# exp = getattr(experiment, name)
+	# exp = exp(name, -1, -1, False, False, False)
+	# exp.database.export(multi_file, join_tables)
+	Database(project_name=name).export(multi_file, join_tables[0])
 
 
 def rebuild_db(path):
@@ -234,7 +236,7 @@ try:
 
 	create_parser = subparsers.add_parser('create')
 	create_parser.add_argument('name', type=str)
-	create_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='[If CREATE] Path where new project should be created; if empty, project will attempt to be created in current working directory.')
+	create_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path where new project should be created; if empty, project will attempt to be created in current working directory.')
 	create_parser.set_defaults(func=create)
 
 	update_parser = subparsers.add_parser('update')
@@ -261,6 +263,8 @@ try:
 
 	export_parser = subparsers.add_parser('export')
 	export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
+	export_parser.add_argument('-mf', '--multi_file', action="store_false", help='Export participants as a single file or multiple files. Default is multi-file. ')
+	export_parser.add_argument('-j', '--join_tables', default=None, nargs="*", type=str, help="Additional tables to be joined to the data output. Only 'participant' and 'data' tables are exported by default.")
 	export_parser.set_defaults(func=export)
 
 	args = vars(parser.parse_args())

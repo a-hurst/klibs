@@ -320,8 +320,12 @@ class EventClock(object):
 			raise t
 		return t
 
-	def terminate(self):
+	def terminate(self, max_wait=1):
 		self.register_event(EVI_EXP_END)
+		time.sleep(max_wait)
+		if self.p.is_alive():
+			os.kill(self.p.pid, SIGKILL)
+
 
 	@property
 	def trial_time(self):
@@ -403,7 +407,7 @@ def __event_clock__(pipe):
 					continue
 
 				if (time.time() - start) * 1000  >= e.onset or e.onset == 0:  # ie. something should happen IMMEDIATELY
-					if Params.development_mode or True:
+					if Params.development_mode and Params.dm_print_events:
 						print "\t...Sent '{0}' at {1}".format(e.label, time.time() - start)
 					sent.append(e)
 					try:

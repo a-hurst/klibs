@@ -644,7 +644,7 @@ class NumpySurface(object):
 					fg_array = foreground_content.foreground  # ie. KLNumpySurface.NumpySurface
 				except AttributeError:
 					try:
-						fg_array = foreground_content.render().foreground  # ie. KLDraw.Drawbject
+						fg_array = foreground_content.render()  # ie. KLDraw.Drawbject
 					except AttributeError:
 						try:
 							fg_array = aggdraw_to_array(foreground_content)

@@ -1,6 +1,7 @@
 __author__ = 'jono'
 
 import abc
+import sdl2
 from klibs.KLUtilities import *
 from klibs.KLAudio import AudioStream
 from klibs.KLConstants import *
@@ -72,6 +73,8 @@ class ResponseType(object):
 				try:
 					self.collect_response(event_queue)
 				except TypeError:
+					print full_trace()
+					self.collector.experiment.quit()
 					self.collect_response()
 		if self.max_collected() and self.interrupts:
 			return True
@@ -391,12 +394,15 @@ class FixationResponse(ResponseType):
 
 
 class ColorSelectionResponse(ResponseType):
-	__surface = None
+	__target = None
 	__x_offset = None
 	__y_offset = None
 	__rotation = 0
 	require_alpha = True
-	target_location = None
+	__target_location = (0,0)
+	__target_registration = 7
+	angle_response = True
+	color_response = False
 
 	def __init__(self, collector):
 		super(ColorSelectionResponse, self).__init__(collector)
@@ -405,98 +411,73 @@ class ColorSelectionResponse(ResponseType):
 		# todo: add some logic for excluding certain colors (ie. the background color)
 		for e in event_queue:
 			if e.type == sdl2.SDL_MOUSEBUTTONUP:
-				pos = [e.button.x - self.__x_offset, e.button.y - self.__y_offset]
-				angle = self.color_to_wheel_angle(self.__mouse_angle_to_color(mouse_angle(False, pos)))
+				# pos = [e.button.x, e.button.y]
+				pos = mouse_pos(False)
+				self.collector.experiment.click_pos = pos
+				response = angle_between(Params.screen_c, pos, self.rotation)
 				if len(self.responses) < self.min_response_count:
-					self.responses.append([angle, Params.clock.trial_time])
+					self.responses.append([response, Params.clock.trial_time])
 					if self.interrupts:
 						return self.responses if self.max_response_count > 1 else self.responses[0]
 
-	def target(self, surface, location=(0,0), registration=7):
+	def set_target(self, surface, location=(0,0), registration=7):
+		self.__target = surface
+		self.__target_location = location
+		self.__target_registration = registration
+
 		if isinstance(surface, ColorWheel):
 			self.rotation = surface.rotation
-		self.target_location = location
+
 		try:
-			if registration in [8,5,2]:
-				surf_offset_x = surface.width // 2
-			elif registration in [9,6,3]:
-				surf_offset_x = surface.width
-			else:
-				surf_offset_x = 0
-			self.__x_offset =  location[0] + surf_offset_x
-			if registration in [4,5,6]:
-				surf_offset_y = surface.height // 2
-			elif registration in [1,2,3]:
-				surf_offset_y = surface.height
-			else:
-				surf_offset_y = 0
-			self.__y_offset =  location[1] + surf_offset_y
-			self.__surface = surface
+			surface.prerender()
 		except AttributeError:
-			self.target(NumpySurface(surface), location, registration)
+			surface = NumpySurface(surface)
 
-	def __mouse_angle_to_color(self, angle):
-		# angle = float(angle - self.__rotation + 360 if angle < self.__rotation else angle - self.__rotation)
-		#
-		# thick = angle // 60 % 2 and 1 - (angle % 60) / 60 or (angle % 60) / 60
-		# colors = [[60, 1, thick, 0], # [...to_angle, red, green, blue],
-		# 		  [120, thick, 1, 0],
-		# 		  [180, 0, 1, thick],
-		# 		  [240, 0, thick, 1],
-		# 		  [360, thick, 0, 1],
-		# 		  [float('inf'), 1, 0, thick]]
-		# return colors[bisect([x[0] for x in colors], angle)][1:]
-		angle = float(angle)
-		if angle < self.rotation:
-			angle = angle - self.rotation + 360
+		if registration in [8, 5, 2]:
+			surf_offset_x = surface.width // 2
+		elif registration in [9, 6, 3]:
+			surf_offset_x = surface.width
 		else:
-			angle = angle - self.rotation
-		if angle < 60:
-			red = 1
-			green = angle / 60
-			blue = 0
-		elif angle < 120:
-			red = 1 - (angle - 60) / 60
-			green = 1
-			blue = 0
-		elif angle < 180:
-			red = 0
-			green = 1
-			blue = (angle - 120) / 60
-		elif angle < 240:
-			red = 0
-			green = 1 - (angle - 180) / 60
-			blue = 1
-		elif angle < 300:
-			red = (angle - 240) / 60
-			green = 0
-			blue = 1
+			surf_offset_x = 0
+		self.__x_offset = location[0] + surf_offset_x
+		if registration in [4, 5, 6]:
+			surf_offset_y = surface.height // 2
+		elif registration in [1, 2, 3]:
+			surf_offset_y = surface.height
 		else:
-			red = 1
-			green = 0
-			blue = 1 - (angle - 300) / 60
-		return [red, green, blue]
+			surf_offset_y = 0
+		self.__y_offset = location[1] + surf_offset_y
 
-	def color_to_wheel_angle(self, color):
-		# color = [i/255 for i in color]
-		if color[0] == 1:
-			if color[2] == 0:
-				angle = color[1] * 60
-			else:
-				angle = 300 + (1 - color[2]) * 60
-		elif color[1] == 1:
-			if color[2] == 0:
-				angle = 60 + (1 - color[0]) * 60
-			else:
-				angle = 120 + color[2] * 60
-		else:
-			if color[0] == 0:
-				angle = 180 + (1 - color[1]) * 60
-			else:
-				angle = 240 + color[0] * 60
-		angle -= self.__rotation
+	@property
+	def target(self):
+		return self.__target
 
-		return  angle + 360 if angle < self.__rotation else angle
+	# @target.setter
+	# def target(self, surface):
+	# 	self.__surface = surface
+
+	@property
+	def target_location(self):
+		return self.__target_location
+
+	# @target.setter
+	# def target_location(self, location):
+	# 	try:
+	# 		iter(location)
+	# 		self.__target_location = location
+	# 	except AttributeError:
+	# 		raise TypeError('Location must be an iterable x,y sequence.')
+
+	@property
+	def target_registration(self):
+		return self.__target_registration
+
+	# @target_registration.setter
+	# def target_registration(self, registration):
+	# 	if registration in LEGACY_LOCATIONS.values():
+	# 		self.__target_registration = registration
+	# 	else:
+	# 		raise ValueError('Registration must be an integer or position constant.')
 
 	@property
 	def rotation(self):
@@ -701,7 +682,7 @@ class ResponseCollector(object):
 
 		if self.using(RC_AUDIO):
 			self.audio_listener.start()
-		if self.using(RC_MOUSEDOWN) or self.using(RC_MOUSEUP) or self.using(RC_COLORSELECT):
+		if self.using(RC_MOUSEDOWN) or self.using(RC_MOUSEUP):
 			show_mouse_cursor()
 		if self.flip:
 			self.experiment.flip()
@@ -760,12 +741,6 @@ class ResponseCollector(object):
 			interrupt = False
 			for l in self.using():
 				interrupt = self.listeners[l].collect(event_queue, mouseclick_boundaries)
-				# try:
-				# except TypeError:
-				# 	try:
-				# 		interrupt = self.listeners[l].collect(event_queue)
-				#    	except TypeError:
-				# 		interrupt = self.listeners[l].collect()
 			if interrupt:
 				break
 			# display callback

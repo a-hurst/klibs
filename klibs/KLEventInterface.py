@@ -126,7 +126,8 @@ class EventInterface(object):
 
 	def log_trial_event(self, label, trial_time, eyelink_time=-1 ):
 		e = [Params.participant_id, Params.trial_id, Params.trial_number, label, trial_time, eyelink_time]
-		print "Logging: {0}".format(e)
+		if Params.dm_print_log:
+			print "Logging: {0}".format(e)
 		self.trial_event_log.append(e)
 
 	def dump_events(self):

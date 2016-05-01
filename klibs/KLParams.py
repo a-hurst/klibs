@@ -133,6 +133,7 @@ practicing = False
 recycle_count = 0  # reset on a per-block basis
 manual_trial_generation = False
 pre_render_block_messages = False
+
 # database
 data_columns = None
 default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]
@@ -146,7 +147,8 @@ debug_level = 3
 development_mode = False  # when True, skips collect_demographics & prints various details to screen
 dm_suppress_debug_pane = False
 dm_auto_threshold = True
-
+dm_print_log = True
+dm_print_events = True
 process_queue = multiprocessing.Queue()
 process_queue_data = {}
 

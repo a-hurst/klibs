@@ -51,6 +51,14 @@ dm_auto_threshold = True
 
 #
 #########################################
+# Data Export Settings
+#########################################
+data_columns = None
+default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]
+default_participant_fields_sf = [["userhash", "participant"], "random_seed", "sex", "age", "handedness"]
+
+#
+#########################################
 # Demographics Questions
 #########################################
 # Note: This list must supply all columns in the configured Participants table except:

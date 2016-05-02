@@ -411,10 +411,8 @@ class ColorSelectionResponse(ResponseType):
 		# todo: add some logic for excluding certain colors (ie. the background color)
 		for e in event_queue:
 			if e.type == sdl2.SDL_MOUSEBUTTONUP:
-				# pos = [e.button.x, e.button.y]
-				pos = mouse_pos(False)
-				self.collector.experiment.click_pos = pos
-				response = angle_between(Params.screen_c, pos, self.rotation)
+				pos = [e.button.x, e.button.y]
+				response = angle_between(Params.screen_c, pos, self.__target.rotation)
 				if len(self.responses) < self.min_response_count:
 					self.responses.append([response, Params.clock.trial_time])
 					if self.interrupts:
@@ -452,32 +450,13 @@ class ColorSelectionResponse(ResponseType):
 	def target(self):
 		return self.__target
 
-	# @target.setter
-	# def target(self, surface):
-	# 	self.__surface = surface
-
 	@property
 	def target_location(self):
 		return self.__target_location
 
-	# @target.setter
-	# def target_location(self, location):
-	# 	try:
-	# 		iter(location)
-	# 		self.__target_location = location
-	# 	except AttributeError:
-	# 		raise TypeError('Location must be an iterable x,y sequence.')
-
 	@property
 	def target_registration(self):
 		return self.__target_registration
-
-	# @target_registration.setter
-	# def target_registration(self, registration):
-	# 	if registration in LEGACY_LOCATIONS.values():
-	# 		self.__target_registration = registration
-	# 	else:
-	# 		raise ValueError('Registration must be an integer or position constant.')
 
 	@property
 	def rotation(self):

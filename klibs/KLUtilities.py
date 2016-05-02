@@ -75,29 +75,21 @@ def arg_error_str(arg_name, given, expected, kw=True):
 	return err_string.format(arg_name, type(given), type(expected))
 
 
-# if clockwise:
-# 	angle = -1 * rotation - (angle - 90)
-# else:
-# 	angle = rotation - ( 360 - (angle + 90))
-
-
-def angle_between(a, b, rotation=0, clockwise=False):
-	if rotation > 360:
+def angle_between(p1, p2, rotation=0, clockwise=False):
+	if abs(rotation) > 360:
 		rotation %= 360
-	dX = float(a[0] - b[0]) if not clockwise else float(a[1] - b[1])
-	dY = float(a[1] - b[1]) if not clockwise else float(a[0] - b[0])
-	dV = 90 if not clockwise else 180
-	angle = rotation - (degrees(math.atan2(dX * 180 / math.pi, dY * 180 / math.pi)) + dV)
-	if angle > 0:
-		angle = 360 - angle
+	p2 = list(p2)
+	p2[0] = p2[0] - p1[0]
+	p2[1] = p2[1] - p1[1]
+
+	angle = degrees(math.atan2(p2[1] * 180 / math.pi, p2[0] * 180 / math.pi))
+	if clockwise:
+		angle -= rotation
+		return angle if angle > 0 else angle + 360
 	else:
-		angle *= -1
-	return 0 if clockwise and angle == 360 else angle
-	# if angle > 0:
-	# else:
-	# 	return 360 - (360 + angle) if clockwise else 360 + angle
-	# angle %= 360
-	# return 360 - angle if clockwise else angle
+		angle = (360 - angle if angle > 0 else -1 * angle) - rotation
+		return angle if angle > 0 else angle + 360
+
 
 
 def bool_to_int(boolean_val):
@@ -339,14 +331,18 @@ def peak(v1, v2):
 
 
 def point_pos(origin, amplitude, angle, rotation=0, clockwise=False):
-	# angle = rotation - angle if clockwise else 360 - (rotation - angle)
+	if abs(rotation) > 360:
+		rotation %= 360
 	if clockwise:
-		angle = -1 * rotation - (angle - 90)
+		rotation *= -1
+	if clockwise:
+		angle -= rotation
+		angle = angle if angle > 0 else angle + 360
 	else:
-		angle = rotation - ( 360 - (angle + 90))
-	if angle < 0:
-		angle += 360
-	theta_rad = pi / 2 - radians(angle)
+		angle = (360 - angle if angle > 0 else -1 * angle) - rotation
+		angle = angle if angle > 0 else angle + 360
+
+	theta_rad = radians(angle)
 	return int(origin[0] + amplitude * cos(theta_rad)), int(origin[1] + amplitude * sin(theta_rad))
 
 

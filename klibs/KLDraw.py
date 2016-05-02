@@ -415,9 +415,10 @@ class ColorWheel(Drawbject):
 				r_shift = -0.25 if i < 2 else 1.25
 				r_shift += rotation
 				func = math.cos if i % 2 else math.sin
-				vertices.append(int(round(r + func((r_shift * PI / 180) + radians(90)) * r)))
+				vertices.append(int(round(r + func(radians(r_shift) + radians(90)) * r)))
 			self.surface.polygon(vertices, brush)
 			rotation += 1
+
 		inner_xy1 = self.thickness // 2
 		inner_xy2 = self.surface_width - self.thickness // 2
 		self.surface.ellipse((inner_xy1, inner_xy1, inner_xy2, inner_xy2), aggdraw.Brush((0,0,0,255)))

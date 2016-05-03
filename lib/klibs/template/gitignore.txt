@@ -1,5 +1,9 @@
 .*
-ExpAssets/Data/*.csv
-ExpAssets/Data/incomplete/*.csv
-ExpAssets/EDF/*.edf
-ExpAssets/EDF/incomplete/*.edf
+ExpAssets/*.db
+ExpAssets/*.db.backup
+ExpAssets/Data/*
+ExpAssets/Data/incomplete/*
+ExpAssets/EDF/*
+ExpAssets/EDF/*
+ExpAssets/EDF/incomplete/*
+ExpAssets/.versions/*

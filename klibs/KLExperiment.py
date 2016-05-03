@@ -1301,7 +1301,7 @@ class Experiment(object):
 		elif not Params.demographics_collected:
 			self.collect_demographics(True)
 
-		if not Params.development_mode or True:
+		if not Params.development_mode:
 			version_dir = os.path.join(Params.versions_dir, "p{0}_{1}".format(Params.participant_id, now(True)))
 			os.mkdir(version_dir)
 			shutil.copyfile("experiment.py", os.path.join(version_dir, "experiment.py"))

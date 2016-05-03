@@ -12,33 +12,20 @@ from os import remove, close
 import re
 
 
-def replace(file_path, expr, subst):
-	print file_path, expr, subst
-	commit_exp = re.compile(expr)
-	#Create temp file
-	new_file_name = "{0}.temp".format(file_path)
-	new_file = open(new_file_name,'w+')
-
-	with open(file_path) as old_file:
-		for line in old_file:
-			if commit_exp.match(line):
-				new_line = subst + "\n"
-				print new_line
-			else:
-				new_line = line
-			new_file.write(new_line)
-				# if expr.match(line):
-				# 	# new_file.write(line.replace('^klibs_commit = "([a-z0-9]{40})"$', subst))
-				# else:
-				# 	new_file.write(line)
-	new_file.close()
-	# Remove original file
-	remove(file_path)
-	# Move new file
-	shutil.copy(new_file_name, file_path)
 p = sub.Popen(['git', 'rev-parse', 'HEAD'],stdout=sub.PIPE,stderr=sub.PIPE)
-replace("klibs/KLParams.py", '^klibs_commit = ("|\')([a-z0-9]{40})("|\')$', "klibs_commit = '{0}'".format(p.communicate()[0][:-2]))
-quit()
+commit = p.communicate()[0][:-1]
+old_params_file = "klibs/KLParams.py"
+new_params_file = "klibs/KLParams.tmp"
+new_file = open(new_params_file, "w+")
+commit_exp = re.compile("^klibs_commit = '(.*)'$")
+with open(old_params_file) as of:
+	for line in of:
+		new_file.write("klibs_commit = '{0}'\n".format(commit) if commit_exp.match(line) else line)
+new_file.close()
+shutil.copymode(old_params_file, new_params_file)
+os.rename(old_params_file, "klibs/__KLParams.py")
+os.rename(new_params_file, old_params_file)
+
 install_packages = ['klibs']
 
 setup(

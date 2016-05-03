@@ -159,11 +159,17 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		print_warning(*sys.exc_info())
 	if path[-1] == "/":
 		path = path[:-1]
+	p = Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE)
+	commit = p.communicate()[0][:-1]
+
 	project_name = os.path.split(path)[-1]
 	os.chdir(path)
 	experiment_file = imp.load_source(path, "experiment.py")
 	experiment = getattr(experiment_file, project_name)
 	exp = experiment(project_name, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane)
+	from klibs import KLParams as Params
+	if Params.klibs_commit != commit:
+		pass # todo: warn user
 	try:
 		exp.run()
 	except SystemExit:
@@ -171,12 +177,6 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	except Exception as e:
 		os.kill(exp.clock.p.pid, SIGKILL)
 		print full_trace()
-		# print traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2], limit=5, file=sys.stdout)
-
-	# try:  todo: work this out
-	# 	app(project_name, screen_size, random_seed, False, development_mode, no_eyelink, show_debug_pane).run()
-	# except:
-	# 	print traceback.print_exception(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2], limit=5, file=sys.stdout)
 
 
 def export(path, multi_file=True, join_tables=None):
@@ -191,7 +191,7 @@ def export(path, multi_file=True, join_tables=None):
 	# exp = getattr(experiment, name)
 	# exp = exp(name, -1, -1, False, False, False)
 	# exp.database.export(multi_file, join_tables)
-	Database(project_name=name).export(multi_file, join_tables[0])
+	Database(project_name=name).export(multi_file, join_tables)
 
 
 def rebuild_db(path):
@@ -266,7 +266,7 @@ try:
 	export_parser = subparsers.add_parser('export')
 	export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
 	export_parser.add_argument('-mf', '--multi_file', action="store_false", help='Export participants as a single file or multiple files. Default is multi-file. ')
-	export_parser.add_argument('-j', '--join_tables', default=None, nargs="*", type=str, help="Additional tables to be joined to the data output. Only 'participant' and 'data' tables are exported by default.")
+	export_parser.add_argument('-j', '--join_tables', default=[], nargs="*", type=str, help="Additional tables to be joined to the data output. Only 'participant' and 'data' tables are exported by default.")
 	export_parser.set_defaults(func=export)
 
 	args = vars(parser.parse_args())

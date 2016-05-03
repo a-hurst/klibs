@@ -472,7 +472,7 @@ class Database(object):
 			q += " WHERE `trials`.`participant_id` = ?"
 			q = q.format(*q_vars)
 			p_data = []
-			for trial in self.query(q, q_vats=tuple([p[0]])).fetchall():
+			for trial in self.query(q, q_vars=tuple([p[0]])).fetchall():
 				row_str = TAB.join(str(col) for col in trial)
 				if p[0] == -1: row_str = TAB.join([Params.default_demo_participant_str, row_str])
 				p_data.append(row_str) if multi_file else data.append(row_str)
@@ -505,7 +505,7 @@ class Database(object):
 
 		return header
 
-	def build_column_header(self, multi_file=True, join_tables=[]):
+	def build_column_header(self, multi_file=True, join_tables=None):
 		column_names = []
 		for field in (Params.default_participant_fields if multi_file else Params.default_participant_fields_sf):
 			column_names.append(field[1]) if iterable(field) else column_names.append(field)
@@ -516,7 +516,10 @@ class Database(object):
 		return  TAB.join(column_names)
 
 	def export(self, multi_file=True, join_tables=None):
-		join_tables = join_tables.split(",")
+		try:
+			join_tables = join_tables[0].split(",")
+		except IndexError:
+			join_tables = []
 		column_names = self.build_column_header(multi_file, join_tables)
 		data = self.collect_export_data(multi_file, join_tables)
 

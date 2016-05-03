@@ -9,8 +9,6 @@ import Queue
 import threading
 import sys
 import re
-from subprocess import check_output
-
 from klibs.KLAudio import AudioManager
 from klibs.KLEyeLink import *
 from klibs.KLExceptions import *
@@ -90,6 +88,7 @@ class Experiment(object):
 		Params.tk.start("Experiment Init")  # global TimeKeeper is initialized in Params.setup()
 		Params.clock = Params.tk.clock
 		self.clock = Params.clock  # this is ONLY for having the KLIBS cli end the program on an error
+
 		try:
 			if not eyelink_available:
 				Params.eye_tracker_available = False
@@ -166,7 +165,6 @@ class Experiment(object):
 
 			if not Params.collect_demographics:
 				self.collect_demographics(True)
-
 			Params.tk.stop("Experiment Init")
 		except:
 			os.kill(self.clock.p.pid, SIGKILL)
@@ -500,7 +498,7 @@ class Experiment(object):
 		try:
 			self.database.log("klibs_commit", Params.klibs_commit)
 		except:
-			pass  # older versions of klibs did not include this param/db entry
+			pass  # older .versions of klibs did not include this param/db entry
 		if anonymous_user:
 			name = Params.anonymous_username
 		else:
@@ -1302,6 +1300,12 @@ class Experiment(object):
 				self.collect_demographics()
 		elif not Params.demographics_collected:
 			self.collect_demographics(True)
+
+		if not Params.development_mode or True:
+			version_dir = os.path.join(Params.versions_dir, "p{0}_{1}".format(Params.participant_id, now(True)))
+			os.mkdir(version_dir)
+			shutil.copyfile("experiment.py", os.path.join(version_dir, "experiment.py"))
+			shutil.copytree(Params.config_dir, os.path.join(version_dir, "Config"))
 
 		if Params.eye_tracking and Params.eye_tracker_available:
 			self.eyelink.setup()

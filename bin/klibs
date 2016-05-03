@@ -118,7 +118,9 @@ def create(name, path):
 			shutil.move(template, project)
 			temp_project_f = open(project, "rt").read().replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
 			open(project, "w+").write(temp_project_f)
-
+		# versions_temp_dir = os.path.join(project_path, 'ExpAssets', "versions")
+		# versions_proj_dir = os.path.join(project_path, 'ExpAssets', ".versions")
+		# shutil.move(versions_temp_dir, versions_proj_dir)
 		print "\t...Project name '{0}' successfully applied to template files".format(name)
 		print "\033[92m\nProject successfully created at: '\033[94m{0}\033[0m'".format(project_path)
 	except OSError, e:

@@ -114,7 +114,7 @@ class EventInterface(object):
 				try:
 					if len(row) == 0:  # skip empty rows
 						continue
-					if row[0][0] == "#":  # ie. skip header line, which wasn't in earlier versions of the config file
+					if row[0][0] == "#":  # ie. skip header line, which wasn't in earlier .versions of the config file
 						continue
 				except IndexError:
 					pass

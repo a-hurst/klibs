@@ -320,10 +320,10 @@ class Database(object):
 
 	def is_unique(self, table, column, value, value_type=SQL_STR):
 		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL]:
-			query_str = "SELECT * FROM `{0}` WHERE `{1}` = {2}".format(table, column, value)
+			query_str = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
 		else:
-			query_str = "SELECT * FROM `{0}` WHERE `{1}` = '{2}'".format(table, column, value)
-		return len(self.query(query_str, QUERY_SEL, True).fetchall()) == 0
+			query_str = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
+		return len(self.query(query_str, QUERY_SEL, [value], True).fetchall()) == 0
 
 	def exists(self, table, column, value, value_type=SQL_STR):
 		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL]:

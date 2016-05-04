@@ -11,7 +11,7 @@ from klibs.KLConstants import *
 import os
 import multiprocessing
 
-klibs_commit = '82203d298790a6bc6dfe1f2eaecd52adae2c127e'
+klibs_commit = '3e186637b4c04206bcf259b09ebfa00d0e0957a6'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -199,7 +199,7 @@ def init_project():
 	config_file_path_legacy = os.path.join(asset_dir, config_filename)
 	params_file_path = os.path.join(config_dir, params_filename)
 	events_file_path = os.path.join(config_dir, events_filename)
-	versions_dir = os.path.join(asset_dir, "..versions")
+	versions_dir = os.path.join(asset_dir, ".versions")
 
 	initialized = True
 	return True

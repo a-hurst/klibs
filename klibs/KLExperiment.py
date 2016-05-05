@@ -206,6 +206,7 @@ class Experiment(object):
 		Params.clock.terminate()
 		self.clean_up()
 		self.evi.dump_events()
+		print "GOT TO THIS LINE JON"
 		self.database.db.commit()
 		self.database.db.close()
 

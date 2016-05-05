@@ -9,9 +9,9 @@ import time
 from datetime import datetime
 from klibs.KLConstants import *
 import os
-import multiprocessing
+import billiard
 
-klibs_commit = 'd7f567e602a11bf6fa642a39d04a8c6663cb54a1'
+klibs_commit = '9d8866a4dfe458b2e3bf6eacc12b2d90f7e5e606'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -150,7 +150,7 @@ dm_suppress_debug_pane = False
 dm_auto_threshold = True
 dm_print_log = True
 dm_print_events = True
-process_queue = multiprocessing.Queue()
+process_queue = billiard.Queue()
 process_queue_data = {}
 
 

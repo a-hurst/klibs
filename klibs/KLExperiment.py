@@ -99,10 +99,14 @@ class Experiment(object):
 
 			Params.dm_suppress_debug_pane = show_debug_overlay == False
 
-
-			#initialize the self.database instance
-			self.__database_init()
-
+			try:
+				#initialize the self.database instance
+				self.__database_init()
+			except Exception as e:
+				print e
+				time.sleep(1)
+				print full_trace()
+				self.quit()
 			#todo: what the dear fuck jon. separate database from experiment, period
 			if display_diagonal_in == -1:  # ie. database operation called
 				self.clock.terminate()
@@ -183,7 +187,7 @@ class Experiment(object):
 			Params.recycle_count = 0
 			Params.block_number = self.blocks.i
 			Params.practicing = block.practice
-			self.block()    # ie. block number
+			self.block()
 			Params.trial_number = 1
 			for trial in block:  # ie. list of trials
 				try:

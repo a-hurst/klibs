@@ -134,6 +134,7 @@ class Database(object):
 	def __init__(self, experiment=None, project_name=None):
 		self.experiment = experiment
 		if not experiment:  # ie. exporting
+			print "INIT DB HAD NO EXP"
 			from klibs.KLExperiment import import_project_params
 			Params.setup(project_name, None)
 			import_project_params()
@@ -170,7 +171,7 @@ class Database(object):
 					return True
 				else:
 					raise RuntimeError("Database exists but no tables were found and no table schema were provided.")
-		except sqlite3.OperationalError:
+		except (sqlite3.OperationalError, IOError):
 			self.__catch_db_not_found()
 
 	def __tables(self):

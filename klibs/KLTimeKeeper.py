@@ -4,7 +4,7 @@ import time
 from klibs.KLConstants import *
 from klibs.KLUtilities import *
 from klibs import KLParams as Params
-from multiprocessing import Pipe
+from billiard import Pipe
 from signal import SIGKILL
 import inspect
 

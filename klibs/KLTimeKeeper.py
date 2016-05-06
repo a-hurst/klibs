@@ -321,10 +321,12 @@ class EventClock(object):
 		return t
 
 	def terminate(self, max_wait=1):
-		self.register_event(EVI_EXP_END)
-		time.sleep(max_wait)
-		if self.p.is_alive():
-			os.kill(self.p.pid, SIGKILL)
+		exit_timeout_start = time.time()
+		while billiard.active_children() > 0 and time.time() - exit_timeout_start < max_wait:
+			pump()
+			self.register_event(EVI_EXP_END)
+		if billiard.active_children() or self.p.is_alive():
+			raise RuntimeError("Unable to safely join EventClock process.")
 
 
 	@property

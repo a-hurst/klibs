@@ -41,6 +41,10 @@ class BoundaryInspector(object):
 				d_y = position[1] - center[1]
 				center_point_dist = math.sqrt(d_x ** 2 + d_y ** 2)
 				return center_point_dist <= r
+			if b_type == "anulus":
+				time.sleep(0.1)
+				return b[1] < line_segment_len(b[0], position) < b[2]
+
 		return False
 
 
@@ -393,7 +397,7 @@ class FixationResponse(ResponseType):
 	pass
 
 
-class ColorSelectionResponse(ResponseType):
+class ColorSelectionResponse(ResponseType, BoundaryInspector):
 	__target = None
 	__x_offset = None
 	__y_offset = None
@@ -403,15 +407,19 @@ class ColorSelectionResponse(ResponseType):
 	__target_registration = 7
 	angle_response = True
 	color_response = False
+	click_boundary = None
 
 	def __init__(self, collector):
 		super(ColorSelectionResponse, self).__init__(collector)
+		super(BoundaryInspector, self).__init__()
 
 	def collect_response(self, event_queue):
 		# todo: add some logic for excluding certain colors (ie. the background color)
 		for e in event_queue:
 			if e.type == sdl2.SDL_MOUSEBUTTONUP:
 				pos = [e.button.x, e.button.y]
+				if not self.within_boundary(pos, "color ring"):
+					continue
 				response = angle_between(Params.screen_c, pos, self.__target.rotation)
 				if len(self.responses) < self.min_response_count:
 					self.responses.append([response, Params.clock.trial_time])
@@ -661,7 +669,7 @@ class ResponseCollector(object):
 
 		if self.using(RC_AUDIO):
 			self.audio_listener.start()
-		if self.using(RC_MOUSEDOWN) or self.using(RC_MOUSEUP):
+		if self.using(RC_MOUSEDOWN) or self.using(RC_MOUSEUP) or self.using(RC_COLORSELECT):
 			show_mouse_cursor()
 		if self.flip:
 			self.experiment.flip()

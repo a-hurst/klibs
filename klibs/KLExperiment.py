@@ -1244,6 +1244,7 @@ class Experiment(object):
 
 		"""
 		try:
+			billiard.active_children()
 			os.kill(self.clock.p.pid, SIGKILL)
 		except Exception as e:
 			print full_trace()

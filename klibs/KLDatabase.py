@@ -473,6 +473,7 @@ class Database(object):
 			q += " WHERE `trials`.`participant_id` = ?"
 			q = q.format(*q_vars)
 			p_data = []
+			print q
 			for trial in self.query(q, q_vars=tuple([p[0]])).fetchall():
 				row_str = TAB.join(str(col) for col in trial)
 				if p[0] == -1: row_str = TAB.join([Params.default_demo_participant_str, row_str])
@@ -481,6 +482,7 @@ class Database(object):
 		return data if multi_file else [data]
 
 	def export_header(self, user_id=None):
+		# todo: make sure the block_per_experiment line reflects new trial factory block insertion logic
 		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export--probably this should be added to the participant table at run time
 		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", Params.klibs_version], ["Display Diagonal Inches", Params.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*Params.screen_x_y)], ["Random Seed", random_seed]]
 		klibs_vars = [ "KLIBS INFO", ["KLIBs Commit", Params.klibs_commit]]

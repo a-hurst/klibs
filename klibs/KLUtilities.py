@@ -12,7 +12,7 @@ import ctypes
 import time
 import datetime
 import re
-import multiprocessing
+import billiard
 import traceback
 from math import sin, cos, radians, pi, atan2, degrees
 
@@ -504,7 +504,7 @@ def sdl_key_code_to_str(sdl_keysym):
 
 def threaded(func):
 	def threaded_func(*args, **kwargs):
-		p = multiprocessing.Process(target=func, args=args, kwargs=kwargs)
+		p = billiard.Process(target=func, args=args, kwargs=kwargs)
 		p.start()
 		return p
 	return threaded_func

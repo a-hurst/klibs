@@ -7,3 +7,4 @@ ExpAssets/EDF/*
 ExpAssets/EDF/*
 ExpAssets/EDF/incomplete/*
 ExpAssets/.versions/*
+*.pyc

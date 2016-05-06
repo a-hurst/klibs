@@ -42,6 +42,7 @@ class BoundaryInspector(object):
 				center_point_dist = math.sqrt(d_x ** 2 + d_y ** 2)
 				return center_point_dist <= r
 			if b_type == "anulus":
+				time.sleep(0.1)
 				return b[1] < line_segment_len(b[0], position) < b[2]
 
 		return False
@@ -410,6 +411,7 @@ class ColorSelectionResponse(ResponseType, BoundaryInspector):
 
 	def __init__(self, collector):
 		super(ColorSelectionResponse, self).__init__(collector)
+		super(BoundaryInspector, self).__init__()
 
 	def collect_response(self, event_queue):
 		# todo: add some logic for excluding certain colors (ie. the background color)
@@ -667,7 +669,7 @@ class ResponseCollector(object):
 
 		if self.using(RC_AUDIO):
 			self.audio_listener.start()
-		if self.using(RC_MOUSEDOWN) or self.using(RC_MOUSEUP):
+		if self.using(RC_MOUSEDOWN) or self.using(RC_MOUSEUP) or self.using(RC_COLORSELECT):
 			show_mouse_cursor()
 		if self.flip:
 			self.experiment.flip()

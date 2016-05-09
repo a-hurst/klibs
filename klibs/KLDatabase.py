@@ -452,8 +452,11 @@ class Database(object):
 				if field[0] not in [ID, Params.id_field_name]:
 					t_cols.append(field[0])
 
-
+		p_count = 0
 		for p in participant_ids:
+			# p_count += 1
+			# if p_count > 10:
+			# 	break
 			wc_count = 0
 			q_wildcards = []
 			q_vars = []
@@ -469,11 +472,12 @@ class Database(object):
 					wc_count += 2
 			q = "SELECT " + ",".join(q_wildcards) + " FROM `trials` "
 			for t in ['participants'] + join_tables if p[0] != -1 else join_tables:
-				q += " JOIN {0}".format(t)
+				key = 'id' if t == 'participants' else 'participant_id'
+				q += " JOIN {0} ON `trials`.`participant_id` = `{0}`.`{1}` ".format(t, key)
 			q += " WHERE `trials`.`participant_id` = ?"
 			q = q.format(*q_vars)
 			p_data = []
-			print q
+			print q, p
 			for trial in self.query(q, q_vars=tuple([p[0]])).fetchall():
 				row_str = TAB.join(str(col) for col in trial)
 				if p[0] == -1: row_str = TAB.join([Params.default_demo_participant_str, row_str])

@@ -210,6 +210,7 @@ class Experiment(object):
 		Params.clock.terminate()
 		self.clean_up()
 		self.evi.dump_events()
+		print "GOT TO THIS LINE JON"
 		self.database.db.commit()
 		self.database.db.close()
 
@@ -1243,10 +1244,13 @@ class Experiment(object):
 
 		"""
 		try:
-			billiard.active_children()
-			os.kill(self.clock.p.pid, SIGKILL)
+			self.evi.terminate()
 		except Exception as e:
-			print full_trace()
+			try:
+				os.kill(exp.clock.p.pid, SIGKILL)
+			except:
+				# put informative error message reminding users to manual kill process
+				print full_trace()
 
 		try:
 			if not self.evi.events_dumped:

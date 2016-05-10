@@ -11,7 +11,7 @@ from klibs.KLConstants import *
 import os
 import billiard
 
-klibs_commit = '940e9acc7afec8d5d541ebdcf67f92b6585123b8'
+klibs_commit = '8c79f8d40505503984917299f44c6fe124bbfe05'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"

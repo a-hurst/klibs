@@ -220,6 +220,12 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 	return os.path.join(file_path, file_name) if as_string else [file_path, file_name]
 
 
+def flush():
+	pump()
+	sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
+	return
+
+
 def full_trace():
 	exception_list = traceback.format_stack()
 	exception_list = exception_list[:-2]

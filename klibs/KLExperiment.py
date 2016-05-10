@@ -1247,7 +1247,7 @@ class Experiment(object):
 			self.evi.terminate()
 		except Exception as e:
 			try:
-				os.kill(exp.clock.p.pid, SIGKILL)
+				os.kill(self.clock.p.pid, SIGKILL)
 			except:
 				# put informative error message reminding users to manual kill process
 				print full_trace()

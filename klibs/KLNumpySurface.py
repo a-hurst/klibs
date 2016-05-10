@@ -145,7 +145,39 @@ class NumpySurface(object):
 		self.bg_offset = bg_offset
 		self.foreground = foreground
 		self.background = background
+		self.layers = {NS_FOREGROUND: self.__foreground, NS_BACKGROUND:self.__background}
 		self.init_canvas()
+
+	def __str__(self):
+		return "klibs.NumpySurface, ({0} x {1}) at {2}".format(self.width, self.height, hex(id(self)))
+
+	def __ensure_writeable(self, layer=NS_FOREGROUND):
+		if layer == NS_FOREGROUND:
+			try:
+				self.foreground.setflags(write=1)
+			except AttributeError:
+				self.foreground = numpy.zeros((self.width, self.height, 4))
+				self.__ensure_writeable(NS_FOREGROUND)
+		else:
+			try:
+				self.background.setflags(write=1)
+			except AttributeError:
+				self.background = numpy.zeros((self.width, self.height, 4))
+				self.__ensure_writeable(NS_BACKGROUND)
+
+	def __fetch_layer(self, layer):
+		if layer == NS_FOREGROUND:
+			if self.foreground is not None:
+				return self.foreground
+			else:
+				raise ValueError("klibs.NS_FOREGROUND given for 'layer' argument, but foreground attribute is not set.")
+		elif layer == NS_BACKGROUND:
+			if self.background is not None:
+				return self.background
+			else:
+				raise ValueError("klibs.NS_BACKGROUND given for 'layer' argument, but background attribute is not set.")
+		else:
+			raise TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
 
 	def init_canvas(self):
 		if all(i is None for i in [self.background, self.foreground, self.width, self.height]):
@@ -176,8 +208,19 @@ class NumpySurface(object):
 				self.background = numpy.zeros((bg_height, bg_width, 4))
 		self.__update_shape()
 
-	def __str__(self):
-		return "klibs.NumpySurface, ({0} x {1}) at {2}".format(self.width, self.height, hex(id(self)))
+	def average_color(self, layer=None):
+		# nope, doesn't work; were working it out with Ross but then you couldn't finish
+		try:
+			px = self.rendered if not layer else self.layers[layer]
+			iter(px)
+		except TypeError:
+			px = self.render()
+		px_count = px.shape[0] * px.shape[1]
+		new_px = px.reshape((px_count,4))
+		print new_px.shape
+
+
+
 
 	def blit(self, source, layer=NS_FOREGROUND, registration=7, position=(0, 0), behavior=None):
 		# todo: implement layer logic here
@@ -237,34 +280,6 @@ class NumpySurface(object):
 			self.background[y1: y2, x1: x2] = source
 
 		return self
-
-	def __ensure_writeable(self, layer=NS_FOREGROUND):
-		if layer == NS_FOREGROUND:
-			try:
-				self.foreground.setflags(write=1)
-			except AttributeError:
-				self.foreground = numpy.zeros((self.width, self.height, 4))
-				self.__ensure_writeable(NS_FOREGROUND)
-		else:
-			try:
-				self.background.setflags(write=1)
-			except AttributeError:
-				self.background = numpy.zeros((self.width, self.height, 4))
-				self.__ensure_writeable(NS_BACKGROUND)
-
-	def __fetch_layer(self, layer):
-		if layer == NS_FOREGROUND:
-			if self.foreground is not None:
-				return self.foreground
-			else:
-				raise ValueError("klibs.NS_FOREGROUND given for 'layer' argument, but foreground attribute is not set.")
-		elif layer == NS_BACKGROUND:
-			if self.background is not None:
-				return self.background
-			else:
-				raise ValueError("klibs.NS_BACKGROUND given for 'layer' argument, but background attribute is not set.")
-		else:
-			raise TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
 
 	def scale(self, size, layer=None):
 		# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html

@@ -10,42 +10,7 @@ from KLNumpySurface import aggdraw_to_array
 from klibs.KLDraw import Drawbject, ColorWheel
 import aggdraw
 from bisect import bisect
-
-
-class BoundaryInspector(object):
-
-	def __init__(self):
-		self.boundaries = {}
-
-	def add_boundary(self, label, bounds, shape):
-		self.boundaries[label] = [bounds, shape]  # todo: allow square bounds to be a pixel + magnitude
-
-	def add_boundaries(self, boundaries):
-		for b in boundaries:
-			self.add_boundary(*b)
-
-	def within_boundary(self, position, boundary=None):
-		boundaries = [boundary] if boundary else self.boundaries
-		for boundary in boundaries:
-			b_type = self.boundaries[boundary][1]
-			b = self.boundaries[boundary][0]
-			if b_type == EL_RECT_BOUNDARY:
-				x_within = position[0] in range(b[0][0], b[1][0])
-				y_within = position[1] in range(b[0][1], b[1][1])
-				if x_within and y_within:
-					return True
-			if b_type == EL_CIRCLE_BOUNDARY:
-				r = (b[1][0] - b[0][0]) // 2
-				center = (b[0][0] + r, b[0][1] + r)
-				d_x = position[0] - center[0]
-				d_y = position[1] - center[1]
-				center_point_dist = math.sqrt(d_x ** 2 + d_y ** 2)
-				return center_point_dist <= r
-			if b_type == "anulus":
-				time.sleep(0.1)
-				return b[1] < line_segment_len(b[0], position) < b[2]
-
-		return False
+from klibs.KLMixins import BoundaryInspector
 
 
 class ResponseType(object):

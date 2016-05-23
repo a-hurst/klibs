@@ -1,24 +1,35 @@
 __author__ = 'jono'
 
 from klibs.KLUtilities import *
+import klibs.KLParams as Params
 import os
 import csv
 import time
 import abc
+import multiprocessing as mp_lib
+
 
 class EventTicket(object):
+	#todo: relative needs to be either relative to now or an event so that relative events can be registered before trial start
 
-	def __init__(self, label, onset, data=None, unit=TK_MS):
+	def __init__(self, label, onset, data=None, relative=False, unit=TK_MS):
+		super(EventTicket, self).__init__()
+		print label, onset, data, relative, unit
 		self.__onset = None
 		self.__label = None
 		self.__unit = None
 		self.label = label
+		self.relative = relative
+		self.unit = unit
 		self.onset = onset
 		self.data = data
-		self.unit = unit
+
+		if Params.clock.start_time:
+			Params.clock.trial_time
+			print self
 
 	def __str__(self):
-		return "<klibs.KLEventInterface.EventTicket, ('{0}': {1}, at {3})".format(self.label, self.onset, self.message, hex(id(self)))
+		return "<klibs.KLEventInterface.EventTicket, ('{0}': {1}, at {3})".format(self.label, self.onset, self.data, hex(id(self)))
 
 	@property
 	def onset(self):
@@ -26,8 +37,12 @@ class EventTicket(object):
 
 	@onset.setter
 	def onset(self, time_val):
-		if type(time_val) is not int or time_val < 0:
-			raise TypeError("Property 'onset' must be a positive integer.")
+		if type(time_val) not in [int, float] or time_val < 0:
+			raise TypeError("Property 'onset' must be a positive integer; got {0}.".format(time_val))
+		if self.relative:
+			time_val += Params.clock.trial_time if self.__unit == TK_S else Params.clock.trial_time * 1000
+		if self.__unit == TK_S:
+			time_val *= 1000
 		self.__onset = time_val
 
 	@property
@@ -76,7 +91,10 @@ class DataEvent(KlibsEvent):
 		self.dynamic = int(arg_count) > 0 or arg_count is False
 		self.arg_count = int(arg_count) if self.dynamic else 0
 		self.eeg_code_to_edf = eeg_code_to_edf in ("true", "True")
-		self.code = int(code)
+		try:
+			self.code = int(code)
+		except TypeError:
+			self.code = None
 		self.message = message
 
 	def __str__(self):
@@ -101,11 +119,15 @@ class EventInterface(object):
 	sent = {}  # reset on each trial
 	trial_event_log = []
 	events_dumped = False
+	__message_log = []
 
 	def __init__(self, experiment):
 		#todo: add default events like recycled trials, etc.
 		self.experiment = experiment
 		self.import_events()
+
+	def clear(self):
+		self.events = {}
 
 	def import_events(self):
 		if os.path.exists(Params.events_file_path):
@@ -151,6 +173,20 @@ class EventInterface(object):
 				return True
 		return False
 
+	def registered(self, label):
+		"""
+		Determines if an event exists in the events
+		:param label:
+		"""
+		return label in self.events
+
+	def written(self, message):
+		"""
+		Determines if an message exists in the message log
+		:param message:
+		"""
+		return message in self.__message_log
+
 	def before(self, label, pump_events=False):
 		if pump_events:
 			self.experiment.ui_request(pump())
@@ -163,6 +199,11 @@ class EventInterface(object):
 		return self.after(event_1) and not self.after(event_2)
 
 	def write(self, message, edf=True, eeg=True):
+		if not Params.labjacking:
+			eeg = False
+		if not Params.eye_tracking:
+			edf = False
+		self.__message_log.append(message)
 		if type(message) in [list, tuple]:
 			edf_send = message[0]
 			eeg_send = message[1]
@@ -170,7 +211,7 @@ class EventInterface(object):
 			if type(message) is int and eeg:
 				edf_send = message
 				eeg_send = message
-			elif type(message) is str and edf and not eeg:
+			elif type(message) is str and edf:
 				edf_send = message
 			else:
 				raise ValueError("Can only send integer values to eeg via LabJack.")
@@ -193,7 +234,7 @@ class EventInterface(object):
 			self.sent[label] += 1
 		try:
 			e = self.events[label]
-		except IndexError:
+		except KeyError:
 			try:
 				iter(args)
 				arg_count = len(args)

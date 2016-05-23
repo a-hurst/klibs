@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
-import time
-from klibs.KLConstants import *
 from klibs.KLUtilities import *
 from klibs import KLParams as Params
-from billiard import Pipe
-from signal import SIGKILL
-import inspect
+import multiprocessing as mp_lib  # incase you want to try billiard again later
+
 
 class CountDown(object):
 	duration = 0
@@ -177,11 +174,12 @@ class EventClock(object):
 		self.stages = []
 		self.events_index = {}
 		self.start_time = None
+		self.start_lag = None
 		self.experiment = experiment
 		self.events = []
 		self.pipe = None
 		self.p = None
-		self.pipe, child = Pipe()
+		self.pipe, child = mp_lib.Pipe()
 		self.p = __event_clock__(child)
 
 	def register_events(self, events):
@@ -193,7 +191,6 @@ class EventClock(object):
 		# 	else:
 		# 		if not iterable(e):
 			self.register_event(e)
-
 
 	def register_event(self, event):
 		"""
@@ -238,6 +235,10 @@ class EventClock(object):
 		:type event: String or List
 		:param unit:
 		"""
+		# try:
+		# 	print event.label
+		# except AttributeError:
+		# 	print event
 		self.events.append(event)
 		self.__sync(stages=False)
 
@@ -257,14 +258,17 @@ class EventClock(object):
 
 		"""
 		try:
+			print "s2"
 			self.register_event(EVI_TRIAL_START)
-			while not self.pipe.poll():
-				pass
+			print "s5"
+			self.pipe.poll()
+			print "s6"
 			self.start_time = self.pipe.recv()
+			print self.start_time
 			el_val = self.experiment.eyelink.now() if Params.eye_tracking and Params.eye_tracker_available else -1
 			self.experiment.evi.log_trial_event(EVI_CLOCK_START, self.start_time, el_val)
 		except:
-			full_trace()
+			print full_trace()
 
 	def stop(self):
 		"""
@@ -282,6 +286,8 @@ class EventClock(object):
 		self.events_index = {}
 		self.start_time = None
 		self.__sync()
+		while not self.__poll():
+			pass
 
 	def deregister(self, event_label=None):
 		if event_label:
@@ -311,6 +317,7 @@ class EventClock(object):
 		for e in self.events:
 			self.sent_events.append(e)
 			self.events.remove(e)
+		# print "__sync"
 
 	def __poll(self):
 		while not self.pipe.poll():
@@ -322,10 +329,10 @@ class EventClock(object):
 
 	def terminate(self, max_wait=1):
 		exit_timeout_start = time.time()
-		while billiard.active_children() > 0 and time.time() - exit_timeout_start < max_wait:
+		while mp_lib.active_children() > 0 and time.time() - exit_timeout_start < max_wait:
 			pump()
 			self.register_event(EVI_EXP_END)
-		if billiard.active_children() or self.p.is_alive():
+		if mp_lib.active_children() or self.p.is_alive():
 			raise RuntimeError("Unable to safely join EventClock process.")
 
 
@@ -337,8 +344,9 @@ class EventClock(object):
 
 	@property
 	def timestamp(self):
-		self.register_event(EVI_SEND_TIMESTAMP)
-		return self.__poll()
+		# it's not clear that this should exist... it's purpose is semantic; to direct all time-based requests to the
+		# Eventclock. But enh...?
+		return time.time()
 
 
 
@@ -360,16 +368,20 @@ def __event_clock__(pipe):
 					events += new_e
 				if new_s:
 					stages += new_s
+
 			for e in events:
 				if e in EVI_CONSTANTS:
 					if e == EVI_CLOCK_RESET:
+						print "CLOCK RESET"
 						trial_started = False
 						events = []
 						stages = []
 						sent = []
+						pipe.send(True)
 						break
 
 					if e == EVI_TRIAL_START:
+						print "CLOCK START"
 						sent.append(e)
 						events.remove(e)
 						start = time.time()
@@ -388,14 +400,8 @@ def __event_clock__(pipe):
 						pipe.send(time.time() - start)
 						continue
 
-					if e == EVI_SEND_TIMESTAMP:
-						if not trial_started:
-							pipe.send(RuntimeError("Trial has not started."))
-						events.remove(e)
-						pipe.send(time.time())
-						continue
-
 					if e == EVI_DEREGISTER_EVENT:
+						# todo: this doesn't seem like it does anything...
 						try:
 							events.remove(e)
 							pipe.send(True)

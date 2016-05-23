@@ -61,11 +61,13 @@ PY_STR = 'str'
 PY_BOOL = 'bool'
 PY_INT = 'int'
 PY_BIN = 'binary'
+PY_NUM = 'numeric'
 SQL_FLOAT = 'float'
 SQL_REAL = 'real'
 SQL_BIN = 'blob'
 SQL_KEY = 'integer key'
 SQL_INT = 'integer'
+SQL_NUMERIC = 'numeric'
 SQL_NULL = 'null'
 SQL_STR = 'text'
 SQL_COL_DELIM_STR = "`, `"
@@ -100,10 +102,22 @@ PARALLEL_AVAILABLE = False
 MAX_DRIFT_DEG = 3
 INIT_SAC_DIST = 3  # Min. distance (degrees) before eye movement == initiating saccade for response direction
 EL_TEMP_FILE = "temp_participant{0}".format(EDF)
+
+
 # these mirror eyelink event codes where their counterpart exists
+EL_MOCK_EVENT = -1
+EL_GAZE_POS = 200
+EL_BLINK_START = 3
+EL_BLINK_END = 4
+EL_FIXATION_START = 6
+EL_FIXATION_END = 7
+EL_FIXATION_BOTH = [6,7]
+EL_FIXATION_UPDATE = 9
+EL_FIXATION_ALL = [6,7,9]
 EL_SACCADE_START = 5
 EL_SACCADE_END = 8
 EL_SACCADE_BOTH = [5,8]
+EL_ALL_EVENTS = [EL_BLINK_START, EL_BLINK_END, EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_BOTH, EL_FIXATION_UPDATE, EL_FIXATION_ALL, EL_SACCADE_START, EL_SACCADE_END, EL_SACCADE_BOTH]
 
 # lists of sdl2 key representations needed by klibs
 MOD_KEYS = {"Left Shift": 1, "Right Shift": 2, "Left Ctrl": 64, "Right Ctrl": 128,  # todo: make __mod_keysyms
@@ -112,8 +126,9 @@ MOD_KEYS = {"Left Shift": 1, "Right Shift": 2, "Left Ctrl": 64, "Right Ctrl": 12
 UI_METHOD_KEYSYMS = [sdl2.SDLK_q, sdl2.SDLK_c, sdl2.SDLK_p]
 
 SCREEN_FLAGS = sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP | sdl2.SDL_RENDERER_ACCELERATED | sdl2.SDL_RENDERER_PRESENTVSYNC | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
-EL_RECT_BOUNDARY = "rectangle"
-EL_CIRCLE_BOUNDARY = "circle"
+RECT_BOUNDARY = "rectangle"
+CIRCLE_BOUNDARY = "circle"
+ANULUS_BOUNDARY = "anulus"
 RGBA = "RGBA"
 
 # TrialFactory Constants

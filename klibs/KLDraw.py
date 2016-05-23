@@ -275,11 +275,10 @@ class Annulus(Drawbject):
 		if self.ring_inner_width < 1:
 			raise ValueError("Annulus area subsumed by stroke; increase ring_width or decrease stroke size")
 		if stroke is None:
-			self.stroke_color = (0,0,0)
+			self.stroke_color = (0,0,0,0)
 			self.stroke_width = 0
 		if auto_draw:
 			self.draw()
-
 
 	def draw(self,  as_numpy_surface=False):
 		if self.stroke:
@@ -356,39 +355,41 @@ class Asterisk(Drawbject):
 
 class Line(Drawbject):
 
-	def __init__(self, length, color, thickness, rotation=0, auto_draw=True):
+	def __init__(self, length, color, thickness, rotation=0, pts=None, auto_draw=True):
 		self.rotation = rotation
-		if rotation % 90 != 0:
-			self.x1 = thickness // 2
-			self.y1 = thickness // 2
-			self.x2 = int(math.sin(math.radians(float(self.rotation))) * length)
-			self.y2 = int(math.cos(math.radians(float(self.rotation))) * length)
-			s_width = self.x2 + int(0.5 * thickness)
-			s_height = self.y2 + int(0.5 * thickness)
+		if pts:
+			self.p1, self.p2 = pts
 		else:
-			if rotation in [0, 180]:
-				s_width = thickness
-				s_height = length
-				self.x1 = thickness // 2
-				self.y1 = 1
-				self.x2 = self.x1
-				self.y2 = length
-			else:
-				s_width = length
-				s_height = thickness
-				self.x1 = 1
-				self.y1 = thickness // 2
-				self.x2 = length
-				self.y2 = self.x1
-		super(Line, self).__init__(s_width, s_height, [thickness, color, STROKE_INNER], fill=None)
+			self.p1 = (0,0)
+			self.p2 = point_pos(self.p1, length, rotation)
+
+		self.__translate_to_positive__()
+		w = thickness + self.p2[0]
+		h = thickness + self.p1[1] if self.p1[1] > self.p2[1] else self.p2[1]
+		super(Line, self).__init__(w + thickness, h + thickness, [thickness, color, STROKE_INNER], fill=None)
+		f_vars = [length, rotation, self.p1[0], self.p1[1], self.p2[0], self.p2[1], self.surface_width, self.surface_height]
+		print "Len {0}px at {1}deg: ({2}, {3}) => ({4}, {5}) on canvas ({6} x {7})".format(*f_vars)
+		# super(Line, self).__init__(self.p2[0] + thickness, self.p2[1] + thickness, [thickness, color, STROKE_INNER], fill=None)
 
 		if auto_draw:
 			self.draw()
 
+	def __translate_to_positive__(self):
+		self.p1 = (self.p1[0] - self.p1[0], abs(self.p1[1]))
+		self.p2 = (self.p2[0] - self.p2[0], abs(self.p2[1]))
+
+		# ie. x1_trans = 2 * mid_p[x] - x1, y1=y1; ghislain and jon worked this out
+		x_trans = 2 *midpoint(self.p1, self.p2)[0]
+		self.p1 = (x_trans - self.p1[0], self.p1[1])
+		self.p2 = (x_trans - self.p2[0], self.p2[1])
+
+
 	def draw(self, as_numpy_surface=False):
-		self.surface.line((self.x1, self.y1, self.x2, self.y2), self.stroke)
+		self.surface.line((self.p1[0]+1, self.p1[1]+1, self.p2[0], self.p2[1]), self.stroke)
 
 		return self.surface
+
+
 
 class ColorWheel(Drawbject):
 
@@ -439,36 +440,6 @@ class ColorWheel(Drawbject):
 				  [360, thick, 0, 1],
 				  [float('inf'), 1, 0, thick]]
 		return tuple(int(c * 255) for c in colors[bisect([x[0] for x in colors], adj_angle)][1:])
-		# angle = float(angle)
-		# if angle < rotation:
-		# 	angle = angle - rotation + 360
-		# else:
-		# 	angle = angle - rotation
-		# if angle < 60:
-		# 	red = 1
-		# 	green = angle / 60
-		# 	blue = 0
-		# elif angle < 120:
-		# 	red = 1 - (angle - 60) / 60
-		# 	green = 1
-		# 	blue = 0
-		# elif angle < 180:
-		# 	red = 0
-		# 	green = 1
-		# 	blue = (angle - 120) / 60
-		# elif angle < 240:
-		# 	red = 0
-		# 	green = 1 - (angle - 180) / 60
-		# 	blue = 1
-		# elif angle < 300:
-		# 	red = (angle - 240) / 60
-		# 	green = 0
-		# 	blue = 1
-		# else:
-		# 	red = 1
-		# 	green = 0
-		# 	blue = 1 - (angle - 300) / 60
-		# return tuple([int(red * 255), int(green * 255), int(blue * 255), 255])
 
 	def angle_from_color(self, color, rotation=None):
 		return self.palette.index(rgb_to_rgba(color))

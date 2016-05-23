@@ -182,30 +182,33 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 def export(path, multi_file=True, join_tables=None):
 	try:
 		from klibs.KLDatabase import Database
-		# import klibs.KLParams as Params
 	except ImportError:
 		print_warning(*sys.exc_info())
 	name = os.path.split(path)[-1]
 	os.chdir(path)
-	# experiment = imp.load_source(path, "experiment.py")
-	# exp = getattr(experiment, name)
-	# exp = exp(name, -1, -1, False, False, False)
-	# exp.database.export(multi_file, join_tables)
 	Database(project_name=name).export(multi_file, join_tables)
 
 
 def rebuild_db(path):
 	try:
-		import klibs
+		from klibs.KLDatabase import Database
 	except ImportError as e:
 		print_warning(*sys.exc_info())
 	name = os.path.split(path)[-1]
 	os.chdir(path)
-	experiment = imp.load_source(path, "experiment.py")
-	exp = getattr(experiment, name)
-	exp = exp(name, -1, -1, False, False, False)
-	exp.database.rebuild()
+	Database(project_name=name).rebuild()
 
+def hard_reset(path):
+	#todo: require confirmation
+	shutil.rmtree(os.path.join(path, "ExpAssets", "Data"))
+	shutil.rmtree(os.path.join(path, "ExpAssets", "EDF"))
+	shutil.rmtree(os.path.join(path, "ExpAssets", ".versions"))
+	os.mkdir(os.path.join(path, "ExpAssets", "Data"))
+	os.mkdir(os.path.join(path, "ExpAssets", "Data", "incomplete"))
+	os.mkdir(os.path.join(path, "ExpAssets", "EDF"))
+	os.mkdir(os.path.join(path, "ExpAssets", "EDF", "incomplete"))
+	os.mkdir(os.path.join(path, "ExpAssets", ".versions"))
+	rebuild_db(path)
 
 def post_install(development_mode):
 	# from klibs.KLParams import klibs_version
@@ -248,6 +251,11 @@ try:
 	rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
 							help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
 	rebuild_parser.set_defaults(func=rebuild_db)
+
+	rebuild_parser = subparsers.add_parser('hard-reset')
+	rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+							help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
+	rebuild_parser.set_defaults(func=hard_reset)
 
 	update_parser = subparsers.add_parser('post-install')
 	update_parser.add_argument('-d', '--development_mode', action="store_true")

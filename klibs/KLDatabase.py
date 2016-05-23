@@ -134,7 +134,6 @@ class Database(object):
 	def __init__(self, experiment=None, project_name=None):
 		self.experiment = experiment
 		if not experiment:  # ie. exporting
-			print "INIT DB HAD NO EXP"
 			from klibs.KLExperiment import import_project_params
 			Params.setup(project_name, None)
 			import_project_params()
@@ -222,6 +221,8 @@ class Database(object):
 						col_type = PY_INT
 					elif col[2] in (SQL_FLOAT, SQL_REAL):
 						col_type = PY_FLOAT
+					elif col[2] == SQL_NUMERIC:
+						 col_type = PY_NUM
 					else:
 						raise ValueError("Invalid or unsupported type ({0}) for {1}.{2}'".format(col[2], table, col[1]))
 					allow_null = col[3] == 0
@@ -261,7 +262,7 @@ class Database(object):
 			self.__open_entries = {}
 			self.__current_entry = None
 			print  "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
-			self.experiment.quit()
+
 
 	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
 
@@ -320,14 +321,14 @@ class Database(object):
 			return instance
 
 	def is_unique(self, table, column, value, value_type=SQL_STR):
-		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL]:
+		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL, SQL_NUMERIC]:
 			query_str = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
 		else:
 			query_str = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
 		return len(self.query(query_str, QUERY_SEL, [value], True).fetchall()) == 0
 
 	def exists(self, table, column, value, value_type=SQL_STR):
-		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL]:
+		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL, SQL_NUMERIC]:
 			query_str = "SELECT * FROM `{0}` WHERE `{1}` = {2}".format(table, column, value)
 		else:
 			query_str = "SELECT * FROM `{0}` WHERE `{1}` = '{2}'".format(table, column, value)
@@ -384,6 +385,8 @@ class Database(object):
 						data_value =  str(data_value)
 					else:
 						data_value = "'{0}'".format(data_value)
+				elif column[1]['type'] == PY_NUM and isinstance(data_value, (int, long, float, complex)):
+					data_value = str(data_value)
 				else:
 					error_data = [column[1]['type'], column[0], type_str(data_value), data_value]
 					raise TypeError("Expected '{0}' for column '{1}', got '{2}' ({3}).".format(*error_data))
@@ -523,6 +526,8 @@ class Database(object):
 		return  TAB.join(column_names)
 
 	def export(self, multi_file=True, join_tables=None):
+
+		# todo: make sure p_id increments sequentially, ie. skips demo_user
 		try:
 			join_tables = join_tables[0].split(",")
 		except IndexError:

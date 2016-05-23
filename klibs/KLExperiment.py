@@ -2,13 +2,10 @@
 __author__ = 'jono'
 import OpenGL.GL as gl
 import sdl2.ext
-# import AppKit
 import imp
 import hashlib
-import Queue
-import threading
-import sys
-import re
+from signal import SIGKILL
+
 from klibs.KLAudio import AudioManager
 from klibs.KLEyeLink import *
 from klibs.KLExceptions import *
@@ -24,6 +21,7 @@ from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLEventInterface import EventInterface
 from klibs.KLLabJack import LabJack
 from klibs.KLTimeKeeper import *
+
 
 
 def import_project_params(file_path=None):
@@ -123,11 +121,13 @@ class Experiment(object):
 			# initialize audio management for the experiment
 			self.audio = AudioManager(self)
 
-			# initialize eyelink
+			# initialize eyelink--a mock EyeLink class is initialized if Pylink isn't avialable or installed correctly
 			if PYLINK_AVAILABLE:
 				self.eyelink = EyeLink(self)
 				self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
-				self.eyelink.dummy_mode = Params.eye_tracker_available is False
+			else:
+				self.eyelink = TryLink(self)
+			self.eyelink.dummy_mode = Params.eye_tracker_available is False
 
 			Params.key_maps["*"] = KeyMap("*", [], [], [])
 			Params.key_maps["*"].any_key = True
@@ -229,21 +229,21 @@ class Experiment(object):
 		self.trial_prep()
 		tx = None
 		try:
+			print "s1"
 			Params.clock.start()
 			trial_data = self.trial()
 			Params.clock.stop()
 			self.__log_trial(trial_data)
 			self.trial_clean_up()
 		except TrialException as e:
+			print "TRIAL EXCEPTION"
 			Params.trial_id = False
-			if Params.eye_tracking and Params.eye_tracker_available:
-				self.eyelink.stop()
 			self.trial_clean_up()
 			Params.clock.stop()
 			tx = e
-		if Params.eye_tracking and Params.eye_tracker_available:
+		if Params.eye_tracking:
 			self.eyelink.stop()
-		self.evi.sent = {}
+		self.evi.clear()
 		if tx:
 			raise tx
 
@@ -369,6 +369,7 @@ class Experiment(object):
 			self.listen()  # remember that listen calls flip() be default
 
 	def blit(self, source, registration=7, location=(0,0), position=None):
+		# todo: this fucker is static. get it the hell out of Experiment
 		"""
 		Draws passed content to display buffer.
 
@@ -572,7 +573,7 @@ class Experiment(object):
 			self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_masks[i])
 			Params.blocks_per_experiment += 1
 
-	def drift_correct(self, location=None, events=EL_TRUE, samples=EL_TRUE):
+	def drift_correct(self, location=None, boundary=None, events=EL_TRUE, samples=EL_TRUE):
 		"""
 		``canonical_wrapper``
 
@@ -590,7 +591,7 @@ class Experiment(object):
 		"""
 
 		self.clear()
-		return self.eyelink.drift_correct(location, events, samples)
+		return self.eyelink.drift_correct(location, boundary, events, samples)
 
 	def draw_fixation(self, location=BL_CENTER, size=None, stroke=None, color=None, fill_color=None, flip=False):
 		"""
@@ -752,7 +753,7 @@ class Experiment(object):
 		return False
 
 	def listen(self, max_wait=MAX_WAIT, key_map_name="*", el_args=None, null_response=None, response_count=None,
-			   interrupt=True, flip=True, wait_callback=None, *wait_args, **wait_kwargs):
+			   interrupt=True, flip=True, wait_callback=None, wait_args=[], wait_kwargs={}):
 		"""
 		``deprecated`` ``backwards_compatibility_planned``
 
@@ -837,6 +838,7 @@ class Experiment(object):
 			sdl2.SDL_PumpEvents()
 			if wait_callback:
 				# try:
+
 				wait_resp = wait_callback(*wait_args, **wait_kwargs)
 				if wait_resp:
 					waiting = False

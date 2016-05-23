@@ -7,6 +7,7 @@ import math
 from klibs.KLUtilities import *
 from klibs.KLDraw import *
 from klibs.KLExceptions import *
+from klibs.KLMixins import BoundaryInspector
 
 try:
 	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue
@@ -23,9 +24,12 @@ try:
 except:
 	DUMMY_MODE_AVAILABLE = False
 
+# class EyeLinkEvent(object):
+#
+# 	def __init__(self, event_data
 
 if PYLINK_AVAILABLE:
-	class EyeLink(EyeLink):
+	class EyeLink(EyeLink, BoundaryInspector):
 		__dummy_mode = None
 		__anonymous_boundaries = 0
 		experiment = None
@@ -34,8 +38,11 @@ if PYLINK_AVAILABLE:
 		dc_width = None  # ie. drift-correct width
 		edf_filename = None
 		unresolved_exceptions = 0
+		eye = None
+		start_time = [None, None]
 
 		def __init__(self, experiment_instance):
+			super(EyeLink, self).__init__()
 			self.experiment = experiment_instance
 			self.__current_sample = False
 			if Params.eye_tracker_available:
@@ -48,7 +55,8 @@ if PYLINK_AVAILABLE:
 				self.dummy_mode = Params.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
 			else:
 				self.dummy_mode = False
-			self.clear_gaze_boundaries()
+			self.dc_width = Params.screen_y // 60
+			self.add_boundary("drift_correct", [Params.screen_x, self.dc_width // 2], CIRCLE_BOUNDARY)
 
 		def __eye(self):
 			self.eye = self.eyeAvailable()
@@ -57,94 +65,10 @@ if PYLINK_AVAILABLE:
 		def calibrate(self):
 			self.doTrackerSetup()
 
-		def fetch_gaze_boundary(self, name=None):
-			return self.__gaze_boundaries[name] if name is not None else self.__gaze_boundaries
-
-		def add_gaze_boundary(self, bounds, name=None, shape=EL_RECT_BOUNDARY):
-			#  resolving legacy use of this function prior (ie. commit 451b634e1584e2ba2d37eb58fa5f707dd7554ca8 & earlier)
-			if type(bounds) is str and type(name) in [list, tuple]:
-				__bounds = name
-				name = bounds
-				bounds = __bounds
-			if name is None:
-				name = "anonymous_{0}".format(self.__anonymous_boundaries)
-
-			if shape not in [EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY]:
-				raise ValueError("Argument 'shape' must be a shape constant (ie. EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY).")
-			# TODO:  handling for when a extant boundary would be over-written
-
-			self.__gaze_boundaries[name] = {"shape": shape, "bounds": bounds}
-			return True
-
-		def clear_gaze_boundaries(self):
-			self.__gaze_boundaries = {}
-			self.dc_width = Params.screen_y // 60
-			dc_tl = [Params.screen_x // 2 - self.dc_width // 2, Params.screen_y // 2 - self.dc_width //2]
-			dc_br = [Params.screen_x // 2 + self.dc_width // 2, Params.screen_y // 2 + self.dc_width //2]
-			self.add_gaze_boundary("drift_correct", [dc_tl, dc_br])
-		
-		def draw_gaze_boundary(self, name="*", blit=True):
-			shape = None
-			boundary = None
-			try:
-				boundary_dict = self.__gaze_boundaries[name]
-				boundary = boundary_dict["bounds"]
-				shape = boundary_dict['shape']
-			except:
-				if shape is None:
-					raise IndexError("No boundary registered with name '{0}'.".format(boundary))
-				if shape not in [EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY]:
-					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
-			width = boundary[1][1] - boundary[0][1]
-			height = boundary[1][0] - boundary[0][0]
-			self.experiment.blit(Rectangle(width, height, [3, [255,255,255,255]]).render(), position=(boundary[0][0] - 3,boundary[0][1] -3) , registration=7)
-
-		def remove_gaze_boundary(self, name):
-			try:
-				del(self.__gaze_boundaries[name])
-			except KeyError:
-				raise KeyError("Key '{0}' not found; No such gaze boundary exists!".format(name))
-
-		def within_boundary(self, boundary, point=None, shape=None):
-
-			self.experiment.debug.log("within_boundary(boundary={0}, point={1}, shape={2}".format(boundary, point, shape))
-			try:
-				boundary_dict = self.__gaze_boundaries[boundary]
-				boundary = boundary_dict["bounds"]
-				shape = boundary_dict['shape']
-			except:
-				if shape is None:
-					raise IndexError("No boundary registered with name '{0}'.".format(boundary))
-				if shape not in [EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY]:
-					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
-			if point is None:
-				try:
-					point = self.gaze()
-				except ValueError as e:
-					return False
-
-			if shape == EL_RECT_BOUNDARY:
-				x_range = range(boundary[0][0], boundary[1][0])
-				y_range = range(boundary[0][1], boundary[1][1])
-				ret_val = point[0] in x_range and point[1] in y_range
-				return point[0] in x_range and point[1] in y_range
-
-			if shape == EL_CIRCLE_BOUNDARY:
-				r = (boundary[1][0] - boundary[0][0]) // 2
-				center = (boundary[0][0] + r, boundary[0][1] + r)
-				d_x = point[0] - center[0]
-				d_y = point[1] - center[1]
-				center_point_dist = math.sqrt(d_x**2 + d_y**2)
-				print "r: {0}, center: {1}, d_x: {2}, d_y: {3}, cpt: {4}, \n boundary: {5}, point: {6}".format(r, center, d_x, d_y, center_point_dist, boundary, point)
-				return center_point_dist <= r
-
-		def is_gaze_boundary(self, string):
-			return type(string) is str and string in self.__gaze_boundaries
-
 		def in_setup(self):
 			return self.inSetup() != 0
 
-		def drift_correct(self, location=None, el_draw_fixation=EL_TRUE, samples=EL_TRUE):
+		def drift_correct(self, location=None, boundary=None, el_draw_fixation=EL_TRUE, samples=EL_TRUE):
 			"""
 
 			:param location:
@@ -152,32 +76,20 @@ if PYLINK_AVAILABLE:
 			:param samples:
 			:return: :raise ValueError:
 			"""
-			location = Params.screen_c if location is None else location
-			gaze_boundary = None
-			try:
-				if self.is_gaze_boundary(location):
-					gaze_boundary = location
-				else:
-					raise ValueError
-			except ValueError:
-				try:
-					iter(location)
-					dc_pad = self.dc_width // 2
-					top_left = [location[0] - dc_pad, location[1] - dc_pad]
-					bottom_right = [location[0] + dc_pad, location[1] + dc_pad]
-					names_checked = 0
-					not_unique = True
-					while not_unique:
-						gaze_boundary = 'custom_dc_{0}'.format(names_checked)
-						not_unique = self.is_gaze_boundary(gaze_boundary)
-						names_checked += 1
-					self.add_gaze_boundary(gaze_boundary, [top_left, bottom_right])
-				except Exception as e:
-					print e.message
-					raise ValueError("Argument 'location' wasn't understood; must be an x,y location or gaze boundary name.")
 
+			#todo: put in a special warning as the signature of this method has changed (boundary is new); ie
+			# if boundary == EL_TRUE, throw an informative error
+			location = Params.screen_c if location is None else location
+			if not iterable(location):
+				raise ValueError("Argument 'location' invalid; expected coordinate tuple or boundary label.")
+
+			if not boundary:
+				boundary = self.add_anonymous_boundary([location, self.dc_width // 2], CIRCLE_BOUNDARY)
+
+			#todo: learn about fucking inflectors
 			el_draw_fixation = EL_TRUE if el_draw_fixation in [EL_TRUE, True] else EL_FALSE
 			samples = EL_TRUE if samples in [EL_TRUE, True] else EL_FALSE
+
 			if not self.dummy_mode:
 				try:
 					self.doDriftCorrect(location[0], location[1], el_draw_fixation, samples)
@@ -185,25 +97,24 @@ if PYLINK_AVAILABLE:
 					self.setOfflineMode()
 					try:
 						self.waitForModeReady(500)
-					except RuntimeError as e:
+					except RuntimeError:
 						self.unresolved_exceptions += 1
 						if self.unresolved_exceptions > 5:
 							print "\n\033[91m*** Fatal Error: Unresolvable EyeLink Error ***\033[0m"
-							print full_trace(e)
-
+							print full_trace()
 						raise TrialException("EyeLink not ready.")
 					return self.drift_correct()
 			else:
-				def dc(dc_location, dc_gaze_boundary):
+				def dc(dc_location, dc_boundary):
 					hide_mouse_cursor()
 					pump()
 					self.experiment.fill()
 					self.experiment.track_mouse()
 					self.custom_display.draw_cal_target(dc_location, flip=False)
 					self.experiment.flip()
-					in_bounds = self.within_boundary(dc_gaze_boundary, self.gaze())
+					in_bounds = self.within_boundary(dc_boundary, self.gaze())
 					return  in_bounds
-				return self.experiment.listen(MAX_WAIT, OVER_WATCH, wait_callback=dc, dc_location=location, dc_gaze_boundary=gaze_boundary)
+				return self.experiment.listen(MAX_WAIT, OVER_WATCH, wait_callback=dc, wait_args=[location, boundary])
 
 		def gaze(self, eye_required=None, return_integers=True):
 			if self.dummy_mode:
@@ -242,6 +153,7 @@ if PYLINK_AVAILABLE:
 				data = self.eyelink.getNextData()
 				if data == 0:
 					break
+				# use only the include or exclude lists
 				if len(include) and data in include:
 					queue.append(self.eyelink.getFloatData())
 				elif data not in exclude:
@@ -278,16 +190,18 @@ if PYLINK_AVAILABLE:
 				self.calibrate()
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
-			start = now()
+			self.start_time = [now(), None]
 			# ToDo: put some exceptions n here
 			if self.dummy_mode: return True
 			start = self.startRecording(samples, events, link_samples, link_events)
 			if start == 0:
+				self.start_time[1] = self.now()
 				if self.__eye():
 					self.write("TRIAL_ID {0}".format(str(trial_number)))
 					self.write("TRIAL_START")
 					self.write("SYNCTIME {0}".format('0.0'))
-					return start - now()  # ie. delay spent initializing the recording
+					return self.start_time - now()  # ie. delay spent initializing the recording
+
 				else:
 					return False
 			else:
@@ -310,6 +224,106 @@ if PYLINK_AVAILABLE:
 			else:
 				raise EyeLinkError("Only ASCII text may be written to an EDF file.")
 
+		def __within_boundary(self, event, label):
+			"""
+			For checking individual events; not for public use, but is a rather shared interface for the public methods
+			within_boundary(), saccade_to_boundary(), fixated_boundary()
+			:param event:
+			:param label:
+			:return:
+			"""
+			e_type = event.getType()
+			if  e_type in [EL_SACCADE_START, EL_SACCADE_END, EL_FIXATION_START, EL_FIXATION_END]:
+				start = [event.getStartGaze(), event.getStartPPD()]
+				if e_type in [EL_SACCADE_END, EL_FIXATION_END]:
+					timestamp = event.getStartTime()
+				else:
+					timestamp = event.getEndTime()
+				end = [event.getEndGaze(), event.getEndPPD()]
+				dx = (end[0][0] - start[0][0]) / ((end[1][0] + start[1][0]) / 2.0)
+				dy = (end[0][1] - start[0][1]) / ((end[1][1] + start[1][1]) / 2.0)
+			elif e_type == EL_GAZE_POS:
+				timestamp = event.getTime()
+				dx, dy = event.getGaze()
+			return timestamp if super(EyeLink, self).within_boundary(label, math.sqrt(dx**2 + dy**2)) else False
+
+		def within_boundary(self, label, inspect, event_queue=None, return_queue=False):
+			"""
+			For use when checking in real-time; uses entire event queue, whether supplied or fetched
+
+			:param label:
+			:param inspect:
+			:return:
+			"""
+
+			if not event_queue:
+				if inspect == EL_GAZE_POS:
+					event_queue = [self.sample()]
+				else:
+					event_queue = self.el.get_event_queue(EL_ALL_EVENTS)
+			for e in event_queue:
+				if not self.__within_boundary(e, label, inspect):
+					return False if not return_queue else [False, event_queue]
+			return True if not return_queue else [True, event_queue]
+
+		def saccade_to_boundary(self, label, inspect=EL_SACCADE_END, event_queue=None, return_queue=False):
+			"""
+			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
+			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
+			impertinent.
+
+			:param label:
+			:param return_queue:
+			:return:
+			"""
+			# todo: only allow saccade start/end inspections
+			if not event_queue:
+				event_queue = self.el.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+			for e in event_queue:
+				fix_start_time = self.__within_boundary(e, label, inspect)
+				if fix_start_time:
+					return fix_start_time if not return_queue else [fix_start_time, event_queue]
+			return False
+
+		def saccade_from_boundary(self, label, inspect=EL_SACCADE_START, event_queue=None, return_queue=False):
+			"""
+			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
+			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
+			impertinent.
+
+			:param label:
+			:param return_queue:
+			:return:
+			"""
+			# todo: only allow saccade start/end inspections
+			if not event_queue:
+				event_queue = self.el.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+			for e in event_queue:
+				fix_start_time = self.__within_boundary(e, label, inspect)
+				if not fix_start_time:
+					return fix_start_time if not return_queue else [fix_start_time, event_queue]
+			return False
+
+		def fixated_boundary(self, label, inspect=EL_FIXATION_END, event_queue=None, return_queue=False):
+			"""
+			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
+			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
+			impertinent.
+
+			:param label:
+			:param event_queue:
+			:param return_queue:
+			:return:
+			"""
+			# todo: only allow fixation start/end/update inspections
+			if not event_queue:
+				event_queue = self.el.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+			for e in event_queue:
+				fix_start_time = self.__within_boundary(e, label, inspect)
+				if fix_start_time:
+					return fix_start_time if not return_queue else [fix_start_time, event_queue]
+			return False
+
 		@abc.abstractmethod
 		def listen(self, **kwargs):
 			pass
@@ -322,7 +336,341 @@ if PYLINK_AVAILABLE:
 		def dummy_mode(self, status):
 				self.__dummy_mode = status
 
-		# legacy function with stupid name
+		# Everything from here down are legacy functions that wrap newer counterparts with different names for
+		# backwards compatibility
+
 		def shut_down_eyelink(self):
 			self.shut_down()
 
+
+		# re: all "gaze_boundary" methods: Refactored boundary behavior to a mixin (KLMixins)
+		def fetch_gaze_boundary(self, label):
+			return self.boundaries[label]
+
+		def add_gaze_boundary(self, bounds, label=None, shape=RECT_BOUNDARY):
+			#  resolving legacy use of this function prior (ie. commit 451b634e1584e2ba2d37eb58fa5f707dd7554ca8 & earlier)
+			if type(bounds) is str and type(label) in [list, tuple]:
+				__bounds = label
+				name = bounds
+				bounds = __bounds
+			if name is None:
+				name = "anonymous_{0}".format(self.__anonymous_boundaries)
+
+			if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
+				raise ValueError(
+					"Argument 'shape' must be a shape constant (ie. EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY).")
+
+			self.add_boundary(name, bounds, shape)
+
+		def clear_gaze_boundaries(self):
+			# legacy function
+			self.clear_boundaries()
+			self.dc_width = Params.screen_y // 60
+			dc_tl = [Params.screen_x // 2 - self.dc_width // 2, Params.screen_y // 2 - self.dc_width // 2]
+			dc_br = [Params.screen_x // 2 + self.dc_width // 2, Params.screen_y // 2 + self.dc_width // 2]
+			self.add_boundary("drift_correct", [dc_tl, dc_br])
+
+		def draw_gaze_boundary(self, label="*", blit=True):
+			return self.draw_boundary(label)
+
+			shape = None
+			boundary = None
+			try:
+				boundary_dict = self.__gaze_boundaries[label]
+				boundary = boundary_dict["bounds"]
+				shape = boundary_dict['shape']
+			except:
+				if shape is None:
+					raise IndexError("No boundary registered with name '{0}'.".format(boundary))
+				if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
+					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+			width = boundary[1][1] - boundary[0][1]
+			height = boundary[1][0] - boundary[0][0]
+			self.experiment.blit(Rectangle(width, height, [3, [255, 255, 255, 255]]).render(),
+								 position=(boundary[0][0] - 3, boundary[0][1] - 3), registration=7)
+
+		def remove_gaze_boundary(self, name):
+			self.remove_boundary(name)
+else:
+	from klibs.KLDraw import drift_correct_target
+
+class TryLink(BoundaryInspector):
+	__dummy_mode = None
+	__anonymous_boundaries = 0
+	experiment = None
+	__gaze_boundaries = {}
+	custom_display = None
+	dc_width = None  # ie. drift-correct width
+	edf_filename = None
+	unresolved_exceptions = 0
+	eye = None
+	start_time = [None, None]
+
+	def __init__(self, experiment_instance):
+		super(TryLink, self).__init__()
+		self.experiment = experiment_instance
+		self.__current_sample = False
+		if DUMMY_MODE_AVAILABLE:
+			self.dummy_mode = Params.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
+		else:
+			self.dummy_mode = False
+		self.dc_width = Params.screen_y // 60
+		self.add_boundary("drift_correct", [Params.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
+
+	# REWRITE
+	def __eye(self):
+		self.eye = EL_NO_EYES
+		return self.eye != EL_NO_EYES
+
+	def calibrate(self):
+		return
+
+	# REWRITE
+	def in_setup(self):
+		return False
+
+	def drift_correct(self, location=None, boundary=None,  el_draw_fixation=EL_TRUE, samples=EL_TRUE):
+		"""
+
+		:param location:
+		:param el_draw_fixation:
+		:param samples:
+		:return: :raise ValueError:
+		"""
+		location = Params.screen_c if location is None else location
+		if not iterable(location):
+			raise ValueError("Argument 'location' invalid; expected coordinate tuple or boundary label.")
+
+		if boundary is None:
+			boundary = self.add_anonymous_boundary([location, self.dc_width // 2], CIRCLE_BOUNDARY)
+
+		show_mouse_cursor()
+		while True:
+			self.experiment.ui_request()
+			self.experiment.fill()
+			self.experiment.blit(drift_correct_target(), 5, location)
+			self.experiment.flip()
+			fixated = self.within_boundary(boundary, EL_MOCK_EVENT)
+			if fixated:
+				hide_mouse_cursor()
+				return fixated
+
+
+	def gaze(self, eye_required=None, return_integers=True):
+		try:
+			return mouse_pos()
+		except:
+			raise RuntimeError("No gaze (or simulation) to report; both eye & mouse tracking unavailable.")
+
+	def get_event_queue(self, include=[], exclude=[]):
+		# todo: create an object with the same methods
+		queue = []
+		pumping = True
+		while pumping:
+			data = self.eyelink.getNextData()
+			if data == 0:
+				break
+			# use only the include or exclude lists
+			if len(include) and data in include:
+				queue.append(self.eyelink.getFloatData())
+			elif data not in exclude:
+				queue.append(self.eyelink.getFloatData())
+		return queue
+
+	def now(self):
+		return Params.clock.trial_time if Params.clock.start_time else Params.clock.timestamp
+
+	def sample(self):
+		self.__current_sample = MouseEvent()
+		return self.__current_sample
+
+	def getNextData(self):
+		return MouseEvent()
+
+	def setup(self):
+		return self.calibrate()
+
+	def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
+		self.start_time = [Params.clock.timestamp, Params.clock.timestamp]
+		if self.dummy_mode:
+			return True
+		else:
+			self.write("TRIAL_ID {0}".format(str(trial_number)))
+			self.write("TRIAL_START")
+			self.write("SYNCTIME {0}".format('0.0'))
+			return self.start_time - Params.clock.timestamp  # ie. delay spent initializing the recording
+
+	def stop(self):
+		pass
+
+	def shut_down(self):
+		return 0
+
+	def write(self, message):
+		if all(ord(c) < 128 for c in message):
+			self.sendMessage(message)
+		else:
+			raise EyeLinkError("Only ASCII text may be written to an EDF file.")
+
+	def __within_boundary(self, label, event):
+		"""
+		For checking individual events; not for public use, but is a rather shared interface for the public methods
+		within_boundary(), saccade_to_boundary(), fixated_boundary()
+
+		:param event:
+		:param label:
+		:return:
+		"""
+		timestamp = event.getTime()
+		result = super(TryLink, self).within_boundary(label, event.getGaze())
+		return timestamp if result else False
+
+	def within_boundary(self, label, inspect=EL_MOCK_EVENT, event_queue=None, return_queue=False):
+		"""
+		For use when checking in real-time; uses entire event queue, whether supplied or fetched
+
+		:param label:
+		:param inspect:
+		:return:
+		"""
+		result = self.__within_boundary(label, self.sample())
+		return result if not return_queue else [result, event_queue]
+
+	def saccade_to_boundary(self, label, inspect=EL_SACCADE_END, event_queue=None, return_queue=False):
+		"""
+		Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
+		In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
+		impertinent.
+
+		:param label:
+		:param return_queue:
+		:return:
+		"""
+		# todo: only allow saccade start/end inspections
+		fix_start_time = self.__within_boundary(label, self.sample())
+		if fix_start_time:
+			return fix_start_time if not return_queue else [fix_start_time, event_queue]
+		return False
+
+	def saccade_from_boundary(self, label, inspect=EL_SACCADE_START, event_queue=None, return_queue=False):
+		"""
+		Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
+		In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
+		impertinent.
+
+		:param label:
+		:param return_queue:
+		:return:
+		"""
+		# todo: only allow saccade start/end inspections
+		fix_start_time = self.__within_boundary(label, self.sample())
+		if not fix_start_time:
+			return fix_start_time if not return_queue else [fix_start_time, event_queue]
+		return False
+
+	def fixated_boundary(self, label, inspect=EL_FIXATION_END, event_queue=None, return_queue=False):
+		"""
+		Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
+		In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
+		impertinent.
+
+		:param label:
+		:param event_queue:
+		:param return_queue:
+		:return:
+		"""
+		# todo: only allow fixation start/end/update inspections
+		fix_start_time = self.__within_boundary(label, self.sample())
+		if fix_start_time:
+			return fix_start_time if not return_queue else [fix_start_time, event_queue]
+		return False
+
+	@abc.abstractmethod
+	def listen(self, **kwargs):
+		pass
+
+	@property
+	def dummy_mode(self):
+		return self.__dummy_mode
+
+	@dummy_mode.setter
+	def dummy_mode(self, status):
+		self.__dummy_mode = status
+
+	# Everything from here down are legacy functions that wrap newer counterparts with different names for
+	# backwards compatibility
+
+	def shut_down_eyelink(self):
+		self.shut_down()
+
+
+	# re: all "gaze_boundary" methods: Refactored boundary behavior to a mixin (KLMixins)
+	def fetch_gaze_boundary(self, label):
+		return self.boundaries[label]
+
+	def add_gaze_boundary(self, bounds, label=None, shape=RECT_BOUNDARY):
+		#  resolving legacy use of this function prior (ie. commit 451b634e1584e2ba2d37eb58fa5f707dd7554ca8 & earlier)
+		if type(bounds) is str and type(label) in [list, tuple]:
+			__bounds = label
+			name = bounds
+			bounds = __bounds
+		if name is None:
+			name = "anonymous_{0}".format(self.__anonymous_boundaries)
+
+		if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
+			raise ValueError(
+				"Argument 'shape' must be a shape constant (ie. EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY).")
+
+		self.add_boundary(name, bounds, shape)
+
+	def clear_gaze_boundaries(self):
+		# legacy function
+		self.clear_boundaries()
+		self.dc_width = Params.screen_y // 60
+		dc_tl = [Params.screen_x // 2 - self.dc_width // 2, Params.screen_y // 2 - self.dc_width // 2]
+		dc_br = [Params.screen_x // 2 + self.dc_width // 2, Params.screen_y // 2 + self.dc_width // 2]
+		self.add_boundary("drift_correct", [dc_tl, dc_br])
+
+	def draw_gaze_boundary(self, label="*", blit=True):
+		return self.draw_boundary(label)
+
+		shape = None
+		boundary = None
+		try:
+			boundary_dict = self.__gaze_boundaries[label]
+			boundary = boundary_dict["bounds"]
+			shape = boundary_dict['shape']
+		except:
+			if shape is None:
+				raise IndexError("No boundary registered with name '{0}'.".format(boundary))
+			if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
+				raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+		width = boundary[1][1] - boundary[0][1]
+		height = boundary[1][0] - boundary[0][0]
+		self.experiment.blit(Rectangle(width, height, [3, [255, 255, 255, 255]]).render(),
+							 position=(boundary[0][0] - 3, boundary[0][1] - 3), registration=7)
+
+	def remove_gaze_boundary(self, name):
+		self.remove_boundary(name)
+
+class MouseEvent(object):
+
+	def __init__(self):
+		super(MouseEvent, self).__init__()
+		self.__sample = mouse_pos()
+		if not Params.clock.start_time:
+			self.__time = Params.clock.timestamp
+		else:
+			self.__time = Params.clock.trial_time
+
+	def getGaze(self):
+		return self.__sample
+
+	def getTime(self):
+		return self.__time
+
+	def getStartTime(self):
+		return self.__time
+
+	def getEndTime(self):
+		return self.__time

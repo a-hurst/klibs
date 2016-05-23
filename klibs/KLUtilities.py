@@ -75,21 +75,9 @@ def arg_error_str(arg_name, given, expected, kw=True):
 	return err_string.format(arg_name, type(given), type(expected))
 
 
-def angle_between(p1, p2, rotation=0, clockwise=False):
-	if abs(rotation) > 360:
-		rotation %= 360
-	p2 = list(p2)
-	p2[0] = p2[0] - p1[0]
-	p2[1] = p2[1] - p1[1]
-
-	angle = degrees(math.atan2(p2[1] * 180 / math.pi, p2[0] * 180 / math.pi))
-	if clockwise:
-		angle -= rotation
-		return angle if angle > 0 else angle + 360
-	else:
-		angle = (360 - angle if angle > 0 else -1 * angle) - rotation
-		return angle if angle > 0 else angle + 360
-
+def angle_between(origin, p2, rotation=0, clockwise=False):
+	angle = degrees(atan2(p2[1] - origin[1], p2[0] - origin[0])) + (-rotation if clockwise else rotation)
+	return (angle if clockwise else -angle) % 360
 
 
 def bool_to_int(boolean_val):
@@ -249,6 +237,21 @@ def img(name, sub_dirs=None):
 	return os.path.join(Params.image_dir, name)
 
 
+def interpolated_path_len(points):
+	# where frames is a list of coordinate tuples
+	path_len = 0
+	for i in range(0, len(points)):
+		try:
+			p1 = [1.0 * points[i][0], 1.0 * points[i][1]]
+			p2 = [1.0 * points[i + 1][0], 1.0 * points[i + 1][1]]
+			path_len += line_segment_len(p1, p2)
+		except IndexError:
+			p1 = [1.0 * points[i][0], 1.0 * points[i][1]]
+			p2 = [1.0 * points[0][0], 1.0 * points[0][1]]
+			path_len += line_segment_len(p1, p2)
+	return path_len
+
+
 def iterable(obj, exclude_strings=True):
 	if exclude_strings:
 		return hasattr(obj, '__iter__')
@@ -337,19 +340,15 @@ def peak(v1, v2):
 
 
 def point_pos(origin, amplitude, angle, rotation=0, clockwise=False):
-	if abs(rotation) > 360:
-		rotation %= 360
-	if clockwise:
-		rotation *= -1
-	if clockwise:
-		angle -= rotation
-		angle = angle if angle > 0 else angle + 360
-	else:
-		angle = (360 - angle if angle > 0 else -1 * angle) - rotation
-		angle = angle if angle > 0 else angle + 360
-
-	theta_rad = radians(angle)
-	return int(origin[0] + amplitude * cos(theta_rad)), int(origin[1] + amplitude * sin(theta_rad))
+	try:
+		origin = tuple(origin)
+		angle += rotation
+		theta_rad = radians((angle if clockwise else -angle) % 360)
+		return (int(origin[0] + (amplitude * cos(theta_rad))), int(origin[1] + (amplitude * sin(theta_rad))))
+	except Exception as e:
+		print "point_pos() error"
+		print origin, amplitude, angle, rotation, type(origin), type(amplitude), type(angle), type(rotation)
+		raise
 
 
 def pump(get_events=False):

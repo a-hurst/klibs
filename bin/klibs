@@ -152,7 +152,7 @@ def update():
 	print err
 
 
-def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane):
+def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose):
 	try:
 		import klibs
 	except ImportError as e:
@@ -166,7 +166,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	os.chdir(path)
 	experiment_file = imp.load_source(path, "experiment.py")
 	experiment = getattr(experiment_file, project_name)
-	exp = experiment(project_name, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane)
+	exp = experiment(project_name, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose)
 	from klibs import KLParams as Params
 	if Params.klibs_commit != commit:
 		pass # todo: warn user
@@ -268,6 +268,8 @@ try:
 	run_parser.add_argument('-d', '--development_mode', action="store_true", help="Development mode turns off demographics collection and turns on several debugging features." )
 	run_parser.add_argument('-ELx', '--no_eyelink', action="store_false", help="Signals the absence of a connected eyelink unit. Does nothing for non-eyetracking experiments." )
 	run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true", help="Debug log will be blit to translucent panel on screen in real time." )
+	# todo: verbose mode should accept a value, and then logging should be incrementally verbose
+	run_parser.add_argument('-v', '--verbose', action="store_true", help="EventsInterface will syndicate EyeLink, log & LabJack messages to terminal." )
 	run_parser.set_defaults(func=run)
 
 

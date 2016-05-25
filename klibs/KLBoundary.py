@@ -10,6 +10,7 @@ class Boundary(object):
 	def __init__(self, label):
 		super(Boundary, self).__init__()
 		self.__label = label
+		self.active = True
 
 	@property
 	def label(self):

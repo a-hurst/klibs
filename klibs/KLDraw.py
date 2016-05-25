@@ -164,7 +164,7 @@ class Drawbject(object):
 			self.fill_color = None
 			return self
 		if len(color) == 4:
-			opacity = color[3]
+			opacity = color[3] if type(color[3]) is int else int(color[3] * 255)
 			color = tuple(color[0:3])
 		else:
 			color = tuple(color)
@@ -469,6 +469,10 @@ class ColorWheel(Drawbject):
 	@property
 	def __name__(self):
 		return "ColorWheel"
+
+
+class SliderCounter(Drawbject):
+
 
 
 class FreeDraw(Drawbject):

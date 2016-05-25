@@ -355,6 +355,11 @@ def pump(get_events=False):
 	from klibs.KLEventInterface import TrialEvent
 	while not Params.process_queue.empty():
 		event = Params.process_queue.get()
+
+		# if event has been updated, ignore first encounter but remove it from update list
+		if event[0] in Params.updated_events:
+			Params.updated_events.remove(event[0])
+			continue
 		sdl_event = sdl2.SDL_Event()
 		sdl_event.type = sdl2.SDL_RegisterEvents(1)
 		success = sdl2.SDL_PushEvent(sdl_event)

@@ -280,29 +280,28 @@ class MouseDownResponse(ResponseType, BoundaryInspector):
 	def __init__(self, *args, **kwargs):
 		super(MouseDownResponse, self).__init__(*args, **kwargs)
 
-	def collect_response(self, event_queue, boundaries=None):
+	def collect_response(self, event_queue):
 		for event in event_queue:
 			if event.type is sdl2.SDL_MOUSEBUTTONDOWN:
 				if len(self.responses) < self.min_response_count:
-					boundary =  self.within_boundary([event.x, event.y], boundaries)
+					boundary =  self.within_boundaries([event.x, event.y])
 					if boundary:
-						self.responses.append( [boundary, Params.clock.trial_time] )
+						self.responses.append( [boundary, [event.x, event.y], Params.clock.trial_time] )
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
-
 
 class MouseUpResponse(ResponseType, BoundaryInspector):
 
 	def __init__(self, *args, **kwargs):
 		super(MouseUpResponse, self).__init__(*args, **kwargs)
 
-	def collect_response(self, event_queue, boundaries=None):
+	def collect_response(self, event_queue):
 		for event in event_queue:
 			if event.type is sdl2.SDL_MOUSEBUTTONUP:
 				if len(self.responses) < self.min_response_count:
-					boundary = self.within_boundary([event.x, event.y],  boundaries)
+					boundary = self.within_boundaries([event.x, event.y])
 					if boundary:
-						self.responses.append([boundary, Params.clock.trial_time])
+						self.responses.append([boundary, [event.x, event.y], Params.clock.trial_time])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 

@@ -14,7 +14,6 @@ class EventTicket(object):
 
 	def __init__(self, label, onset, data=None, relative=False, unit=TK_MS):
 		super(EventTicket, self).__init__()
-		print label, onset, data, relative, unit
 		self.__onset = None
 		self.__label = None
 		self.__unit = None
@@ -26,7 +25,6 @@ class EventTicket(object):
 
 		if Params.clock.start_time:
 			Params.clock.trial_time
-			print self
 
 	def __str__(self):
 		return "<klibs.KLEventInterface.EventTicket, ('{0}': {1}, at {3})".format(self.label, self.onset, self.data, hex(id(self)))
@@ -40,7 +38,7 @@ class EventTicket(object):
 		if type(time_val) not in [int, float] or time_val < 0:
 			raise TypeError("Property 'onset' must be a positive integer; got {0}.".format(time_val))
 		if self.relative:
-			time_val += Params.clock.trial_time if self.__unit == TK_S else Params.clock.trial_time * 1000
+			time_val += Params.clock.trial_time if self.__unit == TK_S else Params.clock.trial_time_ms
 		if self.__unit == TK_S:
 			time_val *= 1000
 		self.__onset = time_val
@@ -148,7 +146,7 @@ class EventInterface(object):
 
 	def log_trial_event(self, label, trial_time, eyelink_time=-1 ):
 		e = [Params.participant_id, Params.trial_id, Params.trial_number, label, trial_time, eyelink_time]
-		if Params.dm_print_log:
+		if Params.verbose_mode:
 			print "Logging: {0}".format(e)
 		self.trial_event_log.append(e)
 
@@ -166,6 +164,9 @@ class EventInterface(object):
 		self.events_dumped = True
 
 	def after(self, label, pump_events=False):
+		if not Params.clock.registered(label):
+			raise NameError("'{0}' not registered.".format(label))
+
 		if pump_events:
 			self.experiment.ui_request(pump(True))
 		for e in Params.process_queue_data:
@@ -175,7 +176,7 @@ class EventInterface(object):
 
 	def registered(self, label):
 		"""
-		Determines if an event exists in the events
+		Determines if an event exists in the events log
 		:param label:
 		"""
 		return label in self.events
@@ -188,6 +189,10 @@ class EventInterface(object):
 		return message in self.__message_log
 
 	def before(self, label, pump_events=False):
+		if not label:
+			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
+		if not Params.clock.registered(label):
+			raise NameError("'{0}' not registered.".format(label))
 		if pump_events:
 			self.experiment.ui_request(pump())
 		for e in Params.process_queue_data:
@@ -195,8 +200,13 @@ class EventInterface(object):
 				return False
 		return True
 
-	def between(self, event_1, event_2):
-		return self.after(event_1) and not self.after(event_2)
+	def between(self, label_1, label_2):
+		if not Params.clock.registered(label_1):
+			raise NameError("'{0}' not registered.".format(label_1))
+		if not Params.clock.registered(label_2):
+			raise NameError("'{0}' not registered.".format(label_2))
+
+		return self.after(label_1) and not self.after(label_2)
 
 	def write(self, message, edf=True, eeg=True):
 		if not Params.labjacking:
@@ -220,9 +230,9 @@ class EventInterface(object):
 		if Params.labjack_available and Params.labjacking and eeg:
 			self.experiment.labjack.write(eeg_send)
 
-		if Params.development_mode and edf and not Params.eye_tracker_available:
+		if Params.verbose_mode and edf:
 			print "\t\033[94mEvent (\033[92mEDF\033[94m): \033[0m{0}".format(edf_send)
-		if Params.development_mode and eeg and not Params.labjack_available:
+		if Params.verbose_mode and eeg:
 			print "\t\033[94mEvent (\033[92mEEG\033[94m): \033[0m{0}".format(eeg_send)
 
 	def send(self, label, max_per_trial=1, args=None, eeg_code_to_edf=None, code=None, message=None):

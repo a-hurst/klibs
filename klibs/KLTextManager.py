@@ -177,6 +177,7 @@ class TextManager(object):
 		else:
 			rendered_text = sdlttf.TTF_RenderUTF8_Solid(rendering_font, text, sdl2.SDL_Color(*style.color)).contents
 			px = numpy.asarray(sdl2.ext.PixelView(rendered_text))
+			print px
 			surface_array = numpy.zeros((px.shape[0], px.shape[1], 4));
 			surface_array[...] = px * 255
 		if not from_wrap:

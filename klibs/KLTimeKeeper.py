@@ -2,6 +2,7 @@
 __author__ = 'jono'
 from klibs.KLUtilities import *
 from klibs import KLParams as Params
+from copy import copy
 import multiprocessing as mp_lib  # incase you want to try billiard again later
 
 
@@ -168,6 +169,7 @@ class TimeKeeper(object):
 class EventClock(object):
 
 	def __init__(self, experiment):
+		self.__registry = []
 		self.tasks = []
 		self.events = []
 		self.sent_events = []
@@ -176,21 +178,53 @@ class EventClock(object):
 		self.start_time = None
 		self.start_lag = None
 		self.experiment = experiment
-		self.events = []
 		self.pipe = None
 		self.p = None
 		self.pipe, child = mp_lib.Pipe()
 		self.p = __event_clock__(child)
 
+	def update_event_onset(self, label, onset, unit=TK_MS):
+		self.__update_event(label, update_onset=True, onset=onset, unit=unit)
+
+	def update_event_data(self, label, data):
+		self.__update_event(label, update_data=True, data=data)
+
+	def __update_event(self, label, update_onset=False, onset=None, unit=TK_S, update_data=False, data=None):
+		try:
+			for e in self.events:
+				if e.label == label:
+					if update_onset:
+						if unit == TK_S:
+							onset *= 1000
+						e.onset = onset
+					if update_data:
+						e.data = data
+		except IndexError:
+			e_copy = None
+			for e in self.sent_events:
+				if e.label == label:
+					e_copy = copy(self.sent_events[label])
+			if update_onset:
+				if unit == TK_S:
+					onset *= 1000
+				e_copy.onset = onset
+			if update_data:
+				e_copy.data = data
+			if self.trial_time > e_copy.onset:
+				raise RuntimeError("Too late to update event '{0}'.".format(e_copy.label))
+			Params.updated_events.append(e_copy.label)
+			self.events.append(e_copy)
+
+
 	def register_events(self, events):
+		from klibs.KLEventInterface import EventTicket
+		reg_start = self.timestamp
 		for e in events:
-		# 	if e not in
-		# EVI_CONSTANTS and type(e) is not EventTicket:
-		# 		raise ValueError("register_events() requires an iterable of EventTickets or KLEventInterface constants./"
-		# 						 "Please use register_event() to register a single event.")
-		# 	else:
-		# 		if not iterable(e):
+			if e not in EVI_CONSTANTS and not isinstance(e, EventTicket):
+				raise ValueError("Expected sequence of EventTicket objects or KLEventInterface constants."
+								 "To register a single event, use register_event()")
 			self.register_event(e)
+		return self.timestamp - reg_start
 
 	def register_event(self, event):
 		"""
@@ -239,18 +273,25 @@ class EventClock(object):
 		# 	print event.label
 		# except AttributeError:
 		# 	print event
+		reg_start = self.timestamp
+		self.__registry.append(event)
 		self.events.append(event)
-		self.__sync(stages=False)
+		return self.__sync(stages=False) - reg_start
 
-	def register_stages(self, stages, unit=TK_MS):
-		for s in stages:
-			self.register_stage(s, unit)
+	# todo: should be 'phase', for one; primarily will be used for setting events with fixed times relative to phase onsets
+	# def register_stages(self, stages, unit=TK_MS):
+	# 	for s in stages:
+	# 		self.register_stage(s, unit)
+	#
+	# def register_stage(self, stage, unit=TK_MS):
+	# 	if unit == TK_S:
+	# 		stage[0] *= 1000
+	# 	self.events.append(stage)
+	# 	self.__sync(events=False)
 
-	def register_stage(self, stage, unit=TK_MS):
-		if unit == TK_S:
-			stage[0] *= 1000
-		self.events.append(stage)
-		self.__sync(events=False)
+	def registered(self, label):
+		# todo: distinguish this from the method by the same name in EventInterface.
+		return label in self.__registry
 
 	def start(self):
 		"""
@@ -258,13 +299,9 @@ class EventClock(object):
 
 		"""
 		try:
-			print "s2"
 			self.register_event(EVI_TRIAL_START)
-			print "s5"
 			self.pipe.poll()
-			print "s6"
 			self.start_time = self.pipe.recv()
-			print self.start_time
 			el_val = self.experiment.eyelink.now() if Params.eye_tracking and Params.eye_tracker_available else -1
 			self.experiment.evi.log_trial_event(EVI_CLOCK_START, self.start_time, el_val)
 		except:
@@ -283,32 +320,34 @@ class EventClock(object):
 		self.events = []
 		self.sent_events = []
 		self.stages = []
-		self.events_index = {}
 		self.start_time = None
 		self.__sync()
 		while not self.__poll():
 			pass
 
-	def deregister(self, event_label=None):
-		if event_label:
-			removed = False
-			for e in self.events:
-				if e[1] == event_label:
-					self.register_event([event_label, EVI_DEREGISTER_EVENT])
-					if self.__poll():
-						self.events.remove(e)
-					else:
-						raise RuntimeError("Cannot remove event '{0}' as it has already been sent.".format(event_label))
-					removed = True
-			if not removed:
-				for e in self.sent_events:
-					if e[1] == event_label:
-						raise RuntimeError("Cannot remove event '{0}' as it has already been sent.".format(event_label))
-				raise RuntimeError("No such event '{0}'.".format(event_label))
-		else:
-			self.register_event(EVI_CLOCK_RESET)
-		self.__sync()
-		self.events = []
+	def deregister(self, label):
+		reg_start = time.time()
+		# todo: fix this fucker, it's broken; trial clock doesn't look for lists, just strings or event objects
+		removed = False
+		try:
+			self.__registry.remove(label)
+		except NameError:
+			raise NameError("No such event '{0}' registered.".format(label))
+		for e in self.events:
+			if e[1] == label:
+				self.register_event([label, EVI_DEREGISTER_EVENT])
+				if self.__poll():
+					self.events.remove(e)
+				else:
+					raise RuntimeError("Cannot remove event '{0}' as it has already been sent.".format(label))
+				removed = True
+		if not removed:
+			for e in self.sent_events:
+				if e[1] == label:
+					raise RuntimeError("Cannot remove event '{0}' as it has already been sent.".format(label))
+			raise RuntimeError("No such event '{0}'.".format(label))
+
+		return self.__sync() - reg_start
 
 	def __sync(self, events=True, stages=True):
 		e = self.events if events else False
@@ -317,7 +356,9 @@ class EventClock(object):
 		for e in self.events:
 			self.sent_events.append(e)
 			self.events.remove(e)
-		# print "__sync"
+		while not self.__poll() == EVI_EVENT_SYNC_COMPLETE:
+			pass
+		return time.time()
 
 	def __poll(self):
 		while not self.pipe.poll():
@@ -341,6 +382,11 @@ class EventClock(object):
 		self.register_event(EVI_SEND_TIME)
 		return self.__poll()
 
+	@property
+	def trial_time_ms(self):
+		self.register_event(EVI_SEND_TIME)
+		return self.__poll() * 1000
+
 
 	@property
 	def timestamp(self):
@@ -353,6 +399,7 @@ class EventClock(object):
 
 @threaded
 def __event_clock__(pipe):
+	from klibs.KLEventInterface import EventTicket
 	start = time.time()
 	events = []
 	stages = []
@@ -360,9 +407,13 @@ def __event_clock__(pipe):
 	if pipe.poll():
 		events, stages = pipe.recv()
 	trial_started = False
+	def trial_time_ms():
+		return (time.time() - start) * 1000
+	syncing_events = False
 	try:
 		while True:
 			if pipe.poll():
+				syncing_events = True
 				new_e, new_s = pipe.recv()  # new_e/s will be false if not syncing
 				if new_e:
 					events += new_e
@@ -370,9 +421,8 @@ def __event_clock__(pipe):
 					stages += new_s
 
 			for e in events:
-				if e in EVI_CONSTANTS:
+				if not isinstance(e, EventTicket):
 					if e == EVI_CLOCK_RESET:
-						print "CLOCK RESET"
 						trial_started = False
 						events = []
 						stages = []
@@ -381,7 +431,6 @@ def __event_clock__(pipe):
 						break
 
 					if e == EVI_TRIAL_START:
-						print "CLOCK START"
 						sent.append(e)
 						events.remove(e)
 						start = time.time()
@@ -407,6 +456,7 @@ def __event_clock__(pipe):
 							pipe.send(True)
 						except ValueError:
 							pipe.send(False)
+
 				if not trial_started:  # allows for registration during setup(), trial_prep(), etc.
 					continue
 
@@ -414,13 +464,16 @@ def __event_clock__(pipe):
 					events.remove(e)
 					continue
 
-				if (time.time() - start) * 1000  >= e.onset or e.onset == 0:  # ie. something should happen IMMEDIATELY
-					if Params.development_mode and Params.dm_print_events:
+				if trial_time_ms() >= e.onset or e.onset == 0:  # ie. something should happen IMMEDIATELY
+					if Params.verbose_mode:
 						print "\t...Sent '{0}' at {1}".format(e.label, time.time() - start)
 					sent.append(e)
 					try:
 						Params.process_queue.put([e.label, e.data,  time.time(), time.time() - start])
 					except IndexError:
 						Params.process_queue.put([e.label, None, time.time(), time.time() - start])
+			if syncing_events:
+				pipe.send(EVI_EVENT_SYNC_COMPLETE)
+				syncing_events = False
 	except Exception as e:
 		pipe.send(full_trace())

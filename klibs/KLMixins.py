@@ -3,6 +3,7 @@ __author__ = 'jono'
 from KLConstants import *
 from KLUtilities import *
 from KLBoundary import *
+from KLExceptions import BoundaryError
 # class KLBoundary  will inherit from KLObject
 
 
@@ -26,7 +27,23 @@ class BoundaryInspector(object):
 			self.add_boundary(*b)
 
 	def within_boundary(self, label, reference):
+		if not self.boundaries[label].active:
+			raise BoundaryError("Boundary '{0}' is not active for searching.".format(label)
+			)
 		return self.boundaries[label].within(reference)
+
+	def within_boundaries(self, reference, labels=None):
+
+		for l in labels if labels else self.boundaries:
+			try:
+				if self.boundaries[l].within(reference):
+					return l
+			except BoundaryError:
+				if not labels:
+					pass
+				else:
+					raise
+		return False
 
 	def remove_boundary(self, label):
 		try:
@@ -34,8 +51,11 @@ class BoundaryInspector(object):
 		except KeyError:
 			raise KeyError("Key '{0}' not found; No such gaze boundary exists!".format(label))
 
-	def clear_boundaries(self):
-		self.boundaries = {}
+	def clear_boundaries(self, preserve=[]):
+		preserved = {}
+		for i in preserve:
+			preserved[i] = self.boundaries[i]
+		self.boundaries = preserved
 
 	def draw_boundary(self, label="*"):
 		print "Warning: BoundaryInspector mixin's 'draw_boundary' method is under construction and isn't currently implemented."
@@ -60,3 +80,10 @@ class BoundaryInspector(object):
 			if not label in self.boundaries:
 				self.add_boundary(label, bounds, shape)
 				return label
+
+	def set_boundary_active(self, label):
+		self.boundaries[label].active = True
+
+	def set_boundary_inactive(self, label):
+		self.boundaries[label].active = False
+

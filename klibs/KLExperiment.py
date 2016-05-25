@@ -62,7 +62,7 @@ class Experiment(object):
 	block_break_messages = []
 	blocks = None
 
-	def __init__(self, project_name, display_diagonal_in, random_seed, development_mode, eyelink_available, show_debug_overlay):
+	def __init__(self, project_name, display_diagonal_in, random_seed, development_mode, eyelink_available, show_debug_overlay, verbose_mode):
 		"""
 		Initializes a KLExperiment Object
 
@@ -76,8 +76,8 @@ class Experiment(object):
 		"""
 		super(Experiment, self).__init__()
 
-		Params.exp = self
-
+		if verbose_mode:
+			Params.verbose_mode = True
 		if not Params.setup(project_name, random_seed):
 			raise EnvironmentError("Fatal error; Params object was not able to be initialized for unknown reasons.")
 		import_project_params()
@@ -210,7 +210,6 @@ class Experiment(object):
 		Params.clock.terminate()
 		self.clean_up()
 		self.evi.dump_events()
-		print "GOT TO THIS LINE JON"
 		self.database.db.commit()
 		self.database.db.close()
 
@@ -229,14 +228,12 @@ class Experiment(object):
 		self.trial_prep()
 		tx = None
 		try:
-			print "s1"
 			Params.clock.start()
 			trial_data = self.trial()
 			Params.clock.stop()
 			self.__log_trial(trial_data)
 			self.trial_clean_up()
 		except TrialException as e:
-			print "TRIAL EXCEPTION"
 			Params.trial_id = False
 			self.trial_clean_up()
 			Params.clock.stop()

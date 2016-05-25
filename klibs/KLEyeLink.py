@@ -547,9 +547,9 @@ class TryLink(BoundaryInspector):
 		:return:
 		"""
 		# todo: only allow saccade start/end inspections
-		fix_start_time = self.__within_boundary(label, self.sample())
-		if fix_start_time:
-			return fix_start_time if not return_queue else [fix_start_time, event_queue]
+		sacc_start_time = self.__within_boundary(label, self.sample())
+		if sacc_start_time:
+			return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
 		return False
 
 	def saccade_from_boundary(self, label, inspect=EL_SACCADE_START, event_queue=None, return_queue=False):
@@ -563,9 +563,9 @@ class TryLink(BoundaryInspector):
 		:return:
 		"""
 		# todo: only allow saccade start/end inspections
-		fix_start_time = self.__within_boundary(label, self.sample())
-		if not fix_start_time:
-			return fix_start_time if not return_queue else [fix_start_time, event_queue]
+		sacc_start_time = self.__within_boundary(label, self.sample())
+		if not sacc_start_time:
+			return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
 		return False
 
 	def fixated_boundary(self, label, inspect=EL_FIXATION_END, event_queue=None, return_queue=False):

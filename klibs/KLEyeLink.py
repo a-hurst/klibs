@@ -105,16 +105,16 @@ if PYLINK_AVAILABLE:
 						raise TrialException("EyeLink not ready.")
 					return self.drift_correct()
 			else:
-				def dc(dc_location, dc_boundary):
-					hide_mouse_cursor()
-					pump()
+				show_mouse_cursor()
+				while True:
+					self.experiment.ui_request()
 					self.experiment.fill()
-					self.experiment.track_mouse()
-					self.custom_display.draw_cal_target(dc_location, flip=False)
+					self.experiment.blit(drift_correct_target(), 5, location)
 					self.experiment.flip()
-					in_bounds = self.within_boundary(dc_boundary, self.gaze())
-					return  in_bounds
-				return self.experiment.listen(MAX_WAIT, OVER_WATCH, wait_callback=dc, wait_args=[location, boundary])
+					fixated = self.within_boundary(boundary, EL_MOCK_EVENT)
+					if fixated:
+						hide_mouse_cursor()
+						return fixated
 
 		def gaze(self, eye_required=None, return_integers=True):
 			if self.dummy_mode:
@@ -224,7 +224,7 @@ if PYLINK_AVAILABLE:
 			else:
 				raise EyeLinkError("Only ASCII text may be written to an EDF file.")
 
-		def __within_boundary(self, event, label):
+		def __within_boundary(self, label, event):
 			"""
 			For checking individual events; not for public use, but is a rather shared interface for the public methods
 			within_boundary(), saccade_to_boundary(), fixated_boundary()
@@ -245,7 +245,8 @@ if PYLINK_AVAILABLE:
 			elif e_type == EL_GAZE_POS:
 				timestamp = event.getTime()
 				dx, dy = event.getGaze()
-			return timestamp if super(EyeLink, self).within_boundary(label, math.sqrt(dx**2 + dy**2)) else False
+			result = super(EyeLink, self).within_boundary(label, math.sqrt(dx**2 + dy**2))
+			return timestamp if result else False
 
 		def within_boundary(self, label, inspect, event_queue=None, return_queue=False):
 			"""
@@ -280,9 +281,9 @@ if PYLINK_AVAILABLE:
 			if not event_queue:
 				event_queue = self.el.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
 			for e in event_queue:
-				fix_start_time = self.__within_boundary(e, label, inspect)
-				if fix_start_time:
-					return fix_start_time if not return_queue else [fix_start_time, event_queue]
+				sacc_start_time = self.__within_boundary(e, label, inspect)
+				if sacc_start_time:
+					return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
 			return False
 
 		def saccade_from_boundary(self, label, inspect=EL_SACCADE_START, event_queue=None, return_queue=False):
@@ -299,9 +300,9 @@ if PYLINK_AVAILABLE:
 			if not event_queue:
 				event_queue = self.el.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
 			for e in event_queue:
-				fix_start_time = self.__within_boundary(e, label, inspect)
-				if not fix_start_time:
-					return fix_start_time if not return_queue else [fix_start_time, event_queue]
+				sacc_start_time = self.__within_boundary(e, label, inspect)
+				if not sacc_start_time:
+					return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
 			return False
 
 		def fixated_boundary(self, label, inspect=EL_FIXATION_END, event_queue=None, return_queue=False):

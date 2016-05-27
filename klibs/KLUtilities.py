@@ -264,9 +264,9 @@ def iterable(obj, exclude_strings=True):
 
 
 def line_segment_len(a, b):
-	y = b[1] - a[1]
-	x = b[0] - a[0]
-	return math.sqrt(y**2 + x**2)
+	dy = b[1] - a[1]
+	dx = b[0] - a[0]
+	return math.sqrt(dy**2 + dx**2)
 
 
 def list_dimensions(target, dim=0):

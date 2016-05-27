@@ -235,46 +235,15 @@ class EventClock(object):
 		data attribute of the event (ie. TrialEvent.data). Additionally, if a dictionary is passed, the TrialEvebt object
 		will be instantiated with a new attribute for each key thereof (this is supplemental to TrialEvent.data attribute).
 
-		**Example**
-
-		Example 1: No data attribute
-
-		Params.clock.register_event(300, 'MyEvent', TK_MS)
-
-		At 300ms an event, "MyEVent" will be issued; at the next call to KlUtilities.pump(), a TrialEvent object will be
-		generated and made available at Params.process_queue_data['MyEvent'], ie:
-
-		e = Params.process_queue_data['MyEvent']
-
-
-		Example 2: Non-dictionary Data Supplied
-
-		Params.clock.register_event([300, 'MyEvent', ['a','b', 'c']], TK_MS)
-
-		As Example 1, and additionally:
-
-		print e.data
-		>> ["a","b", c"]
-
-
-		Example 3: Dictionary Data Supplied
-		Params.clock.register_event([300, 'MyEvent', {'attr1':'a','attr2:'b', 'attr3': 'c'}], TK_MS)
-
-		As Example 2, and additionally:
-
-		print e.attr1
-		>> a
-
 		:param event:
 		:type event: String or List
 		:param unit:
 		"""
-		# try:
-		# 	print event.label
-		# except AttributeError:
-		# 	print event
 		reg_start = self.timestamp
-		self.__registry.append(event)
+		try:
+			self.__registry.append(event.label)
+		except AttributeError:
+			self.__registry.append(event)
 		self.events.append(event)
 		return self.__sync(stages=False) - reg_start
 
@@ -323,7 +292,10 @@ class EventClock(object):
 		self.start_time = None
 		self.__sync()
 		while not self.__poll():
-			pass
+			if Params.verbose_mode:
+				print "TrialClock polling from stop()"
+			else:
+				pass
 
 	def deregister(self, label):
 		reg_start = time.time()
@@ -356,13 +328,16 @@ class EventClock(object):
 		for e in self.events:
 			self.sent_events.append(e)
 			self.events.remove(e)
-		while not self.__poll() == EVI_EVENT_SYNC_COMPLETE:
-			pass
+		# if blocking:
+		# 	while not self.__poll():
+		# 		pass
+		# 		if self.__poll() == EVI_EVENT_SYNC_COMPLETE:
+		# 			break
 		return time.time()
 
 	def __poll(self):
 		while not self.pipe.poll():
-			pass
+			self.experiment.ui_request()
 		t = self.pipe.recv()
 		if isinstance(t, Exception):
 			raise t
@@ -409,7 +384,7 @@ def __event_clock__(pipe):
 	trial_started = False
 	def trial_time_ms():
 		return (time.time() - start) * 1000
-	syncing_events = False
+	# syncing_events = False
 	try:
 		while True:
 			if pipe.poll():
@@ -465,15 +440,16 @@ def __event_clock__(pipe):
 					continue
 
 				if trial_time_ms() >= e.onset or e.onset == 0:  # ie. something should happen IMMEDIATELY
-					if Params.verbose_mode:
-						print "\t...Sent '{0}' at {1}".format(e.label, time.time() - start)
+					e_data = [e.label, e.data,  time.time(), time.time() - start]
+					if Params.verbose_mode: print "\tTrialClock sent '{0}' at {1}".format(e_data[0], e_data[3])
 					sent.append(e)
 					try:
-						Params.process_queue.put([e.label, e.data,  time.time(), time.time() - start])
+						Params.process_queue.put(e_data)
 					except IndexError:
-						Params.process_queue.put([e.label, None, time.time(), time.time() - start])
-			if syncing_events:
-				pipe.send(EVI_EVENT_SYNC_COMPLETE)
-				syncing_events = False
+						e_data[1] = None
+						Params.process_queue.put(e_data)
+			# if syncing_events:
+			# 	pipe.send(EVI_EVENT_SYNC_COMPLETE)
+			# 	syncing_events = False
 	except Exception as e:
 		pipe.send(full_trace())

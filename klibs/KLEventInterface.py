@@ -168,33 +168,22 @@ class EventInterface(object):
 			raise NameError("'{0}' not registered.".format(label))
 
 		if pump_events:
-			self.experiment.ui_request(pump(True))
+			pump()
+			self.experiment.ui_request()
 		for e in Params.process_queue_data:
 			if Params.process_queue_data[e].label == label:
 				return True
 		return False
 
-	def registered(self, label):
-		"""
-		Determines if an event exists in the events log
-		:param label:
-		"""
-		return label in self.events
-
-	def written(self, message):
-		"""
-		Determines if an message exists in the message log
-		:param message:
-		"""
-		return message in self.__message_log
-
 	def before(self, label, pump_events=False):
 		if not label:
 			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
 		if not Params.clock.registered(label):
-			raise NameError("'{0}' not registered.".format(label))
+			e_msg = "'{0}' not registered.".format(label)
+			raise NameError(e_msg)
 		if pump_events:
-			self.experiment.ui_request(pump())
+			pump()
+			self.experiment.ui_request()
 		for e in Params.process_queue_data:
 			if Params.process_queue_data[e].label == label:
 				return False
@@ -207,33 +196,6 @@ class EventInterface(object):
 			raise NameError("'{0}' not registered.".format(label_2))
 
 		return self.after(label_1) and not self.after(label_2)
-
-	def write(self, message, edf=True, eeg=True):
-		if not Params.labjacking:
-			eeg = False
-		if not Params.eye_tracking:
-			edf = False
-		self.__message_log.append(message)
-		if type(message) in [list, tuple]:
-			edf_send = message[0]
-			eeg_send = message[1]
-		else:
-			if type(message) is int and eeg:
-				edf_send = message
-				eeg_send = message
-			elif type(message) is str and edf:
-				edf_send = message
-			else:
-				raise ValueError("Can only send integer values to eeg via LabJack.")
-		if Params.eye_tracker_available and Params.eye_tracking and edf:
-			self.experiment.eyelink.write(edf_send)
-		if Params.labjack_available and Params.labjacking and eeg:
-			self.experiment.labjack.write(eeg_send)
-
-		if Params.verbose_mode and edf:
-			print "\t\033[94mEvent (\033[92mEDF\033[94m): \033[0m{0}".format(edf_send)
-		if Params.verbose_mode and eeg:
-			print "\t\033[94mEvent (\033[92mEEG\033[94m): \033[0m{0}".format(eeg_send)
 
 	def send(self, label, max_per_trial=1, args=None, eeg_code_to_edf=None, code=None, message=None):
 		if label in self.sent and self.sent[label] >= max_per_trial:
@@ -262,5 +224,46 @@ class EventInterface(object):
 			if e.eeg_code_to_edf and e.code:
 				message = "TA_{0}: {1}".format(e.code, message)
 			self.write(message, True, False)
+
+	def registered(self, label):
+		"""
+		Determines if an event exists in the events log
+		:param label:
+		"""
+		return label in self.events
+
+	def written(self, message):
+		"""
+		Determines if an message exists in the message log
+		:param message:
+		"""
+		return message in self.__message_log
+
+	def write(self, message, edf=True, eeg=True):
+		if not Params.labjacking:
+			eeg = False
+		if not Params.eye_tracking:
+			edf = False
+		self.__message_log.append(message)
+		if type(message) in [list, tuple]:
+			edf_send = message[0]
+			eeg_send = message[1]
+		else:
+			if type(message) is int and eeg:
+				edf_send = message
+				eeg_send = message
+			elif type(message) is str and edf:
+				edf_send = message
+			else:
+				raise ValueError("Can only send integer values to eeg via LabJack.")
+		if Params.eye_tracker_available and Params.eye_tracking and edf:
+			self.experiment.eyelink.write(edf_send)
+		if Params.labjack_available and Params.labjacking and eeg:
+			self.experiment.labjack.write(eeg_send)
+
+		if Params.verbose_mode and edf:
+			print "\t\033[94mEvent (\033[92mEDF\033[94m): \033[0m{0}".format(edf_send)
+		if Params.verbose_mode and eeg:
+			print "\t\033[94mEvent (\033[92mEEG\033[94m): \033[0m{0}".format(eeg_send)
 
 

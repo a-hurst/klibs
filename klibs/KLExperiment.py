@@ -1242,6 +1242,8 @@ class Experiment(object):
 		should be used to exit an experiment.
 
 		"""
+		if Params.verbose_mode:
+			full_trace()
 		try:
 			self.evi.terminate()
 		except Exception as e:

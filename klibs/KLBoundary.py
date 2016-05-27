@@ -119,7 +119,10 @@ class CircleBoundary(Boundary):
 		return self.__r
 
 	def within(self, reference):
-		d_xy = line_segment_len(reference, self.__center) if iterable(reference) else reference
+		try:
+			d_xy = line_segment_len(reference, self.__center)
+		except TypeError:
+			d_xy = reference
 		return  d_xy < self.__r
 
 

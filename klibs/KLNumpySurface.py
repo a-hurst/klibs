@@ -219,9 +219,6 @@ class NumpySurface(object):
 		new_px = px.reshape((px_count,4))
 		print new_px.shape
 
-
-
-
 	def blit(self, source, layer=NS_FOREGROUND, registration=7, position=(0, 0), behavior=None):
 		# todo: implement layer logic here
 		"""

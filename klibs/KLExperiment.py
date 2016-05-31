@@ -50,6 +50,7 @@ class Experiment(object):
 
 	__completion_message = "thanks for participating; please have the researcher return to the room."
 	__wrong_key_msg = None
+	initialized = False
 	window = None
 	paused = False
 
@@ -99,7 +100,8 @@ class Experiment(object):
 
 			try:
 				#initialize the self.database instance
-				self.__database_init()
+				self.database = Database(self)
+				Params.database = self.database
 			except Exception as e:
 				print e
 				time.sleep(1)
@@ -123,7 +125,7 @@ class Experiment(object):
 
 			# initialize eyelink--a mock EyeLink class is initialized if Pylink isn't avialable or installed correctly
 			if PYLINK_AVAILABLE:
-				self.eyelink = EyeLink(self)
+				self.eyelink = EyeLinkExt(self)
 				self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
 			else:
 				self.eyelink = TryLink(self)
@@ -170,6 +172,8 @@ class Experiment(object):
 			if not Params.collect_demographics:
 				self.collect_demographics(True)
 			Params.tk.stop("Experiment Init")
+
+			self.initialized = True
 		except:
 			os.kill(self.clock.p.pid, SIGKILL)
 			print full_trace()
@@ -243,16 +247,6 @@ class Experiment(object):
 		self.evi.clear()
 		if tx:
 			raise tx
-
-	def __database_init(self):
-		"""
-		Initializes the project database; if export instructions are provided, also exports data and exits program.
-
-		:param args:
-		"""
-
-		self.database = Database(self)
-		# Params.database = self.database
 
 	def __log_trial(self, trial_data, auto_id=True):
 		"""
@@ -1304,6 +1298,8 @@ class Experiment(object):
 		:param args:
 		:param kwargs:
 		"""
+		if not self.initialized:
+			self.quit()
 		Params.time_keeper.start("experiment")
 		if Params.collect_demographics:
 			if not Params.demographics_collected:

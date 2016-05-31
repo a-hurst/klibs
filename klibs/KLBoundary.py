@@ -42,10 +42,10 @@ class RectangleBoundary(Boundary):
 		super(RectangleBoundary, self).__init__(label)
 		self.__p1 = None
 		self.__p2 = None
-		self.__center = midpoint(*self.bounds)
 		self.__x_range = None
 		self.__y_range = None
 		self.bounds = [p1, p2]
+		self.__center = midpoint(*self.bounds)
 
 	@property
 	def bounds(self):

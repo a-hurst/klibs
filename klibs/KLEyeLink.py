@@ -16,7 +16,6 @@ except ImportError:
 	print "\t* Warning: Pylink library not found; eye tracking will not be available."
 	PYLINK_AVAILABLE = False
 
-print "pylink available: {0}".format(PYLINK_AVAILABLE)
 try:
 	mouse = mouse_pos(True)
 	if (type(x) is int for x in mouse):
@@ -24,12 +23,15 @@ try:
 except:
 	DUMMY_MODE_AVAILABLE = False
 
-# class EyeLinkEvent(object):
+#class EyeLinkEvent(object):
 #
-# 	def __init__(self, event_data
+#	def __init__(self, event_str):
+#		print event_str.getType()
+#		e = event_str.split("\t")
+#		print e
 
 if PYLINK_AVAILABLE:
-	class EyeLink(EyeLink, BoundaryInspector):
+	class EyeLinkExt(EyeLink, BoundaryInspector):
 		__dummy_mode = None
 		__anonymous_boundaries = 0
 		experiment = None
@@ -44,6 +46,7 @@ if PYLINK_AVAILABLE:
 		def __init__(self, experiment_instance):
 			super(EyeLink, self).__init__()
 			self.experiment = experiment_instance
+			self.boundaries = {}
 			self.__current_sample = False
 			if Params.eye_tracker_available:
 				try:
@@ -56,7 +59,7 @@ if PYLINK_AVAILABLE:
 			else:
 				self.dummy_mode = False
 			self.dc_width = Params.screen_y // 60
-			self.add_boundary("drift_correct", [Params.screen_x, self.dc_width // 2], CIRCLE_BOUNDARY)
+			self.add_boundary("drift_correct", [Params.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
 
 		def __eye(self):
 			self.eye = self.eyeAvailable()
@@ -84,7 +87,7 @@ if PYLINK_AVAILABLE:
 				raise ValueError("Argument 'location' invalid; expected coordinate tuple or boundary label.")
 
 			if not boundary:
-				boundary = self.add_anonymous_boundary([location, self.dc_width // 2], CIRCLE_BOUNDARY)
+				boundary = "drift_correct"
 
 			#todo: learn about fucking inflectors
 			el_draw_fixation = EL_TRUE if el_draw_fixation in [EL_TRUE, True] else EL_FALSE
@@ -147,17 +150,29 @@ if PYLINK_AVAILABLE:
 			return [int(sample[0]), int(sample[1])] if return_integers else sample
 
 		def get_event_queue(self, include=[], exclude=[]):
+
 			queue = []
-			pumping = True
-			while pumping:
-				data = self.eyelink.getNextData()
-				if data == 0:
+			while True:
+				d_type = self.getNextData()
+				data = self.getFloatData()
+				if d_type == 0 or data is None:
 					break
+				try:
+					if data == queue[-1]:
+						break
+				except IndexError:
+					pass
+				queue.append(data)
+
 				# use only the include or exclude lists
-				if len(include) and data in include:
-					queue.append(self.eyelink.getFloatData())
-				elif data not in exclude:
-					queue.append(self.eyelink.getFloatData())
+			if len(include):
+				for d in queue:
+					if d.getType() not in include:
+						queue.remove(d)
+			elif len(exclude):
+				for d in queue:
+					if d.getType() in exclude:
+						queue.remove(d)
 			return queue
 
 		def now(self):
@@ -200,7 +215,7 @@ if PYLINK_AVAILABLE:
 					self.write("TRIAL_ID {0}".format(str(trial_number)))
 					self.write("TRIAL_START")
 					self.write("SYNCTIME {0}".format('0.0'))
-					return self.start_time - now()  # ie. delay spent initializing the recording
+					return self.start_time[0] - now()  # ie. delay spent initializing the recording
 
 				else:
 					return False
@@ -234,18 +249,24 @@ if PYLINK_AVAILABLE:
 			"""
 			e_type = event.getType()
 			if  e_type in [EL_SACCADE_START, EL_SACCADE_END, EL_FIXATION_START, EL_FIXATION_END]:
-				start = [event.getStartGaze(), event.getStartPPD()]
-				if e_type in [EL_SACCADE_END, EL_FIXATION_END]:
-					timestamp = event.getStartTime()
-				else:
-					timestamp = event.getEndTime()
-				end = [event.getEndGaze(), event.getEndPPD()]
-				dx = (end[0][0] - start[0][0]) / ((end[1][0] + start[1][0]) / 2.0)
-				dy = (end[0][1] - start[0][1]) / ((end[1][1] + start[1][1]) / 2.0)
+#				timestamp = event.getStartTime()
+#				if e_type in [EL_SACCADE_START, EL_SACCADE_END, ]
+#				start = [event.getStartGaze(), event.getStartPPD()]
+#				# todo: let the request be configurable to end_times when they exist
+##				if e_type in [EL_SACCADE_END, EL_FIXATION_END]:
+##				else:
+##					timestamp = event.getEndTime()
+#				end = [event.getEndGaze(), event.getEndPPD()]
+#				dx = (end[0][0] - start[0][0]) / ((end[1][0] + start[1][0]) / 2.0)
+#				dy = (end[0][1] - start[0][1]) / ((end[1][1] + start[1][1]) / 2.0)
+				dx, dy = event.getStartGaze()
 			elif e_type == EL_GAZE_POS:
 				timestamp = event.getTime()
 				dx, dy = event.getGaze()
-			result = super(EyeLink, self).within_boundary(label, math.sqrt(dx**2 + dy**2))
+			try:
+				result = super(EyeLink, self).within_boundary(label, (dx, dy))
+			except TypeError:
+				result = super(EyeLink, self).within_boundary(label, math.sqrt(dx**2 + dy**2))
 			return timestamp if result else False
 
 		def within_boundary(self, label, inspect, event_queue=None, return_queue=False):
@@ -256,14 +277,18 @@ if PYLINK_AVAILABLE:
 			:param inspect:
 			:return:
 			"""
-
+			if not iterable(inspect):
+				inspect = [inspect]
 			if not event_queue:
 				if inspect == EL_GAZE_POS:
 					event_queue = [self.sample()]
 				else:
-					event_queue = self.el.get_event_queue(EL_ALL_EVENTS)
+					event_queue = self.get_event_queue(inspect)
+
 			for e in event_queue:
-				if not self.__within_boundary(e, label, inspect):
+				if e.getType() not in inspect:
+					continue
+				if not self.__within_boundary(label, e):
 					return False if not return_queue else [False, event_queue]
 			return True if not return_queue else [True, event_queue]
 
@@ -279,7 +304,7 @@ if PYLINK_AVAILABLE:
 			"""
 			# todo: only allow saccade start/end inspections
 			if not event_queue:
-				event_queue = self.el.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
 			for e in event_queue:
 				sacc_start_time = self.__within_boundary(e, label, inspect)
 				if sacc_start_time:
@@ -298,11 +323,16 @@ if PYLINK_AVAILABLE:
 			"""
 			# todo: only allow saccade start/end inspections
 			if not event_queue:
-				event_queue = self.el.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+				if not len(event_queue):
+					return False
+			last_timestamp_in_bounds = None
 			for e in event_queue:
-				sacc_start_time = self.__within_boundary(e, label, inspect)
+				sacc_start_time = self.within_boundary(label, inspect, [e], return_queue)
 				if not sacc_start_time:
-					return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
+					return last_timestamp_in_bounds if not return_queue else [last_timestamp_in_bounds, event_queue]
+				else:
+					last_timestamp_in_bounds = sacc_start_time
 			return False
 
 		def fixated_boundary(self, label, inspect=EL_FIXATION_END, event_queue=None, return_queue=False):
@@ -318,8 +348,9 @@ if PYLINK_AVAILABLE:
 			"""
 			# todo: only allow fixation start/end/update inspections
 			if not event_queue:
-				event_queue = self.el.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
 			for e in event_queue:
+				print e
 				fix_start_time = self.__within_boundary(e, label, inspect)
 				if fix_start_time:
 					return fix_start_time if not return_queue else [fix_start_time, event_queue]
@@ -443,7 +474,7 @@ class TryLink(BoundaryInspector):
 			raise ValueError("Argument 'location' invalid; expected coordinate tuple or boundary label.")
 
 		if boundary is None:
-			boundary = self.add_anonymous_boundary([location, self.dc_width // 2], CIRCLE_BOUNDARY)
+			boundary = "drift_correct"
 
 		show_mouse_cursor()
 		while True:

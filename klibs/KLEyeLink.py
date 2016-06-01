@@ -239,7 +239,7 @@ if PYLINK_AVAILABLE:
 			else:
 				raise EyeLinkError("Only ASCII text may be written to an EDF file.")
 
-		def __within_boundary(self, label, event):
+		def __within_boundary(self, label, event, inspect, report):
 			"""
 			For checking individual events; not for public use, but is a rather shared interface for the public methods
 			within_boundary(), saccade_to_boundary(), fixated_boundary()
@@ -247,29 +247,27 @@ if PYLINK_AVAILABLE:
 			:param label:
 			:return:
 			"""
+
 			e_type = event.getType()
-			if  e_type in [EL_SACCADE_START, EL_SACCADE_END, EL_FIXATION_START, EL_FIXATION_END]:
-#				timestamp = event.getStartTime()
-#				if e_type in [EL_SACCADE_START, EL_SACCADE_END, ]
-#				start = [event.getStartGaze(), event.getStartPPD()]
-#				# todo: let the request be configurable to end_times when they exist
-##				if e_type in [EL_SACCADE_END, EL_FIXATION_END]:
-##				else:
-##					timestamp = event.getEndTime()
-#				end = [event.getEndGaze(), event.getEndPPD()]
-#				dx = (end[0][0] - start[0][0]) / ((end[1][0] + start[1][0]) / 2.0)
-#				dy = (end[0][1] - start[0][1]) / ((end[1][1] + start[1][1]) / 2.0)
-				dx, dy = event.getStartGaze()
-			elif e_type == EL_GAZE_POS:
+			# rule out impossible combinations
+			if e_type in [EL_SACCADE_START, EL_FIXATION_START] and (inspect == EL_GAZE_END or report ==EL_TIME_END):
+				raise EyeLinkError("Fixation and saccade start events do not have end time or gaze positions.")
+
+			# treat gaze position as a separate case (they're atemporal; the report/inspect args don't matter)
+			if e_type == EL_GAZE_POS:
 				timestamp = event.getTime()
 				dx, dy = event.getGaze()
+			else:
+				dx, dy = event.getStartGaze() if inspect == EL_GAZE_START else event.getEndGaze()
+				timestamp = event.getStartTime() if report == EL_TIME_START else event.getEndTime()
 			try:
 				result = super(EyeLink, self).within_boundary(label, (dx, dy))
 			except TypeError:
 				result = super(EyeLink, self).within_boundary(label, math.sqrt(dx**2 + dy**2))
 			return timestamp if result else False
 
-		def within_boundary(self, label, inspect, event_queue=None, return_queue=False):
+		def within_boundary(self, label, valid_events, event_queue=None, report=EL_TIME_START, inspect=EL_GAZE_START,
+							return_queue=False):
 			"""
 			For use when checking in real-time; uses entire event queue, whether supplied or fetched
 
@@ -288,54 +286,64 @@ if PYLINK_AVAILABLE:
 			for e in event_queue:
 				if e.getType() not in inspect:
 					continue
-				if not self.__within_boundary(label, e):
+				if not self.__within_boundary(label, e, report, inspect):
 					return False if not return_queue else [False, event_queue]
 			return True if not return_queue else [True, event_queue]
 
-		def saccade_to_boundary(self, label, inspect=EL_SACCADE_END, event_queue=None, return_queue=False):
+		def saccade_to_boundary(self, label, valid_events=EL_SACCADE_START, event_queue=None,
+								  report=EL_TIME_START, inspect=EL_GAZE_START, return_queue=False):
 			"""
 			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
 			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
 			impertinent.
 
 			:param label:
+			:param valid_events:
+			:param event_queue:
+			:param report:
+			:param inspect:
 			:param return_queue:
 			:return:
 			"""
-			# todo: only allow saccade start/end inspections
 			if not event_queue:
 				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
 			for e in event_queue:
-				sacc_start_time = self.__within_boundary(e, label, inspect)
-				if sacc_start_time:
-					return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
+				saccade_start_time = self.within_boundary(label, valid_events, [e], report, inspect, return_queue)
+				if saccade_start_time:
+					return saccade_start_time if not return_queue else [saccade_start_time, event_queue]
 			return False
 
-		def saccade_from_boundary(self, label, inspect=EL_SACCADE_START, event_queue=None, return_queue=False):
+		def saccade_from_boundary(self, label, valid_events=EL_SACCADE_START, event_queue=None,
+								  report=EL_TIME_START, inspect=EL_GAZE_START, return_queue=False):
 			"""
 			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
 			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
 			impertinent.
 
 			:param label:
+			:param valid_events:
+			:param event_queue:
+			:param report:
+			:param inspect:
 			:param return_queue:
 			:return:
 			"""
-			# todo: only allow saccade start/end inspections
+			# todo: puzzle out what the best metric for time is, here
 			if not event_queue:
-				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+				event_queue = self.get_event_queue([valid_events] if not return_queue else EL_ALL_EVENTS)
 				if not len(event_queue):
 					return False
 			last_timestamp_in_bounds = None
 			for e in event_queue:
-				sacc_start_time = self.within_boundary(label, inspect, [e], return_queue)
-				if not sacc_start_time:
+				saccade_start_time = self.within_boundary(label, valid_events, [e], report, inspect, return_queue)
+				if not saccade_start_time:
 					return last_timestamp_in_bounds if not return_queue else [last_timestamp_in_bounds, event_queue]
 				else:
-					last_timestamp_in_bounds = sacc_start_time
+					last_timestamp_in_bounds = saccade_start_time
 			return False
 
-		def fixated_boundary(self, label, inspect=EL_FIXATION_END, event_queue=None, return_queue=False):
+		def fixated_boundary(self, label, valid_events=EL_FIXATION_START, event_queue=None, report=EL_TIME_START,
+							 inspect=EL_GAZE_START, return_queue=False):
 			"""
 			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
 			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
@@ -348,12 +356,15 @@ if PYLINK_AVAILABLE:
 			"""
 			# todo: only allow fixation start/end/update inspections
 			if not event_queue:
+				event_queue = self.get_event_queue([valid_events] if not return_queue else EL_ALL_EVENTS)
+				if not len(event_queue):
+					return False
+			if not event_queue:
 				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
 			for e in event_queue:
-				print e
-				fix_start_time = self.__within_boundary(e, label, inspect)
-				if fix_start_time:
-					return fix_start_time if not return_queue else [fix_start_time, event_queue]
+				fixation_start_time = self.within_boundary(label, valid_events, [e], report, inspect, return_queue)
+				if fixation_start_time:
+					return fixation_start_time if not return_queue else [fixation_start_time, event_queue]
 			return False
 
 		@abc.abstractmethod

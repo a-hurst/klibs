@@ -103,7 +103,10 @@ MAX_DRIFT_DEG = 3
 INIT_SAC_DIST = 3  # Min. distance (degrees) before eye movement == initiating saccade for response direction
 EL_TEMP_FILE = "temp_participant{0}".format(EDF)
 
-
+EL_GAZE_START = "gaze_start"
+EL_GAZE_END = "gaze_end"
+EL_TIME_START = "time_start"
+EL_TIME_END = "time_end"
 # these mirror eyelink event codes where their counterpart exists
 EL_MOCK_EVENT = -1
 EL_GAZE_POS = 200

@@ -11,6 +11,7 @@ from klibs.KLMixins import BoundaryInspector
 
 try:
 	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue
+	from pylink.tracker import Sample, EndSaccadeEvent, EndFixationEvent, StartFixationEvent, StartSaccadeEvent
 	PYLINK_AVAILABLE = True
 except ImportError:
 	print "\t* Warning: Pylink library not found; eye tracking will not be available."
@@ -155,18 +156,18 @@ if PYLINK_AVAILABLE:
 			last_sample = None
 			while True:
 				d_type = self.getNextData()
-				data = self.getFloatData()
-				# once the same sample has been sent twice, gtfo
-				if data == last_sample:
-					break
-				else:
-					last_sample = data
 				if d_type == 0:
 					break
 				elif len(include) and d_type not in include:
 					continue
 				elif len(exclude) and d_type in exclude:
 					continue
+				data = self.getFloatData()
+				# once the same sample has been sent twice, gtfo
+				if data == last_sample:
+					break
+				else:
+					last_sample = data
 				queue.append(data)
 			return queue
 
@@ -270,6 +271,7 @@ if PYLINK_AVAILABLE:
 
 			dx, dy = event.getEndGaze()
 			timestamp = event.getStartTime() if report == EL_TIME_START else event.getEndTime()
+
 			try:
 				result = super(EyeLink, self).within_boundary(label, (dx, dy))
 			except TypeError:
@@ -303,7 +305,7 @@ if PYLINK_AVAILABLE:
 			r_val = EL_TRUE if report == EL_TRUE else timestamp
 			return r_val if not return_queue else [r_val, event_queue]
 
-		def saccade_to_boundary(self, label, valid_events=EL_SACCADE_START, event_queue=None,
+		def saccade_to_boundary(self, label, valid_events=EL_SACCADE_END, event_queue=None,
 								  report=EL_TIME_START, inspect=EL_GAZE_START, return_queue=False):
 			"""
 			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
@@ -319,7 +321,10 @@ if PYLINK_AVAILABLE:
 			:return:
 			"""
 			if not event_queue:
-				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+				event_queue = self.get_event_queue([valid_events] if not return_queue else EL_ALL_EVENTS)
+				if not len(event_queue):
+					return False
+
 			for e in event_queue:
 				saccade_start_time = self.within_boundary(label, valid_events, [e], report, inspect, return_queue)
 				if saccade_start_time:
@@ -340,12 +345,10 @@ if PYLINK_AVAILABLE:
 			:param return_queue:
 			:return:
 			"""
-			# todo: puzzle out what the best metric for time is, here
 			if not event_queue:
 				event_queue = self.get_event_queue([EL_SACCADE_END])
 				if not len(event_queue):
 					return False
-			print event_queue
 			for e in event_queue:
 				exit_time = self.__exited_boundary(label, e, report)
 				if exit_time:

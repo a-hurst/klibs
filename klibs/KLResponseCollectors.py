@@ -39,6 +39,8 @@ class ResponseType(object):
 			try:
 				self.collect_response(event_queue, mouse_click_boundaries)
 			except TypeError:
+				print "Event Queue:"
+				print event_queue
 				try:
 					self.collect_response(event_queue)
 				except TypeError:
@@ -459,10 +461,10 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.canvas_size = None
 		self.canvas_boundary = None
 		self.origin = None
-		self.x_offset = None
-		self.y_offset = None
+		self.x_offset = 0
+		self.y_offset = 0
 
-	def collect_response(self):
+	def collect_response(self, event_queue=None):
 		if not self.started or self.stopped:
 			if self.show_inactive_cursor:
 				show_mouse_cursor()
@@ -478,17 +480,17 @@ class DrawResponse(ResponseType, BoundaryInspector):
 			self.started = True
 
 		if not self.started:
-			if self.within_boundary(mp, self.start_boundary):
+			if self.within_boundary(self.start_boundary, mp):
 				self.started = True
 
-		if self.within_boundary(mp, self.stop_boundary):
+		if self.within_boundary(self.stop_boundary, mp):
 			if self.stop_eligible and not self.stopped:
 				self.stopped = True
 				self.responses.append([self.points, Params.clock.trial_time])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
-		if not self.within_boundary(mp, self.start_boundary) and not self.stop_eligible and self.started:
+		if not self.within_boundary(self.start_boundary, mp) and not self.stop_eligible and self.started:
 			self.stop_eligible = True
 		if self.started and not self.stopped: # and self.within_boundary(mp, self.canvas_boundary):
 			# self.points.append(mp)

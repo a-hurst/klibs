@@ -182,6 +182,7 @@ class EventClock(object):
 		self.p = None
 		self.pipe, child = mp_lib.Pipe()
 		self.p = __event_clock__(child)
+		self.polling = False   # prevents multiple calls to polling simultaneously
 
 	def update_event_onset(self, label, onset, unit=TK_MS):
 		self.__update_event(label, update_onset=True, onset=onset, unit=unit)
@@ -267,14 +268,15 @@ class EventClock(object):
 		Starts the trial clock. This is automatically called by the parent KLExperiment object.
 
 		"""
-		try:
-			self.register_event(EVI_TRIAL_START)
-			self.pipe.poll()
+#		try:
+		self.register_event(EVI_TRIAL_START)
+		self.pipe.poll()
+		while not self.start_time:
 			self.start_time = self.pipe.recv()
-			el_val = self.experiment.eyelink.now() if Params.eye_tracking and Params.eye_tracker_available else -1
-			self.experiment.evi.log_trial_event(EVI_CLOCK_START, self.start_time, el_val)
-		except:
-			print full_trace()
+		el_val = self.experiment.eyelink.now() if Params.eye_tracking and Params.eye_tracker_available else -1
+		self.experiment.evi.log_trial_event(EVI_CLOCK_START, self.start_time, el_val)
+#		except:
+#			print full_trace()
 
 	def stop(self):
 		"""
@@ -336,8 +338,10 @@ class EventClock(object):
 		return time.time()
 
 	def __poll(self):
+		self.polling = True
 		while not self.pipe.poll():
 			self.experiment.ui_request()
+		self.polling = False
 		t = self.pipe.recv()
 		if isinstance(t, Exception):
 			raise t
@@ -355,11 +359,15 @@ class EventClock(object):
 	@property
 	def trial_time(self):
 		self.register_event(EVI_SEND_TIME)
+		while self.polling:
+			pass
 		return self.__poll()
 
 	@property
 	def trial_time_ms(self):
 		self.register_event(EVI_SEND_TIME)
+		while self.polling:
+			pass
 		return self.__poll() * 1000
 
 
@@ -384,11 +392,9 @@ def __event_clock__(pipe):
 	trial_started = False
 	def trial_time_ms():
 		return (time.time() - start) * 1000
-	# syncing_events = False
 	try:
 		while True:
 			if pipe.poll():
-				syncing_events = True
 				new_e, new_s = pipe.recv()  # new_e/s will be false if not syncing
 				if new_e:
 					events += new_e
@@ -398,11 +404,13 @@ def __event_clock__(pipe):
 			for e in events:
 				if not isinstance(e, EventTicket):
 					if e == EVI_CLOCK_RESET:
+						start = None
 						trial_started = False
 						events = []
 						stages = []
 						sent = []
 						pipe.send(True)
+						print "TrialReset: {0}, start: {1}".format(trial_started, start)
 						break
 
 					if e == EVI_TRIAL_START:
@@ -410,6 +418,7 @@ def __event_clock__(pipe):
 						events.remove(e)
 						start = time.time()
 						trial_started = True
+						print "TrialStarting: {0}, current time: {1}".format(trial_started, time.time() - start)
 						pipe.send(start)
 						continue
 
@@ -418,6 +427,8 @@ def __event_clock__(pipe):
 
 					if e == EVI_SEND_TIME:
 						if not trial_started:
+							print "TrialStarted: {0}, current time: {1}".format(trial_started, time.time() - start)
+							time.sleep(0.1)
 							pipe.send(RuntimeError("Trial has not started."))
 						events.remove(e)
 						sent.append(e)
@@ -448,8 +459,5 @@ def __event_clock__(pipe):
 					except IndexError:
 						e_data[1] = None
 						Params.process_queue.put(e_data)
-			# if syncing_events:
-			# 	pipe.send(EVI_EVENT_SYNC_COMPLETE)
-			# 	syncing_events = False
 	except Exception as e:
 		pipe.send(full_trace())

@@ -21,8 +21,10 @@ from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLEventInterface import EventInterface
 from klibs.KLLabJack import LabJack
 from klibs.KLTimeKeeper import *
+import klibs.KLDraw as kld
 
-
+# todo: a) make display_refresh a standard method of an experiment object, and then b) add a default line that times it
+# and warns the experimenter if more than 16.666ms are elapsing between calls
 
 def import_project_params(file_path=None):
 	if not file_path:
@@ -124,7 +126,7 @@ class Experiment(object):
 			self.audio = AudioManager(self)
 
 			# initialize eyelink--a mock EyeLink class is initialized if Pylink isn't avialable or installed correctly
-			if PYLINK_AVAILABLE:
+			if PYLINK_AVAILABLE and Params.eye_tracker_available:
 				self.eyelink = EyeLinkExt(self)
 				self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
 			else:
@@ -172,7 +174,6 @@ class Experiment(object):
 			if not Params.collect_demographics:
 				self.collect_demographics(True)
 			Params.tk.stop("Experiment Init")
-
 			self.initialized = True
 		except:
 			os.kill(self.clock.p.pid, SIGKILL)
@@ -318,6 +319,7 @@ class Experiment(object):
 		gl.glMatrixMode(gl.GL_MODELVIEW)
 		gl.glDisable(gl.GL_DEPTH_TEST)
 		pump()
+		hide_mouse_cursor()
 		self.window.show()
 		self.fill()
 		self.blit(splash, 5, Params.screen_c)
@@ -489,24 +491,13 @@ class Experiment(object):
 
 		# TODO: this function should have default questions/answers but should also be able to read from a CSV or dict
 		if not Params.collect_demographics and not anonymous_user: return
-
-		if Params.multi_session_project and Params.collect_demographics:
-			id_str = self.query("If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.", password=True, accepted=ALL)
+		if Params.multi_session_project:
+			id_str = self.query(
+				"If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.",
+				password=True, accepted=ALL)
 			if id_str:
-				userhash = hashlib.sha1(id_str).hexdigest()
-				res = self.database.query("SELECT * FROM `participants` WHERE `userhash` = ?", q_vars=[userhash]).fetchall()[0]
-				Params.participant_id = res[0]
-				Params.random_seed = str(res[2])
-				Params.session_number = 1 if str(res[4]) == "None" else int(res[4]) + 1
-				Params.user_data = res
-				if res[3] is None:
-					cond = self.query("Please have the experimenter enter the experimental condition:", accepted=('p','m','c'))
-					self.database.query("UPDATE `participants` SET `exp_condition` = ? WHERE `id` = ?", q_vars=[cond, res[0]])
-					Params.exp_condition = cond
-				else:
-					Params.exp_condition = res[4]
-				Params.demographics_collected = True
-				return
+				return self.set_session(id_str)
+
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
 		self.database.log("random_seed", Params.random_seed)
 		try:
@@ -563,6 +554,8 @@ class Experiment(object):
 				time.sleep(2)
 				self.quit()
 		self.database.current(False)
+		if Params.multi_session_project:
+			self.set_session()
 
 	def insert_practice_block(self, block_nums, trial_counts=None, factor_masks=None):
 		try:
@@ -638,6 +631,12 @@ class Experiment(object):
 		:type duration: Integer
 		:raises: AttributeError, TypeError
 		"""
+		if Params.eye_tracking and Params.eye_tracker_available:
+			try:
+				if self.eyelink.draw_gaze:
+					self.blit(self.eyelink.gaze_dot, 5, self.eyelink.gaze())
+			except AttributeError:
+				pass
 
 		if (Params.development_mode or debug) and not Params.dm_suppress_debug_pane:
 			try:
@@ -1337,6 +1336,8 @@ class Experiment(object):
 		self.__execute_experiment(*args, **kwargs)
 		self.quit()
 
+	def set_session(self, id_str):
+		pass
 
 	def track_mouse(self, mouse_position=None):
 		self.blit(cursor(), 7, mouse_pos(True, mouse_position))

@@ -21,7 +21,7 @@ from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLEventInterface import EventInterface
 from klibs.KLLabJack import LabJack
 from klibs.KLTimeKeeper import *
-
+import klibs.KLDraw as kld
 
 
 def import_project_params(file_path=None):
@@ -124,7 +124,7 @@ class Experiment(object):
 			self.audio = AudioManager(self)
 
 			# initialize eyelink--a mock EyeLink class is initialized if Pylink isn't avialable or installed correctly
-			if PYLINK_AVAILABLE:
+			if PYLINK_AVAILABLE and Params.eye_tracker_available:
 				self.eyelink = EyeLinkExt(self)
 				self.eyelink.custom_display = ELCustomDisplay(self, self.eyelink)
 			else:
@@ -172,7 +172,6 @@ class Experiment(object):
 			if not Params.collect_demographics:
 				self.collect_demographics(True)
 			Params.tk.stop("Experiment Init")
-
 			self.initialized = True
 		except:
 			os.kill(self.clock.p.pid, SIGKILL)
@@ -318,6 +317,7 @@ class Experiment(object):
 		gl.glMatrixMode(gl.GL_MODELVIEW)
 		gl.glDisable(gl.GL_DEPTH_TEST)
 		pump()
+		hide_mouse_cursor()
 		self.window.show()
 		self.fill()
 		self.blit(splash, 5, Params.screen_c)
@@ -621,6 +621,12 @@ class Experiment(object):
 		:type duration: Integer
 		:raises: AttributeError, TypeError
 		"""
+		if Params.eye_tracking and Params.eye_tracker_available:
+			try:
+				if self.eyelink.draw_gaze:
+					self.blit(self.eyelink.gaze_dot, 5, self.eyelink.gaze())
+			except AttributeError:
+				pass
 
 		if (Params.development_mode or debug) and not Params.dm_suppress_debug_pane:
 			try:

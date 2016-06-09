@@ -471,9 +471,6 @@ class ColorWheel(Drawbject):
 		return "ColorWheel"
 
 
-#class SliderCounter(Drawbject):
-
-
 
 class FreeDraw(Drawbject):
 

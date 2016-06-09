@@ -490,6 +490,23 @@ class Experiment(object):
 		# TODO: this function should have default questions/answers but should also be able to read from a CSV or dict
 		if not Params.collect_demographics and not anonymous_user: return
 
+		if Params.multi_session_project and Params.collect_demographics:
+			id_str = self.query("If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.", password=True, accepted=ALL)
+			if id_str:
+				userhash = hashlib.sha1(id_str).hexdigest()
+				res = self.database.query("SELECT * FROM `participants` WHERE `userhash` = ?", q_vars=[userhash]).fetchall()[0]
+				Params.participant_id = res[0]
+				Params.random_seed = str(res[2])
+				Params.session_number = 1 if str(res[4]) == "None" else int(res[4]) + 1
+				Params.user_data = res
+				if res[3] is None:
+					cond = self.query("Please have the experimenter enter the experimental condition:", accepted=('p','m','c'))
+					self.database.query("UPDATE `participants` SET `exp_condition` = ? WHERE `id` = ?", q_vars=[cond, res[0]])
+					Params.exp_condition = cond
+				else:
+					Params.exp_condition = res[4]
+				Params.demographics_collected = True
+				return
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
 		self.database.log("random_seed", Params.random_seed)
 		try:
@@ -1188,9 +1205,9 @@ class Experiment(object):
 					input_string = input_string[:-1]
 
 				if sdl_keysym in (sdl2.SDLK_KP_ENTER, sdl2.SDLK_RETURN):  # ie. if enter or return
-					if len(input_string):
+					if len(input_string) or accepted == ALL:
 						if accepted:   # to make the accepted list work, there's a lot of checking yet to do
-							if input_string in accepted:
+							if input_string in accepted or accepted == ALL:
 								user_finished = True
 							else:
 								error_string = invalid_answer_string

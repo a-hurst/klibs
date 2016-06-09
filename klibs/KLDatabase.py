@@ -24,9 +24,9 @@ class EntryTemplate(object):
 		return "<klibs.KLDatabase.KLEntryTemplate[{0}, {1}] object at {2}>".format(self.table_name, self.name, hex(id(self)))
 
 	def pr_schema(self):
-		schema_str = "{\n"
+		schema_str = "\t\t{\n"
 		for col in self.schema:
-			schema_str += "\t\t\t" + col + " : " + repr(self.schema[col]) + "\n"
+			schema_str += "\t\t\t" + col[0] + " : " + str(col[1:]) + "\n"
 		schema_str += "\t\t}"
 		return schema_str
 
@@ -57,16 +57,20 @@ class EntryTemplate(object):
 		for column in self.schema:
 			if self.data[self.index_of(column[0])] == SQL_NULL or not self.data[self.index_of(column[0])]:
 				if self.allow_null(column[0]):
-					insert_template[self.index_of(column)] = SQL_NULL
-					self.data[self.index_of(column)] = SQL_NULL
+					insert_template[self.index_of(column[0])] = SQL_NULL
+					self.data[self.index_of(column[0])] = SQL_NULL
 				elif column[0] == ID:
 					self.data[0] = SQL_NULL
 					insert_template[0] = SQL_NULL
+				elif self.table_name in Params.table_defaults:
+					for i in Params.table_defaults[self.table_name]:
+						if i[0] == column[0]:
+							insert_template[self.index_of(column[0])] = str(i[1])
 				else:
 					raise ValueError("Column '{0}' may not be null.".format(column))
 			else:
 				insert_template[self.index_of(column[0])] = column[0]
-
+		print insert_template
 		values = ",".join(filter(lambda column: column != SQL_NULL, [str(i) for i in self.data]))
 		columns = "`{0}`".format(SQL_COL_DELIM_STR.join(filter(lambda column: column != SQL_NULL, insert_template)))
 
@@ -361,6 +365,7 @@ class Database(object):
 		return self.cursor.lastrowid
 
 	def query_str_from_raw_data(self, table, data):
+		print table, data
 		try:
 			template = self.table_schemas[table]
 		except KeyError:

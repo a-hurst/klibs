@@ -491,12 +491,13 @@ class Experiment(object):
 
 		# TODO: this function should have default questions/answers but should also be able to read from a CSV or dict
 		if not Params.collect_demographics and not anonymous_user: return
-		if Params.multi_session_project:
-			id_str = self.query(
-				"If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.",
-				password=True, accepted=ALL)
-			if id_str:
-				return self.set_session(id_str)
+		if Params.collect_demographics:
+			if Params.multi_session_project:
+				id_str = self.query(
+					"If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.",
+					password=True, accepted=ALL)
+				if id_str:
+					return self.set_session(id_str)
 
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
 		self.database.log("random_seed", Params.random_seed)
@@ -554,7 +555,7 @@ class Experiment(object):
 				time.sleep(2)
 				self.quit()
 		self.database.current(False)
-		if Params.multi_session_project:
+		if Params.collect_demographics and Params.multi_session_project:
 			self.set_session()
 
 	def insert_practice_block(self, block_nums, trial_counts=None, factor_masks=None):

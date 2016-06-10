@@ -449,6 +449,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.stop_boundary = None
 		self.start_boundary = None
 		self.started = False
+		self.start_time = None
 		self.stopped = False
 		self.stop_eligible = False
 		self.image = None
@@ -465,6 +466,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.y_offset = 0
 
 	def collect_response(self, event_queue=None):
+		# assert cursor visibility (or not)
 		if not self.started or self.stopped:
 			if self.show_inactive_cursor:
 				show_mouse_cursor()
@@ -475,6 +477,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 				show_mouse_cursor()
 			else:
 				hide_mouse_cursor()
+
 		mp = mouse_pos()
 		if not self.stop_boundary or not self.start_boundary:
 			self.started = True
@@ -482,7 +485,8 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		if not self.started:
 			if self.within_boundary(self.start_boundary, mp):
 				self.started = True
-
+		if self.started and not self.start_time:
+			self.start_time = Params.clock.trial_time
 		if self.within_boundary(self.stop_boundary, mp):
 			if self.stop_eligible and not self.stopped:
 				self.stopped = True
@@ -493,12 +497,13 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		if not self.within_boundary(self.start_boundary, mp) and not self.stop_eligible and self.started:
 			self.stop_eligible = True
 		if self.started and not self.stopped: # and self.within_boundary(mp, self.canvas_boundary):
-			# self.points.append(mp)
+			timestamp = Params.clock.trial_time - self.start_time
+			trial_time = Params.clock.trial_time
 			try:
 				if mp != self.points[-1]:
-					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset))
+					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, timestamp, trial_time))
 			except IndexError:
-					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset))
+					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, timestamp, trial_time))
 
 	def reset(self):
 		self.responses = []
@@ -519,7 +524,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 			else:
 				m_str += "L{0},{1}".format(p[0], p[1])
 		s = aggdraw.Symbol(m_str)
-		test_p = aggdraw.Draw("RGBA", [800,800], (255,255,255,50))
+		test_p = aggdraw.Draw("RGBA", Params.screen_x_y, (0,0,0,0))
 		test_p.setantialias(True)
 		test_p.symbol((0,0), s, aggdraw.Pen((255,80, 125), 1, 255))
 		return aggdraw_to_array(test_p)

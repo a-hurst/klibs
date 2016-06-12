@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
+from os import kill
+from signal import SIGKILL
 from klibs.KLUtilities import *
 from klibs import KLParams as Params
 from copy import copy
@@ -178,10 +180,9 @@ class EventClock(object):
 		self.start_time = None
 		self.start_lag = None
 		self.experiment = experiment
-		self.pipe = None
-		self.p = None
 		self.pipe, child = mp_lib.Pipe()
 		self.p = __event_clock__(child)
+		self.pid = self.p.pid
 		self.polling = False   # prevents multiple calls to polling simultaneously
 
 	def update_event_onset(self, label, onset, unit=TK_MS):
@@ -348,12 +349,13 @@ class EventClock(object):
 		return t
 
 	def terminate(self, max_wait=1):
-		exit_timeout_start = time.time()
-		while mp_lib.active_children() > 0 and time.time() - exit_timeout_start < max_wait:
+		Params.tk.start("terminate")
+		self.register_event(EVI_EXP_END)
+		while Params.tk.elapsed("terminate") < max_wait:
 			pump()
-			self.register_event(EVI_EXP_END)
-		if mp_lib.active_children() or self.p.is_alive():
-			raise RuntimeError("Unable to safely join EventClock process.")
+		if self.p.is_alive():
+			kill(self.clock.p.pid, SIGKILL)
+
 
 
 	@property

@@ -283,6 +283,8 @@ class TextManager(object):
 	"""
 	# font_size = None, color = None, background_color = None, line_height = None, font = None):
 	def render_text(self, string, font=None, font_size=None, color=None, bg_color=None):
+		if not len(string):
+			raise ValueError("Cannot render an empty string.")
 		if font:
 			try:
 				font = self.fonts[font]

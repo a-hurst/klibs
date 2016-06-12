@@ -11,13 +11,13 @@ from klibs.KLConstants import *
 import os
 import multiprocessing as mp
 
-klibs_commit = '99e3041af905d97448ebde072ef3654fd87ddb8c'
+klibs_commit = '83d279bc456dad96c92305496c99f8d3c17282fa'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
 global project_name
 global asset_dir
-global resource_dir
+global resources_dir
 global image_dir
 global config_dir
 global database_filename
@@ -214,7 +214,7 @@ def setup(project_name_str, previous_random_seed):
 	global exp_font_dir
 	global image_dir
 	global config_dir
-	global resource_dir
+	global resources_dir
 
 	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
 
@@ -224,8 +224,8 @@ def setup(project_name_str, previous_random_seed):
 	seed(random_seed)
 	project_name = project_name_str
 	asset_dir = "ExpAssets"
-	resource_dir = os.path.join(asset_dir, "Resources")
-	exp_font_dir = os.path.join(resource_dir, "font")
-	image_dir = os.path.join(resource_dir, "image")
+	resources_dir = os.path.join(asset_dir, "Resources")
+	exp_font_dir = os.path.join(resources_dir, "font")
+	image_dir = os.path.join(resources_dir, "image")
 	config_dir = os.path.join(asset_dir, "Config")
 	return init_project()

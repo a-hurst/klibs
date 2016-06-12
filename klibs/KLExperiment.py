@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
+import os
 import OpenGL.GL as gl
 import sdl2.ext
 import imp
 import hashlib
 from signal import SIGKILL
-
 from klibs.KLAudio import AudioManager
 from klibs.KLEyeLink import *
 from klibs.KLExceptions import *
@@ -212,7 +212,6 @@ class Experiment(object):
 					self.database.current(False)
 					self.clear()
 				self.rc.reset()
-		Params.clock.terminate()
 		self.clean_up()
 		self.evi.dump_events()
 		self.database.db.commit()
@@ -262,7 +261,7 @@ class Experiment(object):
 		for attr in trial_data: self.database.log(attr, trial_data[attr])
 		return self.database.insert()
 
-	def any_key(self):
+	def any_key(self, allow_mouse_click=True):
 		"""
 		Used for quickly allowing a user to acknowledge something on screen. Not to be used for response collection (see
 		:mod:`~klibs.KLResponseCollectors`).
@@ -276,6 +275,9 @@ class Experiment(object):
 				if event.type == sdl2.SDL_KEYDOWN:
 					self.ui_request(event.key.keysym)
 					any_key_pressed = True
+				if event.type == sdl2.SDL_MOUSEBUTTONUP:
+					any_key_pressed = True
+
 		return True
 
 	def display_init(self, diagonal_in):
@@ -497,7 +499,7 @@ class Experiment(object):
 						"If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.",
 						password=True, accepted=ALL)
 				if id_str:
-					return self.set_session(id_str)
+					return self.init_session(id_str)
 
 		self.database.init_entry('participants', instance_name='ptcp', set_current=True)
 		self.database.log("random_seed", Params.random_seed)
@@ -556,7 +558,7 @@ class Experiment(object):
 				self.quit()
 		self.database.current(False)
 		if Params.collect_demographics and Params.multi_session_project:
-			self.set_session()
+			self.init_session()
 
 	def insert_practice_block(self, block_nums, trial_counts=None, factor_masks=None):
 		try:
@@ -1230,7 +1232,7 @@ class Experiment(object):
 				if not error_string:  # if error_string, input_surface already created with different config.
 					try:
 						input_surface = self.text_manager.render_text(render_str, *input_config)
-					except IndexError:
+					except (IndexError, ValueError):
 						input_surface = None
 				if input_surface:
 					self.blit(input_surface, input_registration, input_location)
@@ -1256,8 +1258,8 @@ class Experiment(object):
 		if Params.verbose_mode:
 			full_trace()
 		try:
-			self.evi.terminate()
-		except Exception as e:
+			Params.clock.terminate()
+		except RuntimeError as e:
 			try:
 				os.kill(self.clock.p.pid, SIGKILL)
 			except:
@@ -1334,10 +1336,14 @@ class Experiment(object):
 			self.eyelink.setup()
 		self.blocks = self.trial_factory.export_trials()
 		self.setup()
-		self.__execute_experiment(*args, **kwargs)
+		try:
+			self.__execute_experiment(*args, **kwargs)
+		except RuntimeError:
+			os.kill(Params.clock.pid, SIGKILL)
+
 		self.quit()
 
-	def set_session(self, id_str):
+	def init_session(self, id_str):
 		pass
 
 	def track_mouse(self, mouse_position=None):

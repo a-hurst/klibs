@@ -39,8 +39,6 @@ class ResponseType(object):
 			try:
 				self.collect_response(event_queue, mouse_click_boundaries)
 			except TypeError:
-				print "Event Queue:"
-				print event_queue
 				try:
 					self.collect_response(event_queue)
 				except TypeError:

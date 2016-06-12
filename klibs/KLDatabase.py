@@ -103,7 +103,11 @@ class EntryTemplate(object):
 			value = str(bool_to_int(value))
 		except ValueError:
 			if self.type_of(field) == PY_FLOAT:
-				value = float(value)
+				try:
+					value = float(value)
+				except TypeError:
+					e_str = "Expected 'float' for column '{0}'; got '{1}' of type {2}".format(field, value, type(value))
+					raise ValueError(e_str)
 			else:
 				value = str(value)
 			if self.type_of(field) == PY_STR:

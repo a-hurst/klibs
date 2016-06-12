@@ -200,13 +200,13 @@ def rebuild_db(path):
 
 def hard_reset(path):
 	#todo: require confirmation
-	shutil.rmtree(os.path.join(path, "ExpAssets", "Data"))
-	shutil.rmtree(os.path.join(path, "ExpAssets", "EDF"))
-	shutil.rmtree(os.path.join(path, "ExpAssets", ".versions"))
-	os.mkdir(os.path.join(path, "ExpAssets", "Data"))
-	os.mkdir(os.path.join(path, "ExpAssets", "Data", "incomplete"))
-	os.mkdir(os.path.join(path, "ExpAssets", "EDF"))
-	os.mkdir(os.path.join(path, "ExpAssets", "EDF", "incomplete"))
+	for d in ['Data', 'EDF', '.versions']:
+		try:
+			shutil.rmtree(os.path.join(path, "ExpAssets", d))
+		except OSError:
+			pass
+	os.makedirs(os.path.join(path, "ExpAssets", "Data", "incomplete"))
+	os.makedirs(os.path.join(path, "ExpAssets", "EDF", "incomplete"))
 	os.mkdir(os.path.join(path, "ExpAssets", ".versions"))
 	rebuild_db(path)
 

@@ -75,8 +75,8 @@ class RectangleBoundary(Boundary):
 	def within(self, reference):
 		if not iterable(reference):
 			raise TypeError("within() expects a 2-item sequence; either an x,y pair, or amplitude, angle pair.")
-		if all(type(i) is int for i in reference):
-			reference = point_pos(self.__center, reference[0], reference[1])
+		# if all(type(i) is int for i in reference):
+		# 	reference = point_pos(self.__center, reference[0], reference[1])
 		return reference[0] in self.__x_range and reference[1] in self.__y_range
 
 

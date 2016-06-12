@@ -494,8 +494,8 @@ class Experiment(object):
 		if Params.collect_demographics:
 			if Params.multi_session_project:
 				id_str = self.query(
-					"If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.",
-					password=True, accepted=ALL)
+						"If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.",
+						password=True, accepted=ALL)
 				if id_str:
 					return self.set_session(id_str)
 

@@ -70,7 +70,6 @@ class EntryTemplate(object):
 					raise ValueError("Column '{0}' may not be null.".format(column))
 			else:
 				insert_template[self.index_of(column[0])] = column[0]
-		print insert_template
 		values = ",".join(filter(lambda column: column != SQL_NULL, [str(i) for i in self.data]))
 		columns = "`{0}`".format(SQL_COL_DELIM_STR.join(filter(lambda column: column != SQL_NULL, insert_template)))
 
@@ -267,7 +266,6 @@ class Database(object):
 			self.__current_entry = None
 			print  "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
 
-
 	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
 
 	def init_entry(self, table_name, instance_name=None, set_current=True):
@@ -365,7 +363,6 @@ class Database(object):
 		return self.cursor.lastrowid
 
 	def query_str_from_raw_data(self, table, data):
-		print table, data
 		try:
 			template = self.table_schemas[table]
 		except KeyError:

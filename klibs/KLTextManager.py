@@ -3,8 +3,7 @@ import numpy
 from PIL import ImageFont
 from sdl2 import sdlttf
 
-import math
-from klibs.KLNumpySurface import NumpySurface
+from klibs.KLGraphics.KLNumpySurface import NumpySurface
 from klibs.KLUtilities import *
 from klibs.KLConstants import *
 from klibs import KLParams as Params

@@ -1,30 +1,31 @@
 # -*- coding: utf-8 -*-
-import math
-import sys
-import time
-import datetime
 # import thread
 # import billiard
 
 try:
-	import pylink
+	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode
+	from pylink.tracker import Sample, EndSaccadeEvent, EndFixationEvent, StartFixationEvent, StartSaccadeEvent
+	PYLINK_AVAILABLE = True
 except ImportError:
-	pass
+	print "\t* Warning: Pylink library not found; eye tracking will not be available."
+	PYLINK_AVAILABLE = False
+
 try:
-	import u3
+	from u3 import *
+	LABJACK_AVAILABLE = True
 except ImportError:
-	pass
+	LABJACK_AVAILABLE = False
 
 from klibs.KLExceptions import *
 from klibs.KLConstants import *
 from klibs import KLParams as Params
-from klibs.KLTimeKeeper import TimeKeeper
+from klibs.KLTimeKeeper import TimeKeeper, EventClock
 from klibs.KLAudio import *
 from klibs.KLUtilities import *
 from klibs.KLBoundary import *  # KLConstants, KLUtilities
 from klibs.KLMixins import *
-from klibs.KLNumpySurface import *
-from klibs.KLDraw import *
+from klibs.KLGraphics.KLNumpySurface import *
+from klibs.KLGraphics.KLDraw import *
 from klibs.KLResponseCollectors import *
 
 print "\n\n\033[92m*** Now loading KLIBS Environment ***\033[0m"
@@ -42,6 +43,15 @@ from klibs.KLDebug import *
 from klibs.KLExperiment import Experiment
 
 
+#  runtime vars, populated depending on context either from klibs CLI or by a parent class (usually Experiment)
+text_manager = TextManager()
+time_keeper = TimeKeeper()
+trial_clock = EventClock()
+event_interface = EventInterface()
+experiment = None
+database = None
+eyelink = None
+labjack = None
 #####################################################
 #
 # SDL Keycode Reference for creating KeyMaps (https://wiki.libsdl.org/SDL_Keycode)

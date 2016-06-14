@@ -1,15 +1,14 @@
 __author__ = 'jono'
 
 import abc
-import sdl2
+import aggdraw
+
 from klibs.KLUtilities import *
 from klibs.KLAudio import AudioStream
 from klibs.KLConstants import *
-from klibs.KLNumpySurface import NumpySurface
-from KLNumpySurface import aggdraw_to_array
-from klibs.KLDraw import Drawbject, ColorWheel
-import aggdraw
-from bisect import bisect
+from klibs.KLGraphics.KLNumpySurface import NumpySurface
+from klibs.KLGraphics.KLNumpySurface import aggdraw_to_array
+from klibs.KLGraphics.KLDraw import ColorWheel
 from klibs.KLMixins import BoundaryInspector
 
 
@@ -177,7 +176,6 @@ class KeyPressResponse(ResponseType):
 
 	@key_map.setter
 	def key_map(self, key_map_obj):
-		from klibs.KLKeyMap import KeyMap
 		try:
 			key_map_obj.any_key
 		except AttributeError:
@@ -509,6 +507,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.started = False
 		self.stopped = False
 		self.stop_eligible = False
+		self.start_time = None
 
 	def render_progress(self):
 		if not self.started:

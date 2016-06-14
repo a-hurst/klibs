@@ -1,15 +1,11 @@
 __author__ = 'jono'
 
 import abc
-
-import aggdraw
-from klibs.KLNumpySurface import *
-from klibs.KLUtilities import *
-from klibs.KLTextManager import TextStyle
-from math import pi as PI
 from imp import load_source
-import re
 from bisect import bisect
+
+from klibs.KLGraphics.KLNumpySurface import *
+from klibs.KLUtilities import *
 
 ######################################################################
 #

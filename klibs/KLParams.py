@@ -11,7 +11,7 @@ from klibs.KLConstants import *
 import os
 import multiprocessing as mp
 
-klibs_commit = '83d279bc456dad96c92305496c99f8d3c17282fa'
+klibs_commit = '34d202ed03e064740cad38aa46ad496661d3b9c4'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -40,6 +40,8 @@ global versions_dir
 global initialized
 global random_seed
 global anonymous_username
+global logo_file_path
+global key_maps
 
 exp = None
 exp_font_dir = "ExpAssets/Resources/font"
@@ -66,7 +68,7 @@ calibrate_targets = 9
 participant_id = None
 database = None
 
-key_maps = dict()  # todo: create a class, KeyMapper, to manage key maps
+
 id_field_name = "participant_id"
 collect_demographics = True
 demographics_collected = False
@@ -127,6 +129,7 @@ block_number = 0
 trials_per_block = 0
 blocks_per_experiment = 0
 between_subject_conditions = None
+multi_session_project = False
 
 run_practice_blocks = True
 show_practice_messages = True
@@ -157,6 +160,8 @@ process_queue_data = {}
 
 
 def init_project():
+	from klibs.KLKeyMap import KeyMap
+	global key_maps
 	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
 	global project_name
 	global asset_dir
@@ -179,6 +184,18 @@ def init_project():
 	global events_file_path
 	global versions_dir
 	global initialized
+
+	key_maps = {"*": KeyMap("*", [], [], []),
+				"drift_correct": KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"]),
+				"eyelink": KeyMap("eyelink",
+								   ["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
+								   [sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
+									sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
+									sdl2.SDLK_RIGHT],
+								   ["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])}
+	key_maps["*"].any_key = True
+
+
 
 	# file names
 	database_filename = str(project_name) + DB_EXT
@@ -206,7 +223,7 @@ def init_project():
 	initialized = True
 	return True
 
-def setup(project_name_str, previous_random_seed):
+def setup(project_name_str):
 	global project_name
 	global asset_dir
 	global random_seed
@@ -215,12 +232,14 @@ def setup(project_name_str, previous_random_seed):
 	global image_dir
 	global config_dir
 	global resources_dir
+	global logo_file_path
 
 	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
 
 
 	#  seed the experiment with either a passed random_seed or else the current unix time
-	random_seed = previous_random_seed if previous_random_seed else time.time()
+	if not random_seed:  # if passed from CLI will be set by now
+		random_seed = time.time()
 	seed(random_seed)
 	project_name = project_name_str
 	asset_dir = "ExpAssets"
@@ -228,4 +247,6 @@ def setup(project_name_str, previous_random_seed):
 	exp_font_dir = os.path.join(resources_dir, "font")
 	image_dir = os.path.join(resources_dir, "image")
 	config_dir = os.path.join(asset_dir, "Config")
+	logo_file_path = os.path.join(klibs_dir, "splash.png")
+
 	return init_project()

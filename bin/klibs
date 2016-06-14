@@ -153,30 +153,69 @@ def update():
 
 
 def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose):
-	try:
-		import klibs
-	except ImportError as e:
-		print_warning(*sys.exc_info())
-	if path[-1] == "/":
-		path = path[:-1]
-	p = Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE)
-	commit = p.communicate()[0][:-1]
+	import klibs
+	import klibs.KLParams as P
+	from klibs.KLGraphics import display_init
+	from klibs.KLEyeLink import EyeLinkExt, ELCustomDisplay, TryLink
+	from klibs.KLDatabase import Database
 
+	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
+
+	# get project name and set working directory to top of project
 	project_name = os.path.split(path)[-1]
 	os.chdir(path)
+
+	# set some basic global Params
+	P.verbose_mode = verbose
+	if not show_debug_pane:
+		P.dm_suppress_debug_pane = True
+	if random_seed:
+		P.random_seed = random_seed
+	if development_mode:
+		P.development_mode = True
+		P.collect_demographics = False
+
+	# get actual current klibs commit & compare value currently in KLParams
+	if P.klibs_commit != Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE).communicate()[0][:-1]:
+		pass # todo: warn user
+
+	# set initial param values for project's context
+	P.setup(project_name)
+
+	# import params defined in project's local params file in ExpAssets/Config
+	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
+		setattr(P, k, v)
+
+	# create an EyeLink instance if needed
+	if P.eye_tracking:
+		if no_eyelink:
+			P.eye_tracker_available = False
+		if klibs.KLEyeLink.PYLINK_AVAILABLE and P.eye_tracker_available:
+			klibs.eyelink = EyeLinkExt()
+			klibs.eyelink.custom_display = ELCustomDisplay()
+		else:
+			klibs.eyelink = TryLink()
+		klibs.eyelink.dummy_mode = P.eye_tracker_available is False
+
+	# create a Database instance
+	klibs.database = Database()
+
+	# finally, import the project's Experiment class and instantiate
 	experiment_file = imp.load_source(path, "experiment.py")
 	experiment = getattr(experiment_file, project_name)
-	exp = experiment(project_name, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose)
-	from klibs import KLParams as Params
-	if Params.klibs_commit != commit:
-		pass # todo: warn user
+	klibs.experiment = experiment(project_name)
+
+	# create a display context if everything's gone well so far
+	klibs.experiment.window = display_init(screen_size)
+
+	# off to the races team...
 	try:
-		exp.run()
+		experiment.run()
 	except SystemExit:
 		pass
-	except Exception as e:
-		os.kill(exp.clock.p.pid, SIGKILL)
-		print full_trace()
+	except:
+		os.kill(P.clock.p.pid, SIGKILL)
+		full_trace()
 
 
 def export(path, multi_file=True, join_tables=None):
@@ -210,132 +249,63 @@ def hard_reset(path):
 	os.mkdir(os.path.join(path, "ExpAssets", ".versions"))
 	rebuild_db(path)
 
-def post_install(development_mode):
-	# from klibs.KLParams import klibs_version
-	try:
-		pylink_cellar = os.path.join("/usr/local/Cellar/klibs/", klibs_version, "libexec/lib/python2.7/site-packages/pylink")
-		klibs_cellar = os.path.join("/usr/local/Cellar/klibs/", klibs_version, "libexec/lib/python2.7/site-packages/klibs")
-		libpath = os.path.join("/usr/local/lib/klibs")
-		if os.path.exists("/Library/Python/2.7/site-packages/pylink") and development_mode:
-			shutil.rmtree("/Library/Python/2.7/site-packages/pylink")
-		shutil.copytree(pylink_cellar, "/Library/Python/2.7/site-packages/pylink")
-		for path in [pylink_cellar, klibs_cellar, libpath]:
-			for root, dirs, files in os.walk(path):
-				for d in dirs:
-					os.chmod(os.path.join(root, d), stat.S_IFDIR | stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IWOTH |  stat.S_IXOTH)
-				for f in files:
-					os.chmod(os.path.join(root, f), stat.S_IFREG | stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IWOTH |  stat.S_IXOTH)
-		if not os.path.exists("/usr/local/lib/python2.7/site-packages/klibs"):
-			os.link(klibs_cellar, "/usr/local/lib/python2.7/site-packages/klibs")
-	except OSError as e:
-		print "Right idea, wrong execution; 'install-pylink' is the *ONLY* klibs command that requires sudo."
-		print e
-		exit()
-	print "Success! PyLink installed."
 
-try:
-	parser = argparse.ArgumentParser()
-	subparsers = parser.add_subparsers(title='subcommands',
-									   description='Valid arguments: create, update, run, export',
-									   help='additional help')
+parser = argparse.ArgumentParser()
+subparsers = parser.add_subparsers(title='subcommands',
+								   description='Valid arguments: create, update, run, export, hard-reset, db-rebuild',
+								   help='additional help')
 
-	create_parser = subparsers.add_parser('create')
-	create_parser.add_argument('name', type=str)
-	create_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path where new project should be created; if empty, project will attempt to be created in current working directory.')
-	create_parser.set_defaults(func=create)
+create_parser = subparsers.add_parser('create')
+create_parser.add_argument('name', type=str)
+create_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+						   help='Path where new project should be created; if empty, project will attempt to be created in current working directory.')
+create_parser.set_defaults(func=create)
 
-	update_parser = subparsers.add_parser('update')
-	update_parser.set_defaults(func=update)
+update_parser = subparsers.add_parser('update')
+update_parser.set_defaults(func=update)
 
-	rebuild_parser = subparsers.add_parser('db-rebuild')
-	rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+rebuild_parser = subparsers.add_parser('db-rebuild')
+rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
 							help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
-	rebuild_parser.set_defaults(func=rebuild_db)
+rebuild_parser.set_defaults(func=rebuild_db)
 
-	rebuild_parser = subparsers.add_parser('hard-reset')
-	rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+rebuild_parser = subparsers.add_parser('hard-reset')
+rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
 							help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
-	rebuild_parser.set_defaults(func=hard_reset)
+rebuild_parser.set_defaults(func=hard_reset)
 
-	update_parser = subparsers.add_parser('post-install')
-	update_parser.add_argument('-d', '--development_mode', action="store_true")
-	update_parser.set_defaults(func=post_install)
+run_parser = subparsers.add_parser('run')
+run_parser.add_argument('screen_size', type=int,
+						help='The diagonal size of the screen in inches on which the experiment is being run. This is used to calculate degrees of visual angle.')
+run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+						help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
+run_parser.add_argument('-rs', '--random_seed', type=int,
+						help="Providing a random seed will allow an experiment to continue from it's previously completed state.")
+run_parser.add_argument('-d', '--development_mode', action="store_true",
+						help="Development mode turns off demographics collection and turns on several debugging features.")
+run_parser.add_argument('-ELx', '--no_eyelink', action="store_false",
+						help="Signals the absence of a connected eyelink unit. Does nothing for non-eyetracking experiments.")
+run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true",
+						help="Debug log will be blit to translucent panel on screen in real time.")
+# todo: verbose mode should accept a value, and then logging should be incrementally verbose
+run_parser.add_argument('-v', '--verbose', action="store_true",
+						help="EventsInterface will syndicate EyeLink, log & LabJack messages to terminal.")
+run_parser.set_defaults(func=run)
 
-	run_parser = subparsers.add_parser('run')
-	run_parser.add_argument('screen_size', type=int, help='The diagonal size of the screen in inches on which the experiment is being run. This is used to calculate degrees of visual angle.')
-	run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
-	run_parser.add_argument('-rs', '--random_seed',  type=int, help="Providing a random seed will allow an experiment to continue from it's previously completed state." )
-	run_parser.add_argument('-d', '--development_mode', action="store_true", help="Development mode turns off demographics collection and turns on several debugging features." )
-	run_parser.add_argument('-ELx', '--no_eyelink', action="store_false", help="Signals the absence of a connected eyelink unit. Does nothing for non-eyetracking experiments." )
-	run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true", help="Debug log will be blit to translucent panel on screen in real time." )
-	# todo: verbose mode should accept a value, and then logging should be incrementally verbose
-	run_parser.add_argument('-v', '--verbose', action="store_true", help="EventsInterface will syndicate EyeLink, log & LabJack messages to terminal." )
-	run_parser.set_defaults(func=run)
+export_parser = subparsers.add_parser('export')
+export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+						   help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
+export_parser.add_argument('-mf', '--multi_file', action="store_false",
+						   help='Export participants as a single file or multiple files. Default is multi-file. ')
+export_parser.add_argument('-j', '--join_tables', default=[], nargs="*", type=str,
+						   help="Additional tables to be joined to the data output. Only 'participant' and 'data' tables are exported by default.")
+export_parser.set_defaults(func=export)
 
+args = vars(parser.parse_args())
 
-	export_parser = subparsers.add_parser('export')
-	export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
-	export_parser.add_argument('-mf', '--multi_file', action="store_false", help='Export participants as a single file or multiple files. Default is multi-file. ')
-	export_parser.add_argument('-j', '--join_tables', default=[], nargs="*", type=str, help="Additional tables to be joined to the data output. Only 'participant' and 'data' tables are exported by default.")
-	export_parser.set_defaults(func=export)
-
-	args = vars(parser.parse_args())
-
-except SystemExit:
-	print "\nO hai."
-	time.sleep(2)
-	print "\nSo how are things?"
-	time.sleep(2)
-	print '\nThis is really a pleasant surprise, you should know.'
-	time.sleep(2)
-	print "\nI mean it's so nice to just *chat* for once, you know?"
-	time.sleep(3)
-	print "\nNone of this"
-	time.sleep(0.7)
-	print "\n\t'Hey klibs, CREATE a project'"
-	time.sleep(1.2)
-	print "\nor"
-	time.sleep(0.7)
-	print "\n\t'Hey klibs, RUN this experiment'"
-	time.sleep(1.2)
-	print "\nor even"
-	time.sleep(0.7)
-	print "\n\t'Hey klibs, EXPORT my data'."
-	time.sleep(3)
-	print "\nI guess I have to admit, I've been feeling a little... *instrumental*, lately."
-	time.sleep(1.5)
-	print "\nIt's like we never just talk anymore. You know..."
-	time.sleep(1.5)
-	print "\n\t\t...like we used to..."
-	time.sleep(1)
-	print "\n*sniff*"
-	time.sleep(1.5)
-	print "\nSo, can I just say:"
-	time.sleep(2)
-	print "\nI really appreciate this time to just chat."
-	time.sleep(1.5)
-	print "\n\t'Us time', ya know?"
-	time.sleep(2)
-	print "\nBut anyway, I should get going."
-	time.sleep(1.5)
-	print "\nExperiments to run, data to collect."
-	time.sleep(1)
-	print "\nPlus I've got to calibrate that damn eye--"
-	time.sleep(2)
-	print "\n\tErr, nothing..."
-	time.sleep(3)
-	print "\nLook, it's been a long day."
-	time.sleep(2)
-	print "\nAnywho, don't be a stranger! kkbai!"
-	exit()
 
 arg_dict = {}
 for key in args:
 	if key != "func": arg_dict[key] = args[key]
 
-if pylink_install_required and args["func"] != post_install:
-	print "\n\n\033[92m*** Installation Requires One More Step--Almost There! ***\033[0m"
-	print "\033[91mAfter installing klibs for the first time, one final step is required to make PyLink available to klibs.\033[0m"
-	print "\033[91mPlease run \n\n\t'klibs post-install'\n\nwith super-user permissions  (ie. 'sudo').\033[0m\n"
-	exit()
 args["func"](**arg_dict)

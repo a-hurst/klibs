@@ -1,7 +1,5 @@
 __author__ = 'jono'
 
-from KLConstants import *
-from KLUtilities import *
 from KLBoundary import *
 from KLExceptions import BoundaryError
 # class KLBoundary  will inherit from KLObject
@@ -60,7 +58,8 @@ class BoundaryInspector(object):
 	def draw_boundary(self, label="*"):
 		print "Warning: BoundaryInspector mixin's 'draw_boundary' method is under construction and isn't currently implemented."
 		return
-		from klibs.KLDraw import Rectangle, Annulus, Ellipse
+		from klibs.KLGraphics.KLDraw import Rectangle
+
 		if label == "*":
 			return [self.draw_boundary(l) for l in self.boundaries]
 		try:

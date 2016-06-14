@@ -4,10 +4,13 @@ __author__ = 'j. mulle'
 Note AudioClip is an adaption of code originally written by mike lawrence (github.com/mike-lawrence)
 """
 
+import math
+
 import sdl2.ext
 from sdl2 import sdlmixer
-from klibs.KLDraw import *
-import math
+
+from klibs.KLGraphics.KLDraw import *
+
 
 try:
 	import pyaudio

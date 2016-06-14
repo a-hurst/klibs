@@ -461,10 +461,6 @@ def px_to_deg(length):  # length = px
 	return length / Params.ppd
 
 
-def rgb_to_rgba(rgb):
-	return tuple(rgb) if len(rgb) == 4 else tuple([rgb[0], rgb[1], rgb[2], 255])
-
-
 def show_mouse_cursor():
 	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_ENABLE)
 	return sdl2.SDL_PumpEvents()

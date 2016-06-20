@@ -1,40 +1,30 @@
 __author__ = 'jono'
+from sdl2 import SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, SDLK_q, SDLK_p, SDLK_c
 
-from os import kill
-from signal import SIGKILL
-from sys import exit
-from sdl2 import SDL_Quit
-from klibs.KLConstants import *
+from klibs.KLConstants import MOD_KEYS, UI_METHOD_KEYSYMS
+from klibs import P
 from klibs.KLUtilities import pump
-import klibs.KLParams as P
-from klibs.KLUtilities import full_trace
-import klibs.event_interface as evi
-import klibs.experiment as exp
-import klibs.eyelink as el
-import klibs.labjack as lj
 
-
-def any_key(self, allow_mouse_click=True):
+def any_key(allow_mouse_click=True):
 		"""
 		Used for quickly allowing a user to acknowledge something on screen. Not to be used for response collection (see
 		:mod:`~klibs.KLResponseCollectors`).
 
 		:return Boolean:
 		"""
-		pump()
 		any_key_pressed = False
 		while not any_key_pressed:
-			for event in sdl2.ext.get_events():
-				if event.type == sdl2.SDL_KEYDOWN:
-					self.ui_request(event.key.keysym)
+			for event in pump(True):
+				if event.type == SDL_KEYDOWN:
+					ui_request(event.key.keysym)
 					any_key_pressed = True
-				if event.type == sdl2.SDL_MOUSEBUTTONUP:
+				if event.type == SDL_MOUSEBUTTONUP and allow_mouse_click:
 					any_key_pressed = True
 
 		return True
 
 
-def ui_request(self, key_press=None, execute=True):
+def ui_request(key_press=None, execute=True):
 		"""
 		``extension_planned``
 
@@ -46,12 +36,12 @@ def ui_request(self, key_press=None, execute=True):
 		:return:
 		"""
 		if not key_press:
-			for event in sdl2.ext.get_events():
-				if event.type in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
-					ui_request = self.ui_request(event.key.keysym)
-					if ui_request:
+			for event in pump(True):
+				if event.type in [SDL_KEYUP, SDL_KEYDOWN]:
+					request = ui_request(event.key.keysym)
+					if request:
 						return
-				if event.type == sdl2.SDL_KEYUP:
+				if event.type == SDL_KEYUP:
 					return # ie it wasn't a ui request and can't become one now
 			return False
 		else:
@@ -62,37 +52,44 @@ def ui_request(self, key_press=None, execute=True):
 
 		try:
 			iter(key_press)
-			for key in key_press:
-				if self.ui_request(key):
-					return True
 		except TypeError:
-			if key_press.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
-				if key_press.sym in UI_METHOD_KEYSYMS:
-					if key_press.sym == sdl2.SDLK_q:
-						return self.quit() if execute else [True, "quit"]
-					elif key_press.sym == sdl2.SDLK_c:
-						# if Params.eye_tracking and Params.eye_tracker_available:
-						return self.eyelink.calibrate() if execute else [True, "el_calibrate"]
-					elif key_press.sym == sdl2.SDLK_p:
+			key_press = [key_press]
+		for k in key_press:
+			if k.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
+				if k.sym in UI_METHOD_KEYSYMS:
+					if k.sym == SDLK_q:
 						if execute:
-							return self.pause()
+							from klibs import experiment
+							experiment.quit()
 						else:
-							return [True, "pause" if not self.paused else "unpause"]
+							return [True, "quit"]
+					elif k.sym == SDLK_c:
+						# todo: error handling here
+						if execute:
+							from klibs import eyelink
+							# if Params.eye_tracking and Params.eye_tracker_available:
+							return eyelink.calibrate()
+						else:
+							return [True, "el_calibrate"]
+					elif k.sym == SDLK_p:
+						if execute:
+							return pause()
+						else:
+							return [True, "pause" if not P.paused else "unpause"]
 		return False
 
-def pause(self):
+def pause():
 		"""
 		``broken`` ``heavy_modification_planned`` ``backwards_compatibility_expected``
 
 		Pauses an experiment by displaying a 'paused' message and updating the experiment's :mod:`~klibs.KLResponseCollectors`.\ :class:`~klibs.KLResponseCollectors.ResponseCollector`
 		instance accordingly. Currently undergoing update; do not use.
 		"""
-		if not self.paused:
-			pump()
-			while self.paused:
-				self.message('PAUSED', fullscreen=True, location='center', font_size=96, color=(255, 0, 0, 255),
-							 registration=5, blit=True)
-				self.ui_listen()
+		if not P.paused:
+				# self.message('PAUSED', fullscreen=True, location='center', font_size=96, color=(255, 0, 0, 255),
+				# 			 registration=5, blit=True)
+			while P.paused:
+				ui_request()
 		else:
-			self.paused = False
+			P.paused = False
 

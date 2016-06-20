@@ -1,57 +1,35 @@
 # -*- coding: utf-8 -*-
-# import thread
-# import billiard
-
-try:
-	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode
-	from pylink.tracker import Sample, EndSaccadeEvent, EndFixationEvent, StartFixationEvent, StartSaccadeEvent
-	PYLINK_AVAILABLE = True
-except ImportError:
-	print "\t* Warning: Pylink library not found; eye tracking will not be available."
-	PYLINK_AVAILABLE = False
-
-try:
-	from u3 import *
-	LABJACK_AVAILABLE = True
-except ImportError:
-	LABJACK_AVAILABLE = False
-
-from klibs.KLExceptions import *
-from klibs.KLConstants import *
-from klibs import KLParams as Params
-from klibs.KLTimeKeeper import TimeKeeper, EventClock
-from klibs.KLAudio import *
-from klibs.KLUtilities import *
-from klibs.KLBoundary import *  # KLConstants, KLUtilities
-from klibs.KLMixins import *
-from klibs.KLGraphics.KLNumpySurface import *
-from klibs.KLGraphics.KLDraw import *
-from klibs.KLResponseCollectors import *
+__author__ = 'j. mulle, this.impetus@gmail.com'
 
 print "\n\n\033[92m*** Now loading KLIBS Environment ***\033[0m"
 print "\033[32m(Note: if a bunch of SDL errors were just reported, this was expected, do not be alarmed!)\033[0m"
 
-from klibs.KLDatabase import Database
-from klibs.KLTextManager import TextManager
-from klibs.KLKeyMap import *
-from klibs.KLEyeLink import *
-if PYLINK_AVAILABLE:
-	from klibs.KLELCustomDisplay import ELCustomDisplay
-from klibs.KLLabJack import *
-from klibs.KLEventInterface import *
-from klibs.KLDebug import *
-from klibs.KLExperiment import Experiment
-
+import KLExceptions
+import KLConstants
+from KLConstants import PYAUDIO_AVAILABLE, PYLINK_AVAILABLE
+import KLParams as P						# KLConstants
+import KLKeyMap								# KLConstants
+import KLLabJack							# KLParams
+import KLUtilities							# KLConstants, KLParams
+import KLTrialFactory						# KLConstants, KLParams
+import KLUserInterface						# KLConstants, KLParams, KLUtilities
+import KLDatabase							# KLConstants, KLParams, KLUtilities
+import KLTimeKeeper							# KLConstants, KLParams, KLUtilities
+time_keeper = KLTimeKeeper.TimeKeeper()
+trial_clock = KLTimeKeeper.EventClock()
+import KLEventInterface						# KLConstants, KLParams, KLUtilities, KLUserInterface
+event_interface = KLEventInterface.EventInterface()
+import KLGraphics							# KLConstants, KLParams, KLUtilities
+import KLBoundary							# KLConstants, KLUtilities, KLExceptions
+import KLTextManager						# KLUtilities, KLGraphics
+text_manager = KLTextManager.TextManager()
+import KLAudio								# KLConstants, KLParams, KLUtilities, KLGraphics
+import KLResponseCollectors					# KLConstants, KLParams, KLUtilities, KLUserInterface, KLBoundary, KLAudio
+import KLEyeLink
+import KLCommunication
 
 #  runtime vars, populated depending on context either from klibs CLI or by a parent class (usually Experiment)
-text_manager = TextManager()
-time_keeper = TimeKeeper()
-trial_clock = EventClock()
-event_interface = EventInterface()
-experiment = None
-database = None
-eyelink = None
-labjack = None
+# from klibs.KLExperiment import Experiment
 #####################################################
 #
 # SDL Keycode Reference for creating KeyMaps (https://wiki.libsdl.org/SDL_Keycode)

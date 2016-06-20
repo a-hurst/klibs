@@ -4,12 +4,12 @@ import random
 from re import compile
 import csv
 from copy import copy
-
+from itertools import product
+from os.path import exists
 import numpy as np
 
-from klibs.KLUtilities import *
-from itertools import product
-from math import ceil
+from klibs.KLConstants import TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC, TF_STIM_FILE, TF_PARAM
+from klibs import P
 
 
 class BlockIterator(object):
@@ -99,8 +99,8 @@ class TrialFactory(object):
 	trial_generator = None
 	event_code_generator = None
 
-	def __init__(self, experiment, trial_generator=None):
-		self.experiment = experiment
+	def __init__(self, trial_generator=None):
+		self.trial_generator = trial_generator
 		self.param_weight_search = compile("^.*[ ]*\[([0-9]{1,3})\]$")
 		self.param_label_search = compile("^(.*)([ ]*\[[0-9]{1,3}\])$")
 
@@ -122,9 +122,9 @@ class TrialFactory(object):
 
 		# Run one complete set of trials in no values are supplied for trial & block length
 		if block_count is None:
-			block_count = 1 if not Params.blocks_per_experiment > 0 else Params.blocks_per_experiment
+			block_count = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
 		if trial_count is None:
-			trial_count = trial_set_count if not Params.trials_per_block > 0 else Params.trials_per_block
+			trial_count = trial_set_count if not P.trials_per_block > 0 else P.trials_per_block
 
 		total_trials = block_count * trial_count
 
@@ -158,7 +158,7 @@ class TrialFactory(object):
 		#  not finished, just cramemd it here when talking with ross
 
 	def import_stim_file(self, path):
-		if os.path.exists(path):
+		if exists(path):
 			config_file = csv.reader(open(path, 'rb'))
 			row_count = 0
 			for row in config_file:
@@ -237,7 +237,7 @@ class TrialFactory(object):
 			col_index += 1
 			factors.append([col_name, vals if len(vals) else [None]])
 		block = self.__generate_trials(factors, 1, trial_count)
-		self.experiment.blocks.insert(block_num - 1, block[0], practice)  # there is no "zero" block from the UI/UX perspective
+		blocks.insert(block_num - 1, block[0], practice)  # there is no "zero" block from the UI/UX perspective
 
  	def define_trial(self, rule, quantity):
 		pass

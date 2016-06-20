@@ -2,15 +2,21 @@ __author__ = 'jono'
 
 import abc
 import aggdraw
+from sdl2 import SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDLK_c, SDLK_v
 
-from klibs.KLUtilities import *
-from klibs.KLAudio import AudioStream
-from klibs.KLConstants import *
-from klibs.KLGraphics.KLNumpySurface import NumpySurface
-from klibs.KLGraphics.KLNumpySurface import aggdraw_to_array
+from klibs.KLConstants import RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, RC_FIXATION, RC_MOUSEDOWN, RC_MOUSEUP, \
+	RC_SACCADE, NO_RESPONSE, EL_SACCADE_START, EL_SACCADE_END, STROKE_INNER, MAX_WAIT, TIMEOUT, TK_S, TK_MS
+from klibs import P
+from klibs.KLUtilities import pump, full_trace, angle_between, hide_mouse_cursor, show_mouse_cursor, mouse_pos, \
+	iterable, flush
+from klibs.KLUserInterface import ui_request
+from klibs.KLBoundary import BoundaryInspector
+from klibs.KLGraphics import NpS, fill, flip, blit
+from klibs.KLGraphics import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import ColorWheel
-from klibs.KLMixins import BoundaryInspector
+from klibs.KLAudio import AudioStream
 
+from klibs import trial_clock as tc
 
 class ResponseType(object):
 	__name__ = None
@@ -41,8 +47,8 @@ class ResponseType(object):
 				try:
 					self.collect_response(event_queue)
 				except TypeError:
-					print full_trace()
-					self.collector.experiment.quit()
+					full_trace()
+					quit()
 					self.collect_response()
 		if self.max_collected() and self.interrupts:
 			return True
@@ -99,7 +105,7 @@ class ResponseType(object):
 
 	@property
 	def rt_label(self):
-		return "T{0}_{1}_Response_{2}".format(Params.trial_number, self.name, len(self.responses) + 1)
+		return "T{0}_{1}_Response_{2}".format(P.trial_number, self.name, len(self.responses) + 1)
 
 	@property
 	def null_response(self):
@@ -148,17 +154,17 @@ class KeyPressResponse(ResponseType):
 		if not self.key_map:
 			raise RuntimeError("No KeyMap configured to KeyPressResponse listener.")
 		for event in event_queue:
-			if event.type == sdl2.SDL_KEYDOWN:
+			if event.type == SDL_KEYDOWN:
 				key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
 				sdl_keysym = key.keysym.sym
 
 				# check for ui requests (ie. quit, pause, calibrate)
-				self.collector.experiment.ui_request(key.keysym)
+				ui_request(key.keysym)
 
 				if self.key_map:
 					if self.key_map.validate(sdl_keysym):
 						if len(self.responses) < self.min_response_count:
-							self.responses.append([self.key_map.read(sdl_keysym, "data"), Params.clock.trial_time])
+							self.responses.append([self.key_map.read(sdl_keysym, "data"), tc.trial_time])
 						if self.interrupts:
 							return self.responses if self.max_response_count > 1 else self.responses[0]
 					else:
@@ -196,7 +202,7 @@ class AudioResponse(ResponseType):
 
 	def calibrate(self):
 		peaks = []
-		if Params.development_mode and Params.dm_auto_threshold:
+		if P.development_mode and P.dm_auto_threshold:
 			ambient = self.stream.get_ambient_level()
 			if ambient == 0:
 				raise RuntimeError("Ambient level appears to be zero; exit the anachoic chamber or restart the experiment.")
@@ -209,27 +215,27 @@ class AudioResponse(ResponseType):
 			peaks.append( self.stream.get_peak_during(3, message) )
 			if i < 2:
 				next_message = "Got it; {0} more samples to collect. Press any key to continue".format(2 - i)
-				self.collector.experiment.fill()
-				self.collector.experiment.message(next_message, location=Params.screen_c, registration=5)
-				self.collector.experiment.flip()
+				fill()
+				# message(next_message, location=P.screen_c, registration=5)
+				flip()
 				any_key_pressed = False
 				while not any_key_pressed:
-					for event in sdl2.ext.get_events():
-						if event.type == sdl2.SDL_KEYDOWN:
-							self.collector.experiment.ui_request(event.key.keysym)
+					for event in pump(True):
+						if event.type == SDL_KEYDOWN:
+							ui_request(event.key.keysym)
 							any_key_pressed = True
 		self.stream.threshold = min(peaks)
 		self.validate()
 
 	def validate(self):
-		validate_counter = Params.tk.countdown(5)
-		self.collector.experiment.fill()
+		validate_counter = P.tk.countdown(5)
+		fill()
 		validation_instruction = "Ok; threshold set. To ensure it's validity, please provide one (and only one) more response."
-		self.collector.experiment.message(validation_instruction, location=Params.screen_c, registration=5)
-		self.collector.experiment.flip()
+		# message(validation_instruction, location=P.screen_c, registration=5)
+		flip()
 		self.start()
 		while validate_counter.counting():
-			self.collector.experiment.ui_request()
+			ui_request()
 			if self.stream.sample().peak >= self.stream.threshold:
 				validate_counter.finish()
 				self.threshold_valid = True
@@ -238,22 +244,21 @@ class AudioResponse(ResponseType):
 			validation_message = "Great, validation was successful. Press any key to continue."
 		else:
 			validation_message = "Validation wasn't successful. Type C to re-calibrate or V to try validation again."
-		self.collector.experiment.fill()
-		self.collector.experiment.message(validation_message, location=Params.screen_c, registration=5, flip=True)
+		fill()
+		# message(validation_message, location=P.screen_c, registration=5, flip=True)
 
 		response_collected = False
 		while not response_collected:
-			for event in sdl2.ext.get_events():
-				if event.type == sdl2.SDL_KEYDOWN:
-					self.collector.experiment.ui_request(event.key.keysym)
+			for event in pump(True):
+				if event.type == SDL_KEYDOWN:
+					ui_request(event.key.keysym)
 					if self.threshold_valid:
 						self.calibrated = True
 						return
 					else:
-						print [event.key.keysym, sdl2.SDLK_c, sdl2.SDLK_v]
-						if event.key.keysym.sym == sdl2.SDLK_c:
+						if event.key.keysym.sym == SDLK_c:
 							self.calibrate()
-						if event.key.keysym.sym == sdl2.SDLK_v:
+						if event.key.keysym.sym == SDLK_v:
 							self.validate()
 
 	def collect_response(self):
@@ -261,7 +266,7 @@ class AudioResponse(ResponseType):
 			raise RuntimeError("AudioResponse not ready for collection; calibration not completed.")
 		if self.stream.sample().peak >= self.stream.threshold:
 			if len(self.responses) < self.min_response_count:
-				self.responses.append([self.stream.sample().peak, Params.clock.trial_time])
+				self.responses.append([self.stream.sample().peak, tc.trial_time])
 			if self.interrupts:
 				self.stop()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
@@ -280,11 +285,11 @@ class MouseDownResponse(ResponseType, BoundaryInspector):
 
 	def collect_response(self, event_queue):
 		for event in event_queue:
-			if event.type is sdl2.SDL_MOUSEBUTTONDOWN:
+			if event.type is SDL_MOUSEBUTTONDOWN:
 				if len(self.responses) < self.min_response_count:
 					boundary =  self.within_boundaries([event.x, event.y])
 					if boundary:
-						self.responses.append( [boundary, [event.x, event.y], Params.clock.trial_time] )
+						self.responses.append( [boundary, [event.x, event.y], tc.trial_time] )
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -295,11 +300,11 @@ class MouseUpResponse(ResponseType, BoundaryInspector):
 
 	def collect_response(self, event_queue):
 		for event in event_queue:
-			if event.type is sdl2.SDL_MOUSEBUTTONUP:
+			if event.type is SDL_MOUSEBUTTONUP:
 				if len(self.responses) < self.min_response_count:
 					boundary = self.within_boundaries([event.x, event.y])
 					if boundary:
-						self.responses.append([boundary, [event.x, event.y], Params.clock.trial_time])
+						self.responses.append([boundary, [event.x, event.y], tc.trial_time])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -320,7 +325,8 @@ class SaccadeResponse(ResponseType):
 
 	def __init__(self, collector):
 		super(SaccadeResponse, self).__init__(collector)
-		self.el = self.collector.experiment.eyelink
+		from klibs import eyelink
+		self.el = eyelink
 
 	def collect_response(self):
 		for e in self.el.get_event_queue([self.el.eyelink.ENDSACC]):
@@ -378,13 +384,13 @@ class ColorSelectionResponse(ResponseType, BoundaryInspector):
 	def collect_response(self, event_queue):
 		# todo: add some logic for excluding certain colors (ie. the background color)
 		for e in event_queue:
-			if e.type == sdl2.SDL_MOUSEBUTTONUP:
+			if e.type == SDL_MOUSEBUTTONUP:
 				pos = [e.button.x, e.button.y]
 				if not self.within_boundary(pos, "color ring"):
 					continue
-				response = angle_between(Params.screen_c, pos, self.__target.rotation)
+				response = angle_between(P.screen_c, pos, self.__target.rotation)
 				if len(self.responses) < self.min_response_count:
-					self.responses.append([response, Params.clock.trial_time])
+					self.responses.append([response, tc.trial_time])
 					if self.interrupts:
 						return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -399,7 +405,7 @@ class ColorSelectionResponse(ResponseType, BoundaryInspector):
 		try:
 			surface.prerender()
 		except AttributeError:
-			surface = NumpySurface(surface)
+			surface = NpS(surface)
 
 		if registration in [8, 5, 2]:
 			surf_offset_x = surface.width // 2
@@ -482,19 +488,19 @@ class DrawResponse(ResponseType, BoundaryInspector):
 			if self.within_boundary(self.start_boundary, mp):
 				self.started = True
 		if self.started and not self.start_time:
-			self.start_time = Params.clock.trial_time
+			self.start_time = tc.trial_time
 		if self.within_boundary(self.stop_boundary, mp):
 			if self.stop_eligible and not self.stopped:
 				self.stopped = True
-				self.responses.append([self.points, Params.clock.trial_time])
+				self.responses.append([self.points, tc.trial_time])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
 		if not self.within_boundary(self.start_boundary, mp) and not self.stop_eligible and self.started:
 			self.stop_eligible = True
 		if self.started and not self.stopped: # and self.within_boundary(mp, self.canvas_boundary):
-			timestamp = Params.clock.trial_time - self.start_time
-			trial_time = Params.clock.trial_time
+			timestamp = tc.trial_time - self.start_time
+			trial_time = tc.trial_time
 			try:
 				if mp != self.points[-1]:
 					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, timestamp, trial_time))
@@ -521,7 +527,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 			else:
 				m_str += "L{0},{1}".format(p[0], p[1])
 		s = aggdraw.Symbol(m_str)
-		test_p = aggdraw.Draw("RGBA", Params.screen_x_y, (0,0,0,0))
+		test_p = aggdraw.Draw("RGBA", P.screen_x_y, (0,0,0,0))
 		test_p.setantialias(True)
 		test_p.symbol((0,0), s, aggdraw.Pen((255,80, 125), 1, 255))
 		return aggdraw_to_array(test_p)
@@ -532,7 +538,6 @@ class DrawResponse(ResponseType, BoundaryInspector):
 
 
 class ResponseCollector(object):
-	__experiment = None
 	__max_wait = None
 	__null_response_value = None
 	__min_response_count = None
@@ -550,6 +555,7 @@ class ResponseCollector(object):
 
 	def __init__(self, experiment, display_callback=None, response_window=MAX_WAIT, null_response=NO_RESPONSE, response_count=[0,1], flip=True):
 		super(ResponseCollector, self).__init__()
+		self.el = None
 		self.__response_window = response_window
 		self.__null_response_value = null_response
 		self.__min_response_count = response_count[0]
@@ -574,7 +580,6 @@ class ResponseCollector(object):
 		self.keypress_listener = KeyPressResponse(self)
 		self.mousedown_listener = MouseDownResponse(self)
 		self.mouseup_listener = MouseUpResponse(self)
-		self.saccade_listener = SaccadeResponse(self)
 		self.fixation_listener = FixationResponse(self)
 		self.color_listener = ColorSelectionResponse(self)
 		self.draw_listener = DrawResponse(self)
@@ -582,12 +587,15 @@ class ResponseCollector(object):
 		# dict of listeners for iterating during collect()
 		self.listeners[RC_AUDIO] = self.audio_listener
 		self.listeners[RC_KEYPRESS] = self.keypress_listener
-		self.listeners[RC_SACCADE] = self.saccade_listener
 		self.listeners[RC_FIXATION] = self.fixation_listener
 		self.listeners[RC_MOUSEDOWN] = self.mousedown_listener
 		self.listeners[RC_MOUSEUP] = self.mouseup_listener
 		self.listeners[RC_COLORSELECT] = self.color_listener
 		self.listeners[RC_DRAW] = self.draw_listener
+
+		# todo: require that an eyelink object be passed to the rc before these are initiated
+		# self.listeners[RC_SACCADE] = self.saccade_listener
+		# self.saccade_listener = SaccadeResponse(self)
 
 	def uses(self, listeners):
 		if not iterable(listeners):
@@ -624,8 +632,7 @@ class ResponseCollector(object):
 		if len(self.enabled()) == 0:
 			raise RuntimeError("Nothing to collect; no response listener(s) enabled.")
 		# enter the loop with a cleared event queue
-		pump()
-		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
+		flush()
 
 		# before flip callback
 		try:
@@ -640,10 +647,10 @@ class ResponseCollector(object):
 		if self.using(RC_MOUSEDOWN) or self.using(RC_MOUSEUP) or self.using(RC_COLORSELECT):
 			show_mouse_cursor()
 		if self.flip:
-			self.experiment.flip()
-			Params.tk.sample("ResponseCollectionFlip")
+			flip()
+			P.tk.sample("ResponseCollectionFlip")
 			if self.post_flip_tk_label:
-				Params.tk.stop(self.post_flip_tk_label)
+				P.tk.stop(self.post_flip_tk_label)
 			try:
 				self.after_flip_callback(*self.after_flip_args, **self.after_flip_kwargs)
 			except TypeError:
@@ -673,11 +680,11 @@ class ResponseCollector(object):
 		self.response_countdown = None
 
 	def __collect(self, mouseclick_boundaries):
-		self.tracker_time = self.experiment.eyelink.now() if Params.eye_tracker_available else -1
+		self.tracker_time = self.el.now() if P.eye_tracker_available else -1
 		while True:
-			if Params.development_mode and not self.end_collection_event:
+			if P.development_mode and not self.end_collection_event:
 				try:
-					t = self.experiment.clock.trial_time
+					t = tc.trial_time
 					if self.terminate_after[1] == TK_MS: t *= 1000
 					if t > self.terminate_after[0]:
 						print "Broke due to force timeout."
@@ -686,11 +693,11 @@ class ResponseCollector(object):
 					pass
 			event_queue = pump(True)
 			for e in event_queue:
-				if e.type in Params.process_queue_data:
-					if Params.process_queue_data[e.type].label == self.end_collection_event:
+				if e.type in P.process_queue_data:
+					if P.process_queue_data[e.type].label == self.end_collection_event:
 						break
 			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
-				self.experiment.ui_request(event_queue)
+				ui_request(event_queue)
 
 			# get responses for all active listeners
 			interrupt = False
@@ -724,18 +731,6 @@ class ResponseCollector(object):
 			if self.__uses[l]:
 				en.append(l)
 		return en
-
-	@property
-	def experiment(self):
-		return self.__experiment
-
-	@experiment.setter
-	def experiment(self, exp_obj):
-		# from klibs.KLExperiment import Experiment
-		# if type(super(exp_obj)) is not Experiment:
-		# 	print super(exp_obj)
-		# 	raise TypeError("Argument 'experiment' must be a KLExperiment.Experiment object.")
-		self.__experiment = exp_obj
 
 	@property
 	def response_window(self):

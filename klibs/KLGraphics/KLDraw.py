@@ -1,11 +1,18 @@
 __author__ = 'jono'
 
 import abc
+from aggdraw import Brush, Draw, Pen, Symbol
+from PIL.Image import frombytes
 from imp import load_source
 from bisect import bisect
+from os.path import join
+from numpy import asarray
+from math import cos, sin, radians
 
-from klibs.KLGraphics.KLNumpySurface import *
-from klibs.KLUtilities import *
+from klibs.KLConstants import STROKE_CENTER, STROKE_INNER, STROKE_OUTER, KLD_LINE, KLD_MOVE, KLD_ARC, KLD_PATH
+from klibs import P
+from klibs.KLUtilities import point_pos, midpoint
+from klibs.KLGraphics import KLNumpySurface as NpS
 
 ######################################################################
 #
@@ -15,12 +22,12 @@ from klibs.KLUtilities import *
 
 
 def cursor(color=None):
-	dc =  aggdraw.Draw("RGBA", [32, 32], (0, 0, 0, 0))
+	dc =  Draw("RGBA", [32, 32], (0, 0, 0, 0))
 	if color is not None:
 		cursor_color = color[0:3]
 	else:
 		cursor_color = []
-		for c in Params.default_fill_color:
+		for c in P.default_fill_color:
 			cursor_color.append(abs(c - 255))
 		cursor_color = cursor_color[0:3]
 	# coordinate tuples are easier to read/modify but aggdraw needs a stupid x,y,x,y,x,y list, so... :S
@@ -29,20 +36,20 @@ def cursor(color=None):
 	for point in cursor_coords:
 		cursor_xy_list.append(point[0])
 		cursor_xy_list.append(point[1])
-	brush = aggdraw.Brush(tuple(cursor_color), 255)
-	pen = aggdraw.Pen((255,255,255), 1, 255)
+	brush = Brush(tuple(cursor_color), 255)
+	pen = Pen((255,255,255), 1, 255)
 	dc.polygon(cursor_xy_list, pen, brush)
 	cursor_surface = aggdraw_to_numpy_surface(dc)
 	return cursor_surface
 
 
 def drift_correct_target():
-	draw_context_length = Params.screen_y // 60
+	draw_context_length = P.screen_y // 60
 	while draw_context_length % 3 != 0:  # center-dot is 1/3 of parent; offset unequal if parent not divisible by 3
 		draw_context_length += 1
-	black_brush = aggdraw.Brush((0, 0, 0, 255))
-	white_brush = aggdraw.Brush((255, 255, 255, 255))
-	draw_context = aggdraw.Draw("RGBA", [draw_context_length + 2, draw_context_length + 2], (0, 0, 0, 0))
+	black_brush = Brush((0, 0, 0, 255))
+	white_brush = Brush((255, 255, 255, 255))
+	draw_context = Draw("RGBA", [draw_context_length + 2, draw_context_length + 2], (0, 0, 0, 0))
 	draw_context.ellipse([0, 0, draw_context_length, draw_context_length], black_brush)
 	wd_top = draw_context_length // 3  #ie. white_dot_top, the inner white dot of the calibration point
 	wd_bot = 2 * draw_context_length // 3
@@ -50,11 +57,11 @@ def drift_correct_target():
 
 	return aggdraw_to_numpy_surface(draw_context)
 
-colors = load_source("*", os.path.join(Params.klibs_dir, "color_wheel_color_list.py")).colors
+colors = load_source("*", join(P.klibs_dir, "color_wheel_color_list.py")).colors
 
 
 class Drawbject(object):
-	transparent_brush = aggdraw.Brush((255, 0, 0), 0)
+	transparent_brush = Brush((255, 0, 0), 0)
 
 	def __init__(self, width, height, stroke, fill):
 		super(Drawbject, self).__init__()
@@ -101,14 +108,14 @@ class Drawbject(object):
 			else:
 				self.surface_width = width + 2
 				self.surface_height = height + 2
-		self.surface = aggdraw.Draw("RGBA", [self.surface_width, self.surface_height], (0, 0, 0, 0))
+		self.surface = Draw("RGBA", [self.surface_width, self.surface_height], (0, 0, 0, 0))
 		self.surface.setantialias(True)
 
 	def render(self):
 		self.init_surface()
 		self.draw()
-		surface_bytes = Image.frombytes(self.surface.mode, self.surface.size, self.surface.tostring())
-		self.rendered = NumpySurface(numpy.asarray(surface_bytes)).render()
+		surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tostring())
+		self.rendered = NpS(asarray(surface_bytes)).render()
 		return self.rendered
 
 	@abc.abstractproperty
@@ -145,7 +152,7 @@ class Drawbject(object):
 			opacity = 255
 		self.stroke_color = color
 		self.stroke_width = width
-		self.__stroke = aggdraw.Pen(tuple(color), width, opacity)
+		self.__stroke = Pen(tuple(color), width, opacity)
 		if self.surface: # don't call this when initializing the Drawbject for the first time
 			self.init_surface()
 		return self
@@ -166,7 +173,7 @@ class Drawbject(object):
 			color = tuple(color)
 			opacity = 255
 		self.fill_color = color
-		self.__fill = aggdraw.Brush(color, opacity)
+		self.__fill = Brush(color, opacity)
 		if self.surface: # don't call this when initializing the Drawbject for the first time
 			self.init_surface()
 		return self
@@ -224,11 +231,11 @@ class Ellipse(Drawbject):
 	@property
 	def __name__(self):
 		return "Ellipse"
-	
+
 	@property
 	def width(self):
 		return self.object_width
-	
+
 	@width.setter
 	def width(self, value):
 		self.object_width = value
@@ -237,8 +244,8 @@ class Ellipse(Drawbject):
 	@property
 	def height(self):
 		return self.object_height
-	
-	
+
+
 	@height.setter
 	def height(self, value):
 		self.object_height = value
@@ -278,13 +285,13 @@ class Annulus(Drawbject):
 
 	def draw(self,  as_numpy_surface=False):
 		if self.stroke:
-			stroked_path_pen = aggdraw.Pen(tuple(self.stroke_color), self.ring_width)
+			stroked_path_pen = Pen(tuple(self.stroke_color), self.ring_width)
 			xy_1 = 2 + self.ring_width
 			xy_2 = self.surface_width - (2 + self.ring_width)
 			self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroked_path_pen, self.transparent_brush)
 		xy_1 = 2 + self.ring_width
 		xy_2 = self.surface_width - (2 + self.ring_width)
-		path_pen = aggdraw.Pen(tuple(self.fill_color), self.ring_inner_width)
+		path_pen = Pen(tuple(self.fill_color), self.ring_inner_width)
 		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
 
 		return self
@@ -404,21 +411,21 @@ class ColorWheel(Drawbject):
 	def draw(self, as_numpy_surface=True):
 		rotation = self.rotation
 		for i in range(0, 360):
-			brush = aggdraw.Brush(colors[i])
+			brush = Brush(colors[i])
 			center = self.surface_width // 2
 			r = self.radius - 2
 			vertices = [center, center]
 			for i in range(0, 4):
 				r_shift = -0.25 if i < 2 else 1.25
 				r_shift += rotation
-				func = math.cos if i % 2 else math.sin
+				func = cos if i % 2 else sin
 				vertices.append(int(round(r + func(radians(r_shift) + radians(90)) * r)))
 			self.surface.polygon(vertices, brush)
 			rotation += 1
 
 		inner_xy1 = self.thickness // 2
 		inner_xy2 = self.surface_width - self.thickness // 2
-		self.surface.ellipse((inner_xy1, inner_xy1, inner_xy2, inner_xy2), aggdraw.Brush((0,0,0,255)))
+		self.surface.ellipse((inner_xy1, inner_xy1, inner_xy2, inner_xy2), Brush((0,0,0,255)))
 		return self
 
 	def color_from_angle(self, angle, rotation=None):
@@ -524,12 +531,12 @@ class FreeDraw(Drawbject):
 			x2 = s[0] + e_size
 			y1 = s[1] - e_size
 			y2 = s[1] + e_size
-			b = aggdraw.Brush((0,0,0))
+			b = Brush((0,0,0))
 			self.surface.ellipse([x1,y1,x2,y2], b)
 			print "CHUNK! {0}".format([x1,y1,x2,y2])
 
 	def draw(self, with_points=False):
-		self.surface.rectangle([0,0,self.object_width, self.object_height], aggdraw.Brush((245, 245, 245)))
+		self.surface.rectangle([0,0,self.object_width, self.object_height], Brush((245, 245, 245)))
 
 		# path_str = "M{0},{1}".format(*self.origin)
 		path_str = ""
@@ -547,7 +554,7 @@ class FreeDraw(Drawbject):
 					path_str += "L{0},{1}".format(*p)
 		if self.close_at:
 			path_str += " {0},{1}z".format(*self.close_at)
-		p = aggdraw.Symbol(path_str)
+		p = Symbol(path_str)
 		self.surface.symbol((0,0), p, self.stroke)
 
 		return self
@@ -594,7 +601,7 @@ class Bezier(Drawbject):
 			data += self.ctrl_2_start
 			data += self.ctrl_2_end
 			path_str = self.path_str_2
-		sym = aggdraw.Symbol(path_str.format(*data))
+		sym = Symbol(path_str.format(*data))
 		self.surface.path((0,0), sym, self.stroke, self.fill)
 		print self.fill_color
 		print self.fill
@@ -642,7 +649,7 @@ class Bezier(Drawbject):
 # 	def __init__(self, filename, auto_draw=True):
 # 		svg_start = re.compile("<path.*d=(.*)")
 # 		svg_end = re.compile("(.*)/>\n")
-# 		fpath = os.path.join(Params.image_dir, filename+".svg")
+# 		fpath = os.path.join(P.image_dir, filename+".svg")
 # 		paths = []
 # 		img = open(fpath).readlines()
 # 		started = False

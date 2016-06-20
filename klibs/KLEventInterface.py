@@ -1,12 +1,16 @@
-__author__ = 'jono'
+# -*- coding: utf-8 -*-
+__author__ = 'j. mulle, this.impetus@gmail.com'
 
-from klibs.KLUtilities import *
-import klibs.KLParams as Params
 import os
 import csv
 import time
 import abc
-import multiprocessing as mp_lib
+
+from klibs.KLConstants import TK_S, TK_MS, TBL_EVENTS
+from klibs import P
+from klibs.KLUtilities import pump
+from klibs.KLUserInterface import ui_request
+
 
 
 class EventTicket(object):
@@ -23,8 +27,8 @@ class EventTicket(object):
 		self.onset = onset
 		self.data = data
 
-		if Params.clock.start_time:
-			Params.clock.trial_time
+		if P.clock.start_time:
+			P.clock.trial_time
 
 	def __str__(self):
 		return "<klibs.KLEventInterface.EventTicket, ('{0}': {1}, at {3})".format(self.label, self.onset, self.data, hex(id(self)))
@@ -38,7 +42,7 @@ class EventTicket(object):
 		if type(time_val) not in [int, float] or time_val < 0:
 			raise TypeError("Property 'onset' must be a positive integer; got {0}.".format(time_val))
 		if self.relative:
-			time_val += Params.clock.trial_time if self.__unit == TK_S else Params.clock.trial_time_ms
+			time_val += P.clock.trial_time if self.__unit == TK_S else P.clock.trial_time_ms
 		if self.__unit == TK_S:
 			time_val *= 1000
 		self.__onset = time_val
@@ -119,17 +123,16 @@ class EventInterface(object):
 	events_dumped = False
 	__message_log = []
 
-	def __init__(self, experiment):
+	def __init__(self):
+		pass
 		#todo: add default events like recycled trials, etc.
-		self.experiment = experiment
-		self.import_events()
 
 	def clear(self):
 		self.events = {}
 
 	def import_events(self):
-		if os.path.exists(Params.events_file_path):
-			event_file = csv.reader(open(Params.events_file_path, 'rb'))
+		if os.path.exists(P.events_file_path):
+			event_file = csv.reader(open(P.events_file_path, 'rb'))
 			for row in event_file:
 				try:
 					if len(row) == 0:  # skip empty rows
@@ -145,54 +148,55 @@ class EventInterface(object):
 			print e
 
 	def log_trial_event(self, label, trial_time, eyelink_time=-1 ):
-		e = [Params.participant_id, Params.trial_id, Params.trial_number, label, trial_time, eyelink_time]
-		if Params.verbose_mode:
+		e = [P.participant_id, P.trial_id, P.trial_number, label, trial_time, eyelink_time]
+		if P.verbose_mode:
 			print "Logging: {0}".format(e)
 		self.trial_event_log.append(e)
 
 	def dump_events(self):
-		for ev in Params.process_queue_data:
-			e = Params.process_queue_data[ev]
+		from klibs import database
+		for ev in P.process_queue_data:
+			e = P.process_queue_data[ev]
 			self.log_trial_event(e.label, e.trial_time)
 		for e in self.trial_event_log:
 			try:
-				self.experiment.database.query_str_from_raw_data(TBL_EVENTS, e)
-				self.experiment.database.insert(e, TBL_EVENTS, False)
+				database.query_str_from_raw_data(TBL_EVENTS, e)
+				database.insert(e, TBL_EVENTS, False)
 			except RuntimeError:
 				print "Event Table not found; if this is an old KLIBs experiment, consider updating the SQL schema to the new standard."
 				break
 		self.events_dumped = True
 
 	def after(self, label, pump_events=False):
-		if not Params.clock.registered(label):
+		if not P.clock.registered(label):
 			raise NameError("'{0}' not registered.".format(label))
 
 		if pump_events:
 			pump()
 			self.experiment.ui_request()
-		for e in Params.process_queue_data:
-			if Params.process_queue_data[e].label == label:
+		for e in P.process_queue_data:
+			if P.process_queue_data[e].label == label:
 				return True
 		return False
 
 	def before(self, label, pump_events=False):
 		if not label:
 			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
-		if not Params.clock.registered(label):
+		if not P.clock.registered(label):
 			e_msg = "'{0}' not registered.".format(label)
 			raise NameError(e_msg)
 		if pump_events:
 			pump()
-			self.experiment.ui_request()
-		for e in Params.process_queue_data:
-			if Params.process_queue_data[e].label == label:
+			ui_request()
+		for e in P.process_queue_data:
+			if P.process_queue_data[e].label == label:
 				return False
 		return True
 
 	def between(self, label_1, label_2):
-		if not Params.clock.registered(label_1):
+		if not P.clock.registered(label_1):
 			raise NameError("'{0}' not registered.".format(label_1))
-		if not Params.clock.registered(label_2):
+		if not P.clock.registered(label_2):
 			raise NameError("'{0}' not registered.".format(label_2))
 
 		return self.after(label_1) and not self.after(label_2)
@@ -240,9 +244,9 @@ class EventInterface(object):
 		return message in self.__message_log
 
 	def write(self, message, edf=True, eeg=True):
-		if not Params.labjacking:
+		if not P.labjacking:
 			eeg = False
-		if not Params.eye_tracking:
+		if not P.eye_tracking:
 			edf = False
 		self.__message_log.append(message)
 		if type(message) in [list, tuple]:
@@ -256,14 +260,15 @@ class EventInterface(object):
 				edf_send = message
 			else:
 				raise ValueError("Can only send integer values to eeg via LabJack.")
-		if Params.eye_tracker_available and Params.eye_tracking and edf:
+		if P.eye_tracker_available and P.eye_tracking and edf:
 			self.experiment.eyelink.write(edf_send)
-		if Params.labjack_available and Params.labjacking and eeg:
+		if P.labjack_available and P.labjacking and eeg:
 			self.experiment.labjack.write(eeg_send)
 
-		if Params.verbose_mode and edf:
+		if P.verbose_mode and edf:
 			print "\t\033[94mEvent (\033[92mEDF\033[94m): \033[0m{0}".format(edf_send)
-		if Params.verbose_mode and eeg:
+		if P.verbose_mode and eeg:
 			print "\t\033[94mEvent (\033[92mEEG\033[94m): \033[0m{0}".format(eeg_send)
 
 
+evi = EventInterface()  # global runtime instance

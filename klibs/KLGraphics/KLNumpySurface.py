@@ -3,10 +3,10 @@ from copy import copy
 import numpy
 from PIL import Image
 from PIL import ImageOps
-
-from klibs.KLUtilities import *
-from klibs.KLConstants import *
 import aggdraw
+
+from klibs.KLConstants import NS_BACKGROUND, NS_FOREGROUND, BL_TOP_RIGHT
+from klibs.KLUtilities import absolute_position, build_registrations, pump
 
 
 """
@@ -60,22 +60,6 @@ def ad_stroke(color, width=1, opacity=255):
 		opacity = col[3]
 		col = col[0:3]
 	return aggdraw.Pen(color, width, opacity)
-
-
-def aggdraw_to_array(draw_obj):
-	try:
-		draw_context_bytes = Image.frombytes(draw_obj.mode, draw_obj.size, draw_obj.tostring())  # old aggdraw
-	except Exception:
-		draw_context_bytes = Image.frombytes(draw_obj.mode, draw_obj.size, draw_obj.tobytes()) # new aggdraw
-	return numpy.asarray(draw_context_bytes)
-
-def aggdraw_to_numpy_surface(draw_context):
-	"""
-
-	:param draw_context:
-	:return:
-	"""
-	return NumpySurface(aggdraw_to_array(draw_context))
 
 
 def add_alpha_channel(numpy_array, alpha_value=255):

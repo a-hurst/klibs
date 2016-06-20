@@ -9,15 +9,14 @@ col = {"@P": '\033[95m',  # purple
 
 import argparse
 import os
-from signal import SIGKILL
 import shutil
 from subprocess import Popen, PIPE
 import traceback
-import stat
 import imp
 import time
 import sys
 
+from klibs.KLUtilities import force_quit, full_trace
 
 
 pylink_install_required = False
@@ -154,9 +153,9 @@ def update():
 
 def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose):
 	import klibs
-	import klibs.KLParams as P
+	from klibs import  P, event_interface
 	from klibs.KLGraphics import display_init
-	from klibs.KLEyeLink import EyeLinkExt, ELCustomDisplay, TryLink
+	from klibs.KLEyeLink import EyeLinkExt
 	from klibs.KLDatabase import Database
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
@@ -181,61 +180,76 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 
 	# set initial param values for project's context
 	P.setup(project_name)
-
+	event_interface.import_events()
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
 
 	# create an EyeLink instance if needed
 	if P.eye_tracking:
+		eyelink = EyeLinkExt()
 		if no_eyelink:
 			P.eye_tracker_available = False
-		if klibs.KLEyeLink.PYLINK_AVAILABLE and P.eye_tracker_available:
-			klibs.eyelink = EyeLinkExt()
-			klibs.eyelink.custom_display = ELCustomDisplay()
-		else:
-			klibs.eyelink = TryLink()
-		klibs.eyelink.dummy_mode = P.eye_tracker_available is False
-
+		eyelink.dummy_mode = P.eye_tracker_available is False
+	else:
+		eyelink = False
 	# create a Database instance
-	klibs.database = Database()
-
+	klibs.database = Database(project_name)
 	# finally, import the project's Experiment class and instantiate
-	experiment_file = imp.load_source(path, "experiment.py")
-	experiment = getattr(experiment_file, project_name)
-	klibs.experiment = experiment(project_name)
-
-	# create a display context if everything's gone well so far
-	klibs.experiment.window = display_init(screen_size)
-
-	# off to the races team...
 	try:
+		experiment_file = imp.load_source(path, "experiment.py")
+		experiment = getattr(experiment_file, project_name)
+		klibs.experiment = experiment(project_name, eyelink)
+
+		# create a display context if everything's gone well so far
+		klibs.experiment.window = display_init(screen_size)
+
+		# off to the races team...
 		experiment.run()
 	except SystemExit:
 		pass
-	except:
-		os.kill(P.clock.p.pid, SIGKILL)
-		full_trace()
+	except Exception as e:
+		print "\n"
+		print "".join(traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]) + traceback.format_tb(sys.exc_info()[2]))
+		force_quit()
 
 
 def export(path, multi_file=True, join_tables=None):
-	try:
-		from klibs.KLDatabase import Database
-	except ImportError:
-		print_warning(*sys.exc_info())
-	name = os.path.split(path)[-1]
+	from klibs import P, Database
+
+	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
+
+	# get project name and set working directory to top of project
+	project_name = os.path.split(path)[-1]
 	os.chdir(path)
-	Database(project_name=name).export(multi_file, join_tables)
+
+	# set initial param values for project's context
+	P.setup(project_name)
+
+	# import params defined in project's local params file in ExpAssets/Config
+	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
+		setattr(P, k, v)
+
+	Database(project_name).export(multi_file, join_tables)
 
 
 def rebuild_db(path):
-	try:
-		from klibs.KLDatabase import Database
-	except ImportError as e:
-		print_warning(*sys.exc_info())
-	name = os.path.split(path)[-1]
+	from klibs import P, Database
+
+	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
+
+	# get project name and set working directory to top of project
+	project_name = os.path.split(path)[-1]
 	os.chdir(path)
-	Database(project_name=name).rebuild()
+
+	# set initial param values for project's context
+	P.setup(project_name)
+
+	# import params defined in project's local params file in ExpAssets/Config
+	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
+		setattr(P, k, v)
+	Database(project_name).rebuild()
+
 
 def hard_reset(path):
 	#todo: require confirmation

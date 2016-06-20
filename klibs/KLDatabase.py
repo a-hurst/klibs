@@ -2,8 +2,14 @@ __author__ = 'jono'
 
 import shutil
 import sqlite3
-from klibs.KLUtilities import *
-import klibs.KLParams as Params
+from os import remove, rename
+from os.path import exists, join, isfile
+
+from klibs.KLConstants import DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, TAB, ID, SQL_NULL, SQL_COL_DELIM_STR, PY_FLOAT, \
+	PY_NUM, PY_BIN, PY_INT, PY_STR, SQL_INT, SQL_FLOAT, SQL_STR, SQL_NUMERIC, SQL_KEY, SQL_REAL, SQL_BIN, QUERY_SEL, \
+	DATA_EXT
+from klibs import P
+from klibs.KLUtilities import bool_to_int, boolean_to_logical, full_trace, type_str, snake_to_camel, iterable
 
 class EntryTemplate(object):
 	null_field = "DELETE_THIS_FIELD"
@@ -62,8 +68,8 @@ class EntryTemplate(object):
 				elif column[0] == ID:
 					self.data[0] = SQL_NULL
 					insert_template[0] = SQL_NULL
-				elif self.table_name in Params.table_defaults:
-					for i in Params.table_defaults[self.table_name]:
+				elif self.table_name in P.table_defaults:
+					for i in P.table_defaults[self.table_name]:
 						if i[0] == column[0]:
 							insert_template[self.index_of(column[0])] = str(i[1])
 				else:
@@ -138,12 +144,7 @@ class Database(object):
 	default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
 	data_column_format = DB_COL_TITLE
 
-	def __init__(self, experiment=None, project_name=None):
-		self.experiment = experiment
-		if not experiment:  # ie. exporting
-			from klibs.KLExperiment import import_project_params
-			Params.setup(project_name, None)
-			import_project_params()
+	def __init__(self, project_name=None):
 		self.__init_db()
 		self.build_table_schemas()
 
@@ -152,28 +153,28 @@ class Database(object):
 		self.cursor = None
 		self.schema = None
 		err_string = "No database file was present at '{0}'. \nYou can (c)reate it, (s)upply a different path or (q)uit."
-		user_action = raw_input(err_string.format(Params.database_path))
+		user_action = raw_input(err_string.format(P.database_path))
 		if user_action ==DB_SUPPLY_PATH:
-			Params.database_path = raw_input("Great. Where might it be?")
+			P.database_path = raw_input("Great. Where might it be?")
 			self.__init_db()
 		elif user_action == DB_CREATE:
-			f = open(Params.database_path, "a").close()
+			f = open(P.database_path, "a").close()
 			self.__init_db()
 		else:
 			quit()
 
 	def __init_db(self):
 		try:
-			shutil.copy(Params.database_path, Params.database_backup_path)
-			self.db = sqlite3.connect(Params.database_path)
+			shutil.copy(P.database_path, P.database_backup_path)
+			self.db = sqlite3.connect(P.database_path)
 			self.cursor = self.db.cursor()
 			table_list = self.__tables()
 			if len(table_list) == 0:
-				if os.path.exists(Params.schema_file_path):
-					self.__deploy_schema(Params.schema_file_path)
+				if exists(P.schema_file_path):
+					self.__deploy_schema(P.schema_file_path)
 					return True
-				elif os.path.exists(Params.schema_file_path_legacy):
-					self.__deploy_schema(Params.schema_file_path_legacy)
+				elif exists(P.schema_file_path_legacy):
+					self.__deploy_schema(P.schema_file_path_legacy)
 					return True
 				else:
 					raise RuntimeError("Database exists but no tables were found and no table schema were provided.")
@@ -200,8 +201,8 @@ class Database(object):
 
 	def __restore(self):
 		# restores database file from the back-up of it
-		os.remove(Params.database_path)
-		os.rename(Params.database_backup_path, Params.database_path)
+		remove(P.database_path)
+		rename(P.database_backup_path, P.database_path)
 
 	def __deploy_schema(self, schema):
 		f = open(schema, 'rt')
@@ -258,8 +259,8 @@ class Database(object):
 			else:
 				self.__drop_tables(self.table_list, True)
 				raise IOError(e)
-		elif Params.schema_file_path is not None:
-			if self.__deploy_schema(Params.schema_file_path):
+		elif P.schema_file_path is not None:
+			if self.__deploy_schema(P.schema_file_path):
 				initialized = True
 			else:
 				self.__drop_tables(self.table_list)
@@ -360,7 +361,7 @@ class Database(object):
 		except AttributeError:
 			self.cursor.execute(self.query_str_from_raw_data(table, data))
 		except sqlite3.OperationalError:
-			print full_trace()
+			full_trace()
 			print "Tried to match the following:\n\t{0}\nwith\n\t{1}".format(self.table_schemas[table], data.insert_query())
 			self.experiment.quit()
 		self.db.commit()
@@ -419,14 +420,14 @@ class Database(object):
 	def p_filename_str(self, participant_id, multi_file=False, incomplete=False, duplicate_count=None):
 			if multi_file:
 		 		created = str(self.query("SELECT `created` FROM `participants` WHERE `id` = {0}".format(1)).fetchone()[0][:10])
-			fname = "p{0}.{1}".format(str(participant_id), created) if multi_file else "{0}_all_trials".format(Params.project_name)
+			fname = "p{0}.{1}".format(str(participant_id), created) if multi_file else "{0}_all_trials".format(P.project_name)
 			if duplicate_count: fname += "_{0}".format(duplicate_count)
 			if incomplete: fname += "_incomplete"
 			fname += DATA_EXT
 			if incomplete:
-				return [fname, os.path.join(Params.incomplete_data_path, fname)]
+				return [fname, join(P.incomplete_data_path, fname)]
 			else:
-				return [fname, os.path.join(Params.data_path, fname)]
+				return [fname, join(P.data_path, fname)]
 
 	def update(self, record_id=None, data=None, fields=None, table=None, clear_current=True):
 		if not data:
@@ -449,7 +450,7 @@ class Database(object):
 	def collect_export_data(self, multi_file=True,  join_tables=[]):
 		participant_ids = self.query("SELECT `id`, `userhash` FROM `participants`").fetchall()
 		participant_ids.insert(0, (-1,))  # for test data collected before anonymous_user added to collect_demographics()
-		default_fields = Params.default_participant_fields if multi_file else Params.default_participant_fields_sf
+		default_fields = P.default_participant_fields if multi_file else P.default_participant_fields_sf
 
 		t_cols = []
 		data = []
@@ -458,7 +459,7 @@ class Database(object):
 		p_cols = [f for f in default_fields]
 		for t in ['trials'] + join_tables:
 			for field in self.table_schemas[t]:
-				if field[0] not in [ID, Params.id_field_name]:
+				if field[0] not in [ID, P.id_field_name]:
 					t_cols.append(field[0])
 
 		p_count = 0
@@ -489,7 +490,7 @@ class Database(object):
 			print q, p
 			for trial in self.query(q, q_vars=tuple([p[0]])).fetchall():
 				row_str = TAB.join(str(col) for col in trial)
-				if p[0] == -1: row_str = TAB.join([Params.default_demo_participant_str, row_str])
+				if p[0] == -1: row_str = TAB.join([P.default_demo_participant_str, row_str])
 				p_data.append(row_str) if multi_file else data.append(row_str)
 			if multi_file: data.append([p[0], p_data])
 		return data if multi_file else [data]
@@ -497,8 +498,8 @@ class Database(object):
 	def export_header(self, user_id=None):
 		# todo: make sure the block_per_experiment line reflects new trial factory block insertion logic
 		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export--probably this should be added to the participant table at run time
-		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", Params.klibs_version], ["Display Diagonal Inches", Params.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*Params.screen_x_y)], ["Random Seed", random_seed]]
-		klibs_vars = [ "KLIBS INFO", ["KLIBs Commit", Params.klibs_commit]]
+		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", P.klibs_version], ["Display Diagonal Inches", P.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*P.screen_x_y)], ["Random Seed", random_seed]]
+		klibs_vars = [ "KLIBS INFO", ["KLIBs Commit", P.klibs_commit]]
 		try:
 			if user_id:  # if building a header for a single participant, include the random seed
 				q = "SELECT `random_seed` from `participants` WHERE `participants`.`id` = '{0}'".format(user_id)
@@ -506,12 +507,12 @@ class Database(object):
 		except sqlite3.OperationalError:
 			pass  # older klibs databases won't have this column
 		eyelink_vars = [ "EYELINK SETTINGS",
-						 ["Saccadic Velocity Threshold", Params.saccadic_velocity_threshold],
-						 ["Saccadic Acceleration Threshold", Params.saccadic_acceleration_threshold],
-						 ["Saccadic Motion Threshold", Params.saccadic_motion_threshold]]
+						 ["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
+						 ["Saccadic Acceleration Threshold", P.saccadic_acceleration_threshold],
+						 ["Saccadic Motion Threshold", P.saccadic_motion_threshold]]
 		exp_vars = [ "EXPERIMENT SETTINGS",
-					 ["Trials Per Block", Params.trials_per_block],
-					 ["Blocks Per Experiment", Params.blocks_per_experiment]]
+					 ["Trials Per Block", P.trials_per_block],
+					 ["Blocks Per Experiment", P.blocks_per_experiment]]
 		header = ""
 		for info in [klibs_vars, eyelink_vars, exp_vars]:
 			header += "# >>> {0}\n".format(info[0])
@@ -523,7 +524,7 @@ class Database(object):
 
 	def build_column_header(self, multi_file=True, join_tables=None):
 		column_names = []
-		for field in (Params.default_participant_fields if multi_file else Params.default_participant_fields_sf):
+		for field in (P.default_participant_fields if multi_file else P.default_participant_fields_sf):
 			column_names.append(field[1]) if iterable(field) else column_names.append(field)
 		column_names = [snake_to_camel(col) for col in column_names]
 		for t in ['trials'] + join_tables:
@@ -548,16 +549,16 @@ class Database(object):
 			else:
 				header = self.export_header(p_id)
 				if multi_file:
-					incomplete = multi_file and len(data_set[1]) != Params.trials_per_block * Params.blocks_per_experiment
+					incomplete = multi_file and len(data_set[1]) != P.trials_per_block * P.blocks_per_experiment
 				else:
 					incomplete = False
 				file_strings = self.p_filename_str(p_id, multi_file, True) if incomplete else self.p_filename_str(p_id, multi_file)
-				if os.path.isfile(file_strings[1]):
+				if isfile(file_strings[1]):
 					duplicate_count = 1
-					while os.path.isfile(os.path.join(file_strings[1])):
+					while isfile(join(file_strings[1])):
 						file_strings = self.p_filename_str(p_id, multi_file, incomplete, duplicate_count)
 						duplicate_count += 1
-				data_file = open(os.path.join(file_strings[1]), "w+")
+				data_file = open(join(file_strings[1]), "w+")
 				data_file.write("\n".join([header, column_names, "\n".join(data_set[1])]))
 				data_file.close()
 				print "\033[92m\t- Participant {0} successfully exported.\033[0m".format(p_id)

@@ -11,7 +11,7 @@ from klibs.KLConstants import *
 import os
 import multiprocessing as mp
 
-klibs_commit = '34d202ed03e064740cad38aa46ad496661d3b9c4'
+klibs_commit = 'adff916c0aac0784af1472fda7c30146fbae9c84'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -238,7 +238,7 @@ def setup(project_name_str):
 
 
 	#  seed the experiment with either a passed random_seed or else the current unix time
-	if not random_seed:  # if passed from CLI will be set by now
+	if not 'random_seed' in globals():  # if passed from CLI will be set by now
 		random_seed = time.time()
 	seed(random_seed)
 	project_name = project_name_str

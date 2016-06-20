@@ -1,45 +1,44 @@
 # -*- coding: utf-8 -*-
-__author__ = 'j. mulle'
-"""
-Note AudioClip is an adaption of code originally written by mike lawrence (github.com/mike-lawrence)
-"""
+__author__ = 'j. mulle, this.impetus@gmail.com'
 
 import math
-
 import sdl2.ext
-from sdl2 import sdlmixer
-
-from klibs.KLGraphics.KLDraw import *
+from sdl2.sdlmixer import Mix_LoadWAV, Mix_PlayChannel, Mix_Playing, Mix_VolumeChunk
 
 
-try:
+from klibs.KLConstants import AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_AUTO_THRESHOLD, AR_RATE, AR_THRESHOLD, AUDIO_ON, \
+	AUDIO_OFF
+import klibs.KLParams as P
+from klibs.KLUtilities import pump, flush
+from klibs.KLUserInterface import ui_request
+from klibs.KLGraphics.KLDraw import Circle
+from klibs.KLGraphics import fill, blit, flip
+
+from klibs import PYAUDIO_AVAILABLE
+
+if PYAUDIO_AVAILABLE:
 	import pyaudio
 	import wave
 	from array import array
-	PYAUDIO_AVAILABLE = True
-except ImportError:
-	PYAUDIO_AVAILABLE = False
-	print "\t* Warning: Pyaudio library not found; audio recording, audio responses and audio sampling unavailable."
 
 
-if Params.audio_initialized is False:
+
+if P.audio_initialized is False:
 	sdl2.SDL_Init(sdl2.SDL_INIT_AUDIO)
 	sdl2.sdlmixer.Mix_OpenAudio(44100, sdl2.sdlmixer.MIX_DEFAULT_FORMAT, 2, 1024)
-	Params.audio_initialized = True
+	P.audio_initialized = True
 
 
 class AudioManager(object):
-	experiment = None
 	listeners = {}
 
-	def __init__(self, experiment):
+	def __init__(self):
 		super(AudioManager, self).__init__()
-		self.experiment = experiment
 
 	# def create_listener(self, name=None, threshold=AR_AUTO_THRESHOLD):
 	# 	if not PYAUDIO_AVAILABLE:
 	# 		raise RuntimeError("PyAudio module not loaded; KLAudio.AudioResponseListener not available.")
-	# 	listener = AudioResponseListener(self.experiment, threshold)
+	# 	listener = AudioResponseListener(, threshold)
 	# 	if name:
 	# 		self.listeners[name] = listener
 	# 	return listener
@@ -48,6 +47,7 @@ class AudioManager(object):
 		return AudioClip(file_path)
 
 
+# Note AudioClip is an adaption of code originally written by mike lawrence (github.com/mike-lawrence)
 class AudioClip(object):
 		default_channel = -1
 		sample = None
@@ -57,17 +57,17 @@ class AudioClip(object):
 
 		def __init__(self, file_path):
 			super(AudioClip, self).__init__()
-			self.sample = sdl2.sdlmixer.Mix_LoadWAV(sdl2.ext.compat.byteify(file_path, "utf-8"))
+			self.sample = Mix_LoadWAV(sdl2.ext.compat.byteify(file_path, "utf-8"))
 			self.started = False
 			self.channel = self.default_channel
 
 		def play(self, channel=-1, loops=0):
-			self.channel = sdl2.sdlmixer.Mix_PlayChannel(channel, self.sample, loops)
+			self.channel = Mix_PlayChannel(channel, self.sample, loops)
 			self.__playing = True
 
 		def playing(self):
 			if self.started:
-				if sdl2.sdlmixer.Mix_Playing(self.channel):
+				if Mix_Playing(self.channel):
 					return True
 				else:
 					self.__playing = False
@@ -84,7 +84,7 @@ class AudioClip(object):
 			self.__volume = int(self.volume)
 
 		def mute(self, state=AUDIO_ON):
-			sdlmixer.Mix_VolumeChunk(self.sample, 0 if state == AUDIO_OFF else self.__volume)
+			Mix_VolumeChunk(self.sample, 0 if state == AUDIO_OFF else self.__volume)
 			return False
 
 		@property
@@ -99,7 +99,7 @@ class AudioClip(object):
 				self.__volume = volume_value
 			else:
 				raise ValueError("Provide either an integer between 1 and 128 or a float between 0 and 1.")
-			sdlmixer.Mix_VolumeChunk(self.sample, self.__volume)
+			Mix_VolumeChunk(self.sample, self.__volume)
 
 
 class AudioSample(object):
@@ -123,9 +123,8 @@ class AudioStream(object):
 	p = None
 	stream = None
 
-	def __init__(self, experiment, threshold=1):
+	def __init__(self, threshold=1):
 		super(AudioStream, self).__init__()
-		self.experiment = experiment
 		self.p = pyaudio.PyAudio()
 		self.threshold = 1
 		# if threshold == AR_AUTO_THRESHOLD:
@@ -143,7 +142,7 @@ class AudioStream(object):
 
 		return sample
 		# except AttributeError:
-		# 	return AudioSample(self.stream.read(AR_CHUNK_SIZE), Params.AR_AUTO_THRESHOLD)
+		# 	return AudioSample(self.stream.read(AR_CHUNK_SIZE), P.AR_AUTO_THRESHOLD)
 
 	def init_stream(self):
 		try:
@@ -161,52 +160,55 @@ class AudioStream(object):
 			self.p.terminate()
 
 	def get_ambient_level(self, period=1):
-		sample_period = Params.tk.countdown(period)
+
+		sample_period = P.tk.countdown(period)
 		warn_message = "Please remain quite while the ambient noise level is sampled. Sampling will begin in 3 seconds."
 		sampling_message = "Sampling Complete In {0} Seconds"
 		peaks = []
 
-		self.experiment.fill()
-		self.experiment.message(warn_message, location=Params.screen_c, registration=5)
-		self.experiment.flip()
+		fill()
+		#message(warn_message, location=P.screen_c, registration=5)
+		flip()
 		sample_period.start()
-		self.experiment.message(sampling_message.format(int(math.ceil(sample_period.remaining())), font_size="48pt"), location=Params.screen_c, registration=5)
+		#message(sampling_message.format(int(math.ceil(sample_period.remaining())), font_size="48pt"), location=P.screen_c, registration=5)
 
 		while sample_period.counting():
-			self.experiment.ui_request()
+			ui_request()
 			peaks.append(self.sample().peak)
 
 		return sum(peaks) / len(peaks)
 
 	def get_peak_during(self, period=3, message=None):
-		# initial_diameter = int(Params.screen_x * 0.05)
+		# initial_diameter = int(P.screen_x * 0.05)
 		local_peak = 0
-		sdl2.SDL_PumpEvents()
-		sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
-		sample_period = Params.tk.countdown(period)
+		pump()
+		flush()
+
+		sample_period = P.tk.countdown(period)
 		first_flip_rest = False
 		if message:
-			message = self.experiment.message(message, location=Params.screen_c, registration=5, blit=False)
+			pass
+			#message = .message(message, location=P.screen_c, registration=5, blit=False)
 		if not self.stream:
 			self.init_stream()
 		self.init_stream()
 		while sample_period.counting():
 			sample = self.sample().peak
-			self.experiment.ui_request()
-			self.experiment.fill()
+			ui_request()
+			fill()
 			if sample > local_peak:
 				local_peak = sample
-			peak_circle = int((local_peak * Params.screen_x * 0.9) / 65000)
-			sample_circle = int((sample * Params.screen_x * 0.9) / 65000)
+			peak_circle = int((local_peak * P.screen_x * 0.9) / 65000)
+			sample_circle = int((sample * P.screen_x * 0.9) / 65000)
 			if peak_circle < 5:
 				peak_circle = 5
 			if sample_circle < 5:
 				sample_circle = 5
 			if message:
-				self.experiment.blit(message, position=[25,25], registration=7)
-			self.experiment.blit(Circle(peak_circle, fill=[255, 145, 0]), position=Params.screen_c, registration=5)
-			self.experiment.blit(Circle(sample_circle, fill=[84, 60, 182]), position=Params.screen_c, registration=5)
-			self.experiment.flip()
+				blit(message, position=[25,25], registration=7)
+			blit(Circle(peak_circle, fill=[255, 145, 0]), position=P.screen_c, registration=5)
+			blit(Circle(sample_circle, fill=[84, 60, 182]), position=P.screen_c, registration=5)
+			flip()
 			if not first_flip_rest:
 				sample_period.start()
 				first_flip_rest = True

@@ -2,6 +2,29 @@
 __author__ = 'jono'
 import sdl2
 
+try:
+	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode
+	from pylink.tracker import Sample, EndSaccadeEvent, EndFixationEvent, StartFixationEvent, StartSaccadeEvent
+	PYLINK_AVAILABLE = True
+except ImportError:
+	print "\t* Warning: Pylink library not found; eye tracking will not be available."
+	PYLINK_AVAILABLE = False
+
+try:
+	import pyaudio
+	import wave
+	from array import array
+	PYAUDIO_AVAILABLE = True
+except ImportError:
+	PYAUDIO_AVAILABLE = False
+	print "\t* Warning: Pyaudio library not found; audio recording, audio responses and audio sampling unavailable."
+
+try:
+	from u3 import *
+	LABJACK_AVAILABLE = True
+except ImportError:
+	LABJACK_AVAILABLE = False
+
 DB_EXT = ".db"
 EDF = "EDF"
 EDF_EXT = ".EDF"

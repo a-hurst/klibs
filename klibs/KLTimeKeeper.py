@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
-__author__ = 'jono'
+__author__ = 'j. mulle, this.impetus@gmail.com'
+
 from os import kill
+from time import time
 from signal import SIGKILL
-from klibs.KLUtilities import *
-from klibs import KLParams as Params
 from copy import copy
 import multiprocessing as mp_lib  # incase you want to try billiard again later
+
+from klibs.KLConstants import TK_S, TK_MS, EVI_CONSTANTS, EVI_CLOCK_START, EVI_CLOCK_STOP, EVI_CLOCK_RESET, EVI_CLOCK_SYNC, \
+	EVI_TRIAL_START, EVI_DEREGISTER_EVENT, EVI_SEND_TIME, EVI_EXP_END
+from klibs import P
+from klibs.KLUtilities import pump, threaded, full_trace
 
 
 class CountDown(object):
@@ -23,36 +28,36 @@ class CountDown(object):
 		if start: self.start()
 
 	def start(self):
-		self.started = time.time()
+		self.started = time()
 
 	def counting(self):
 		if self.paused is not False:
 			return False
 		else:
-			return time.time() - self.started < self.duration
+			return time() - self.started < self.duration
 
 	def reset(self):
 		self.start()
 		self.paused = False
 
 	def finish(self):
-		self.started = time.time() - self.duration
+		self.started = time() - self.duration
 
 	def add(self, time):
 		self.started += time
 
 	def pause(self):
-		self.paused = time.time()
+		self.paused = time()
 
 	def resume(self):
-		self.started += time.time() - self.paused
+		self.started += time() - self.paused
 		self.paused = False
 
 	def remaining(self):
-		return self.duration - (time.time() - self.started)
+		return self.duration - (time() - self.started)
 
 	def elapsed(self):
-		return time.time() - self.started
+		return time() - self.started
 
 	def unpause(self):
 		self.resume()  # deprecated, maintained for backwards compatibility
@@ -67,35 +72,33 @@ class TimeKeeper(object):
 
 	# todo: add units argument as between secondds/ ms
 
-	def __init__(self, experiment):
+	def __init__(self):
 		super(TimeKeeper, self).__init__()
-		self.experiment = experiment
 		self.log("Instantiated")
-		self.clock = EventClock(experiment)
 
 	def log(self, label, time_value=None):
-		self.moments[label] = time_value if time_value else time.time()
+		self.moments[label] = time_value if time_value else time()
 
 	def sample(self, label, time_value=None):
 		if label in self.mean_moments:
-			self.mean_moments[label].append(time_value if time_value else time.time())
+			self.mean_moments[label].append(time_value if time_value else time())
 		else:
-			self.mean_moments[label] = [time_value if time_value else time.time()]
+			self.mean_moments[label] = [time_value if time_value else time()]
 
 	def sample_start(self, label, time_value=None):
 		sample_index = len(self.mean_periods[label]) - 1 if label in self.mean_periods else 0
 		sample_key = "{0}.{1}".format(label, sample_index )
 		if label in self.mean_periods:
-			self.mean_periods[label].append([time_value if time_value else time.time(), None])
+			self.mean_periods[label].append([time_value if time_value else time(), None])
 		else:
-			self.mean_periods[label] = [[time_value if time_value else time.time(), None]]
+			self.mean_periods[label] = [[time_value if time_value else time(), None]]
 		return sample_key
 
 	def sample_stop(self, label, sample_key=None, time_value=None):
 		sample_index = int(sample_key.split(".")[1]) if sample_key is not None else len(self.mean_periods[label]) - 1
 		if self.mean_periods[label][sample_index][1] is not None:
 			raise RuntimeError("Trying to stop a sample that has already finished.")
-		self.mean_periods[label][sample_index][1] = time_value if time_value else time.time()
+		self.mean_periods[label][sample_index][1] = time_value if time_value else time()
 
 	def mean(self, label):
 		try:
@@ -111,11 +114,11 @@ class TimeKeeper(object):
 			return [values, mean_val]
 
 	def start(self, label, time_value=None):
-		self.periods[label] = [time_value if time_value else time.time(), None]
+		self.periods[label] = [time_value if time_value else time(), None]
 		return self
 
 	def stop(self, label, time_value=None):
-		self.periods[label][1] = time_value if time_value else time.time()
+		self.periods[label][1] = time_value if time_value else time()
 		return self
 
 	def period(self, label):
@@ -152,7 +155,7 @@ class TimeKeeper(object):
 		return "\n".join(output)
 
 	def elapsed(self, label):
-		return time.time() - self.periods[label][0]
+		return time() - self.periods[label][0]
 
 	def countdown(self, duration=None, label=None, start=True, unit=TK_S):
 		if unit == TK_MS:
@@ -170,7 +173,7 @@ class TimeKeeper(object):
 
 class EventClock(object):
 
-	def __init__(self, experiment):
+	def __init__(self):
 		self.__registry = []
 		self.tasks = []
 		self.events = []
@@ -179,7 +182,6 @@ class EventClock(object):
 		self.events_index = {}
 		self.start_time = None
 		self.start_lag = None
-		self.experiment = experiment
 		self.pipe, child = mp_lib.Pipe()
 		self.p = __event_clock__(child)
 		self.pid = self.p.pid
@@ -214,7 +216,7 @@ class EventClock(object):
 				e_copy.data = data
 			if self.trial_time > e_copy.onset:
 				raise RuntimeError("Too late to update event '{0}'.".format(e_copy.label))
-			Params.updated_events.append(e_copy.label)
+			P.updated_events.append(e_copy.label)
 			self.events.append(e_copy)
 
 
@@ -274,7 +276,7 @@ class EventClock(object):
 		self.pipe.poll()
 		while not self.start_time:
 			self.start_time = self.pipe.recv()
-		el_val = self.experiment.eyelink.now() if Params.eye_tracking and Params.eye_tracker_available else -1
+		el_val = self.experiment.eyelink.now() if P.eye_tracking and P.eye_tracker_available else -1
 		self.experiment.evi.log_trial_event(EVI_CLOCK_START, self.start_time, el_val)
 #		except:
 #			print full_trace()
@@ -284,9 +286,9 @@ class EventClock(object):
 		Stops the trial clock. This is automatically called by the parent KLExperiment object.
 
 		"""
-		el_val = self.experiment.eyelink.now() if Params.eye_tracking and Params.eye_tracker_available else -1
+		el_val = self.experiment.eyelink.now() if P.eye_tracking and P.eye_tracker_available else -1
 		self.experiment.evi.log_trial_event(EVI_CLOCK_STOP, self.trial_time, el_val)
-		Params.process_queue_data = {}
+		P.process_queue_data = {}
 		self.register_event(EVI_CLOCK_RESET)
 		self.tasks = []
 		self.events = []
@@ -295,13 +297,13 @@ class EventClock(object):
 		self.start_time = None
 		self.__sync()
 		while not self.__poll():
-			if Params.verbose_mode:
+			if P.verbose_mode:
 				print "TrialClock polling from stop()"
 			else:
 				pass
 
 	def deregister(self, label):
-		reg_start = time.time()
+		reg_start = time()
 		# todo: fix this fucker, it's broken; trial clock doesn't look for lists, just strings or event objects
 		removed = False
 		try:
@@ -336,7 +338,7 @@ class EventClock(object):
 		# 		pass
 		# 		if self.__poll() == EVI_EVENT_SYNC_COMPLETE:
 		# 			break
-		return time.time()
+		return time()
 
 	def __poll(self):
 		self.polling = True
@@ -349,9 +351,9 @@ class EventClock(object):
 		return t
 
 	def terminate(self, max_wait=1):
-		Params.tk.start("terminate")
+		P.tk.start("terminate")
 		self.register_event(EVI_EXP_END)
-		while Params.tk.elapsed("terminate") < max_wait:
+		while P.tk.elapsed("terminate") < max_wait:
 			pump()
 		if self.p.is_alive():
 			kill(self.clock.p.pid, SIGKILL)
@@ -377,7 +379,7 @@ class EventClock(object):
 	def timestamp(self):
 		# it's not clear that this should exist... it's purpose is semantic; to direct all time-based requests to the
 		# Eventclock. But enh...?
-		return time.time()
+		return time()
 
 
 
@@ -385,7 +387,7 @@ class EventClock(object):
 @threaded
 def __event_clock__(pipe):
 	from klibs.KLEventInterface import EventTicket
-	start = time.time()
+	start = time()
 	events = []
 	stages = []
 	sent = []
@@ -393,7 +395,7 @@ def __event_clock__(pipe):
 		events, stages = pipe.recv()
 	trial_started = False
 	def trial_time_ms():
-		return (time.time() - start) * 1000
+		return (time() - start) * 1000
 	try:
 		while True:
 			if pipe.poll():
@@ -418,9 +420,9 @@ def __event_clock__(pipe):
 					if e == EVI_TRIAL_START:
 						sent.append(e)
 						events.remove(e)
-						start = time.time()
+						start = time()
 						trial_started = True
-						print "TrialStarting: {0}, current time: {1}".format(trial_started, time.time() - start)
+						print "TrialStarting: {0}, current time: {1}".format(trial_started, time() - start)
 						pipe.send(start)
 						continue
 
@@ -429,12 +431,12 @@ def __event_clock__(pipe):
 
 					if e == EVI_SEND_TIME:
 						if not trial_started:
-							print "TrialStarted: {0}, current time: {1}".format(trial_started, time.time() - start)
+							print "TrialStarted: {0}, current time: {1}".format(trial_started, time() - start)
 							time.sleep(0.1)
 							pipe.send(RuntimeError("Trial has not started."))
 						events.remove(e)
 						sent.append(e)
-						pipe.send(time.time() - start)
+						pipe.send(time() - start)
 						continue
 
 					if e == EVI_DEREGISTER_EVENT:
@@ -453,13 +455,17 @@ def __event_clock__(pipe):
 					continue
 
 				if trial_time_ms() >= e.onset or e.onset == 0:  # ie. something should happen IMMEDIATELY
-					e_data = [e.label, e.data,  time.time(), time.time() - start]
-					if Params.verbose_mode: print "\tTrialClock sent '{0}' at {1}".format(e_data[0], e_data[3])
+					e_data = [e.label, e.data,  time(), time() - start]
+					if P.verbose_mode: print "\tTrialClock sent '{0}' at {1}".format(e_data[0], e_data[3])
 					sent.append(e)
 					try:
-						Params.process_queue.put(e_data)
+						P.process_queue.put(e_data)
 					except IndexError:
 						e_data[1] = None
-						Params.process_queue.put(e_data)
+						P.process_queue.put(e_data)
 	except Exception as e:
 		pipe.send(full_trace())
+
+# # global runtime instances
+# tk = TimeKeeper()
+# tc = EventClock()

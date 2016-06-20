@@ -35,7 +35,7 @@ setup(
 	author='Jonathan Mulle',
 	author_email='this.impetus@gmail.com',
 	url='http://github.com/jmwmulle/klibs',
-	packages=['klibs']
+	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeLink']
 )
 
 

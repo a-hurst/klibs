@@ -1,5 +1,5 @@
 __author__ = 'jono'
-from klibs.KLConstants import *
+from klibs.KLConstants import ANY_KEY
 class KeyMap(object):
 	def __init__(self, name, ui_labels, data_labels, sdl_keysyms):
 		self.__any_key = None
@@ -23,8 +23,7 @@ class KeyMap(object):
 
 	def __register(self, ui_labels, data_labels, sdl_keysyms, ):
 		length = len(ui_labels)
-		if not length and self.name != OVER_WATCH:
-			self.any_key = True
+		self.any_key = not length
 
 		if any(len(key_arg) != length for key_arg in [ui_labels, sdl_keysyms, data_labels]):
 			raise TypeError("Arguments 'ui_labels', 'sdl_keysyms' and 'data_labels' must  the same number of elements.")

@@ -1,34 +1,29 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
-import imp
-
-from klibs.KLAudio import AudioManager
-from klibs.KLEyeLink import *
-from klibs.KLExceptions import *
-from klibs.KLDatabase import *
-from klibs.KLKeyMap import KeyMap
-from klibs.KLTextManager import *
-if PYLINK_AVAILABLE:
-	from klibs.KLELCustomDisplay import ELCustomDisplay
-from klibs.KLGraphics.KLDraw import *
-from klibs.KLTrialFactory import TrialFactory
-from klibs.KLDebug import Debugger
-from klibs.KLResponseCollectors import ResponseCollector
-from klibs.KLEventInterface import EventInterface
-from klibs.KLLabJack import LabJack
-from klibs.KLTimeKeeper import *
-
-# new dependency list
 from hashlib import sha1
-import klibs
-import klibs.time_keeper as tk
-import klibs.trial_clock as tc
-from klibs.KLCommunication import query, message
-from klibs.KLUserInterface import *
-from klibs.KLGraphics import *
-import klibs.eyelink as el
-import klibs.database  as db
+from sdl2 import SDL_Quit
+from abc import abstractmethod
+from os import mkdir
+from os.path import join
+from shutil import copyfile, copytree
+
+from klibs.KLExceptions import TrialException
+from klibs import P
+from klibs.KLKeyMap import KeyMap
+from klibs.KLConstants import ALL
+from klibs.KLUtilities import full_trace, pump, now, list_dimensions, force_quit
+from klibs.KLTrialFactory import TrialFactory
+from klibs.KLGraphics import flip, blit, fill
+from klibs.KLDatabase import Database
+from klibs.KLUserInterface import any_key
+from klibs import event_interface as evi
+from klibs.KLAudio import AudioManager
+from klibs.KLResponseCollectors import ResponseCollector
+from klibs.KLCommunication import message, query
+# from klibs.KLCommunication import  message
+# import klibs.eyelink as el
+# import klibs.database  as db
 
 # todo: a) make display_refresh a standard method of an experiment object, and then b) add a default line that times it
 # and warns the experimenter if more than 16.666ms are elapsing between calls
@@ -63,7 +58,7 @@ class Experiment(object):
 	block_break_messages = []
 	blocks = None
 
-	def __init__(self, project_name):
+	def __init__(self, project_name, eyelink):
 		"""
 		Initializes a KLExperiment Object
 
@@ -71,10 +66,11 @@ class Experiment(object):
 		:type project_name: String
 		:raise EnvironmentError:
 		"""
+		self.eyelink = eyelink
 		super(Experiment, self).__init__()
 
 		# initialize audio management for the experiment
-		self.audio = AudioManager(self)
+		self.audio = AudioManager()
 
 		# initialize response collector
 		self.response_collector = ResponseCollector(self)
@@ -192,8 +188,8 @@ class Experiment(object):
 	def before_flip(self):
 		if P.eye_tracking and P.eye_tracker_available:
 			try:
-				if el.draw_gaze:
-					blit(el.gaze_dot, 5, self.eyelink.gaze())
+				if self.eyelink.draw_gaze:
+					blit(self.eyelink.gaze_dot, 5, self.eyelink.gaze())
 			except AttributeError:
 				pass
 
@@ -359,17 +355,9 @@ class Experiment(object):
 		"""
 		if P.verbose_mode:
 			full_trace()
-		try:
-			P.clock.terminate()
-		except RuntimeError:
-			try:
-				kill(P.clock.p.pid, SIGKILL)
-			except:
-				# todo: put informative error message reminding users to manual kill process
-				full_trace()
 
 		try:
-			if exp and evi.events_dumped:
+			if not evi.events_dumped:
 				evi.dump_events()
 		except:
 			pass
@@ -391,7 +379,7 @@ class Experiment(object):
 		except Exception:
 			print full_trace()
 		try:
-			el.shut_down()
+			self.eyelink.shut_down()
 		except:
 			if P.eye_tracking and P.eye_tracker_available:
 				print "EyeLink.stopRecording() unsuccessful.\n \033[91m****** MANUALLY STOP RECORDING PLEASE & " \
@@ -404,12 +392,13 @@ class Experiment(object):
 				print "LabJack.shutdown() unsuccessful. \n\033[91m****** DISCONNECT & RECONNECT LABJACK PLEASE & " \
 					  "THANKS! *******\033[0m"
 
-		try:
-			P.time_keeper.stop("experiment")
-		except KeyError:
-			pass
-
 		SDL_Quit()
+
+		try:
+			P.clock.terminate()
+		except RuntimeError:
+			force_quit()
+
 		P.tk.log("exit")
 		print "\n\n\033[92m*** '{0}' successfully shutdown. ***\033[0m\n\n".format(P.project_name)
 		exit()
@@ -432,10 +421,10 @@ class Experiment(object):
 			self.collect_demographics(True)
 
 		if not P.development_mode:
-			version_dir = os.path.join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))
-			os.mkdir(version_dir)
-			shutil.copyfile("experiment.py", os.path.join(version_dir, "experiment.py"))
-			shutil.copytree(P.config_dir, os.path.join(version_dir, "Config"))
+			version_dir = join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))
+			mkdir(version_dir)
+			copyfile("experiment.py", join(version_dir, "experiment.py"))
+			copytree(P.config_dir, join(version_dir, "Config"))
 
 		if P.eye_tracking and P.eye_tracker_available:
 			self.eyelink.setup()
@@ -444,7 +433,7 @@ class Experiment(object):
 		try:
 			self.__execute_experiment(*args, **kwargs)
 		except RuntimeError:
-			os.kill(P.clock.pid, SIGKILL)
+			force_quit()
 
 		self.quit()
 
@@ -494,40 +483,40 @@ class Experiment(object):
 	# 	with open("ExpAssets/participant_instructions.txt", "r") as ins_file:
 	# 		self.participant_instructions = ins_file.read()
 
-	@abc.abstractmethod
+	@abstractmethod
 	def clean_up(self):
 		return
 
-	@abc.abstractmethod
+	@abstractmethod
 	def display_refresh(self):
 		pass
 
-	@abc.abstractmethod
+	@abstractmethod
 	def setup(self):
 		pass
 
-	@abc.abstractmethod
+	@abstractmethod
 	def block(self):
 		pass
 
-	@abc.abstractmethod
+	@abstractmethod
 	def trial(self):
 		pass
 
 
-	@abc.abstractmethod
+	@abstractmethod
 	def trial_prep(self):
 		pass
 
-	@abc.abstractmethod
+	@abstractmethod
 	def trial_clean_up(self):
 		pass
 
-	@abc.abstractmethod
+	@abstractmethod
 	def setup_response_collector(self):
 		pass
 
 	if P.multi_session_project:
-		@abc.abstractmethod
+		@abstractmethod
 		def init_session(self, id_str):
 			pass

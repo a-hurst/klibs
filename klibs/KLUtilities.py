@@ -12,10 +12,10 @@ import ctypes
 import time
 import datetime
 import re
-import billiard
 import traceback
-from math import sin, cos, radians, pi, atan2, degrees
-
+from math import sin, cos, radians, pi, atan2, degrees, acos
+import subprocess
+import multiprocessing as mplib
 
 def absolute_position(position, destination):
 	height = None
@@ -214,6 +214,9 @@ def flush():
 	return
 
 
+def force_quit():
+	print subprocess.Popen("pkill", "-f", "–9", "python").Communicate()
+
 def full_trace():
 	exception_list = traceback.format_stack()
 	exception_list = exception_list[:-2]
@@ -236,6 +239,12 @@ def img(name, sub_dirs=None):
 		return os.path.join(Params.image_dir, sub_dirs, name)
 	return os.path.join(Params.image_dir, name)
 
+
+def indices_of(element, container, identity_comparison=False):
+	if identity_comparison:
+		return [i for i, x in enumerate(container) if x is element]
+	else:
+		return [i for i, x in enumerate(container) if x == element]
 
 def interpolated_path_len(points):
 	# where frames is a list of coordinate tuples
@@ -262,6 +271,29 @@ def iterable(obj, exclude_strings=True):
 		except AttributeError:
 			return False
 
+def linear_intersection(line_1, line_2):
+	# first establish if lines are given as absolute lengths or origins and angles
+	l1_xy = None
+	l2_xy = None
+	try:
+		if not all(iterable(p) for p in line_1 + line_2):
+			# allow for rotation and clockwise arguments to be passed
+			l1_xy = (line_1[0], point_pos(line_1[0], 9999999, *line_1[1:]))
+			l2_xy = (line_2[0], point_pos(line_2[0], 9999999, *line_2[1:]))
+	except AttributeError:
+		raise ValueError("Expected each line to be either 2 x,y pairs or and x,y pair and an radial description.")
+	d_x = (l1_xy[0][0] - l1_xy[1][0], l2_xy[0][0] - l2_xy[1][0])
+	d_y = (l1_xy[0][1] - l1_xy[1][1], l2_xy[0][1] - l2_xy[1][1])
+
+	def determinant(a, b):
+		return a[0] * b[1] - a[1] * b[0]
+
+	div = determinant(d_x, d_y)
+
+	if not div:
+		raise Exception('Supplied lines do not intersect.')
+	d = (determinant(*l1_xy[0:2]), determinant(*l2_xy[0:2]))
+	return (determinant(d, d_x) / div, determinant(d, d_y) / div)
 
 def line_segment_len(a, b):
 	dy = b[1] - a[1]
@@ -514,7 +546,7 @@ def sdl_key_code_to_str(sdl_keysym):
 
 def threaded(func):
 	def threaded_func(*args, **kwargs):
-		p = billiard.Process(target=func, args=args, kwargs=kwargs)
+		p = mplib.Process(target=func, args=args, kwargs=kwargs)
 		p.start()
 		return p
 	return threaded_func
@@ -522,6 +554,13 @@ def threaded(func):
 
 def type_str(var):
 	return type(var).__name__
+
+def acute_angle(vertex, p1, p2):
+	v_p1 = line_segment_len(vertex, p1)
+	v_p2 = line_segment_len(vertex, p2)
+	p1_p2 = line_segment_len(p1, p2)
+	return degrees(acos((v_p1**2 + v_p2**2 - p1_p2**2) / (2 * v_p1 * v_p2)))
+
 
 
 class RGBCLI:

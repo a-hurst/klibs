@@ -17,7 +17,7 @@ except ImportError:
 
 from klibs.KLExceptions import *
 from klibs.KLConstants import *
-from klibs import KLParams as Params
+import klibs.KLParams as Params
 from klibs.KLTimeKeeper import TimeKeeper
 from klibs.KLAudio import *
 from klibs.KLUtilities import *

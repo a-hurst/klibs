@@ -532,6 +532,8 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		return self.started and not self.stopped
 
 
+
+
 class ResponseCollector(object):
 	__experiment = None
 	__max_wait = None

@@ -261,7 +261,7 @@ class Experiment(object):
 		for attr in trial_data: self.database.log(attr, trial_data[attr])
 		return self.database.insert()
 
-	def any_key(self, allow_mouse_click=True):
+	def any_key(self, allow_mouse_click=True, max_duration=False):
 		"""
 		Used for quickly allowing a user to acknowledge something on screen. Not to be used for response collection (see
 		:mod:`~klibs.KLResponseCollectors`).
@@ -270,6 +270,7 @@ class Experiment(object):
 		"""
 		pump()
 		any_key_pressed = False
+		start = time.time()
 		while not any_key_pressed:
 			for event in sdl2.ext.get_events():
 				if event.type == sdl2.SDL_KEYDOWN:
@@ -277,6 +278,8 @@ class Experiment(object):
 					any_key_pressed = True
 				if event.type == sdl2.SDL_MOUSEBUTTONUP:
 					any_key_pressed = True
+			if max_duration and time.time() - start >= max_duration:
+				break
 
 		return True
 
@@ -363,7 +366,7 @@ class Experiment(object):
 		else:
 			self.listen()  # remember that listen calls flip() be default
 
-	def blit(self, source, registration=7, location=(0,0), position=None):
+	def blit(self, source, registration=7, location=(0,0), position=None, flip_x=False, flip_y=False):
 		# todo: this fucker is static. get it the hell out of Experiment
 		"""
 		Draws passed content to display buffer.
@@ -395,13 +398,14 @@ class Experiment(object):
 				content = source.render()
 			else:
 				content = source.rendered
-		elif type(source) is numpy.ndarray:
+		elif type(source) is numpy.ndarray or hasattr(source, 'shape'):
 			height = source.shape[0]
 			width = source.shape[1]
 			content = source
 		else:
 			raise TypeError("Argument 'source' must be numpy.ndarray, klibs.KLNumpySurface.NumpySurface, or inherit from klibs.KLDraw.Drawbect.")
-
+		if flip_x:
+			content = numpy.fliplr(content)
 		# configure OpenGL for blit
 		gl.glEnable(gl.GL_BLEND)
 		gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
@@ -647,6 +651,11 @@ class Experiment(object):
 			except AttributeError as e:  # potentially gets called once before the Debugger is intialized during init
 				if Params.display_initialized:
 					raise
+		# if flip_x or flip_y:
+		# 	flipped_px = numpy.fliplr(numpy.asarray(sdl2.ext.pixels2d(self.window.get_surface())))
+		# 	self.blit(flipped_px)
+		# 	return self.flip()
+			# return self.__reflect_screen_h()
 
 		sdl2.SDL_GL_SwapWindow(self.window.window)
 
@@ -661,6 +670,14 @@ class Experiment(object):
 				raise AttributeError("Duration must be a positive number, '{0}' was passed".format(duration))
 		else:
 			raise TypeError("Duration must be expressed as an integer, '{0}' was passed.".format(type(duration)))
+
+	def __reflect_screen_h(self, px):
+		screen_px = numpy.zeros([Params.screen_x, Params.screen_y])
+		screen_px[:] = px
+ 		flipped_px = numpy.fliplr(screen_px)
+		self.blit(flipped_px)
+		self.flip()
+
 
 	def add_keymap(self, name, ui_labels=None, data_labels=None, sdl_keysyms=None):
 		"""
@@ -902,7 +919,7 @@ class Experiment(object):
 			return [response, rt]
 
 	def message(self, message, style=None, font=None, font_size=None, color=None, bg_color=None, location=None, registration=None,
-				wrap_width=None, blit=True, flip=False, padding=None):
+				wrap_width=None, blit=True, flip=False, padding=None, flip_x=False):
 		"""
 		``heavy_modification_planned`` ``backwards_compatibility_planned``
 
@@ -979,7 +996,7 @@ class Experiment(object):
 		if not blit:
 			return message_surface
 		else:
-			self.blit(message_surface, registration, location)
+			self.blit(message_surface, registration, location, flip_x=flip_x)
 		if flip:
 			self.flip()
 
@@ -1027,7 +1044,7 @@ class Experiment(object):
 		#todo: will be a screen that's shown before anything happens in the program to quickly tweak debug settings
 		pass
 
-	def query(self, query=None, password=False, font=None, font_size=None, color=None, locations=None, registration=5, return_type=None, accepted=None):
+	def query(self, query=None, password=False, font=None, font_size=None, color=None, locations=None, registration=5, return_type=None, accepted=None, flip_x=False):
 		"""
 		``relocation_planned`` ``backwards_compatibility_planned``
 
@@ -1170,7 +1187,7 @@ class Experiment(object):
 			input_location = [horizontal_center, input_baseline]
 
 		self.fill(Params.default_fill_color)
-		self.blit(query_surface, query_registration, query_location)
+		self.blit(query_surface, query_registration, query_location, flip_x=flip_x)
 		self.flip()
 
 		# todo: split this into query_draw() [above code] and query_listen() [remaining code]
@@ -1201,7 +1218,7 @@ class Experiment(object):
 				sdl_keysym = key.keysym.sym
 
 				self.fill()
-				self.blit(query_surface, query_registration, query_location)
+				self.blit(query_surface, query_registration, query_location, flip_x=flip_x)
 
 				if sdl_keysym == sdl2.SDLK_BACKSPACE:  # ie. backspace
 					input_string = input_string[:-1]
@@ -1235,7 +1252,7 @@ class Experiment(object):
 					except (IndexError, ValueError):
 						input_surface = None
 				if input_surface:
-					self.blit(input_surface, input_registration, input_location)
+					self.blit(input_surface, input_registration, input_location, flip_x=flip_x)
 				self.flip()
 					# else:
 					# 	pass  # until a key-up event occurs, could be a ui request (ie. quit, pause, calibrate)

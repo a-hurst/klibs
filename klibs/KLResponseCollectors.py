@@ -462,6 +462,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.origin = None
 		self.x_offset = 0
 		self.y_offset = 0
+		self.render_real_time = False
 
 	def collect_response(self, event_queue=None):
 		# assert cursor visibility (or not)
@@ -499,9 +500,9 @@ class DrawResponse(ResponseType, BoundaryInspector):
 			trial_time = Params.clock.trial_time
 			try:
 				if mp != self.points[-1]:
-					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, timestamp, trial_time))
+					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, trial_time))
 			except IndexError:
-					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, timestamp, trial_time))
+					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, trial_time))
 
 	def reset(self):
 		self.responses = []
@@ -511,6 +512,8 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.stop_eligible = False
 
 	def render_progress(self):
+		if not self.render_real_time:
+			return False
 		if not self.started:
 			return False
 		if len(self.points) < 2:

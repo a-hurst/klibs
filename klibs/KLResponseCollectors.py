@@ -510,6 +510,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.started = False
 		self.stopped = False
 		self.stop_eligible = False
+		self.start_time = None
 
 	def render_progress(self):
 		if not self.render_real_time:

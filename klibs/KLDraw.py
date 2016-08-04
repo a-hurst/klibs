@@ -265,9 +265,12 @@ class Ellipse(Drawbject):
 
 class Annulus(Drawbject):
 
-	def __init__(self, diameter, ring_width, stroke=None, fill=None, auto_draw=True):
+	def __init__(self, diameter, ring_width, stroke=None, fill=None, rotation=0, auto_draw=True):
 		super(Annulus, self).__init__(diameter + 2, diameter + 2, stroke, fill)
 		self.ring_width = ring_width
+		self.diameter = diameter
+		self.radius = self.diameter // 2
+		self.rotation = rotation
 		try:
 			self.ring_inner_width = ring_width - 2 * stroke[0]
 		except TypeError:
@@ -286,8 +289,8 @@ class Annulus(Drawbject):
 			xy_1 = 2 + self.ring_width
 			xy_2 = self.surface_width - (2 + self.ring_width)
 			self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroked_path_pen, self.transparent_brush)
-		xy_1 = 2 + self.ring_width
-		xy_2 = self.surface_width - (2 + self.ring_width)
+		xy_1 = 2 + (self.ring_width // 2)
+		xy_2 = self.surface_width - (2 + (self.ring_width // 2))
 		path_pen = aggdraw.Pen(tuple(self.fill_color), self.ring_inner_width)
 		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
 

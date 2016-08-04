@@ -311,9 +311,9 @@ class Rectangle(Drawbject):
 			self.draw()
 
 	def draw(self, as_numpy_surface=False):
-		xy1 = (self.stroke_width // 2) + 1
-		x2 = self.surface_width - ((self.stroke_width // 2) + 1)
-		y2 = self.surface_height - ((self.stroke_width // 2) + 1)
+		xy1 = self.stroke_width + 1
+		x2 = self.surface_width - (self.stroke_width + 1)
+		y2 = self.surface_height - (self.stroke_width + 1)
 		if self.stroke:
 			if self.fill:
 				self.surface.rectangle((xy1, xy1, x2, y2), self.stroke, self.fill)

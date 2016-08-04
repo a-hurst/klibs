@@ -343,8 +343,8 @@ class Asterisk(Drawbject):
 		x_os = int(self.surface_width * 0.925)
 		y_os = int(self.surface_height * 0.75)
 		l1 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height - 1]
-		l2 = [x_os + 1, y_os +1, self.surface_width - x_os + 1, self.surface_height - y_os + 1]
-		l3 = [self.surface_width - (x_os + 1), y_os + 1, x_os + 1, self.surface_height - y_os + 1]
+		l2 = [x_os + 1, y_os, self.surface_width - x_os + 1, self.surface_height - y_os]
+		l3 = [self.surface_width - x_os + 1, y_os, x_os + 1, self.surface_height - y_os]
 		self.surface.line([l1[0], l1[1], l1[2],l1[3]], self.stroke)
 		self.surface.line([l2[0], l2[1], l2[2],l2[3]], self.stroke)
 		self.surface.line([l3[0], l3[1], l3[2],l3[3]], self.stroke)

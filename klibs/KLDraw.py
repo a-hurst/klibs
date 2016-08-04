@@ -219,9 +219,9 @@ class Ellipse(Drawbject):
 			self.draw()
 
 	def draw(self, as_numpy_surface=False):
-		xy_1 = self.stroke_width + 1
-		x_2 = self.surface_width - 1
-		y_2 = self.surface_height - 1
+		xy_1 = (self.stroke_width // 2) + 1
+		x_2 = self.surface_width - ((self.stroke_width // 2) + 1)
+		y_2 = self.surface_height - ((self.stroke_width // 2) + 1)
 		self.surface.ellipse([xy_1, xy_1, x_2, y_2], self.stroke, self.fill)
 		return self
 

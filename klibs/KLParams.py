@@ -11,7 +11,7 @@ from klibs.KLConstants import *
 import os
 import multiprocessing as mp
 
-klibs_commit = 'b4d10f44767154ba774035bd3a573717c3081351'
+klibs_commit = '25baa00ec24e20088098dfbad53fc0dd45d64623'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"

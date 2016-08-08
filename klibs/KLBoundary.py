@@ -154,10 +154,10 @@ class AnulusBoundary(Boundary):
 					raise ValueError
 		except (TypeError, ValueError):
 			raise ValueError("Argument 'radius' must be a positive number.")
-			self.__center = boundary_data[0]
-			self.__r_inner = boundary_data[1]
-			self.__r_outer = boundary_data[2]
-			self.__span = boundary_data[2] - boundary_data[1]
+		self.__center = boundary_data[0]
+		self.__r_inner = boundary_data[1]
+		self.__r_outer = boundary_data[2]
+		self.__span = boundary_data[2] - boundary_data[1]
 
 	@property
 	def center(self):

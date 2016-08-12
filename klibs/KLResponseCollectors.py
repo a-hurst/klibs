@@ -2,6 +2,7 @@ __author__ = 'jono'
 
 import abc
 import sdl2
+from klibs import Params as P
 from klibs.KLUtilities import *
 from klibs.KLAudio import AudioStream
 from klibs.KLConstants import *
@@ -100,7 +101,7 @@ class ResponseType(object):
 
 	@property
 	def rt_label(self):
-		return "T{0}_{1}_Response_{2}".format(Params.trial_number, self.name, len(self.responses) + 1)
+		return "T{0}_{1}_Response_{2}".format(P.trial_number, self.name, len(self.responses) + 1)
 
 	@property
 	def null_response(self):
@@ -159,7 +160,7 @@ class KeyPressResponse(ResponseType):
 				if self.key_map:
 					if self.key_map.validate(sdl_keysym):
 						if len(self.responses) < self.min_response_count:
-							self.responses.append([self.key_map.read(sdl_keysym, "data"), Params.clock.trial_time])
+							self.responses.append([self.key_map.read(sdl_keysym, "data"), P.clock.trial_time])
 						if self.interrupts:
 							return self.responses if self.max_response_count > 1 else self.responses[0]
 					else:
@@ -198,7 +199,7 @@ class AudioResponse(ResponseType):
 
 	def calibrate(self):
 		peaks = []
-		if Params.development_mode and Params.dm_auto_threshold:
+		if P.development_mode and P.dm_auto_threshold:
 			ambient = self.stream.get_ambient_level()
 			if ambient == 0:
 				raise RuntimeError("Ambient level appears to be zero; exit the anachoic chamber or restart the experiment.")
@@ -212,7 +213,7 @@ class AudioResponse(ResponseType):
 			if i < 2:
 				next_message = "Got it; {0} more samples to collect. Press any key to continue".format(2 - i)
 				self.collector.experiment.fill()
-				self.collector.experiment.message(next_message, location=Params.screen_c, registration=5)
+				self.collector.experiment.message(next_message, location=P.screen_c, registration=5)
 				self.collector.experiment.flip()
 				any_key_pressed = False
 				while not any_key_pressed:
@@ -224,10 +225,10 @@ class AudioResponse(ResponseType):
 		self.validate()
 
 	def validate(self):
-		validate_counter = Params.tk.countdown(5)
+		validate_counter = P.tk.countdown(5)
 		self.collector.experiment.fill()
 		validation_instruction = "Ok; threshold set. To ensure it's validity, please provide one (and only one) more response."
-		self.collector.experiment.message(validation_instruction, location=Params.screen_c, registration=5)
+		self.collector.experiment.message(validation_instruction, location=P.screen_c, registration=5)
 		self.collector.experiment.flip()
 		self.start()
 		while validate_counter.counting():
@@ -241,7 +242,7 @@ class AudioResponse(ResponseType):
 		else:
 			validation_message = "Validation wasn't successful. Type C to re-calibrate or V to try validation again."
 		self.collector.experiment.fill()
-		self.collector.experiment.message(validation_message, location=Params.screen_c, registration=5, flip=True)
+		self.collector.experiment.message(validation_message, location=P.screen_c, registration=5, flip=True)
 
 		response_collected = False
 		while not response_collected:
@@ -263,7 +264,7 @@ class AudioResponse(ResponseType):
 			raise RuntimeError("AudioResponse not ready for collection; calibration not completed.")
 		if self.stream.sample().peak >= self.stream.threshold:
 			if len(self.responses) < self.min_response_count:
-				self.responses.append([self.stream.sample().peak, Params.clock.trial_time])
+				self.responses.append([self.stream.sample().peak, P.clock.trial_time])
 			if self.interrupts:
 				self.stop()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
@@ -286,7 +287,7 @@ class MouseDownResponse(ResponseType, BoundaryInspector):
 				if len(self.responses) < self.min_response_count:
 					boundary =  self.within_boundaries([event.x, event.y])
 					if boundary:
-						self.responses.append( [boundary, [event.x, event.y], Params.clock.trial_time] )
+						self.responses.append( [boundary, [event.x, event.y], P.clock.trial_time] )
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -301,7 +302,7 @@ class MouseUpResponse(ResponseType, BoundaryInspector):
 				if len(self.responses) < self.min_response_count:
 					boundary = self.within_boundaries([event.x, event.y])
 					if boundary:
-						self.responses.append([boundary, [event.x, event.y], Params.clock.trial_time])
+						self.responses.append([boundary, [event.x, event.y], P.clock.trial_time])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -384,9 +385,9 @@ class ColorSelectionResponse(ResponseType, BoundaryInspector):
 				pos = [e.button.x, e.button.y]
 				if not self.within_boundary(pos, "color ring"):
 					continue
-				response = angle_between(Params.screen_c, pos, self.__target.rotation)
+				response = angle_between(P.screen_c, pos, self.__target.rotation)
 				if len(self.responses) < self.min_response_count:
-					self.responses.append([response, Params.clock.trial_time])
+					self.responses.append([response, P.clock.trial_time])
 					if self.interrupts:
 						return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -462,6 +463,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.origin = None
 		self.x_offset = 0
 		self.y_offset = 0
+		self.render_real_time = False
 
 	def collect_response(self, event_queue=None):
 		# assert cursor visibility (or not)
@@ -484,24 +486,27 @@ class DrawResponse(ResponseType, BoundaryInspector):
 			if self.within_boundary(self.start_boundary, mp):
 				self.started = True
 		if self.started and not self.start_time:
-			self.start_time = Params.clock.trial_time
+			self.start_time = P.clock.trial_time
 		if self.within_boundary(self.stop_boundary, mp):
 			if self.stop_eligible and not self.stopped:
 				self.stopped = True
-				self.responses.append([self.points, Params.clock.trial_time])
+				self.responses.append([self.points, P.clock.trial_time])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
 		if not self.within_boundary(self.start_boundary, mp) and not self.stop_eligible and self.started:
 			self.stop_eligible = True
 		if self.started and not self.stopped: # and self.within_boundary(mp, self.canvas_boundary):
-			timestamp = Params.clock.trial_time - self.start_time
-			trial_time = Params.clock.trial_time
+			timestamp = P.clock.trial_time - self.start_time
+			trial_time = P.clock.trial_time
+			p = (mp[0] - self.x_offset, mp[1] - self.y_offset)
+			if p in P.ignore_points_at:
+				return
 			try:
 				if mp != self.points[-1]:
-					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, timestamp, trial_time))
+					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, trial_time - self.start_time))
 			except IndexError:
-					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, timestamp, trial_time))
+					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, trial_time - self.start_time))
 
 	def reset(self):
 		self.responses = []
@@ -509,8 +514,11 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.started = False
 		self.stopped = False
 		self.stop_eligible = False
+		self.start_time = None
 
 	def render_progress(self):
+		if not self.render_real_time:
+			return False
 		if not self.started:
 			return False
 		if len(self.points) < 2:
@@ -522,7 +530,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 			else:
 				m_str += "L{0},{1}".format(p[0], p[1])
 		s = aggdraw.Symbol(m_str)
-		test_p = aggdraw.Draw("RGBA", Params.screen_x_y, (0,0,0,0))
+		test_p = aggdraw.Draw("RGBA", P.screen_x_y, (0,0,0,0))
 		test_p.setantialias(True)
 		test_p.symbol((0,0), s, aggdraw.Pen((255,80, 125), 1, 255))
 		return aggdraw_to_array(test_p)
@@ -644,9 +652,9 @@ class ResponseCollector(object):
 			show_mouse_cursor()
 		if self.flip:
 			self.experiment.flip()
-			Params.tk.sample("ResponseCollectionFlip")
+			P.tk.sample("ResponseCollectionFlip")
 			if self.post_flip_tk_label:
-				Params.tk.stop(self.post_flip_tk_label)
+				P.tk.stop(self.post_flip_tk_label)
 			try:
 				self.after_flip_callback(*self.after_flip_args, **self.after_flip_kwargs)
 			except TypeError:
@@ -676,9 +684,9 @@ class ResponseCollector(object):
 		self.response_countdown = None
 
 	def __collect(self, mouseclick_boundaries):
-		self.tracker_time = self.experiment.eyelink.now() if Params.eye_tracker_available else -1
+		self.tracker_time = self.experiment.eyelink.now() if P.eye_tracker_available else -1
 		while True:
-			if Params.development_mode and not self.end_collection_event:
+			if P.development_mode and not self.end_collection_event:
 				try:
 					t = self.experiment.clock.trial_time
 					if self.terminate_after[1] == TK_MS: t *= 1000
@@ -689,8 +697,8 @@ class ResponseCollector(object):
 					pass
 			event_queue = pump(True)
 			for e in event_queue:
-				if e.type in Params.process_queue_data:
-					if Params.process_queue_data[e.type].label == self.end_collection_event:
+				if e.type in P.process_queue_data:
+					if P.process_queue_data[e.type].label == self.end_collection_event:
 						break
 			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
 				self.experiment.ui_request(event_queue)

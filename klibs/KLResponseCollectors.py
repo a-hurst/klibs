@@ -464,6 +464,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.x_offset = 0
 		self.y_offset = 0
 		self.render_real_time = False
+		self.first_sample_time = None  # start time begins when landing on origin; first sample collected on departure
 
 	def collect_response(self, event_queue=None):
 		# assert cursor visibility (or not)
@@ -479,34 +480,43 @@ class DrawResponse(ResponseType, BoundaryInspector):
 				hide_mouse_cursor()
 
 		mp = mouse_pos()
+
+		# if there are no boundaries for initation and completion, start immediately
 		if not self.stop_boundary or not self.start_boundary:
 			self.started = True
 
+		# if boundaries, test for initiation condition
 		if not self.started:
 			if self.within_boundary(self.start_boundary, mp):
 				self.started = True
-		if self.started and not self.start_time:
-			self.start_time = P.clock.trial_time
+				self.start_time = P.clock.trial_time
+
+		# if boundaries, test for completion condition
 		if self.within_boundary(self.stop_boundary, mp):
 			if self.stop_eligible and not self.stopped:
 				self.stopped = True
-				self.responses.append([self.points, P.clock.trial_time])
+				self.responses.append([self.points, self.points[-1][2] - self.points[0][2]])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
-		if not self.within_boundary(self.start_boundary, mp) and not self.stop_eligible and self.started:
-			self.stop_eligible = True
-		if self.started and not self.stopped: # and self.within_boundary(mp, self.canvas_boundary):
-			timestamp = P.clock.trial_time - self.start_time
-			trial_time = P.clock.trial_time
-			p = (mp[0] - self.x_offset, mp[1] - self.y_offset)
+		# don't allow checking for stopped condition until started and outside of start boundary
+		self.stop_eligible = not self.within_boundary(self.start_boundary, mp) and self.started
+		if self.stop_eligible:
+			try:
+				timestamp = P.clock.trial_time - self.first_sample_time
+			except TypeError:
+				self.first_sample_time = P.clock.trial_time
+				timestamp = 0.0
+			p = [mp[0] - self.x_offset, mp[1] - self.y_offset]
 			if p in P.ignore_points_at:
 				return
+			p.append(timestamp)
 			try:
+				# don't repeat points
 				if mp != self.points[-1]:
-					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, trial_time - self.start_time))
+					self.points.append(p)
 			except IndexError:
-					self.points.append((mp[0] - self.x_offset, mp[1] - self.y_offset, trial_time - self.start_time))
+					self.points.append(p)
 
 	def reset(self):
 		self.responses = []
@@ -515,6 +525,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.stopped = False
 		self.stop_eligible = False
 		self.start_time = None
+		self.first_sample_time = None
 
 	def render_progress(self):
 		if not self.render_real_time:

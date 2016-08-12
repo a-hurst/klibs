@@ -55,7 +55,7 @@ class EntryTemplate(object):
 		insert_template = [SQL_NULL, ] * len(self.schema)
 
 		for column in self.schema:
-			if self.data[self.index_of(column[0])] == SQL_NULL or not self.data[self.index_of(column[0])]:
+			if self.data[self.index_of(column[0])] == SQL_NULL or self.data[self.index_of(column[0])] is None:
 				if self.allow_null(column[0]):
 					insert_template[self.index_of(column[0])] = SQL_NULL
 					self.data[self.index_of(column[0])] = SQL_NULL
@@ -67,6 +67,7 @@ class EntryTemplate(object):
 						if i[0] == column[0]:
 							insert_template[self.index_of(column[0])] = str(i[1])
 				else:
+					print self.data
 					raise ValueError("Column '{0}' may not be null.".format(column))
 			else:
 				insert_template[self.index_of(column[0])] = column[0]
@@ -112,7 +113,7 @@ class EntryTemplate(object):
 				value = str(value)
 			if self.type_of(field) == PY_STR:
 				value = "'{0}'".format(value)
-			if not value:
+			if value is None:
 				value = SQL_NULL
 
 		self.data[self.index_of(field)] = value

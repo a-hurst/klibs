@@ -2,6 +2,10 @@ __author__ = 'jono'
 
 import abc
 import sdl2
+import aggdraw
+from bisect import bisect
+
+
 from klibs import Params as P
 from klibs.KLUtilities import *
 from klibs.KLAudio import AudioStream
@@ -9,8 +13,7 @@ from klibs.KLConstants import *
 from klibs.KLNumpySurface import NumpySurface
 from KLNumpySurface import aggdraw_to_array
 from klibs.KLDraw import Drawbject, ColorWheel
-import aggdraw
-from bisect import bisect
+from klibs.KLExceptions import TrialException
 from klibs.KLMixins import BoundaryInspector
 
 
@@ -495,7 +498,10 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		if self.within_boundary(self.stop_boundary, mp):
 			if self.stop_eligible and not self.stopped:
 				self.stopped = True
-				self.responses.append([self.points, self.points[-1][2] - self.points[0][2]])
+				try:
+					self.responses.append([self.points, self.points[-1][2] - self.points[0][2]])
+				except IndexError:
+					raise TrialException("Too few points.")
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -514,9 +520,9 @@ class DrawResponse(ResponseType, BoundaryInspector):
 			try:
 				# don't repeat points
 				if mp != self.points[-1]:
-					self.points.append(p)
+					self.points.append(tuple(p))
 			except IndexError:
-					self.points.append(p)
+					self.points.append(tuple(p))
 
 	def reset(self):
 		self.responses = []

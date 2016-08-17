@@ -8,7 +8,7 @@ from itertools import product
 from os.path import exists
 import numpy as np
 
-from klibs.KLConstants import TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC, TF_STIM_FILE, TF_PARAM
+from klibs.KLConstants import TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC, TF_STIM_FILE, TF_FACTOR
 from klibs import P
 
 
@@ -194,7 +194,7 @@ class TrialFactory(object):
 			if header:
 				column_name = el.split(".")
 				try:
-					if column_name[1] == TF_PARAM:
+					if column_name[1] == TF_FACTOR:
 						self.exp_parameters.append([column_name[0].replace(" ", ""), []])
 				except:
 					continue

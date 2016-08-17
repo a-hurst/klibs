@@ -14,13 +14,15 @@ from klibs.KLKeyMap import KeyMap
 from klibs.KLConstants import ALL
 from klibs.KLUtilities import full_trace, pump, now, list_dimensions, force_quit
 from klibs.KLTrialFactory import TrialFactory
-from klibs.KLGraphics import flip, blit, fill
+from klibs import trial_clock as tc
+from klibs.KLGraphics import flip, blit, fill, display_init
 from klibs.KLDatabase import Database
 from klibs.KLUserInterface import any_key
 from klibs import event_interface as evi
 from klibs.KLAudio import AudioManager
 from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLCommunication import message, query
+from klibs.KLDebug import v
 # from klibs.KLCommunication import  message
 # import klibs.eyelink as el
 # import klibs.database  as db
@@ -72,6 +74,8 @@ class Experiment(object):
 		# initialize audio management for the experiment
 		self.audio = AudioManager()
 
+		self.database = Database()
+
 		# initialize response collector
 		self.response_collector = ResponseCollector(self)
 		self.rc = self.response_collector  # alias for convenience
@@ -85,7 +89,7 @@ class Experiment(object):
 		self.trial_factory = TrialFactory(self)
 		if P.manual_trial_generation is False:
 			try:
-				self.trial_factory.import_stim_file(P.config_file_path)
+				self.trial_factory.import_stim_file(P.factors_file_path)
 			except ValueError:
 				self.trial_factory.import_stim_file(P.config_file_path_legacy)
 			self.trial_factory.generate()
@@ -97,6 +101,7 @@ class Experiment(object):
 			self.collect_demographics(True)
 		self.initialized = True
 
+	def show_logo(self):
 		fill()
 		blit(P.logo_file_path, 5, P.screen_c)
 		flip()
@@ -131,13 +136,12 @@ class Experiment(object):
 				except TrialException as e:
 					block.recycle()
 					P.recycle_count += 1
-					P.tk.log(e.message)
-					self.evi.send('trial_recycled')
+					evi.send('trial_recycled')
 					self.database.current(False)
 					self.clear()
 				self.rc.reset()
 		self.clean_up()
-		self.evi.dump_events()
+		evi.dump_events()
 		self.database.db.commit()
 		self.database.db.close()
 
@@ -156,19 +160,19 @@ class Experiment(object):
 		self.trial_prep()
 		tx = None
 		try:
-			P.clock.start()
+			tc.start()
 			trial_data = self.trial()
-			P.clock.stop()
+			tc.stop()
 			self.__log_trial(trial_data)
 			self.trial_clean_up()
 		except TrialException as e:
 			P.trial_id = False
 			self.trial_clean_up()
-			P.clock.stop()
+			tc.stop()
 			tx = e
 		if P.eye_tracking:
 			self.eyelink.stop()
-		self.evi.clear()
+		evi.clear()
 		if tx:
 			raise tx
 
@@ -193,12 +197,13 @@ class Experiment(object):
 			except AttributeError:
 				pass
 
-		if P.development_mode and not P.dm_suppress_debug_pane:
-			try:
-				self.debug.print_logs(cli=False)
-			except AttributeError as e:  # potentially gets called once before the Debugger is intialized during init
-				if P.display_initialized:
-					raise
+		# KLDebug in very early stages and not ready for UnitTest branch of klibs; below code may return later
+		# if P.development_mode and not P.dm_suppress_debug_pane:
+		# 	try:
+		# 		self.debug.print_logs(cli=False)
+		# 	except AttributeError as e:  # potentially gets called once before the Debugger is intialized during init
+		# 		if P.display_initialized:
+		# 			raise
 
 
 	def collect_demographics(self, database, anonymous_user=False):
@@ -395,11 +400,10 @@ class Experiment(object):
 		SDL_Quit()
 
 		try:
-			P.clock.terminate()
+			tc.terminate()
 		except RuntimeError:
 			force_quit()
 
-		P.tk.log("exit")
 		print "\n\n\033[92m*** '{0}' successfully shutdown. ***\033[0m\n\n".format(P.project_name)
 		exit()
 
@@ -413,12 +417,11 @@ class Experiment(object):
 		"""
 		if not self.initialized:
 			self.quit()
-		P.time_keeper.start("experiment")
 		if P.collect_demographics:
 			if not P.demographics_collected:
-				self.collect_demographics()
+				self.collect_demographics(self.database)
 		elif not P.demographics_collected:
-			self.collect_demographics(True)
+			self.collect_demographics(self.database, True)
 
 		if not P.development_mode:
 			version_dir = join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))

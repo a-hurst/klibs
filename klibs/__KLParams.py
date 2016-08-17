@@ -11,7 +11,7 @@ from klibs.KLConstants import *
 import os
 import multiprocessing as mp
 
-klibs_commit = 'adff916c0aac0784af1472fda7c30146fbae9c84'
+klibs_commit = 'a73aa1f02117370e90ee66ce4b2c462c3736e618'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -31,8 +31,8 @@ global schema_file_path_legacy
 global schema_filename
 global data_path
 global incomplete_data_path
-global config_filename
-global config_file_path
+global factors_filename
+global factors_file_path
 global config_file_path_legacy
 global params_file_path
 global events_file_path
@@ -177,8 +177,8 @@ def init_project():
 	global schema_filename
 	global data_path
 	global incomplete_data_path
-	global config_filename
-	global config_file_path
+	global factors_filename
+	global factors_file_path
 	global config_file_path_legacy
 	global params_file_path
 	global events_file_path
@@ -201,7 +201,7 @@ def init_project():
 	database_filename = str(project_name) + DB_EXT
 	schema_filename = str(project_name) + SCHEMA_EXT
 	log_filename = str(project_name) + LOG_EXT
-	config_filename = str(project_name) + CONFIG_EXT
+	factors_filename = str(project_name) + FACTORS_EXT
 	params_filename = str(project_name) + PARAMS_EXT
 	events_filename = str(project_name) + MESSSAGING_EXT
 
@@ -214,8 +214,8 @@ def init_project():
 	database_backup_path = database_path + BACK_EXT
 	data_path = os.path.join(asset_dir, "Data")
 	incomplete_data_path = os.path.join(data_path, "incomplete")
-	config_file_path = os.path.join(config_dir, config_filename)
-	config_file_path_legacy = os.path.join(asset_dir, config_filename)
+	factors_file_path = os.path.join(config_dir, factors_filename)
+	config_file_path_legacy = os.path.join(asset_dir, factors_filename)
 	params_file_path = os.path.join(config_dir, params_filename)
 	events_file_path = os.path.join(config_dir, events_filename)
 	versions_dir = os.path.join(asset_dir, ".versions")

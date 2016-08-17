@@ -11,7 +11,8 @@ from klibs.KLConstants import TK_S, TK_MS, EVI_CONSTANTS, EVI_CLOCK_START, EVI_C
 	EVI_TRIAL_START, EVI_DEREGISTER_EVENT, EVI_SEND_TIME, EVI_EXP_END
 from klibs import P
 from klibs.KLUtilities import pump, threaded, full_trace
-
+from klibs.KLUserInterface import ui_request
+from klibs import event_interface as evi
 
 class CountDown(object):
 	duration = 0
@@ -186,6 +187,7 @@ class EventClock(object):
 		self.p = __event_clock__(child)
 		self.pid = self.p.pid
 		self.polling = False   # prevents multiple calls to polling simultaneously
+		self.tk = TimeKeeper()
 
 	def update_event_onset(self, label, onset, unit=TK_MS):
 		self.__update_event(label, update_onset=True, onset=onset, unit=unit)
@@ -277,7 +279,7 @@ class EventClock(object):
 		while not self.start_time:
 			self.start_time = self.pipe.recv()
 		el_val = self.experiment.eyelink.now() if P.eye_tracking and P.eye_tracker_available else -1
-		self.experiment.evi.log_trial_event(EVI_CLOCK_START, self.start_time, el_val)
+		evi.log_trial_event(EVI_CLOCK_START, self.start_time, el_val)
 #		except:
 #			print full_trace()
 
@@ -287,7 +289,7 @@ class EventClock(object):
 
 		"""
 		el_val = self.experiment.eyelink.now() if P.eye_tracking and P.eye_tracker_available else -1
-		self.experiment.evi.log_trial_event(EVI_CLOCK_STOP, self.trial_time, el_val)
+		evi.log_trial_event(EVI_CLOCK_STOP, self.trial_time, el_val)
 		P.process_queue_data = {}
 		self.register_event(EVI_CLOCK_RESET)
 		self.tasks = []
@@ -343,7 +345,7 @@ class EventClock(object):
 	def __poll(self):
 		self.polling = True
 		while not self.pipe.poll():
-			self.experiment.ui_request()
+			ui_request()
 		self.polling = False
 		t = self.pipe.recv()
 		if isinstance(t, Exception):
@@ -351,9 +353,9 @@ class EventClock(object):
 		return t
 
 	def terminate(self, max_wait=1):
-		P.tk.start("terminate")
+		self.tk.start("terminate")
 		self.register_event(EVI_EXP_END)
-		while P.tk.elapsed("terminate") < max_wait:
+		while self.tk.elapsed("terminate") < max_wait:
 			pump()
 		if self.p.is_alive():
 			kill(self.clock.p.pid, SIGKILL)

@@ -15,9 +15,7 @@ import traceback
 import imp
 import time
 import sys
-
-from klibs.KLUtilities import force_quit, full_trace
-
+from hashlib import sha1
 
 pylink_install_required = False
 klibs_version = "0.9.1.4"
@@ -54,10 +52,10 @@ def full_trace():
 	return exception_str[:-1]
 
 def create(name, path):
-	try:
-		import klibs
-	except ImportError as e:
-		print_warning(*sys.exc_info())
+	# try:
+	# 	import klibs
+	# except ImportError as e:
+	# 	print_warning(*sys.exc_info())
 	# Adding author details and loop to confirm before execution, was in a rush,  will return later
 	# Basically got stick on feeding raw_input() into arg_parse, seems to take each letter as an argument
 	# Update #2:  moved on to using just raw_input() until help with how to do this turns up
@@ -74,7 +72,7 @@ def create(name, path):
 			print "\033[91m\nOk Madonna, take it easy. \033[32mFirst \033[92m*\033[32mand\033[92m*\033[32m last name. Let's try that again--you got this champ...\033[0m"
 			return create(name, path)
 
-	source = "/usr/local/lib/klibs/template"
+	source_path = "/usr/local/lib/klibs/template"
 	project_path = os.path.join(path, name)
 
 	correct = False
@@ -91,50 +89,57 @@ def create(name, path):
 			print "\n\033[32mFine. Be that way. But I think we both know you'll be back.\033[0m"
 			exit()
 		correct = True
-	try:
-		shutil.copytree(source, project_path)
-		# shutil.copymode(source, project_path)
-		print "\t...Project template files successfully copied to {0}".format(project_path)
-		temp_exp_f = open(os.path.join(project_path, "experiment.py"), "rt")
-		temp_exp = temp_exp_f.read().replace('PROJECT_NAME', name).replace('EXPERIMENTER_NAME', " ".join(auth_args.name))
-		open(os.path.join(project_path, "experiment.py"), "w+").write(temp_exp)
+	# try:
+	tmp_dir = "klibs_" + sha1(project_path + str(time.time())).hexdigest()
+	tmp_path = os.path.join("/","tmp", tmp_dir)
+	shutil.copytree(source_path, tmp_path)
+	print "\t...Project template files successfully copied to temporary directory."
 
-		template_files = [['Config', "schema.sql"], ['Config', "config.csv"], ['Config', "messaging.csv"], ['Config', 'params.py'], [None,".gitignore"]]
-		for f in template_files:
-			if f[0]:
-				template = os.path.join(project_path, 'ExpAssets', f[0], 'PROJECT_NAME_{0}'.format(f[1]))
-			elif f[1] == ".gitignore":
-				template = os.path.join(project_path, "gitignore.txt")
-			else:
-				template = os.path.join(project_path, 'ExpAssets', 'PROJECT_NAME_{0}'.format(f[1]))
-			if f[0]:
-				project = os.path.join(project_path, 'ExpAssets', f[0], '{0}_{1}'.format(name, f[1]))
-			elif f[1] == ".gitignore":
-				project = os.path.join(project_path, '{0}'.format(f[1]))
-			else:
-				project = os.path.join(project_path, 'ExpAssets', '{0}_{1}'.format(name, f[1]))
+	# replace generic strings in experiment.py with project author and name
+	temp_exp_f = open(os.path.join(tmp_path, "experiment.py"), "rt")
+	temp_exp = temp_exp_f.read().replace('PROJECT_NAME', name).replace('EXPERIMENTER_NAME', " ".join(auth_args.name))
+	open(os.path.join(tmp_path, "experiment.py"), "w+").write(temp_exp)
 
-			shutil.move(template, project)
-			temp_project_f = open(project, "rt").read().replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
-			open(project, "w+").write(temp_project_f)
-		# versions_temp_dir = os.path.join(project_path, 'ExpAssets', "versions")
-		# versions_proj_dir = os.path.join(project_path, 'ExpAssets', ".versions")
-		# shutil.move(versions_temp_dir, versions_proj_dir)
-		print "\t...Project name '{0}' successfully applied to template files".format(name)
-		print "\033[92m\nProject successfully created at: '\033[94m{0}\033[0m'".format(project_path)
-	except OSError, e:
-		if e.errno == 17:
-			print "\033[91mError:\033[0m A directory or file already exists at '\033[94m{0}\033[0m'.".format(project_path)
+	# replace generic file names with project-specific names
+	template_files = [['Config', "schema.sql"], ['Config', "factors.csv"], ['Config', "messaging.csv"], ['Config', 'params.py'], [None,".gitignore"]]
+	for f in template_files:
+		# establish the path to the newly copied template file
+		if f[0]:
+			template = os.path.join(tmp_path, 'ExpAssets', f[0], 'PROJECT_NAME_{0}'.format(f[1]))
+		elif f[1] == ".gitignore":
+			template = os.path.join(tmp_path, "gitignore.txt")
 		else:
-			raise OSError(e)
-	except Exception as e:
-		print "\033[91mError: Project '{0}' not created at {1}.\033[0m".format(name, project_path)
+			template = os.path.join(tmp_path, 'ExpAssets', 'PROJECT_NAME_{0}'.format(f[1]))
+
+		# establish the matching path to the would-be project file
+		if f[0]:
+			project = os.path.join(tmp_path, 'ExpAssets', f[0], '{0}_{1}'.format(name, f[1]))
+		elif f[1] == ".gitignore":
+			project = os.path.join(tmp_path, '{0}'.format(f[1]))
+		else:
+			project = os.path.join(tmp_path, 'ExpAssets', '{0}_{1}'.format(name, f[1]))
+
+		shutil.move(template, project)
+		temp_project_f = open(project, "rt").read().replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
+		open(project, "w+").write(temp_project_f)
+	# versions_temp_dir = os.path.join(project_path, 'ExpAssets', "versions")
+	# versions_proj_dir = os.path.join(project_path, 'ExpAssets', ".versions")
+	# shutil.move(versions_temp_dir, versions_proj_dir)
 		try:
-			shutil.rmtree(project_path)
-			print "\033[91mRemoved all files created at {0}\033[0m".format(project_path)
-		except:
-			print "\033[91mUnable to remove any files created at {0}\033[0m".format(project_path)
-		raise OSError(e)
+			print "\t...'{0}' successfully configured".format("/".join(f))
+		except TypeError:
+			print "\t...'{0}' successfully configured".format(f[1])
+	shutil.move(tmp_path, path)
+	os.rename(os.path.join(path, tmp_dir), os.path.join(path, name))
+	print "\033[92m\nProject successfully created at: '\033[94m{0}\033[0m'".format(project_path)
+	# except OSError, e:
+	# 	if e.errno == 17:
+	# 		print "\033[91mError:\033[0m A directory or file already exists at '\033[94m{0}\033[0m'.".format(project_path)
+	# 	else:
+	# 		raise OSError(e)
+	# except Exception as e:
+	# 	print "\033[91mError: Project '{0}' not created at {1}.\033[0m".format(name, project_path)
+	# 	raise OSError(e)
 
 def update():
 	"""
@@ -157,6 +162,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	from klibs.KLGraphics import display_init
 	from klibs.KLEyeLink import EyeLinkExt
 	from klibs.KLDatabase import Database
+	from klibs.KLUtilities import force_quit
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
 
@@ -203,9 +209,9 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 
 		# create a display context if everything's gone well so far
 		klibs.experiment.window = display_init(screen_size)
-
+		klibs.experiment.show_logo()
 		# off to the races team...
-		experiment.run()
+		klibs.experiment.run()
 	except SystemExit:
 		pass
 	except Exception as e:
@@ -215,7 +221,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 
 
 def export(path, multi_file=True, join_tables=None):
-	from klibs import P, Database
+	from klibs import P, KLDatabase
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
 
@@ -230,11 +236,13 @@ def export(path, multi_file=True, join_tables=None):
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
 
-	Database(project_name).export(multi_file, join_tables)
+	KLDatabase(project_name).export(multi_file, join_tables)
 
 
 def rebuild_db(path):
-	from klibs import P, Database
+	from klibs import P
+	from klibs.KLDatabase import Database
+	from klibs.KLUtilities import force_quit
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
 
@@ -249,6 +257,8 @@ def rebuild_db(path):
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
 	Database(project_name).rebuild()
+	force_quit()
+
 
 
 def hard_reset(path):

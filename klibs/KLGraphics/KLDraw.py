@@ -12,7 +12,8 @@ from math import cos, sin, radians
 from klibs.KLConstants import STROKE_CENTER, STROKE_INNER, STROKE_OUTER, KLD_LINE, KLD_MOVE, KLD_ARC, KLD_PATH
 from klibs import P
 from klibs.KLUtilities import point_pos, midpoint
-from klibs.KLGraphics import KLNumpySurface as NpS
+from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
+
 
 ######################################################################
 #

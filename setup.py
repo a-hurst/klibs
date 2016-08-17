@@ -48,7 +48,22 @@ except:
 	except:
 		pass
 shutil.copytree("lib/klibs", "/usr/local/lib/klibs")
-
+try:
+	os.remove("/usr/local/lib/klibs/__init__.py")
+except:
+	pass
+try:
+	os.remove("/usr/local/lib/klibs/template/__init__.py")
+except:
+	pass
+try:
+	os.remove("/usr/local/lib/klibs/template/ExpAssets/__init__.py")
+except:
+	pass
+try:
+	os.remove("/usr/local/lib/klibs/template/ExpAssets/Config/__init__.py")
+except:
+	pass
 try:
 	os.remove("/usr/local/bin/klibs")
 except:

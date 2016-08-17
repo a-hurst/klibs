@@ -6,12 +6,12 @@ from PIL import Image
 import OpenGL.GL as gl
 import sdl2
 from math import sqrt, atan, degrees
-
+from os.path import isfile
 from klibs import P
 from klibs.KLUtilities import absolute_position, build_registrations, pump, hide_mouse_cursor, deg_to_px
 from klibs.KLConstants import *
 from KLDraw import Drawbject, FixationCross
-import KLNumpySurface as NpS
+from KLNumpySurface import NumpySurface as NpS
 
 
 def aggdraw_to_numpy_surface(draw_context):
@@ -80,6 +80,8 @@ def blit(source, registration=7, location=(0,0), position=None):
 			height = source.shape[0]
 			width = source.shape[1]
 			content = source
+		elif type(source) is str and isfile(source):
+			return blit(NpS(source), registration, location, position)
 		else:
 			raise TypeError("Argument 'source' must be np.ndarray, klibs.KLNumpySurface.NumpySurface, or inherit from klibs.KLDraw.Drawbect.")
 

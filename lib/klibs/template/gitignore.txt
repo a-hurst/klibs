@@ -8,3 +8,4 @@ ExpAssets/.versions/**
 ExpAssets/Local
 ExpAssets/Local/**
 **/.pyc
+**/.idea/**

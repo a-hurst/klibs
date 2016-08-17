@@ -14,12 +14,13 @@ import KLUtilities							# KLConstants, KLParams
 import KLTrialFactory						# KLConstants, KLParams
 import KLUserInterface						# KLConstants, KLParams, KLUtilities
 import KLDatabase							# KLConstants, KLParams, KLUtilities
+import KLEventInterface						# KLConstants, KLParams, KLUtilities, KLUserInterface
+event_interface = KLEventInterface.EventInterface()
 import KLTimeKeeper							# KLConstants, KLParams, KLUtilities
 time_keeper = KLTimeKeeper.TimeKeeper()
 trial_clock = KLTimeKeeper.EventClock()
-import KLEventInterface						# KLConstants, KLParams, KLUtilities, KLUserInterface
-event_interface = KLEventInterface.EventInterface()
 import KLGraphics							# KLConstants, KLParams, KLUtilities
+import KLDebug								# KLParams, KLGraphics
 import KLBoundary							# KLConstants, KLUtilities, KLExceptions
 import KLTextManager						# KLUtilities, KLGraphics
 text_manager = KLTextManager.TextManager()
@@ -29,7 +30,10 @@ import KLEyeLink
 import KLCommunication
 
 #  runtime vars, populated depending on context either from klibs CLI or by a parent class (usually Experiment)
-# from klibs.KLExperiment import Experiment
+from klibs.KLExperiment import Experiment
+
+# populated at runtime
+experiment = None
 #####################################################
 #
 # SDL Keycode Reference for creating KeyMaps (https://wiki.libsdl.org/SDL_Keycode)

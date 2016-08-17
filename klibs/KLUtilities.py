@@ -224,7 +224,7 @@ def flush():
 
 
 def force_quit():
-	print Popen(['pkill', '-f', 'python'], stdout=PIPE, stderr=PIPE).communicate()
+	Popen(['pkill', '-f', 'python'], stdout=PIPE, stderr=PIPE).communicate()
 
 
 def full_trace():
@@ -364,7 +364,7 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False):
 		raise
 
 
-def pump(get_events=False):
+def pump(return_events=False):
 	from klibs.KLEventInterface import TrialEvent
 	while not P.process_queue.empty():
 		event = P.process_queue.get()
@@ -380,7 +380,7 @@ def pump(get_events=False):
 		if success == 0:
 			raise RuntimeError(SDL_GetError())
 	SDL_PumpEvents()
-	if get_events:
+	if return_events:
 		return get_events()
 
 

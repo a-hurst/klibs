@@ -20,6 +20,7 @@ from subprocess import Popen, PIPE
 
 from math import sin, cos, radians, pi, atan2, degrees
 
+from klibs import env
 from klibs.KLConstants import LEGACY_LOCATIONS, BL_RIGHT, BL_LEFT, BL_BOTTOM_RIGHT, BL_BOTTOM, BL_BOTTOM_LEFT, BL_TOP, \
 	BL_CENTER, BL_TOP_LEFT, BL_TOP_RIGHT, PARTICIPANT_FILE, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS, TF_DATA,\
 	EDF_EXT, EDF_FILE, DATETIME_STAMP, DATA_EXT, MOD_KEYS
@@ -366,8 +367,8 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False):
 
 def pump(return_events=False):
 	from klibs.KLEventInterface import TrialEvent
-	while not P.process_queue.empty():
-		event = P.process_queue.get()
+	while not env.process_queue.empty():
+		event = env.process_queue.get()
 
 		# if event has been updated, ignore first encounter but remove it from update list
 		if event[0] in P.updated_events:
@@ -376,7 +377,7 @@ def pump(return_events=False):
 		sdl_event = SDL_Event()
 		sdl_event.type = SDL_RegisterEvents(1)
 		success = SDL_PushEvent(sdl_event)
-		P.process_queue_data[sdl_event.type] = TrialEvent(event[0], event[1], event[2], sdl_event.type)
+		env.process_queue_data[sdl_event.type] = TrialEvent(event[0], event[1], event[2], sdl_event.type)
 		if success == 0:
 			raise RuntimeError(SDL_GetError())
 	SDL_PumpEvents()

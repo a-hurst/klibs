@@ -9,7 +9,7 @@ from klibs.KLGraphics import blit, clear, fill, flip
 import klibs.KLParams as P
 from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump
 # from klibs.KLUserInterface import ui_request
-from klibs import text_manager as tm  # note: this is a global instance of TextManager, not the class itself; see __init__.py
+from klibs import text_manager as txtm  # note: this is a global instance of TextManager, not the class itself; see __init__.py
 
 
 
@@ -35,12 +35,12 @@ def alert(text, blit=True, display_for=0):
 
 		clear()
 		fill(P.default_fill_color)
-		message(text, "alert", blit=True, flip=True)
+		message(text, "alert", blit_txt=True, flip_screen=True)
 		if display_for > 0:
 			pass
 			# todo: use ui_request and timekeeper
 
-def message(text, style=None, location=None, registration=None, blit=True, flip=False, wrap_width=None):
+def message(text, style=None, location=None, registration=None, blit_txt=True, flip_screen=False, wrap_width=None):
 		"""
 		``heavy_modification_planned`` ``backwards_compatibility_planned``
 
@@ -61,18 +61,20 @@ def message(text, style=None, location=None, registration=None, blit=True, flip=
 		:type registration: Integer
 		:param wrap_width: Maximum width (px) of text line before breaking.
 		:type wrap_width: Integer
-		:param blit: Toggles whether message surface is automatically :func:`~klibs.KLExperiment.Experiment.blit` to
+		:param blit_txt: Toggles whether message surface is automatically :func:`~klibs.KLExperiment.Experiment
+		.blit` to
 		the display buffer.
-		:type blit: Boolean
-		:param flip: Toggles whether :func:`~klibs.KLExperiment.Experiment.flip` is automatically called after blit.
-		:type flip: Boolean
+		:type blit_txt: Boolean
+		:param flip_screen: Toggles whether :func:`~klibs.KLExperiment.Experiment.flip` is automatically called after
+		blit.
+		:type flip_screen: Boolean
 		:return: NumpySurface or Boolean
 			"""
 		if not style:
-			style = tm.styles['default']
+			style = txtm.styles['default']
 		else:
 			try:
-				style = tm.styles[style]
+				style = txtm.styles[style]
 			except TypeError:
 				pass
 		# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
@@ -100,12 +102,12 @@ def message(text, style=None, location=None, registration=None, blit=True, flip=
 				except ValueError:
 					raise ValueError("Argument 'location' must be a location constant or iterable x,y coordinate pair")
 
-		message_surface = tm.render(text, style)
-		if not blit:
+		message_surface = txtm.render(text, style)
+		if not blit_txt:
 			return message_surface
 		else:
 			blit(message_surface, registration, location)
-		if flip:
+		if flip_screen:
 			flip()
 
 def query():

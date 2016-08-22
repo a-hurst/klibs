@@ -237,7 +237,7 @@ class TrialFactory(object):
 			col_index += 1
 			factors.append([col_name, vals if len(vals) else [None]])
 		block = self.__generate_trials(factors, 1, trial_count)
-		blocks.insert(block_num - 1, block[0], practice)  # there is no "zero" block from the UI/UX perspective
+		self.blocks.insert(block_num - 1,[block[0], practice])  # there is no "zero" block from the UI/UX perspective
 
  	def define_trial(self, rule, quantity):
 		pass

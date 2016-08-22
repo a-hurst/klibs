@@ -146,7 +146,7 @@ class TextManager(object):
 		:param text:
 		:type text: String
 		:param style:
-		:type style: :class:`~klibs.KLTextManager.TextStyle`
+		:type style: :class:`~klibs.KLText.TextStyle`
 		:return:
 		"""
 		text = str(text)

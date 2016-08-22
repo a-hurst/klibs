@@ -8,21 +8,20 @@ from os import mkdir
 from os.path import join
 from shutil import copyfile, copytree
 
+from klibs.KLEnvironment import Environment
 from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
 from klibs.KLConstants import ALL
 from klibs.KLUtilities import full_trace, pump, now, list_dimensions, force_quit
 from klibs.KLTrialFactory import TrialFactory
-from klibs import trial_clock as tc
 from klibs.KLGraphics import flip, blit, fill, display_init
 from klibs.KLDatabase import Database
 from klibs.KLUserInterface import any_key
-from klibs import event_interface as evi
 from klibs.KLAudio import AudioManager
 from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLCommunication import message, query
-from klibs.KLDebug import v
+
 # from klibs.KLCommunication import  message
 # import klibs.eyelink as el
 # import klibs.database  as db
@@ -32,7 +31,7 @@ from klibs.KLDebug import v
 
 
 
-class Experiment(object):
+class Experiment(object, Environment):
 	"""
 	Initializes a KLExperiment Object
 
@@ -60,7 +59,7 @@ class Experiment(object):
 	block_break_messages = []
 	blocks = None
 
-	def __init__(self, project_name, eyelink):
+	def __init__(self, project_name, eyelink, environment):
 		"""
 		Initializes a KLExperiment Object
 
@@ -68,8 +67,9 @@ class Experiment(object):
 		:type project_name: String
 		:raise EnvironmentError:
 		"""
-		self.eyelink = eyelink
 		super(Experiment, self).__init__()
+		self = environment
+		self.eyelink = eyelink
 
 		# initialize audio management for the experiment
 		self.audio = AudioManager()
@@ -108,7 +108,7 @@ class Experiment(object):
 		any_key()
 
 
-	def __execute_experiment(self, *args, **kwargs):
+	def __execute_experiment__(self, *args, **kwargs):
 		"""
 		Private method, launches and manages the experiment after KLExperiment object's run() method is called.
 
@@ -131,21 +131,21 @@ class Experiment(object):
 						P.trial_id = 1
 					# block_base = (P.block_number * P.trials_per_block) - P.trials_per_block
 					# P.trial_number = block_base + block.i + 1 - P.recycle_count
-					self.__trial(trial, block.practice)
+					self.__trial__(trial, block.practice)
 					P.trial_number += 1
 				except TrialException as e:
 					block.recycle()
 					P.recycle_count += 1
-					evi.send('trial_recycled')
+					self.evm.send('trial_recycled')
 					self.database.current(False)
 					self.clear()
 				self.rc.reset()
 		self.clean_up()
-		evi.dump_events()
+		self.evm.dump_events()
 		self.database.db.commit()
 		self.database.db.close()
 
-	def __trial(self, trial, practice):
+	def __trial__(self, trial, practice):
 		"""
 		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1,...param_n]]
 
@@ -160,23 +160,23 @@ class Experiment(object):
 		self.trial_prep()
 		tx = None
 		try:
-			tc.start()
+			self.clockstart()
 			trial_data = self.trial()
-			tc.stop()
-			self.__log_trial(trial_data)
+			self.clockstop()
+			self.__log_trial__(trial_data)
 			self.trial_clean_up()
 		except TrialException as e:
 			P.trial_id = False
 			self.trial_clean_up()
-			tc.stop()
+			self.clockstop()
 			tx = e
 		if P.eye_tracking:
 			self.eyelink.stop()
-		evi.clear()
+		self.evm.clear()
 		if tx:
 			raise tx
 
-	def __log_trial(self, trial_data, auto_id=True):
+	def __log_trial__(self, trial_data, auto_id=True):
 		"""
 		Private method, should not be called by user; use KLExperiment.log()
 
@@ -362,8 +362,8 @@ class Experiment(object):
 			full_trace()
 
 		try:
-			if not evi.events_dumped:
-				evi.dump_events()
+			if not self.evmevents_dumped:
+				self.evmdump_events()
 		except:
 			pass
 
@@ -400,7 +400,7 @@ class Experiment(object):
 		SDL_Quit()
 
 		try:
-			tc.terminate()
+			self.clockterminate()
 		except RuntimeError:
 			force_quit()
 
@@ -434,7 +434,7 @@ class Experiment(object):
 		self.blocks = self.trial_factory.export_trials()
 		self.setup()
 		try:
-			self.__execute_experiment(*args, **kwargs)
+			self.__execute_experiment__(*args, **kwargs)
 		except RuntimeError:
 			force_quit()
 

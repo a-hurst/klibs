@@ -5,6 +5,7 @@ import sqlite3
 from os import remove, rename
 from os.path import exists, join, isfile
 
+from klibs.KLEnvironment import Environment
 from klibs.KLConstants import DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, TAB, ID, SQL_NULL, SQL_COL_DELIM_STR, PY_FLOAT, \
 	PY_NUM, PY_BIN, PY_INT, PY_STR, SQL_INT, SQL_FLOAT, SQL_STR, SQL_NUMERIC, SQL_KEY, SQL_REAL, SQL_BIN, QUERY_SEL, \
 	DATA_EXT
@@ -128,7 +129,7 @@ class EntryTemplate(object):
 
 
 # TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
-class Database(object):
+class Database(object, Environment):
 	__default_table = None
 	__open_entries = {}
 	__current_entry = None
@@ -145,10 +146,10 @@ class Database(object):
 	data_column_format = DB_COL_TITLE
 
 	def __init__(self, project_name=None):
-		self.__init_db()
+		self.__init_db__()
 		self.build_table_schemas()
 
-	def __catch_db_not_found(self):
+	def __catch_db_not_found__(self):
 		self.db = None
 		self.cursor = None
 		self.schema = None
@@ -156,55 +157,55 @@ class Database(object):
 		user_action = raw_input(err_string.format(P.database_path))
 		if user_action ==DB_SUPPLY_PATH:
 			P.database_path = raw_input("Great. Where might it be?")
-			self.__init_db()
+			self.__init_db__()
 		elif user_action == DB_CREATE:
 			f = open(P.database_path, "a").close()
-			self.__init_db()
+			self.__init_db__()
 		else:
 			quit()
 
-	def __init_db(self):
+	def __init_db__(self):
 		try:
 			shutil.copy(P.database_path, P.database_backup_path)
 			self.db = sqlite3.connect(P.database_path)
 			self.cursor = self.db.cursor()
-			table_list = self.__tables()
+			table_list = self.__tables__()
 			if len(table_list) == 0:
 				if exists(P.schema_file_path):
-					self.__deploy_schema(P.schema_file_path)
+					self.__deploy_schema__(P.schema_file_path)
 					return True
 				elif exists(P.schema_file_path_legacy):
-					self.__deploy_schema(P.schema_file_path_legacy)
+					self.__deploy_schema__(P.schema_file_path_legacy)
 					return True
 				else:
 					raise RuntimeError("Database exists but no tables were found and no table schema were provided.")
 		except (sqlite3.OperationalError, IOError):
-			self.__catch_db_not_found()
+			self.__catch_db_not_found__()
 
-	def __tables(self):
+	def __tables__(self):
 		# TODO: I changed tableCount to tableList and made it an attribute as it seems to be used in rebuild. Verify this.
 		self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 		self.table_list = self.cursor.fetchall()
 		return self.table_list
 
-	def __drop_tables(self, table_list=None, kill_app=False):
+	def __drop_tables__(self, table_list=None, kill_app=False):
 		if table_list is None:
-			table_list = self.__tables()
+			table_list = self.__tables__()
 		for n in table_list:
 			if str(n[0]) != "sqlite_sequence":
 				self.cursor.execute("DROP TABLE `{0}`".format(str(n[0])))
 		self.db.commit()
 		if kill_app:
 			self.db.close()
-			self.__restore()
+			self.__restore__()
 			quit()
 
-	def __restore(self):
+	def __restore__(self):
 		# restores database file from the back-up of it
 		remove(P.database_path)
 		rename(P.database_backup_path, P.database_path)
 
-	def __deploy_schema(self, schema):
+	def __deploy_schema__(self, schema):
 		f = open(schema, 'rt')
 		self.cursor.executescript(f.read())
 		return True
@@ -251,19 +252,19 @@ class Database(object):
 
 	def rebuild(self):
 		#todo: make this optionally handle the backup database too
-		self.__drop_tables()
+		self.__drop_tables__()
 		e = "Error: Database schema could not be deployed; there is a syntax error in the SQL file."
 		if self.schema is not None:
-			if self.__deploy_schema(self.schema, False):
+			if self.__deploy_schema__(self.schema, False):
 				initialized = True
 			else:
-				self.__drop_tables(self.table_list, True)
+				self.__drop_tables__(self.table_list, True)
 				raise IOError(e)
 		elif P.schema_file_path is not None:
-			if self.__deploy_schema(P.schema_file_path):
+			if self.__deploy_schema__(P.schema_file_path):
 				initialized = True
 			else:
-				self.__drop_tables(self.table_list)
+				self.__drop_tables__(self.table_list)
 				raise IOError(e)
 
 		if self.build_table_schemas():

@@ -157,12 +157,16 @@ def update():
 
 
 def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose):
-	import klibs
-	from klibs import  P, event_interface
+	from klibs import  P
 	from klibs.KLGraphics import display_init
 	from klibs.KLEyeLink import EyeLinkExt
 	from klibs.KLDatabase import Database
 	from klibs.KLUtilities import force_quit
+	from klibs import env
+	from klibs.KLEventInterface import EventManager
+	from klibs.KLTime import TrialClock, TimeKeeper
+	from klibs.KLText import TextManager
+
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
 
@@ -186,7 +190,15 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 
 	# set initial param values for project's context
 	P.setup(project_name)
-	event_interface.import_events()
+
+	# create runtime environment
+	env.evm = EventManager()
+	env.clock = TrialClock()
+	env.txtm = TextManager()
+	env.tk = TimeKeeper()
+	env.db = Database(project_name)
+	env.evm.import_events()
+
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
@@ -199,19 +211,19 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		eyelink.dummy_mode = P.eye_tracker_available is False
 	else:
 		eyelink = False
-	# create a Database instance
-	klibs.database = Database(project_name)
+
 	# finally, import the project's Experiment class and instantiate
 	try:
 		experiment_file = imp.load_source(path, "experiment.py")
 		experiment = getattr(experiment_file, project_name)
-		klibs.experiment = experiment(project_name, eyelink)
+		env.exp = experiment(project_name, eyelink)
 
 		# create a display context if everything's gone well so far
-		klibs.experiment.window = display_init(screen_size)
-		klibs.experiment.show_logo()
+		env.exp.window = display_init(screen_size)
+		env.exp.show_logo()
+
 		# off to the races team...
-		klibs.experiment.run()
+		env.exp.run()
 	except SystemExit:
 		pass
 	except Exception as e:

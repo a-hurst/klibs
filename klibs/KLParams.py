@@ -9,9 +9,8 @@ import time
 from datetime import datetime
 from klibs.KLConstants import *
 import os
-import multiprocessing as mp
 
-klibs_commit = 'a73aa1f02117370e90ee66ce4b2c462c3736e618'
+klibs_commit = '03e90909c8eccdbd3ddb4159aca86d3d00af32b3'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -154,10 +153,6 @@ dm_auto_threshold = True
 dm_print_log = True
 dm_print_events = True
 verbose_mode = False
-process_queue = mp.Queue()
-updated_events = []
-process_queue_data = {}
-
 
 def init_project():
 	from klibs.KLKeyMap import KeyMap

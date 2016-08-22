@@ -3,4 +3,4 @@
 .DS_Store
 build
 build/*
-__init__.pyc
+**/.pyc

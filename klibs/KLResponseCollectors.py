@@ -514,7 +514,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 				self.first_sample_time = P.clock.trial_time
 				timestamp = 0.0
 			p = [mp[0] - self.x_offset, mp[1] - self.y_offset]
-			if p in P.ignore_points_at:
+			if tuple(p) in P.ignore_points_at:
 				return
 			p.append(timestamp)
 			try:

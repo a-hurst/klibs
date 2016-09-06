@@ -5,7 +5,7 @@ import sqlite3
 from os import remove, rename
 from os.path import exists, join, isfile
 
-from klibs.KLEnvironment import Environment
+from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, TAB, ID, SQL_NULL, SQL_COL_DELIM_STR, PY_FLOAT, \
 	PY_NUM, PY_BIN, PY_INT, PY_STR, SQL_INT, SQL_FLOAT, SQL_STR, SQL_NUMERIC, SQL_KEY, SQL_REAL, SQL_BIN, QUERY_SEL, \
 	DATA_EXT
@@ -129,7 +129,7 @@ class EntryTemplate(object):
 
 
 # TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
-class Database(object, Environment):
+class Database(EnvAgent):
 	__default_table = None
 	__open_entries = {}
 	__current_entry = None
@@ -146,6 +146,7 @@ class Database(object, Environment):
 	data_column_format = DB_COL_TITLE
 
 	def __init__(self, project_name=None):
+		super(EnvAgent, self).__init__()
 		self.__init_db__()
 		self.build_table_schemas()
 

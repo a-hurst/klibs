@@ -378,7 +378,7 @@ def infer_rt(trial):
 			last_f = f
 			continue
 		if vf.index(f) > 2:
-			diff = (f.start - last_f.end) - 500
+			diff = (f.start_clock - last_f.end) - 500
 			pre_rt += diff if diff > 0 else 0
 		last_f = f
 	# pre_rt += 500 * (len(vf) - 1)

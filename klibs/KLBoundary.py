@@ -1,14 +1,14 @@
 __author__ = 'jono'
 import abc
 
-from klibs.KLConstants import RECT_BOUNDARY, CIRCLE_BOUNDARY, ANULUS_BOUNDARY
+from klibs.KLConstants import RECT_BOUNDARY, CIRCLE_BOUNDARY, ANNULUS_BOUNDARY
 from klibs.KLExceptions import BoundaryError
 from klibs.KLUtilities import iterable, midpoint, line_segment_len
 
 
 class BoundaryInspector(object):
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
 		self.boundaries = {}
 
 	def add_boundary(self, label, bounds, shape):
@@ -16,10 +16,9 @@ class BoundaryInspector(object):
 			b = RectangleBoundary(label, *bounds)
 		elif shape == CIRCLE_BOUNDARY:
 			b = CircleBoundary(label, *bounds)
-		elif shape == ANULUS_BOUNDARY:
-			b = AnulusBoundary(label, *bounds)
+		elif shape == ANNULUS_BOUNDARY:
+			b = AnnulusBoundary(label, *bounds)
 		self.boundaries[label] = b
-
 
 	def add_boundaries(self, boundaries):
 		for b in boundaries:
@@ -27,8 +26,7 @@ class BoundaryInspector(object):
 
 	def within_boundary(self, label, reference):
 		if not self.boundaries[label].active:
-			raise BoundaryError("Boundary '{0}' is not active for searching.".format(label)
-			)
+			raise BoundaryError("Boundary '{0}' is not active for searching.".format(label))
 		return self.boundaries[label].within(reference)
 
 	def within_boundaries(self, reference, labels=None):
@@ -88,10 +86,9 @@ class BoundaryInspector(object):
 		self.boundaries[label].active = False
 
 
-
 class Boundary(object):
 	__name__ = "KLBoundary"
-	__shape = None
+	__shape__ = None
 
 	def __init__(self, label):
 		super(Boundary, self).__init__()
@@ -104,7 +101,7 @@ class Boundary(object):
 
 	@property
 	def shape(self):
-		return self.__shape
+		return self.__shape__
 
 	@property
 	def bounds(self):
@@ -119,10 +116,9 @@ class Boundary(object):
 		pass
 
 
-
 class RectangleBoundary(Boundary):
 	__name__ = "KLRectangleBoundary"
-	__shape = RECT_BOUNDARY
+	__shape__ = RECT_BOUNDARY
 
 	def __init__(self, label, p1, p2):
 		super(RectangleBoundary, self).__init__(label)
@@ -169,17 +165,17 @@ class RectangleBoundary(Boundary):
 
 class CircleBoundary(Boundary):
 	__name__ = "KLCircleBoundary"
-	__shape = CIRCLE_BOUNDARY
+	__shape__ = CIRCLE_BOUNDARY
 
 	def __init__(self, label, center, radius):
 		super(CircleBoundary, self).__init__(label)
-		self.__r = None
-		self.__center = None
+		self.__r__ = None
+		self.__c__ = None
 		self.bounds = [center, radius]
 
 	@property
 	def bounds(self):
-		return [self.__center, self.__r]
+		return [self.__c__, self.__r__]
 
 	@bounds.setter
 	def bounds(self, boundary_data):
@@ -192,41 +188,42 @@ class CircleBoundary(Boundary):
 				raise ValueError
 		except (TypeError, ValueError):
 			raise ValueError("Argument 'radius' must be a positive number.")
-		self.__center = boundary_data[0]
-		self.__r = boundary_data[1]
+		self.__c__ = boundary_data[0]
+		self.__r__ = boundary_data[1]
 
 	@property
 	def center(self):
-		return self.__center
+		return self.__c__
 
 
 	@property
 	def radius(self):
-		return self.__r
+		return self.__r__
 
 	def within(self, reference):
+		print "ref: {0}".format(reference)
 		try:
-			d_xy = line_segment_len(reference, self.__center)
+			d_xy = line_segment_len(reference, self.__c__)
 		except TypeError:
 			d_xy = reference
-		return  d_xy < self.__r
+		return  d_xy < self.__r__
 
 
-class AnulusBoundary(Boundary):
-	__name__ = "KLAnulusBoundary"
-	__shape = ANULUS_BOUNDARY
+class AnnulusBoundary(Boundary):
+	__name__ = "KLAnnulusBoundary"
+	__shape__ = ANNULUS_BOUNDARY
 
 	def __init__(self, label, center, inner_radius, span=None):
-		super(AnulusBoundary, self).__init__(label)
-		self.__r_inner = None
-		self.__span_range = None
-		self.__span = None
-		self.__center = None
+		super(AnnulusBoundary, self).__init__(label)
+		self.__r_inner__ = None
+		self.__span_range__ = None
+		self.__span__ = None
+		self.__center__ = None
 		self.bounds = [center, inner_radius, span]
 
 	@property
 	def bounds(self):
-		return [self.__center, self.__r_inner, self.__r_outer, self.__span]
+		return [self.__center__, self.__r_inner__, self.__r_outer, self.__span__]
 
 	@bounds.setter
 	def bounds(self, boundary_data):
@@ -236,27 +233,26 @@ class AnulusBoundary(Boundary):
 			raise ValueError("Argument 'center' expects 2-item sequence (an x,y pair).")
 		try:
 			for i in boundary_data[1:]:
-				if boundary_data[1] < 0:
-					raise ValueError
+				if i < 0: raise ValueError
 		except (TypeError, ValueError):
 			raise ValueError("Argument 'radius' must be a positive number.")
-			self.__center = boundary_data[0]
-			self.__r_inner = boundary_data[1]
-			self.__span = boundary_data[2]
-			self.__span_range = range(self.__r_inner, self.__r_inner + self.__span)
+		self.__center__ = boundary_data[0]
+		self.__r_inner__ = boundary_data[1]
+		self.__span__ = boundary_data[2]
+		self.__span_range__ = range(self.__r_inner__, self.__r_inner__ + self.__span__)
 
 	@property
 	def center(self):
-		return self.__center
+		return self.__center__
 
 	@property
 	def span(self):
-		return self.__span
+		return self.__span__
 
 	@property
 	def inner_radius(self):
-		return self.__r_inner
+		return self.__r_inner__
 
 	def within(self, reference):
-		d_xy = line_segment_len(reference, self.__center) if iterable(reference) else reference
-		return  d_xy in self.__span_range
+		d_xy = line_segment_len(reference, self.__center__) if iterable(reference) else reference
+		return  d_xy in self.__span_range__

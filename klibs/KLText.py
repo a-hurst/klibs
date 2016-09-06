@@ -1,4 +1,4 @@
-__author__ = 'jono'
+__author____ = 'jono'
 from numpy import asarray, zeros, concatenate
 from PIL import ImageFont
 from sdl2.sdlttf import TTF_Init, TTF_OpenFont, TTF_RenderText_Blended, TTF_RenderUTF8_Solid
@@ -12,7 +12,7 @@ from klibs.KLUtilities import pt_to_px
 from klibs.KLGraphics import NpS, rgb_to_rgba, argb32_to_rgba
 
 class TextStyle(object):
-	__font_size = None
+	__font_size__ = None
 	#todo: render_size(str, width)
 	def __init__(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None, anti_alias=True):
 		"""
@@ -49,9 +49,9 @@ class TextStyle(object):
 	@font_size.setter
 	def font_size(self, size):
 		try:
-			self.__font_size = int(size)
+			self.__font_size__ = int(size)
 		except ValueError:
-			self.__font_size = int(floor(1.0 / 72 * P.ppi * int(size[0:-2])))
+			self.__font_size__ = int(floor(1.0 / 72 * P.ppi * int(size[0:-2])))
 
 	def __str__(self):
 		return "klibs.KLTextManager.TextStyle ('{0}') at {1}".format(self.label, hex(id(self)))
@@ -72,16 +72,16 @@ class TextManager(object):
 	default_font_size = None
 	styles = {}
 	legacy_styles_count = 0
-	__default_color = (0, 0, 0, 255)
-	__default_input_color = (3, 118, 163, 255)
-	__default_bg_color = (255, 255, 255)
-	__default_font_size = None
-	__default_font = None
-	__default_message_duration = 1
+	__default_color__ = (0, 0, 0, 255)
+	__default_input_color__ = (3, 118, 163, 255)
+	__default_bg_color__ = (255, 255, 255)
+	__default_font_size__ = None
+	__default_font__ = None
+	__default_message_duration__ = 1
 
 
 	def __init__(self):
-		self.__build_font_sizes()
+		self.__build_font_sizes__()
 		self.add_font("Anonymous Pro", font_file_basename="AnonymousPro")
 		self.add_font("Frutiger")
 		self.add_style("debug", 12, (225, 145, 85, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro", anti_alias=False)
@@ -90,14 +90,14 @@ class TextManager(object):
 		self.add_style("default", P.default_font_size, P.default_color, font_label="Frutiger")
 		TTF_Init()
 
-	def __build_font_sizes(self):
+	def __build_font_sizes__(self):
 		size_list = range(3, 96)
 		self.font_sizes = {}
 		for num in size_list:
 			key = str(num) + 'pt'
 			self.font_sizes[key] = int(floor(1.0 / 72 * P.ppi * num))
 
-	def __compile_font(self, font, font_size):
+	def __compile_font__(self, font, font_size):
 		# process font_size argument or assign a default
 		try:
 			font_size = self.font_sizes[font_size]
@@ -110,7 +110,7 @@ class TextManager(object):
 	def add_style(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None, anti_alias=True):
 		self.styles[label] = TextStyle(label, font_size, color, bg_color, line_height, font_label, anti_alias)
 
-	def __wrap(self, text, style, width=None):
+	def __wrap__(self, text, style, width=None):
 		lines = text.split("\n")
 		if width:
 			pass  # TODO: test various lengths until you get a size that works, then re-populate lines
@@ -140,7 +140,7 @@ class TextManager(object):
 		# return [text_surface, original_surfs]
 		return text_surface
 
-	def render(self, text, style="default", from_wrap=False):
+	def render(self, text, style="default", max_width=None, from_wrap=False):
 		"""
 
 		:param text:
@@ -155,7 +155,7 @@ class TextManager(object):
 			style = self.styles[style]
 
 		if len(text.split("\n")) > 1:
-			return self.__wrap(text, style)
+			return self.__wrap__(text, style)
 
 		if len(text) == 0:
 			text = " "
@@ -167,7 +167,6 @@ class TextManager(object):
 		else:
 			rendered_text = TTF_RenderUTF8_Solid(rendering_font, text, SDL_Color(*style.color)).contents
 			px = asarray(PixelView(rendered_text))
-			print px
 			surface_array = zeros((px.shape[0], px.shape[1], 4));
 			surface_array[...] = px * 255
 		if not from_wrap:
@@ -175,8 +174,8 @@ class TextManager(object):
 		else:
 			surface =  NpS(surface_array)
 			#surface = surface_array
-			#return surface if surface.shape[1] < P.screen_x else self.__wrap(text, style, P.screen_x - 20)
-		return surface if surface.width < P.screen_x else self.__wrap(text, style, P.screen_x - 20)
+			#return surface if surface.shape[1] < P.screen_x else self.__wrap__(text, style, P.screen_x - 20)
+		return surface if surface.width < P.screen_x else self.__wrap__(text, style, P.screen_x - 20)
 
 	def add_font(self, font_name, font_extension="ttf", font_file_basename=None):
 		"""
@@ -215,7 +214,7 @@ class TextManager(object):
 		:param color:
 		"""
 		if type(color) is list:
-			self.__default_color = color
+			self.__default_color__ = color
 
 	@property
 	def default_input_color(self):
@@ -232,7 +231,7 @@ class TextManager(object):
 		:param color:
 		"""
 		if type(color) in (list, tuple):
-			self.__default_input_color = color
+			self.__default_input_color__ = color
 
 	@property
 	def default_bg_color(self):
@@ -249,7 +248,7 @@ class TextManager(object):
 		:param color:
 		"""
 		if type(color) is list:
-			self.__default_bg_color = color
+			self.__default_bg_color__ = color
 
 	@property
 	def default_font(self):
@@ -266,7 +265,7 @@ class TextManager(object):
 		:param color:
 		"""
 		if type(color) is list:
-			self.__default_bg_color = color
+			self.__default_bg_color__ = color
 
 # def render(self, text, font_path, font_size=12, color=(0, 0, 0, 255), bg_color=(0, 0, 0, 0)):
 # 	rendering_font = ImageFont.truetype(font_path, font_size)

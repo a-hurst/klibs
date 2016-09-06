@@ -1,29 +1,49 @@
 __author__ = 'jono'
-import multiprocessing as mp
 
-evm = None  # EventManager instance
-clock = None  # TrialClock instance
-exp = None  # Experiment instance
-db = None  # Database instance
-txtm = None  # TextManager instance
-tk = None  # TimeKeeper instance
-process_queue = mp.Queue()
+evm = None  	# EventManager instance
+exp = None  	# Experiment instance
+db = None  		# Database instance
+txtm = None  	# TextManager instance
+tk = None  		# TimeKeeper instance
+rc = None  		# ResponseCollector instance
+el = None  		# EyeLink instance
 
-
-class Environment(object):
-	evm = None
-	clock = None
-	db = None
-	txtm = None
-	tk = None
-	process_queue = None
-	updated_events = []
-	process_queue_data = {}
+class EnvAgent(object):
 
 	def __init__(self):
-		self.evm = evm
-		self.clock = clock
-		self.db = db
-		self.txtm = txtm
-		self.tk = tk
-		self.process_queue = process_queue
+		super(EnvAgent, self).__init__()
+
+	@property
+	def evm(self):
+		from klibs.KLEnvironment import evm
+		return evm
+
+	@property
+	def exp(self):
+		from klibs.KLEnvironment import exp
+		return exp
+
+	@property
+	def txtm(self):
+		from klibs.KLEnvironment import txtm
+		return txtm
+
+	@property
+	def db(self):
+		from klibs.KLEnvironment import db
+		return db
+
+	@property
+	def tk(self):
+		from klibs.KLEnvironment import tk
+		return tk
+
+	@property
+	def rc(self):
+		from klibs.KLEnvironment import rc
+		return rc
+
+	@property
+	def el(self):
+		from klibs.KLEnvironment import el
+		return el

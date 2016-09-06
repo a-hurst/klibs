@@ -258,7 +258,7 @@ def flip(window=None):
 
 	:raises: ValueError
 	"""
-	from klibs import experiment as exp
+	from klibs.KLEnvironment import exp
 	if exp:
 		exp.before_flip()
 	if not window:

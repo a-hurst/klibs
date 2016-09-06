@@ -9,7 +9,7 @@ import time
 import datetime
 import re
 import traceback
-import multiprocessing as mplib
+import multiprocessing as mp
 from sys import exc_info
 from sdl2 import SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents, SDL_GetError, \
 	SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_DISABLE, SDL_ENABLE, KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS
@@ -20,12 +20,10 @@ from subprocess import Popen, PIPE
 
 from math import sin, cos, radians, pi, atan2, degrees
 
-from klibs import env
 from klibs.KLConstants import LEGACY_LOCATIONS, BL_RIGHT, BL_LEFT, BL_BOTTOM_RIGHT, BL_BOTTOM, BL_BOTTOM_LEFT, BL_TOP, \
 	BL_CENTER, BL_TOP_LEFT, BL_TOP_RIGHT, PARTICIPANT_FILE, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS, TF_DATA,\
 	EDF_EXT, EDF_FILE, DATETIME_STAMP, DATA_EXT, MOD_KEYS
 from klibs import P
-
 
 def absolute_position(position, destination):
 	height = None
@@ -329,17 +327,11 @@ def mouse_pos(pump_event_queue=True, position=None):
 
 
 def mouse_angle(pump_event_queue=True, reference=None, rotation=0, clockwise=False):
-
 	if pump_event_queue:
 		SDL_PumpEvents()
 	if reference is None:
 		reference = P.screen_c
-	m = mouse_pos()
 	return angle_between(reference, mouse_pos(), rotation, clockwise)
-	# angle = degrees(math.atan2(float(m[0] - reference[0]), float(m[1] - reference[1]) * 180 / math.pi)) - 90
-	# angle += rotation
-	# angle %= 360
-	# return angle if clockwise else 360 - angle
 
 
 def now(format_time=False, format_template=DATETIME_STAMP):
@@ -366,20 +358,22 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False):
 
 
 def pump(return_events=False):
-	from klibs.KLEventInterface import TrialEvent
-	while not env.process_queue.empty():
-		event = env.process_queue.get()
-
-		# if event has been updated, ignore first encounter but remove it from update list
-		if event[0] in P.updated_events:
-			P.updated_events.remove(event[0])
-			continue
+	from klibs.KLEnvironment import evm
+	# try:
+	while not evm.clock_sync_queue.empty():
+		event = evm.clock_sync_queue.get()
+		# put event into the SDL event queue
 		sdl_event = SDL_Event()
 		sdl_event.type = SDL_RegisterEvents(1)
 		success = SDL_PushEvent(sdl_event)
-		env.process_queue_data[sdl_event.type] = TrialEvent(event[0], event[1], event[2], sdl_event.type)
-		if success == 0:
-			raise RuntimeError(SDL_GetError())
+
+		# store the event (along with it's data) in the EventManager's log
+		event.append(sdl_event.type)
+		evm.log_trial_event(*event)
+
+		if success == 0: raise RuntimeError(SDL_GetError())
+	# except AttributeError:
+	# 	pass  # for when called before evm initialized
 	SDL_PumpEvents()
 	if return_events:
 		return get_events()
@@ -524,7 +518,7 @@ def sdl_key_code_to_str(sdl_keysym):
 
 def threaded(func):
 	def threaded_func(*args, **kwargs):
-		p = mplib.Process(target=func, args=args, kwargs=kwargs)
+		p = mp.Process(target=func, args=args, kwargs=kwargs)
 		p.start()
 		return p
 	return threaded_func

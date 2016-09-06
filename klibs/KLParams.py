@@ -10,7 +10,7 @@ from datetime import datetime
 from klibs.KLConstants import *
 import os
 
-klibs_commit = '03e90909c8eccdbd3ddb4159aca86d3d00af32b3'
+klibs_commit = '718629c82af02a7bd34a8b9977439def81f810a1'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -86,7 +86,6 @@ paused = False
 testing = False
 default_alert_duration = 1
 
-#  todo: add a lot more default colors, a default font, etc.
 default_fill_color = (45, 45, 45, 255)
 default_color = (255, 255, 255, 255)
 default_response_color = default_color

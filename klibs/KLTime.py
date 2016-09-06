@@ -4,13 +4,8 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 
 from time import time
 
-
-from klibs.KLConstants import TK_S, TK_MS, EVI_CLOCK_START, EVI_CLOCK_STOP, EVI_CLOCK_RESET, EVI_TRIAL_START,\
-	EVI_SEND_TIME, EVI_EXP_END, EVI_DEREGISTER_EVENT
-from klibs import P
-from klibs.KLUtilities import pump, threaded, full_trace
-from klibs.KLUserInterface import ui_request
-from klibs.KLEventInterface import TrialEventTicket
+from klibs.KLEnvironment import EnvAgent
+from klibs.KLConstants import TK_S, TK_MS
 
 class CountDown(object):
 	duration = 0
@@ -62,7 +57,7 @@ class CountDown(object):
 		self.resume()  # deprecated, maintained for backwards compatibility
 
 
-class TimeKeeper(object):
+class TimeKeeper(EnvAgent):
 	moments = {}
 	periods = {}
 	mean_moments = {}
@@ -71,9 +66,8 @@ class TimeKeeper(object):
 
 	# todo: add units argument as between secondds/ ms
 
-	def __init__(self, environment):
+	def __init__(self):
 		super(TimeKeeper, self).__init__()
-		self.env = environment
 		self.log("Instantiated")
 
 	def log(self, label, time_value=None):
@@ -169,25 +163,5 @@ class TimeKeeper(object):
 		if label is not None:
 			self.countdowns[label] = countdown
 		return countdown
-
-
-class TrialClock(object):
-
-	def __init__(self, environment):
-		self.__registry__ = []
-		self.tasks = []
-		self.events = []
-		self.sent_events = []
-		self.stages = []
-		self.events_index = {}
-		self.start_time = None
-		self.start_lag = None
-		self.polling = False   # prevents multiple calls to polling simultaneously
-		self.env = environment
-
-
-
-
-
 
 

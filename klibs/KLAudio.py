@@ -169,7 +169,7 @@ class AudioStream(object):
 		fill()
 		#message(warn_message, location=P.screen_c, registration=5)
 		flip()
-		sample_period.start()
+		sample_period.start_clock()
 		#message(sampling_message.format(int(math.ceil(sample_period.remaining())), font_size="48pt"), location=P.screen_c, registration=5)
 
 		while sample_period.counting():
@@ -210,7 +210,7 @@ class AudioStream(object):
 			blit(Circle(sample_circle, fill=[84, 60, 182]), position=P.screen_c, registration=5)
 			flip()
 			if not first_flip_rest:
-				sample_period.start()
+				sample_period.start_clock()
 				first_flip_rest = True
 		self.kill_stream()
 

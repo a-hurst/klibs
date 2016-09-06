@@ -10,7 +10,7 @@ from datetime import datetime
 from klibs.KLConstants import *
 import os
 
-klibs_commit = '03e90909c8eccdbd3ddb4159aca86d3d00af32b3'
+klibs_commit = '718629c82af02a7bd34a8b9977439def81f810a1'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"

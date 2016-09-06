@@ -9,7 +9,6 @@ from klibs.KLGraphics import blit, clear, fill, flip
 import klibs.KLParams as P
 from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump
 # from klibs.KLUserInterface import ui_request
-from klibs import text_manager as txtm  # note: this is a global instance of TextManager, not the class itself; see __init__.py
 
 
 
@@ -70,6 +69,9 @@ def message(text, style=None, location=None, registration=None, blit_txt=True, f
 		:type flip_screen: Boolean
 		:return: NumpySurface or Boolean
 			"""
+
+		from klibs.KLEnvironment import txtm
+
 		if not style:
 			style = txtm.styles['default']
 		else:

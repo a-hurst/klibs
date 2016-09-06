@@ -7,8 +7,9 @@ from abc import abstractmethod
 from os import mkdir
 from os.path import join
 from shutil import copyfile, copytree
+from time import time
 
-from klibs.KLEnvironment import Environment
+from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
@@ -31,7 +32,7 @@ from klibs.KLCommunication import message, query
 
 
 
-class Experiment(object, Environment):
+class Experiment(EnvAgent):
 	"""
 	Initializes a KLExperiment Object
 
@@ -59,7 +60,7 @@ class Experiment(object, Environment):
 	block_break_messages = []
 	blocks = None
 
-	def __init__(self, project_name, eyelink, environment):
+	def __init__(self, project_name):
 		"""
 		Initializes a KLExperiment Object
 
@@ -68,17 +69,11 @@ class Experiment(object, Environment):
 		:raise EnvironmentError:
 		"""
 		super(Experiment, self).__init__()
-		self = environment
-		self.eyelink = eyelink
 
 		# initialize audio management for the experiment
 		self.audio = AudioManager()
 
 		self.database = Database()
-
-		# initialize response collector
-		self.response_collector = ResponseCollector(self)
-		self.rc = self.response_collector  # alias for convenience
 
 		if P.pre_render_block_messages:
 			for i in range(1, P.blocks_per_experiment, 1):
@@ -160,9 +155,9 @@ class Experiment(object, Environment):
 		self.trial_prep()
 		tx = None
 		try:
-			self.clockstart()
+			self.evm.start_clock()
 			trial_data = self.trial()
-			self.clockstop()
+			self.evm.stop_clock()
 			self.__log_trial__(trial_data)
 			self.trial_clean_up()
 		except TrialException as e:
@@ -171,7 +166,7 @@ class Experiment(object, Environment):
 			self.clockstop()
 			tx = e
 		if P.eye_tracking:
-			self.eyelink.stop()
+			self.el.stop_clock()
 		self.evm.clear()
 		if tx:
 			raise tx
@@ -192,8 +187,8 @@ class Experiment(object, Environment):
 	def before_flip(self):
 		if P.eye_tracking and P.eye_tracker_available:
 			try:
-				if self.eyelink.draw_gaze:
-					blit(self.eyelink.gaze_dot, 5, self.eyelink.gaze())
+				if self.el.draw_gaze:
+					blit(self.el.gaze_dot, 5, self.el.gaze())
 			except AttributeError:
 				pass
 
@@ -384,7 +379,7 @@ class Experiment(object, Environment):
 		except Exception:
 			print full_trace()
 		try:
-			self.eyelink.shut_down()
+			self.el.shut_down()
 		except:
 			if P.eye_tracking and P.eye_tracker_available:
 				print "EyeLink.stopRecording() unsuccessful.\n \033[91m****** MANUALLY STOP RECORDING PLEASE & " \
@@ -400,7 +395,7 @@ class Experiment(object, Environment):
 		SDL_Quit()
 
 		try:
-			self.clockterminate()
+			self.evm.terminate()
 		except RuntimeError:
 			force_quit()
 
@@ -430,7 +425,7 @@ class Experiment(object, Environment):
 			copytree(P.config_dir, join(version_dir, "Config"))
 
 		if P.eye_tracking and P.eye_tracker_available:
-			self.eyelink.setup()
+			self.el.setup()
 		self.blocks = self.trial_factory.export_trials()
 		self.setup()
 		try:

@@ -3,6 +3,7 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import abc
 
+from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EyeLinkError
 from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_SACCADE_END,\
 	EL_SACCADE_START, EL_FIXATION_END
@@ -12,9 +13,8 @@ from klibs.KLBoundary import BoundaryInspector
 from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLUserInterface import ui_request
-from klibs import trial_clock as tc
 
-class TryLink(BoundaryInspector):
+class TryLink(EnvAgent, BoundaryInspector):
 	__dummy_mode = None
 	__anonymous_boundaries = 0
 	experiment = None
@@ -85,7 +85,7 @@ class TryLink(BoundaryInspector):
 		return [MouseEvent()]
 
 	def now(self):
-		return tc.trial_time if tc.start_time else tc.timestamp
+		return self.evm.trial_time if self.evm.start_time else self.evm.timestamp
 
 	def sample(self):
 		self.__current_sample = MouseEvent()
@@ -98,14 +98,14 @@ class TryLink(BoundaryInspector):
 		return self.calibrate()
 
 	def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
-		self.start_time = [tc.timestamp, tc.timestamp]
+		self.start_time = [self.evm.timestamp, self.evm.timestamp]
 		if self.dummy_mode:
 			return True
 		else:
 			self.write("TRIAL_ID {0}".format(str(trial_number)))
 			self.write("TRIAL_START")
 			self.write("SYNCTIME {0}".format('0.0'))
-			return self.start_time - tc.timestamp  # ie. delay spent initializing the recording
+			return self.start_time - self.evm.timestamp  # ie. delay spent initializing the recording
 
 	def stop(self):
 		pass
@@ -265,10 +265,10 @@ class MouseEvent(object):
 	def __init__(self):
 		super(MouseEvent, self).__init__()
 		self.__sample = mouse_pos()
-		if not tc.start_time:
-			self.__time = tc.timestamp
+		if not self.evm.start_time:
+			self.__time = self.evm.timestamp
 		else:
-			self.__time = tc.trial_time
+			self.__time = self.evm.trial_time
 
 	def getGaze(self):
 		return self.__sample

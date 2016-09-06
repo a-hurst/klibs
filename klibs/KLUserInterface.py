@@ -24,7 +24,7 @@ def any_key(allow_mouse_click=True):
 		return True
 
 
-def ui_request(key_press=None, execute=True):
+def ui_request(key_press=None, execute=True, queue=None):
 		"""
 		``extension_planned``
 
@@ -35,6 +35,13 @@ def ui_request(key_press=None, execute=True):
 		:param execute:
 		:return:
 		"""
+
+		if queue:
+			ret_val = None
+			for e in queue:
+				v = ui_request(e)
+				if v: ret_val = v
+			return ret_val
 		if not key_press:
 			for event in pump(True):
 				if event.type in [SDL_KEYUP, SDL_KEYDOWN]:
@@ -59,8 +66,8 @@ def ui_request(key_press=None, execute=True):
 				if k.sym in UI_METHOD_KEYSYMS:
 					if k.sym == SDLK_q:
 						if execute:
-							from klibs import experiment
-							experiment.quit()
+							from klibs.KLEnvironment import exp
+							exp.quit()
 						else:
 							return [True, "quit"]
 					elif k.sym == SDLK_c:

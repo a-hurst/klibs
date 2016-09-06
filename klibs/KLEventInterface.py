@@ -15,7 +15,7 @@ from klibs.KLEnvironment import Environment
 from klibs.KLConstants import TK_S, TK_MS, TBL_EVENTS, EVI_CONSTANTS, EVI_DEREGISTER_EVENT, EVI_CLOCK_START,\
 	EVI_CLOCK_STOP, EVI_CLOCK_RESET, EVI_TRIAL_START, EVI_SEND_TIME, EVI_EXP_END
 from klibs import P
-from klibs.KLUtilities import pump
+from klibs.KLUtilities import pump, threaded
 from klibs.KLUserInterface import ui_request
 
 # todo: all the event objects should be created from factory methods, ensuring the current env clock is available

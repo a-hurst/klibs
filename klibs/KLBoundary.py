@@ -201,7 +201,6 @@ class CircleBoundary(Boundary):
 		return self.__r__
 
 	def within(self, reference):
-		print "ref: {0}".format(reference)
 		try:
 			d_xy = line_segment_len(reference, self.__c__)
 		except TypeError:

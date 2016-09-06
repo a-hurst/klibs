@@ -92,7 +92,7 @@ class Experiment(EnvAgent):
 		self.event_code_generator = None
 
 		# create an anonymous user if not collecting demographic information
-		if not P.collect_demographics:
+		if not P.collect_demographics or P.development_mode:
 			self.collect_demographics(True)
 		self.initialized = True
 
@@ -128,7 +128,7 @@ class Experiment(EnvAgent):
 					# P.trial_number = block_base + block.i + 1 - P.recycle_count
 					self.__trial__(trial, block.practice)
 					P.trial_number += 1
-				except TrialException as e:
+				except TrialException:
 					block.recycle()
 					P.recycle_count += 1
 					self.evm.send('trial_recycled')
@@ -201,7 +201,7 @@ class Experiment(EnvAgent):
 		# 			raise
 
 
-	def collect_demographics(self, database, anonymous_user=False):
+	def collect_demographics(self, anonymous_user=False):
 		"""
 		Gathers participant demographic information and enter it into the project database.
 		Should not be explicitly called; see ``P.collect_demographics``.
@@ -220,10 +220,10 @@ class Experiment(EnvAgent):
 				if id_str:
 					return self.init_session(id_str)
 
-		database.init_entry('participants', instance_name='ptcp', set_current=True)
-		database.log("random_seed", P.random_seed)
+		self.db.init_entry('participants', instance_name='ptcp', set_current=True)
+		self.db.log("random_seed", P.random_seed)
 		try:
-			database.log("klibs_commit", P.klibs_commit)
+			self.db.log("klibs_commit", P.klibs_commit)
 		except:
 			pass  # older .versions of klibs did not include this param/db entry
 		if anonymous_user:
@@ -234,16 +234,16 @@ class Experiment(EnvAgent):
 				password=True)
 			name_hash = sha1(name_query_string)
 			name = name_hash.hexdigest()
-		database.log('userhash', name)
+		self.db.log('userhash', name)
 
 		# names must be unique; returns True if unique, False otherwise
-		if database.is_unique('participants', 'userhash', name):
+		if self.db.is_unique('participants', 'userhash', name):
 			try:
 				for q in P.demographic_questions:
 					if anonymous_user:
-						database.log(q[0], q[4])
+						self.db.log(q[0], q[4])
 					else:
-						database.log(q[0], query(q[1], accepted=q[2], return_type=q[3]))
+						self.db.log(q[0], query(q[1], accepted=q[2], return_type=q[3]))
 			except AttributeError:
 				if anonymous_user:
 					sex = "m" if now() % 2 > 0  else "f"
@@ -255,16 +255,16 @@ class Experiment(EnvAgent):
 					handedness_str = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
 					handedness = query(handedness_str, accepted=('r', 'R', 'l', 'L', 'a', 'A'))
 					age = query('What is  your age?', return_type='int')
-					database.log('sex', sex)
-					database.log('handedness', handedness)
-					database.log('age', age)
-			database.log('created', now(True))
+					self.db.log('sex', sex)
+					self.db.log('handedness', handedness)
+					self.db.log('age', age)
+			self.db.log('created', now(True))
 			if not P.demographics_collected:
-				P.participant_id = database.insert()
+				P.participant_id = self.db.insert()
 				P.demographics_collected = True
 			else:
 				#  The context for this is: collect_demographics is set to false but then explicitly called later
-				database.update(P.participant_id)
+				self.db.update(P.participant_id)
 		else:
 			retry = query('That participant identifier has already been used. Do you wish to try another? (y/n) ')
 			if retry == 'y':
@@ -274,7 +274,7 @@ class Experiment(EnvAgent):
 				message("Thanks for participating!", location=P.screen_c)
 				any_key()
 				self.quit()
-		database.current(False)
+		self.db.current(False)
 		if P.collect_demographics and P.multi_session_project:
 			self.init_session()
 

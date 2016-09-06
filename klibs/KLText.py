@@ -40,11 +40,11 @@ class TextStyle(object):
 
 	@property
 	def font_size(self):
-		return self.__font_size
+		return self.__font_size__
 
 	@property
 	def font_size_px(self):
-		return pt_to_px(self.__font_size)
+		return pt_to_px(self.__font_size__)
 
 	@font_size.setter
 	def font_size(self, size):

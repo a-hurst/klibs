@@ -11,7 +11,7 @@ el = None  		# EyeLink instance
 class EnvAgent(object):
 
 	def __init__(self):
-		super(EnvAgent, self).__init__()
+		object.__init__(self)
 
 	@property
 	def evm(self):

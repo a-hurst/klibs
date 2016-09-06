@@ -5,7 +5,6 @@ import os
 import csv
 from time import time
 import abc
-from copy import copy
 import multiprocessing as mp
 from os import kill
 from signal import SIGKILL
@@ -15,15 +14,16 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import TK_S, TK_MS, TBL_EVENTS, EVI_CONSTANTS, EVI_DEREGISTER_EVENT, EVI_CLOCK_RESET, \
 	EVI_TRIAL_START, EVI_TRIAL_STOP, EVI_SEND_TIME, EVI_EXP_END, EVI_CONSTANTS
 from klibs import P
-from klibs.KLUtilities import pump, threaded, full_trace
+from klibs.KLUtilities import pump, threaded
 from klibs.KLUserInterface import ui_request
 
 
-class TrialEventTicket(NamedObject, EnvAgent):
+class TrialEventTicket(EnvAgent, NamedObject):
 	#todo: relative needs to be either relative to now or an event so that relative events can be registered before trial start
 
 	def __init__(self, label, onset=None, data=None, relative=False, unit=TK_MS):
-		super(TrialEventTicket, self).__init__(label)
+		EnvAgent.__init__(self)
+		NamedObject.__init__(self, label)
 		if not onset:
 			if label in EVI_CONSTANTS:
 				onset = 0
@@ -49,7 +49,11 @@ class TrialEventTicket(NamedObject, EnvAgent):
 	def issue(self, trial_time):
 		self.issued = True
 		self.issued_at = trial_time
-		return [self.label, self.data, time(), trial_time, self.exp.eyelink.now() if P.eye_tracking else -1]
+		try:
+			return [self.label, self.data, time(), trial_time, self.el.now()]
+		except AttributeError:
+			return [self.label, self.data, time(), trial_time, -1]
+
 
 	@property
 	def onset(self):
@@ -62,7 +66,7 @@ class TrialEventTicket(NamedObject, EnvAgent):
 		if self.relative:
 			if not self.evm.start_time:
 				raise RuntimeError("Trial has not started; relatively-timed event onsets not possible.")
-			time_val += self.clock.trial_time if self.__unit__ == TK_S else self.clock.trial_time_ms
+			time_val += self.evm.trial_time if self.__unit__ == TK_S else self.evm.trial_time_ms
 		if self.__unit__ == TK_S:
 			time_val *= 1000
 		self.__onset__ = time_val
@@ -469,7 +473,7 @@ class EventManager(EnvAgent):
 		self.pipe.poll()
 		while not self.start_time:
 			self.start_time = self.pipe.recv()
-		el_val = self.exp.eyelink.now() if P.eye_tracking and P.eye_tracker_available else -1
+		el_val = self.el.now() if P.eye_tracking and P.eye_tracker_available else -1
 		self.log_trial_event(EVI_TRIAL_START, time(), self.start_time, None, el_val, None)
 
 	def stop_clock(self):

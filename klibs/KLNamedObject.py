@@ -5,6 +5,7 @@ import collections
 class NamedObject(object):
 
 	def __init__(self, name):
+		super(NamedObject, self).__init__()
 		self.__name__ = name
 
 	@property

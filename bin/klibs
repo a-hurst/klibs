@@ -89,7 +89,6 @@ def create(name, path):
 			print "\n\033[32mFine. Be that way. But I think we both know you'll be back.\033[0m"
 			exit()
 		correct = True
-	# try:
 	tmp_dir = "klibs_" + sha1(project_path + str(time.time())).hexdigest()
 	tmp_path = os.path.join("/","tmp", tmp_dir)
 	shutil.copytree(source_path, tmp_path)
@@ -191,24 +190,22 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	# set initial param values for project's context
 	P.setup(project_name)
 
+	# import params defined in project's local params file in ExpAssets/Config
+	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
+		setattr(P, k, v)
+
 	# create runtime environment
 	env.evm = EventManager()
-	env.txtm = TextManager()
-	env.tk = TimeKeeper()
-	env.db = Database(project_name)
-	env.evm.import_events()
-	env.rc = ResponseCollector()
-	# create an EyeLink instance if needed
 	if P.eye_tracking:
 		env.el = EyeLinkExt()
 		if no_eyelink:
 			P.eye_tracker_available = False
 			env.el.dummy_mode = P.eye_tracker_available is False
-
-	# import params defined in project's local params file in ExpAssets/Config
-	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
-		setattr(P, k, v)
-
+	env.txtm = TextManager()
+	env.tk = TimeKeeper()
+	env.db = Database(project_name)
+	env.evm.import_events()
+	env.rc = ResponseCollector()
 
 	# finally, import the project's Experiment class and instantiate
 	try:
@@ -268,6 +265,9 @@ def rebuild_db(path):
 		setattr(P, k, v)
 	Database(project_name).rebuild()
 	force_quit()
+
+
+# def rename(path): todo: write this, it's irritatingly complex but also super necessary
 
 
 

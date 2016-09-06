@@ -33,10 +33,11 @@ if PYLINK_AVAILABLE:
 
 
 	class EyeLinkExt(EyeLink, BoundaryInspector):
-		__dummy_mode = None
-		__anonymous_boundaries = 0
+		__dummy_mode__ = None
+		__anonymous_boundaries__ = 0
+		__gaze_boundaries__ = {}
+		gaze_dot = None
 		experiment = None
-		__gaze_boundaries = {}
 		custom_display = None
 		dc_width = None  # ie. drift-correct width
 		edf_filename = None
@@ -56,19 +57,69 @@ if PYLINK_AVAILABLE:
 					if e.message == "Could not connect to tracker at 100.1.1.1":
 						print "Could not connect to tracker at 100.1.1.1. If EyeLink machine is on, ready & connected try turning off the wifi on this machine."
 			self.dummy_mode = P.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
-			self.dc_width = P.screen_y // 60
-			self.add_boundary("drift_correct", [P.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
-			self.gaze_dot = Circle(5, [1,(255,255,255, 255)], (0,0,0,125)).render()
 
-		def __eye(self):
+		def __eye__(self):
 			self.eye = self.eyeAvailable()
 			return self.eye != EL_NO_EYES
+
+		def __within_boundary__(self, label, event, report, inspect):
+			"""
+			For checking individual events; not for public use, but is a rather shared interface for the public methods
+			within_boundary(), saccade_to_boundary(), fixated_boundary()
+			:param event:
+			:param label:
+			:return:
+			"""
+			e_type = event.getType()
+			# rule out impossible combinations
+			if e_type in [EL_SACCADE_START, EL_FIXATION_START] and (inspect == EL_GAZE_END or report == EL_TIME_END):
+				raise EyeLinkError("Fixation and saccade start events do not have end time or gaze positions.")
+
+			# treat gaze position as a separate case (they're atemporal; the report/inspect args don't matter)
+			if e_type == EL_GAZE_POS:
+				timestamp = event.getTime()
+				if self.eye == EL_LEFT_EYE and event.isLeftSample():
+					x, y  = event.getLeftEye().getGaze()
+				elif self.eye == EL_RIGHT_EYE and event.isLeftSample():
+					x, y = event.getRightEye().getGaze
+				elif self.eye != EL_NO_EYES and event.isBinocular():
+					x, y  = event.getLeftEye().getGaze()
+				else:
+					return False
+
+			elif e_type == EL_FIXATION_END:
+				x, y = event.getAverageGaze()
+				timestamp = event.getStartTime()
+			else:
+				x, y = event.getStartGaze() if inspect == EL_GAZE_START else event.getEndGaze()
+				ppd_x, ppd_y = event.getStartPPD()
+				timestamp = event.getStartTime() if report == EL_TIME_START else event.getEndTime()
+			result = super(EyeLink, self).within_boundary(label, (x, y))
+	#			if not result:
+	#				print "Off By: {0}[{3}] ({1} => {2})".format(line_segment_len((x, y), self.boundaries[label].center), (x,y), self.boundaries[label].center, self.boundaries[label].radius)
+	#			else:
+	#				print "FIXATED BITCHEZ"
+			return timestamp if result else False
+
+		def __exited_boundary__(self, label, event, report):
+
+			e_type = event.getType()
+			# rule out impossible combinations
+			if e_type in [EL_SACCADE_START, EL_FIXATION_START, EL_FIXATION_END, EL_GAZE_POS, EL_BLINK_START, EL_BLINK_END]:
+				err_str = "Only saccade_end events are valid for boundary-exit tests; {0} passed.".format(e_type)
+				raise EyeLinkError(err_str)
+
+			dx, dy = event.getEndGaze()
+			timestamp = event.getStartTime() if report == EL_TIME_START else event.getEndTime()
+
+			result = super(EyeLink, self).within_boundary(label, (dx, dy))
+			return timestamp if not result else False
 
 		def calibrate(self):
 			self.doTrackerSetup()
 
-		def in_setup(self):
-			return self.inSetup() != 0
+		def clear_queue(self):
+			self.resetData()
 
 		def drift_correct(self, location=None, boundary=None, el_draw_fixation=EL_TRUE, samples=EL_TRUE):
 			"""
@@ -119,9 +170,6 @@ if PYLINK_AVAILABLE:
 						hide_mouse_cursor()
 						return fixated
 
-		def clear_queue(self):
-			self.resetData()
-
 		def gaze(self, eye_required=None, return_integers=True):
 			if self.dummy_mode:
 				try:
@@ -145,12 +193,43 @@ if PYLINK_AVAILABLE:
 					if eye_required == EL_RIGHT_EYE:
 						sample = self.__current_sample.getLeftEye().getGaze()
 			else:
-				if not self.__eye():
+				if not self.__eye__():
 					return self.gaze()
 				else:
 					raise RuntimeError("Unable to collect a sample from the EyeLink.")
 
 			return [int(sample[0]), int(sample[1])] if return_integers else sample
+
+		def fixated_boundary(self, label, valid_events=EL_FIXATION_END, event_queue=None, report=EL_TIME_START,
+							 inspect=EL_GAZE_END, return_queue=False):
+			"""
+			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
+			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
+			impertinent.
+
+			:param label:
+			:param event_queue:
+			:param return_queue:
+			:return:
+			"""
+			# todo: only allow fixation start/end/update inspections
+			if not event_queue:
+				event_queue = self.get_event_queue([valid_events] if not return_queue else EL_ALL_EVENTS)
+				if not len(event_queue):
+					return False
+			if not event_queue:
+				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+			for e in event_queue:
+	#				p_v = [e.getStartGaze(), e.getEndGaze(), e.getStartPPD(), e.getEndPPD(), e.getStartTime(), e.getEndTime(), e.getAverageGaze()]
+	#				x, y = e.getAverageGaze()
+	#				p_v = [e.getStartTime(), e.getEndTime(), e.getAverageGaze(), x, y]
+	#				print "FixationEvent | startGaze: {0}, endGaze:{1}, avgGze:{6}, startPPD: {2}, endPPD:{3}, startTime: {4}, endTime:{5}".format(*p_v)
+	#				print "FixationEvent | avgGze:{2}, avgX: {3}, avgY: {4}, startTime: {0}, endTime:{1}".format(*p_v)
+				fixation_end_time = self.within_boundary(label, valid_events, [e], report, inspect, return_queue)
+				if fixation_end_time:
+					print "fixation_end_time: " + str(fixation_end_time)
+					return fixation_end_time if not return_queue else [fixation_end_time, event_queue]
+			return False
 
 		def get_event_queue(self, include=[], exclude=[]):
 			queue = []
@@ -178,153 +257,11 @@ if PYLINK_AVAILABLE:
 				queue.append(data)
 			return queue
 
+		def in_setup(self):
+			return self.inSetup() != 0
+
 		def now(self):
 			return self.trackerTime() if not P.development_mode else now()
-
-		def sample(self):
-			self.__current_sample = self.getNewestSample()
-			if self.__current_sample == 0:
-				self.__current_sample = False
-			return self.__current_sample
-
-		def setup(self):
-			if self.custom_display is None:
-				self.openGraphics(P.screen_x_y)
-			else:
-				openGraphicsEx(self.custom_display)
-			if not self.dummy_mode:
-				self.edf_filename = exp_file_name(EDF_FILE)
-				flushGetkeyQueue()
-				self.setOfflineMode()
-				# TODO: have a default "can't connect to tracker; do you want to switch to dummy_mode" UI pop up
-				# Running this with pylink installed whilst unconnected to a tracker throws: RuntimeError: Link terminated
-				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(P.screen_x, P.screen_y))
-				self.setLinkEventFilter("FIXATION,SACCADE,BLINK,LEFT,RIGHT")
-				self.openDataFile(self.edf_filename[0])
-				self.write("DISPLAY_COORDS 0 0 {0} {1}".format(P.screen_x, P.screen_y))
-				self.setSaccadeVelocityThreshold(P.saccadic_velocity_threshold)
-				self.setAccelerationThreshold(P.saccadic_acceleration_threshold)
-				self.setMotionThreshold(P.saccadic_motion_threshold)
-				self.calibrate()
-				beginRealTimeMode(10)
-
-		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
-			self.start_time = [now(), None]
-			# ToDo: put some exceptions n here
-			if self.dummy_mode: return True
-			start = self.startRecording(samples, events, link_samples, link_events)
-			if start == 0:
-				self.start_time[1] = self.now()
-				if self.__eye():
-					self.write("TRIAL_ID {0}".format(str(trial_number)))
-					self.write("TRIAL_START")
-					self.write("SYNCTIME {0}".format('0.0'))
-					return self.start_time[0] - now()  # ie. delay spent initializing the recording
-
-				else:
-					return False
-			else:
-				return False
-
-		def stop(self):
-			self.stopRecording()
-
-		def shut_down(self):
-			if self.isRecording() == 0:
-				self.stopRecording()
-			self.setOfflineMode()
-			self.closeDataFile()
-			self.receiveDataFile(self.edf_filename[0], self.edf_filename[1])
-			return self.close()
-
-		def write(self, message):
-			if all(ord(c) < 128 for c in message):
-				self.sendMessage(message)
-			else:
-				raise EyeLinkError("Only ASCII text may be written to an EDF file.")
-
-		def __within_boundary(self, label, event, report, inspect):
-			"""
-			For checking individual events; not for public use, but is a rather shared interface for the public methods
-			within_boundary(), saccade_to_boundary(), fixated_boundary()
-			:param event:
-			:param label:
-			:return:
-			"""
-			e_type = event.getType()
-			# rule out impossible combinations
-			if e_type in [EL_SACCADE_START, EL_FIXATION_START] and (inspect == EL_GAZE_END or report == EL_TIME_END):
-				raise EyeLinkError("Fixation and saccade start events do not have end time or gaze positions.")
-
-			# treat gaze position as a separate case (they're atemporal; the report/inspect args don't matter)
-			if e_type == EL_GAZE_POS:
-				timestamp = event.getTime()
-				if self.eye == EL_LEFT_EYE and event.isLeftSample():
-					x, y  = event.getLeftEye().getGaze()
-				elif self.eye == EL_RIGHT_EYE and event.isLeftSample():
-					x, y = event.getRightEye().getGaze
-				elif self.eye != EL_NO_EYES and event.isBinocular():
-					x, y  = event.getLeftEye().getGaze()
-				else:
-					return False
-
-			elif e_type == EL_FIXATION_END:
-				x, y = event.getAverageGaze()
-				timestamp = event.getStartTime()
-			else:
-				x, y = event.getStartGaze() if inspect == EL_GAZE_START else event.getEndGaze()
-				ppd_x, ppd_y = event.getStartPPD()
-				timestamp = event.getStartTime() if report == EL_TIME_START else event.getEndTime()
-			result = super(EyeLink, self).within_boundary(label, (x, y))
-	#			if not result:
-	#				print "Off By: {0}[{3}] ({1} => {2})".format(line_segment_len((x, y), self.boundaries[label].center), (x,y), self.boundaries[label].center, self.boundaries[label].radius)
-	#			else:
-	#				print "FIXATED BITCHEZ"
-			return timestamp if result else False
-
-		def __exited_boundary(self, label, event, report):
-
-			e_type = event.getType()
-			# rule out impossible combinations
-			if e_type in [EL_SACCADE_START, EL_FIXATION_START, EL_FIXATION_END, EL_GAZE_POS, EL_BLINK_START, EL_BLINK_END]:
-				err_str = "Only saccade_end events are valid for boundary-exit tests; {0} passed.".format(e_type)
-				raise EyeLinkError(err_str)
-
-			dx, dy = event.getEndGaze()
-			timestamp = event.getStartTime() if report == EL_TIME_START else event.getEndTime()
-
-			result = super(EyeLink, self).within_boundary(label, (dx, dy))
-			return timestamp if not result else False
-
-
-		def within_boundary(self, label, valid_events, event_queue=None, report=EL_TRUE, inspect=EL_GAZE_START,
-							return_queue=False):
-			"""
-			For use when checking in real-time; uses entire event queue, whether supplied or fetched
-
-			:param label:
-			:param inspect:
-			:return:
-			"""
-			if valid_events in EL_ALL_EVENTS or valid_events == EL_GAZE_POS:
-				valid_events = [valid_events]
-			if valid_events == EL_MOCK_EVENT:
-				valid_events = [valid_events]
-				event_queue = [mouse_pos()]
-			if not event_queue:
-				if valid_events[0] == EL_GAZE_POS:
-					event_queue = [self.sample()]
-				else:
-					event_queue = self.get_event_queue(inspect)
-			timestamp = None
-			for e in event_queue:
-				if e.getType() not in valid_events:
-					continue
-				timestamp = self.__within_boundary(label, e, report, inspect)
-				if not timestamp:
-					return False if not return_queue else [False, event_queue]
-			r_val = EL_TRUE if report == EL_TRUE else timestamp
-			return r_val if not return_queue else [r_val, event_queue]
 
 		def saccade_to_boundary(self, label, valid_events=EL_SACCADE_END, event_queue=None,
 								  report=EL_TIME_START, inspect=EL_GAZE_END, return_queue=False):
@@ -370,41 +307,106 @@ if PYLINK_AVAILABLE:
 				if not len(event_queue):
 					return False
 			for e in event_queue:
-				exit_time = self.__exited_boundary(label, e, report)
+				exit_time = self.__exited_boundary__(label, e, report)
 				if exit_time:
 					return exit_time if not return_queue else [exit_time, event_queue]
 			return False
 
-		def fixated_boundary(self, label, valid_events=EL_FIXATION_END, event_queue=None, report=EL_TIME_START,
-							 inspect=EL_GAZE_END, return_queue=False):
+		def sample(self):
+			self.__current_sample = self.getNewestSample()
+			if self.__current_sample == 0:
+				self.__current_sample = False
+			return self.__current_sample
+
+		def setup(self):
+			self.dc_width = P.screen_y // 60
+			self.add_boundary("drift_correct", [P.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
+			self.gaze_dot = Circle(5, [1, (255, 255, 255, 255)], (0, 0, 0, 125)).render()
+
+			if self.custom_display is None:
+				self.openGraphics(P.screen_x_y)
+			else:
+				openGraphicsEx(self.custom_display)
+			if not self.dummy_mode:
+				self.edf_filename = exp_file_name(EDF_FILE)
+				flushGetkeyQueue()
+				self.setOfflineMode()
+				# TODO: have a default "can't connect to tracker; do you want to switch to dummy_mode" UI pop up
+				# Running this with pylink installed whilst unconnected to a tracker throws: RuntimeError: Link terminated
+				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(P.screen_x, P.screen_y))
+				self.setLinkEventFilter("FIXATION,SACCADE,BLINK,LEFT,RIGHT")
+				self.openDataFile(self.edf_filename[0])
+				self.write("DISPLAY_COORDS 0 0 {0} {1}".format(P.screen_x, P.screen_y))
+				self.setSaccadeVelocityThreshold(P.saccadic_velocity_threshold)
+				self.setAccelerationThreshold(P.saccadic_acceleration_threshold)
+				self.setMotionThreshold(P.saccadic_motion_threshold)
+				self.calibrate()
+				beginRealTimeMode(10)
+
+		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
+			self.start_time = [now(), None]
+			# ToDo: put some exceptions n here
+			if self.dummy_mode: return True
+			start = self.startRecording(samples, events, link_samples, link_events)
+			if start == 0:
+				self.start_time[1] = self.now()
+				if self.__eye__():
+					self.write("TRIAL_ID {0}".format(str(trial_number)))
+					self.write("TRIAL_START")
+					self.write("SYNCTIME {0}".format('0.0'))
+					return now() - self.start_time[0]  # ie. delay spent initializing the recording
+
+				else:
+					return False
+			else:
+				return False
+
+
+		def stop(self):
+			self.stopRecording()
+
+		def shut_down(self):
+			if self.isRecording() == 0:
+				self.stopRecording()
+			self.setOfflineMode()
+			self.closeDataFile()
+			self.receiveDataFile(self.edf_filename[0], self.edf_filename[1])
+			return self.close()
+
+		def write(self, message):
+			if all(ord(c) < 128 for c in message):
+				self.sendMessage(message)
+			else:
+				raise EyeLinkError("Only ASCII text may be written to an EDF file.")
+
+		def within_boundary(self, label, valid_events, event_queue=None, report=EL_TRUE, inspect=EL_GAZE_START,
+							return_queue=False):
 			"""
-			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
-			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
-			impertinent.
+			For use when checking in real-time; uses entire event queue, whether supplied or fetched
 
 			:param label:
-			:param event_queue:
-			:param return_queue:
+			:param inspect:
 			:return:
 			"""
-			# todo: only allow fixation start/end/update inspections
+			if valid_events in EL_ALL_EVENTS or valid_events == EL_GAZE_POS:
+				valid_events = [valid_events]
+			if valid_events == EL_MOCK_EVENT:
+				valid_events = [valid_events]
+				event_queue = [mouse_pos()]
 			if not event_queue:
-				event_queue = self.get_event_queue([valid_events] if not return_queue else EL_ALL_EVENTS)
-				if not len(event_queue):
-					return False
-			if not event_queue:
-				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
+				if valid_events[0] == EL_GAZE_POS:
+					event_queue = [self.sample()]
+				else:
+					event_queue = self.get_event_queue(inspect)
+			timestamp = None
 			for e in event_queue:
-	#				p_v = [e.getStartGaze(), e.getEndGaze(), e.getStartPPD(), e.getEndPPD(), e.getStartTime(), e.getEndTime(), e.getAverageGaze()]
-	#				x, y = e.getAverageGaze()
-	#				p_v = [e.getStartTime(), e.getEndTime(), e.getAverageGaze(), x, y]
-	#				print "FixationEvent | startGaze: {0}, endGaze:{1}, avgGze:{6}, startPPD: {2}, endPPD:{3}, startTime: {4}, endTime:{5}".format(*p_v)
-	#				print "FixationEvent | avgGze:{2}, avgX: {3}, avgY: {4}, startTime: {0}, endTime:{1}".format(*p_v)
-				fixation_end_time = self.within_boundary(label, valid_events, [e], report, inspect, return_queue)
-				if fixation_end_time:
-					print "fixation_end_time: " + str(fixation_end_time)
-					return fixation_end_time if not return_queue else [fixation_end_time, event_queue]
-			return False
+				if e.getType() not in valid_events:
+					continue
+				timestamp = self.__within_boundary__(label, e, report, inspect)
+				if not timestamp:
+					return False if not return_queue else [False, event_queue]
+			r_val = EL_TRUE if report == EL_TRUE else timestamp
+			return r_val if not return_queue else [r_val, event_queue]
 
 		@abc.abstractmethod
 		def listen(self, **kwargs):
@@ -412,11 +414,11 @@ if PYLINK_AVAILABLE:
 
 		@property
 		def dummy_mode(self):
-			return self.__dummy_mode
+			return self.__dummy_mode__
 
 		@dummy_mode.setter
 		def dummy_mode(self, status):
-				self.__dummy_mode = status
+				self.__dummy_mode__ = status
 
 		# Everything from here down are legacy functions that wrap newer counterparts with different names for
 		# backwards compatibility
@@ -435,7 +437,7 @@ if PYLINK_AVAILABLE:
 				name = bounds
 				bounds = __bounds
 			if name is None:
-				name = "anonymous_{0}".format(self.__anonymous_boundaries)
+				name = "anonymous_{0}".format(self.__anonymous_boundaries__)
 
 			if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
 				raise ValueError(

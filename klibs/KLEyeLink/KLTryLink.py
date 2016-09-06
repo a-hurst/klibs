@@ -14,11 +14,12 @@ from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLUserInterface import ui_request
 
+
 class TryLink(EnvAgent, BoundaryInspector):
-	__dummy_mode = None
-	__anonymous_boundaries = 0
+	__dummy_mode__ = None
+	__anonymous_boundaries__ = 0
+	__gaze_boundaries__ = {}
 	experiment = None
-	__gaze_boundaries = {}
 	custom_display = None
 	dc_width = None  # ie. drift-correct width
 	edf_filename = None
@@ -27,23 +28,34 @@ class TryLink(EnvAgent, BoundaryInspector):
 	start_time = [None, None]
 
 	def __init__(self):
-		super(TryLink, self).__init__()
-		self.__current_sample = False
+		EnvAgent.__init__(self)
+		BoundaryInspector.__init__(self)
+		self.__current_sample__ = False
 		self.dummy_mode = P.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
-		self.dc_width = P.screen_y // 60
-		self.add_boundary("drift_correct", [P.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
 
 	# REWRITE
-	def __eye(self):
+	def __eye__(self):
 		self.eye = EL_NO_EYES
 		return self.eye != EL_NO_EYES
 
+	def __within_boundary__(self, label, event):
+		"""
+		For checking individual events; not for public use, but is a rather shared interface for the public methods
+		within_boundary(), saccade_to_boundary(), fixated_boundary()
+
+		:param event:
+		:param label:
+		:return:
+		"""
+		timestamp = event.getTime()
+		return timestamp if super(TryLink, self).within_boundary(label, event.getGaze()) else False
+
 	def calibrate(self):
 		pass
-
 	# REWRITE
-	def in_setup(self):
-		return False
+
+	def clear_queue(self):
+		pass
 
 	def drift_correct(self, location=None, boundary=None,  el_draw_fixation=EL_TRUE, samples=EL_TRUE):
 		"""
@@ -71,8 +83,26 @@ class TryLink(EnvAgent, BoundaryInspector):
 				hide_mouse_cursor()
 				return fixated
 
-	def clear_queue(self):
-		pass
+	def fixated_boundary(self, label, inspect=EL_FIXATION_END, event_queue=None, return_queue=False):
+		"""
+		Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
+		In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
+		impertinent.
+
+		:param label:
+		:param event_queue:
+		:param return_queue:
+		:return:
+		"""
+		# todo: only allow fixation start/end/update inspections
+		fix_start_time = self.__within_boundary__(label, self.sample())
+		print "fixated_boundary: {0}".format(fix_start_time)
+		if fix_start_time:
+			return fix_start_time if not return_queue else [fix_start_time, event_queue]
+		return False
+
+	def in_setup(self):
+		return False
 
 	def gaze(self, eye_required=None, return_integers=True):
 		try:
@@ -84,64 +114,11 @@ class TryLink(EnvAgent, BoundaryInspector):
 		# todo: create an object with the same methods
 		return [MouseEvent()]
 
-	def now(self):
-		return self.evm.trial_time if self.evm.start_time else self.evm.timestamp
-
-	def sample(self):
-		self.__current_sample = MouseEvent()
-		return self.__current_sample
-
 	def getNextData(self):
 		return MouseEvent()
 
-	def setup(self):
-		return self.calibrate()
-
-	def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
-		self.start_time = [self.evm.timestamp, self.evm.timestamp]
-		if self.dummy_mode:
-			return True
-		else:
-			self.write("TRIAL_ID {0}".format(str(trial_number)))
-			self.write("TRIAL_START")
-			self.write("SYNCTIME {0}".format('0.0'))
-			return self.start_time - self.evm.timestamp  # ie. delay spent initializing the recording
-
-	def stop(self):
-		pass
-
-	def shut_down(self):
-		return 0
-
-	def write(self, message):
-		if all(ord(c) < 128 for c in message):
-			self.sendMessage(message)
-		else:
-			raise EyeLinkError("Only ASCII text may be written to an EDF file.")
-
-	def __within_boundary(self, label, event):
-		"""
-		For checking individual events; not for public use, but is a rather shared interface for the public methods
-		within_boundary(), saccade_to_boundary(), fixated_boundary()
-
-		:param event:
-		:param label:
-		:return:
-		"""
-		timestamp = event.getTime()
-		result = super(TryLink, self).within_boundary(label, event.getGaze())
-		return timestamp if result else False
-
-	def within_boundary(self, label, inspect=EL_MOCK_EVENT, event_queue=None, return_queue=False):
-		"""
-		For use when checking in real-time; uses entire event queue, whether supplied or fetched
-
-		:param label:
-		:param inspect:
-		:return:
-		"""
-		result = self.__within_boundary(label, self.sample())
-		return result if not return_queue else [result, event_queue]
+	def now(self):
+		return self.evm.trial_time if self.evm.start_time else self.evm.timestamp
 
 	def saccade_to_boundary(self, label, inspect=EL_SACCADE_END, event_queue=None, return_queue=False):
 		"""
@@ -154,7 +131,8 @@ class TryLink(EnvAgent, BoundaryInspector):
 		:return:
 		"""
 		# todo: only allow saccade start/end inspections
-		sacc_start_time = self.__within_boundary(label, self.sample())
+		sacc_start_time = self.__within_boundary__(label, self.sample())
+		print "sacc_start_time: {0}".format(sacc_start_time)
 		if sacc_start_time:
 			return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
 		return False
@@ -170,27 +148,52 @@ class TryLink(EnvAgent, BoundaryInspector):
 		:return:
 		"""
 		# todo: only allow saccade start/end inspections
-		sacc_start_time = self.__within_boundary(label, self.sample())
+		sacc_start_time = self.__within_boundary__(label, self.sample())
 		if not sacc_start_time:
 			return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
 		return False
 
-	def fixated_boundary(self, label, inspect=EL_FIXATION_END, event_queue=None, return_queue=False):
+	def sample(self):
+		self.__current_sample__ = MouseEvent()
+		return self.__current_sample__
+
+	def setup(self):
+		self.dc_width = P.screen_y // 60
+		self.add_boundary("drift_correct", [P.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
+		return self.calibrate()
+
+	def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
+		self.start_time = [self.evm.timestamp, self.evm.timestamp]
+		if self.dummy_mode:
+			return True
+		else:
+			self.write("TRIAL_ID {0}".format(str(trial_number)))
+			self.write("TRIAL_START")
+			self.write("SYNCTIME {0}".format('0.0'))
+			return self.evm.timestamp - self.start_time[0] # ie. delay spent initializing the recording
+
+	def stop(self):
+		pass
+
+	def shut_down(self):
+		return 0
+
+	def write(self, message):
+		if all(ord(c) < 128 for c in message):
+			pass
+		else:
+			raise EyeLinkError("Only ASCII text may be written to an EDF file.")
+
+	def within_boundary(self, label, inspect=EL_MOCK_EVENT, event_queue=None, return_queue=False):
 		"""
-		Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
-		In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
-		impertinent.
+		For use when checking in real-time; uses entire event queue, whether supplied or fetched
 
 		:param label:
-		:param event_queue:
-		:param return_queue:
+		:param inspect:
 		:return:
 		"""
-		# todo: only allow fixation start/end/update inspections
-		fix_start_time = self.__within_boundary(label, self.sample())
-		if fix_start_time:
-			return fix_start_time if not return_queue else [fix_start_time, event_queue]
-		return False
+		result = self.__within_boundary__(label, self.sample())
+		return result if not return_queue else [result, event_queue]
 
 	@abc.abstractmethod
 	def listen(self, **kwargs):
@@ -198,11 +201,11 @@ class TryLink(EnvAgent, BoundaryInspector):
 
 	@property
 	def dummy_mode(self):
-		return self.__dummy_mode
+		return self.__dummy_mode__
 
 	@dummy_mode.setter
 	def dummy_mode(self, status):
-		self.__dummy_mode = status
+		self.__dummy_mode__ = status
 
 	# Everything from here down are legacy functions that wrap newer counterparts with different names for
 	# backwards compatibility
@@ -222,7 +225,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 			name = bounds
 			bounds = __bounds
 		if name is None:
-			name = "anonymous_{0}".format(self.__anonymous_boundaries)
+			name = "anonymous_{0}".format(self.__anonymous_boundaries__)
 
 		if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
 			raise ValueError(
@@ -238,13 +241,13 @@ class TryLink(EnvAgent, BoundaryInspector):
 		dc_br = [P.screen_x // 2 + self.dc_width // 2, P.screen_y // 2 + self.dc_width // 2]
 		self.add_boundary("drift_correct", [dc_tl, dc_br])
 
-	def draw_gaze_boundary(self, label="*", blit=True):
+	def draw_gaze_boundary(self, label="*"):
 		return self.draw_boundary(label)
 
 		shape = None
 		boundary = None
 		try:
-			boundary_dict = self.__gaze_boundaries[label]
+			boundary_dict = self.__gaze_boundaries__[label]
 			boundary = boundary_dict["bounds"]
 			shape = boundary_dict['shape']
 		except:
@@ -260,24 +263,24 @@ class TryLink(EnvAgent, BoundaryInspector):
 	def remove_gaze_boundary(self, name):
 		self.remove_boundary(name)
 
-class MouseEvent(object):
+class MouseEvent(EnvAgent):
 
 	def __init__(self):
 		super(MouseEvent, self).__init__()
-		self.__sample = mouse_pos()
+		self.__sample__ = mouse_pos()
 		if not self.evm.start_time:
-			self.__time = self.evm.timestamp
+			self.__time__ = self.evm.timestamp
 		else:
-			self.__time = self.evm.trial_time
+			self.__time__ = self.evm.trial_time
 
 	def getGaze(self):
-		return self.__sample
+		return self.__sample__
 
 	def getTime(self):
-		return self.__time
+		return self.__time__
 
 	def getStartTime(self):
-		return self.__time
+		return self.__time__
 
 	def getEndTime(self):
-		return self.__time
+		return self.__time__

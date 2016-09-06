@@ -12,6 +12,7 @@ from math import cos, sin, radians
 from klibs.KLConstants import STROKE_CENTER, STROKE_INNER, STROKE_OUTER, KLD_LINE, KLD_MOVE, KLD_ARC, KLD_PATH
 from klibs import P
 from klibs.KLUtilities import point_pos, midpoint
+
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 
 
@@ -45,6 +46,7 @@ def cursor(color=None):
 
 
 def drift_correct_target():
+	from klibs.KLGraphics import aggdraw_to_numpy_surface
 	draw_context_length = P.screen_y // 60
 	while draw_context_length % 3 != 0:  # center-dot is 1/3 of parent; offset unequal if parent not divisible by 3
 		draw_context_length += 1

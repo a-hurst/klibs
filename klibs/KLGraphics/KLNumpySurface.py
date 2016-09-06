@@ -486,6 +486,8 @@ class NumpySurface(object):
 		:param fill: Transparent by default, can be any rgba value
 		:return:
 		"""
+
+		from klibs.KLGraphics import rgb_to_rgba
 		try:
 			fill = rgb_to_rgba(fill)
 		except (AttributeError, IndexError):
@@ -625,6 +627,7 @@ class NumpySurface(object):
 
 	@foreground.setter
 	def foreground(self, foreground_content):
+		from klibs.KLGraphics import aggdraw_to_array
 		if foreground_content is None:
 			self.__foreground = None
 			self.fg = self.__foreground
@@ -660,6 +663,7 @@ class NumpySurface(object):
 
 	@background.setter
 	def background(self, background_content):
+		from klibs.KLGraphics import aggdraw_to_array
 		if background_content is None:
 			self.__background = None
 			self.bg = self.__background

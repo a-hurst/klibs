@@ -133,7 +133,7 @@ class AnulusBoundary(Boundary):
 	def __init__(self, label, center, inner_radius, span=None):
 		super(AnulusBoundary, self).__init__(label)
 		self.__r_inner = None
-		self.__span_range = None
+		self.__r_outer = None
 		self.__span = None
 		self.__center = None
 		self.bounds = [center, inner_radius, span]
@@ -154,10 +154,10 @@ class AnulusBoundary(Boundary):
 					raise ValueError
 		except (TypeError, ValueError):
 			raise ValueError("Argument 'radius' must be a positive number.")
-			self.__center = boundary_data[0]
-			self.__r_inner = boundary_data[1]
-			self.__span = boundary_data[2]
-			self.__span_range = range(self.__r_inner, self.__r_inner + self.__span)
+		self.__center = boundary_data[0]
+		self.__r_inner = boundary_data[1]
+		self.__r_outer = boundary_data[2]
+		self.__span = boundary_data[2] - boundary_data[1]
 
 	@property
 	def center(self):
@@ -173,4 +173,4 @@ class AnulusBoundary(Boundary):
 
 	def within(self, reference):
 		d_xy = line_segment_len(reference, self.__center) if iterable(reference) else reference
-		return  d_xy in self.__span_range
+		return self.__r_inner <= d_xy <= self.__r_outer

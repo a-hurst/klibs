@@ -386,7 +386,7 @@ class ColorSelectionResponse(ResponseType, BoundaryInspector):
 		for e in event_queue:
 			if e.type == sdl2.SDL_MOUSEBUTTONUP:
 				pos = [e.button.x, e.button.y]
-				if not self.within_boundary(pos, "color ring"):
+				if not self.within_boundary("color ring", pos):
 					continue
 				response = angle_between(P.screen_c, pos, self.__target.rotation)
 				if len(self.responses) < self.min_response_count:

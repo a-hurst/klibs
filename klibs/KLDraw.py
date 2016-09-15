@@ -219,9 +219,9 @@ class Ellipse(Drawbject):
 			self.draw()
 
 	def draw(self, as_numpy_surface=False):
-		xy_1 = self.stroke_width + 1
-		x_2 = self.surface_width - 1
-		y_2 = self.surface_height - 1
+		xy_1 = (self.stroke_width // 2) + 1
+		x_2 = self.surface_width - ((self.stroke_width // 2) + 1)
+		y_2 = self.surface_height - ((self.stroke_width // 2) + 1)
 		self.surface.ellipse([xy_1, xy_1, x_2, y_2], self.stroke, self.fill)
 		return self
 
@@ -265,9 +265,12 @@ class Ellipse(Drawbject):
 
 class Annulus(Drawbject):
 
-	def __init__(self, diameter, ring_width, stroke=None, fill=None, auto_draw=True):
+	def __init__(self, diameter, ring_width, stroke=None, fill=None, rotation=0, auto_draw=True):
 		super(Annulus, self).__init__(diameter + 2, diameter + 2, stroke, fill)
 		self.ring_width = ring_width
+		self.diameter = diameter
+		self.radius = self.diameter // 2
+		self.rotation = rotation
 		try:
 			self.ring_inner_width = ring_width - 2 * stroke[0]
 		except TypeError:
@@ -286,8 +289,8 @@ class Annulus(Drawbject):
 			xy_1 = 2 + self.ring_width
 			xy_2 = self.surface_width - (2 + self.ring_width)
 			self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroked_path_pen, self.transparent_brush)
-		xy_1 = 2 + self.ring_width
-		xy_2 = self.surface_width - (2 + self.ring_width)
+		xy_1 = 2 + (self.ring_width // 2)
+		xy_2 = self.surface_width - (2 + (self.ring_width // 2))
 		path_pen = aggdraw.Pen(tuple(self.fill_color), self.ring_inner_width)
 		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
 
@@ -308,15 +311,14 @@ class Rectangle(Drawbject):
 			self.draw()
 
 	def draw(self, as_numpy_surface=False):
-		x1 = self.stroke_width + 1
-		y1 = self.stroke_width + 1
+		xy1 = self.stroke_width + 1
 		x2 = self.surface_width - (self.stroke_width + 1)
 		y2 = self.surface_height - (self.stroke_width + 1)
 		if self.stroke:
 			if self.fill:
-				self.surface.rectangle((x1, y1, x2, y2), self.stroke, self.fill)
+				self.surface.rectangle((xy1, xy1, x2, y2), self.stroke, self.fill)
 			else:
-				self.surface.rectangle((x1, y1, x2, y2), self.stroke)
+				self.surface.rectangle((xy1, xy1, x2, y2), self.stroke)
 		else:
 			self.surface.rectangle((1, 1, self.surface_width - 1, self.surface_height - 1), self.fill)
 
@@ -340,8 +342,8 @@ class Asterisk(Drawbject):
 		x_os = int(self.surface_width * 0.925)
 		y_os = int(self.surface_height * 0.75)
 		l1 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height - 1]
-		l2 = [x_os + 1, y_os +1, self.surface_width - x_os + 1, self.surface_height - y_os + 1]
-		l3 = [self.surface_width - (x_os + 1), y_os + 1, x_os + 1, self.surface_height - y_os + 1]
+		l2 = [x_os + 1, y_os, self.surface_width - x_os + 1, self.surface_height - y_os]
+		l3 = [self.surface_width - x_os + 1, y_os, x_os + 1, self.surface_height - y_os]
 		self.surface.line([l1[0], l1[1], l1[2],l1[3]], self.stroke)
 		self.surface.line([l2[0], l2[1], l2[2],l2[3]], self.stroke)
 		self.surface.line([l3[0], l3[1], l3[2],l3[3]], self.stroke)

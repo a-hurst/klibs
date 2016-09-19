@@ -565,7 +565,7 @@ def __event_clock__(pipe, queue):
 		return (time() - start) * 1000
 
 	def trial_time():
-		return (time() - start) * 1000
+		return time() - start
 
 	while True:
 		if pipe.poll():

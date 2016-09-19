@@ -7,7 +7,7 @@ from abc import abstractmethod
 from os import mkdir
 from os.path import join
 from shutil import copyfile, copytree
-from time import time
+# from time import time
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
@@ -16,11 +16,11 @@ from klibs.KLKeyMap import KeyMap
 from klibs.KLConstants import ALL
 from klibs.KLUtilities import full_trace, pump, now, list_dimensions, force_quit
 from klibs.KLTrialFactory import TrialFactory
-from klibs.KLGraphics import flip, blit, fill, display_init
+from klibs.KLGraphics import flip, blit, fill, clear #, display_init
 from klibs.KLDatabase import Database
 from klibs.KLUserInterface import any_key
 from klibs.KLAudio import AudioManager
-from klibs.KLResponseCollectors import ResponseCollector
+# from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLCommunication import message, query
 
 # from klibs.KLCommunication import  message
@@ -124,16 +124,14 @@ class Experiment(EnvAgent):
 						P.trial_id = self.database.last_id_from('trials') + 1
 					except TypeError:
 						P.trial_id = 1
-					# block_base = (P.block_number * P.trials_per_block) - P.trials_per_block
-					# P.trial_number = block_base + block.i + 1 - P.recycle_count
 					self.__trial__(trial, block.practice)
 					P.trial_number += 1
 				except TrialException:
 					block.recycle()
 					P.recycle_count += 1
-					self.evm.send('trial_recycled')
+					# self.evm.send('trial_recycled')
 					self.database.current(False)
-					self.clear()
+					clear()
 				self.rc.reset()
 		self.clean_up()
 		self.evm.dump_events()
@@ -163,10 +161,10 @@ class Experiment(EnvAgent):
 		except TrialException as e:
 			P.trial_id = False
 			self.trial_clean_up()
-			self.clockstop()
+			self.evm.stop_clock()
 			tx = e
 		if P.eye_tracking:
-			self.el.stop_clock()
+			self.el.stop()
 		self.evm.clear()
 		if tx:
 			raise tx

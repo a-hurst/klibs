@@ -96,7 +96,6 @@ class TryLink(EnvAgent, BoundaryInspector):
 		"""
 		# todo: only allow fixation start/end/update inspections
 		fix_start_time = self.__within_boundary__(label, self.sample())
-		print "fixated_boundary: {0}".format(fix_start_time)
 		if fix_start_time:
 			return fix_start_time if not return_queue else [fix_start_time, event_queue]
 		return False

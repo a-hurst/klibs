@@ -217,6 +217,7 @@ def flush():
 def force_quit():
 	print subprocess.Popen("pkill", "-f", "–9", "python").Communicate()
 
+
 def full_trace():
 	exception_list = traceback.format_stack()
 	exception_list = exception_list[:-2]
@@ -246,8 +247,9 @@ def indices_of(element, container, identity_comparison=False):
 	else:
 		return [i for i, x in enumerate(container) if x == element]
 
+
 def interpolated_path_len(points):
-	# where frames is a list of coordinate tuples
+	# where points is a list of coordinate tuples
 	path_len = 0
 	for i in range(0, len(points)):
 		try:
@@ -270,6 +272,7 @@ def iterable(obj, exclude_strings=True):
 			return True
 		except AttributeError:
 			return False
+
 
 def linear_intersection(line_1, line_2):
 	# first establish if lines are given as absolute lengths or origins and angles

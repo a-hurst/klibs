@@ -59,6 +59,7 @@ class AudioClip(object):
 			self.channel = self.default_channel
 
 		def play(self, channel=-1, loops=0):
+			self.started = True
 			self.channel = sdl2.sdlmixer.Mix_PlayChannel(channel, self.sample, loops)
 			self.__playing = True
 

@@ -10,7 +10,7 @@ from datetime import datetime
 from klibs.KLConstants import *
 import os
 
-klibs_commit = '0ae290f369dee14b18f1195f7712e55898721af6'
+klibs_commit = '2c7ed65215592452d9f402a4b57ff5a1fef26827'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -41,6 +41,8 @@ global random_seed
 global anonymous_username
 global logo_file_path
 global key_maps
+global local_dir
+code_dir = "ExpAssets/Resources/code"  # hard-coded because it's required *before* the Experiment class is instantiated
 
 exp = None
 exp_font_dir = "ExpAssets/Resources/font"
@@ -147,6 +149,7 @@ data_column_format = DB_COL_TITLE
 # development mode & associated switches
 debug_level = 3
 development_mode = False  # when True, skips collect_demographics & prints various details to screen
+dm_trial_show_mouse = True
 dm_suppress_debug_pane = False
 dm_auto_threshold = True
 dm_print_log = True
@@ -177,6 +180,7 @@ def init_project():
 	global params_file_path
 	global events_file_path
 	global versions_dir
+	global local_dir
 	global initialized
 
 	key_maps = {"*": KeyMap("*", [], [], []),
@@ -213,6 +217,7 @@ def init_project():
 	params_file_path = os.path.join(config_dir, params_filename)
 	events_file_path = os.path.join(config_dir, events_filename)
 	versions_dir = os.path.join(asset_dir, ".versions")
+	local_dir = os.path.join(asset_dir, "Local")
 
 	initialized = True
 	return True
@@ -228,6 +233,7 @@ def setup(project_name_str):
 	global resources_dir
 	global logo_file_path
 
+
 	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
 
 
@@ -242,5 +248,4 @@ def setup(project_name_str):
 	image_dir = os.path.join(resources_dir, "image")
 	config_dir = os.path.join(asset_dir, "Config")
 	logo_file_path = os.path.join(klibs_dir, "splash.png")
-
 	return init_project()

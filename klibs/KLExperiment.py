@@ -14,7 +14,7 @@ from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
 from klibs.KLConstants import ALL
-from klibs.KLUtilities import full_trace, pump, now, list_dimensions, force_quit
+from klibs.KLUtilities import full_trace, pump, now, list_dimensions, force_quit, show_mouse_cursor, hide_mouse_cursor
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear #, display_init
 from klibs.KLDatabase import Database
@@ -132,6 +132,7 @@ class Experiment(EnvAgent):
 					# self.evm.send('trial_recycled')
 					self.database.current(False)
 					clear()
+				self.evm.clear()
 				self.rc.reset()
 		self.clean_up()
 		self.evm.dump_events()
@@ -153,10 +154,17 @@ class Experiment(EnvAgent):
 		self.trial_prep()
 		tx = None
 		try:
+			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
+				show_mouse_cursor()
 			self.evm.start_clock()
-			trial_data = self.trial()
+			if P.eye_tracking:
+				self.el.start(P.trial_number)
+			self.__log_trial__(self.trial())
+			if P.eye_tracking:
+				self.el.stop()
+			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
+				hide_mouse_cursor()
 			self.evm.stop_clock()
-			self.__log_trial__(trial_data)
 			self.trial_clean_up()
 		except TrialException as e:
 			P.trial_id = False

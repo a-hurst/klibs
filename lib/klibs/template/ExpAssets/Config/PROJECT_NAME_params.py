@@ -50,6 +50,7 @@ table_defaults = {}
 #########################################
 dm_suppress_debug_pane = False
 dm_auto_threshold = True
+dm_trial_show_mouse = True
 
 #
 #########################################

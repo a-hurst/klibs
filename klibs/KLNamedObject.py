@@ -48,11 +48,11 @@ class NamedInventory(collections.MutableMapping):
 
 	def add(self, key):
 		if not isinstance(key, NamedObject):
-			# try:
-			for k in key:
-				self.__setitem__(k.name, k)
-			# except AttributeError:
-			# 	raise TypeError("Only objects inheriting from KLObject can be stored in a KLInventory collection.")
+			try:
+				for k in key:
+					self.__setitem__(k.name, k)
+			except AttributeError:
+				raise TypeError("Only objects inheriting from KLObject can be stored in a KLInventory collection.")
 		else:
 			self.__setitem__(key.name, key)
 

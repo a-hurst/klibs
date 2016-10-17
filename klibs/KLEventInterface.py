@@ -231,7 +231,7 @@ class EventManager(EnvAgent):
 		:param pump_events:
 		:return: :raise NameError:
 		"""
-		if not label:
+		if type(label) is not str:
 			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
 		if not self.registered(label):
 			raise NameError("Event '{0}' not registered with the EventInterface.".format(label))
@@ -249,7 +249,7 @@ class EventManager(EnvAgent):
 		:param pump_events:
 		:return: :raise NameError:
 		"""
-		if not label:
+		if type(label) is not str:
 			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
 		if not self.registered(label):
 			raise NameError("Event '{0}' not registered with the EventInterface.".format(label))
@@ -279,6 +279,7 @@ class EventManager(EnvAgent):
 		self.queued_tickets.clear()
 		self.issued_tickets.clear()
 		self.__all_tickets__ = []
+
 
 	# def deregister(self, label):
 	# 	"""
@@ -463,6 +464,14 @@ class EventManager(EnvAgent):
 	# 			message = "TA_{0}: {1}".format(e.code, message)
 	# 		self.write(message, True, False)
 
+	def since(self, label):
+		if type(label) is not str:
+			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
+		if not self.registered(label):
+			raise NameError("Event '{0}' not registered with the EventInterface.".format(label))
+		if label not in self.trial_events:
+			raise RuntimeError("Event '{0}' has not yet been issued.".format(label))
+		return self.trial_time_ms - self.issued_tickets[label].onset
 
 	def start_clock(self):
 		"""
@@ -496,6 +505,16 @@ class EventManager(EnvAgent):
 			pump()
 		if self.clock.is_alive():
 			kill(self.clock.p.pid, SIGKILL)
+
+	def until(self, label):
+		self.__sync_tickets__()
+		if type(label) is not str:
+			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
+		if not self.registered(label):
+			raise KeyError("Event '{0}' not registered with the EventInterface.".format(label))
+		if label in self.trial_events:
+			raise RuntimeError("Event '{0}' already issued.".format(label))
+		return self.issued_tickets[label].onset - self.trial_time_ms
 
 	def update_ticket_onset(self, label, onset, unit=TK_MS):
 		"""

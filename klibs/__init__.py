@@ -28,6 +28,25 @@ import KLResponseCollectors					# KLConstants, KLParams, KLUtilities, KLUserInte
 import KLEyeLink
 import KLCommunication
 import KLEnvironment
+
+try:
+	# if additional classes have been defined at ExpAssets/Resources/code, load them
+	import sys
+	import os
+	from imp import load_source
+	from inspect import isclass
+	sys.path.append(P.code_dir)
+	for f in os.listdir(P.code_dir):
+		if f[-3:] != ".py":
+			if f[-3:] == ".pyc":
+				os.remove( os.path.join(P.code_dir, f) )
+			continue
+		for k, v in load_source("*", os.path.join(P.code_dir, f)).__dict__.iteritems():
+			if isclass(k):
+				import k
+except OSError:
+	pass
+
 from klibs.KLExperiment import Experiment
 
 #####################################################

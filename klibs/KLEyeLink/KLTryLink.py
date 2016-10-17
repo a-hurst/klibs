@@ -2,13 +2,13 @@
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import abc
-
+from sdl2 import SDL_MOUSEBUTTONDOWN
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EyeLinkError
 from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_SACCADE_END,\
 	EL_SACCADE_START, EL_FIXATION_END
 from klibs import P
-from klibs.KLUtilities import iterable, mouse_pos, show_mouse_cursor, hide_mouse_cursor
+from klibs.KLUtilities import iterable, mouse_pos, show_mouse_cursor, hide_mouse_cursor, pump
 from klibs.KLBoundary import BoundaryInspector
 from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
@@ -74,14 +74,18 @@ class TryLink(EnvAgent, BoundaryInspector):
 
 		show_mouse_cursor()
 		while True:
-			ui_request()
+			event_queue = pump(True)
+			ui_request(queue=event_queue)
 			fill()
 			blit(drift_correct_target(), 5, location)
 			flip()
-			fixated = self.within_boundary(boundary, EL_MOCK_EVENT)
-			if fixated:
-				hide_mouse_cursor()
-				return fixated
+			for e in event_queue:
+				if e.type == SDL_MOUSEBUTTONDOWN and super(TryLink, self).within_boundary(boundary, [e.button.x, e.button.y]):
+					hide_mouse_cursor()
+					return 0
+					# fixated = self.within_boundary(boundary, EL_MOCK_EVENT, event_queue=event_queue)
+					# if clicked:
+					# 	return fixated
 
 	def fixated_boundary(self, label, inspect=EL_FIXATION_END, event_queue=None, return_queue=False):
 		"""
@@ -131,7 +135,6 @@ class TryLink(EnvAgent, BoundaryInspector):
 		"""
 		# todo: only allow saccade start/end inspections
 		sacc_start_time = self.__within_boundary__(label, self.sample())
-		print "sacc_start_time: {0}".format(sacc_start_time)
 		if sacc_start_time:
 			return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
 		return False
@@ -211,7 +214,6 @@ class TryLink(EnvAgent, BoundaryInspector):
 
 	def shut_down_eyelink(self):
 		pass
-
 
 	# re: all "gaze_boundary" methods: Refactored boundary behavior to a mixin (KLMixins)
 	def fetch_gaze_boundary(self, label):

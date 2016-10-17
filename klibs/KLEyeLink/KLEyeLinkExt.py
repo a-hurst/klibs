@@ -95,10 +95,6 @@ if PYLINK_AVAILABLE:
 				ppd_x, ppd_y = event.getStartPPD()
 				timestamp = event.getStartTime() if report == EL_TIME_START else event.getEndTime()
 			result = super(EyeLink, self).within_boundary(label, (x, y))
-	#			if not result:
-	#				print "Off By: {0}[{3}] ({1} => {2})".format(line_segment_len((x, y), self.boundaries[label].center), (x,y), self.boundaries[label].center, self.boundaries[label].radius)
-	#			else:
-	#				print "FIXATED BITCHEZ"
 			return timestamp if result else False
 
 		def __exited_boundary__(self, label, event, report):
@@ -123,7 +119,6 @@ if PYLINK_AVAILABLE:
 
 		def drift_correct(self, location=None, boundary=None, el_draw_fixation=EL_TRUE, samples=EL_TRUE):
 			"""
-
 			:param location:
 			:param el_draw_fixation:
 			:param samples:
@@ -227,7 +222,6 @@ if PYLINK_AVAILABLE:
 	#				print "FixationEvent | avgGze:{2}, avgX: {3}, avgY: {4}, startTime: {0}, endTime:{1}".format(*p_v)
 				fixation_end_time = self.within_boundary(label, valid_events, [e], report, inspect, return_queue)
 				if fixation_end_time:
-					print "fixation_end_time: " + str(fixation_end_time)
 					return fixation_end_time if not return_queue else [fixation_end_time, event_queue]
 			return False
 

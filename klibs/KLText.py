@@ -1,7 +1,7 @@
 __author____ = 'jono'
 from numpy import asarray, zeros, concatenate
 from PIL import ImageFont
-from sdl2.sdlttf import TTF_Init, TTF_OpenFont, TTF_RenderText_Blended, TTF_RenderUTF8_Solid
+from sdl2.sdlttf import TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderText_Blended, TTF_RenderUTF8_Solid
 from sdl2.ext import PixelView
 from sdl2 import SDL_Color
 from math import floor
@@ -175,6 +175,7 @@ class TextManager(object):
 			surface =  NpS(surface_array)
 			#surface = surface_array
 			#return surface if surface.shape[1] < P.screen_x else self.__wrap__(text, style, P.screen_x - 20)
+		TTF_CloseFont(rendering_font)
 		return surface if surface.width < P.screen_x else self.__wrap__(text, style, P.screen_x - 20)
 
 	def add_font(self, font_name, font_extension="ttf", font_file_basename=None):

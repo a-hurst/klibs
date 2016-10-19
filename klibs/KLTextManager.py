@@ -177,13 +177,13 @@ class TextManager(object):
 		else:
 			rendered_text = sdlttf.TTF_RenderUTF8_Solid(rendering_font, text, sdl2.SDL_Color(*style.color)).contents
 			px = numpy.asarray(sdl2.ext.PixelView(rendered_text))
-			print px
 			surface_array = numpy.zeros((px.shape[0], px.shape[1], 4));
 			surface_array[...] = px * 255
 		if not from_wrap:
 			surface =  NumpySurface(surface_array)
 		else:
 			surface =  NumpySurface(surface_array)
+		sdlttf.TTF_CloseFont(rendering_font)
 			#surface = surface_array
 			#return surface if surface.shape[1] < Params.screen_x else self.__wrap(text, style, Params.screen_x - 20)
 		return surface if surface.width < Params.screen_x else self.__wrap(text, style, Params.screen_x - 20)

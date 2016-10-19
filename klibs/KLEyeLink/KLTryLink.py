@@ -6,7 +6,7 @@ from sdl2 import SDL_MOUSEBUTTONDOWN
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EyeLinkError
 from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_SACCADE_END,\
-	EL_SACCADE_START, EL_FIXATION_END
+	EL_SACCADE_START, EL_FIXATION_END, TK_S, TK_MS
 from klibs import P
 from klibs.KLUtilities import iterable, mouse_pos, show_mouse_cursor, hide_mouse_cursor, pump
 from klibs.KLBoundary import BoundaryInspector
@@ -120,7 +120,9 @@ class TryLink(EnvAgent, BoundaryInspector):
 	def getNextData(self):
 		return MouseEvent()
 
-	def now(self):
+	def now(self, unit=TK_S):
+		if unit == TK_MS:
+			return self.evm.trial_time_ms if self.evm.start_time else self.evm.timestamp
 		return self.evm.trial_time if self.evm.start_time else self.evm.timestamp
 
 	def saccade_to_boundary(self, label, inspect=EL_SACCADE_END, event_queue=None, return_queue=False):

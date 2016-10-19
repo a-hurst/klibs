@@ -126,12 +126,14 @@ class Experiment(EnvAgent):
 						P.trial_id = 1
 					self.__trial__(trial, block.practice)
 					P.trial_number += 1
+					print "Ending trial {0}".format(self.database.last_id_from('trials') + 1)
 				except TrialException:
 					block.recycle()
 					P.recycle_count += 1
 					# self.evm.send('trial_recycled')
 					self.database.current(False)
 					clear()
+					print "Ending trial {0} due to TrialException".format(self.database.last_id_from('trials') + 1)
 				self.evm.clear()
 				self.rc.reset()
 		self.clean_up()
@@ -205,7 +207,6 @@ class Experiment(EnvAgent):
 		# 	except AttributeError as e:  # potentially gets called once before the Debugger is intialized during init
 		# 		if P.display_initialized:
 		# 			raise
-
 
 	def collect_demographics(self, anonymous_user=False):
 		"""
@@ -284,7 +285,6 @@ class Experiment(EnvAgent):
 		if P.collect_demographics and P.multi_session_project:
 			self.init_session()
 
-
 	def insert_practice_block(self, block_nums, trial_counts=None, factor_masks=None):
 		try:
 			iter(block_nums)
@@ -301,7 +301,6 @@ class Experiment(EnvAgent):
 		for i in range(0, len(block_nums)):
 			self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_masks[i])
 			P.blocks_per_experiment += 1
-
 
 	def add_keymap(self, name, ui_labels=None, data_labels=None, sdl_keysyms=None):
 		"""
@@ -338,7 +337,6 @@ class Experiment(EnvAgent):
 			return P.key_maps[name]
 		else:
 			return False
-
 
 	def config(self):
 		"""
@@ -407,7 +405,6 @@ class Experiment(EnvAgent):
 
 		print "\n\n\033[92m*** '{0}' successfully shutdown. ***\033[0m\n\n".format(P.project_name)
 		exit()
-
 
 	def run(self, *args, **kwargs):
 		"""

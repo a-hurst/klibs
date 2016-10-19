@@ -9,6 +9,7 @@ import multiprocessing as mp
 from os import kill
 from signal import SIGKILL
 
+from klibs.KLExceptions import EventError
 from klibs.KLNamedObject import *
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import TK_S, TK_MS, TBL_EVENTS, EVI_CONSTANTS, EVI_DEREGISTER_EVENT, EVI_CLOCK_RESET, \
@@ -65,7 +66,7 @@ class TrialEventTicket(EnvAgent, NamedObject):
 			raise TypeError("Property 'onset' must be a positive integer; got {0}.".format(time_val))
 		if self.relative:
 			if not self.evm.start_time:
-				raise RuntimeError("Trial has not started; relatively-timed event onsets not possible.")
+				raise EventError("Trial has not started; relatively-timed event onsets not possible.")
 			time_val += self.evm.trial_time if self.__unit__ == TK_S else self.evm.trial_time_ms
 		if self.__unit__ == TK_S:
 			time_val *= 1000
@@ -206,7 +207,7 @@ class EventManager(EnvAgent):
 				self.queued_tickets[label].onset = onset
 			if update_data: self.queud_tickets[label].data = data
 		else:
-			raise RuntimeError("Event '{0}' has already been issued.".format(label))
+			raise EventError("Event '{0}' has already been issued.".format(label))
 
 	def __sync_tickets__(self, events=True, stages=True):
 		"""
@@ -470,7 +471,7 @@ class EventManager(EnvAgent):
 		if not self.registered(label):
 			raise NameError("Event '{0}' not registered with the EventInterface.".format(label))
 		if label not in self.trial_events:
-			raise RuntimeError("Event '{0}' has not yet been issued.".format(label))
+			raise EventError("Event '{0}' has not yet been issued.".format(label))
 		return self.trial_time_ms - self.issued_tickets[label].onset
 
 	def start_clock(self):
@@ -513,7 +514,7 @@ class EventManager(EnvAgent):
 		if not self.registered(label):
 			raise KeyError("Event '{0}' not registered with the EventInterface.".format(label))
 		if label in self.trial_events:
-			raise RuntimeError("Event '{0}' already issued.".format(label))
+			raise EventError("Event '{0}' already issued.".format(label))
 		return self.issued_tickets[label].onset - self.trial_time_ms
 
 	def update_ticket_onset(self, label, onset, unit=TK_MS):

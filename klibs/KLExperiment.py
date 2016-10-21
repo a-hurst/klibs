@@ -27,14 +27,16 @@ import klibs.KLDraw as kld
 # and warns the experimenter if more than 16.666ms are elapsing between calls
 
 def import_project_params(file_path=None):
-	if not file_path:
-		file_path = Params.params_file_path
-	try:
-		project_params =  imp.load_source("*", file_path)
-		for k, v in project_params.__dict__.iteritems():
-			setattr(Params, k, v)
-	except IOError:
-		return None
+	params_files = [Params.params_file_path if not file_path else file_path]
+	if os.path.exists(os.path.join(Params.asset_dir, "Local", "{0}_params.py".format(Params.project_name))):
+		params_files.append(local_file_path = os.path.join(Params.asset_dir, "Local", "{0}_params.py".format(Params.project_name)))
+	for pf in params_files:
+		try:
+			project_params =  imp.load_source("*", pf)
+			for k, v in project_params.__dict__.iteritems():
+				setattr(Params, k, v)
+		except IOError:
+			return None
 
 
 class Experiment(object):

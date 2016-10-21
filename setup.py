@@ -11,7 +11,6 @@ from shutil import move
 from os import remove, close
 import re
 
-
 p = sub.Popen(['git', 'rev-parse', 'HEAD'],stdout=sub.PIPE,stderr=sub.PIPE)
 commit = p.communicate()[0][:-1]
 old_params_file = "klibs/KLParams.py"

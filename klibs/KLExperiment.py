@@ -29,7 +29,7 @@ import klibs.KLDraw as kld
 def import_project_params(file_path=None):
 	params_files = [Params.params_file_path if not file_path else file_path]
 	if os.path.exists(os.path.join(Params.asset_dir, "Local", "{0}_params.py".format(Params.project_name))):
-		params_files.append(local_file_path = os.path.join(Params.asset_dir, "Local", "{0}_params.py".format(Params.project_name)))
+		params_files.append(os.path.join(Params.asset_dir, "Local", "{0}_params.py".format(Params.project_name)))
 	for pf in params_files:
 		try:
 			project_params =  imp.load_source("*", pf)

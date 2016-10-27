@@ -229,8 +229,9 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		P.collect_demographics = False
 
 	# get actual current klibs commit & compare value currently in KLParams
-	if P.klibs_commit != Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE).communicate()[0][:-1]:
-		pass # todo: warn user
+	P.klibs_commit = open("/usr/local/lib/klibs/current_commit.txt").read()
+	# if P.klibs_commit != Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE).communicate()[0][:-1]:
+	# 	pass # todo: warn user
 
 	# create project directories
 	dir_structure = {"ExpAssets": {

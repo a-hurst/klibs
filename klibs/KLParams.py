@@ -10,7 +10,7 @@ from klibs.KLConstants import *
 from os import makedirs
 from os.path import exists, join
 
-klibs_commit = '378fea8a564543ed358687b3366965559c685012'
+klibs_commit = None  # populated at runtime
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"

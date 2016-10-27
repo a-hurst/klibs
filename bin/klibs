@@ -9,12 +9,15 @@ col = {"@P": '\033[95m',  # purple
 
 import argparse
 import os
+from os.path import join
+from os import makedirs
 import shutil
 from subprocess import Popen, PIPE
 import traceback
 import imp
 import time
 import sys
+from random import choice
 from hashlib import sha1
 
 pylink_install_required = False
@@ -48,14 +51,15 @@ def full_trace():
 
 	exception_str = "Traceback (most recent call last):\n"
 	exception_str += "".join(exception_list)
+
 	# Removing the last \n
 	return exception_str[:-1]
 
 def create(name, path):
-	# try:
-	# 	import klibs
-	# except ImportError as e:
-	# 	print_warning(*sys.exc_info())
+	split_test = os.path.split(name)
+	if len(split_test[0]):
+		path, name = split_test
+
 	# Adding author details and loop to confirm before execution, was in a rush,  will return later
 	# Basically got stick on feeding raw_input() into arg_parse, seems to take each letter as an argument
 	# Update #2:  moved on to using just raw_input() until help with how to do this turns up
@@ -68,77 +72,99 @@ def create(name, path):
 			auth_args = auth_parse.parse_args(raw_input("\n\033[32mProvide your first and last name: \033[0m").split())
 			if len(auth_args.name) == 2:  # todo: add a check to ensure names are only letters
 				author_ok = True
-		except SystemExit as e:
-			print "\033[91m\nOk Madonna, take it easy. \033[32mFirst \033[92m*\033[32mand\033[92m*\033[32m last name. Let's try that again--you got this champ...\033[0m"
+		except SystemExit:
+			one_name_peeps = ["Madonna", "Prince", "Cher", "Bono", "Sting"]
+			print "\033[91m\nOk {0}, take it easy. \033[32mFirst \033[92m*\033[32mand\033[92m*\033[32m last name. Let's try that again--you got this champ...\033[0m".format(choice(one_name_peeps))
 			return create(name, path)
 
 	source_path = "/usr/local/lib/klibs/template"
-	project_path = os.path.join(path, name)
+	project_path = join(path, name)
 
 	correct = False
 	while not correct:
 		print "\033[94m*** \033[95mConfirm Project Details\033[94m ***\033[0m"
 		print "\033[96mProject Author: \033[94m{0} {1}\033[0m".format(auth_args.name[0], auth_args.name[1])
 		print "\033[96mProject Path: \033[94m{0}\033[0m".format(project_path)
-		confirm_parser = argparse.ArgumentParser()
-		confirm_parser.add_argument('confirmed',  type=str, choices=['y', 'n', 'yes' ,'no', 'YES', 'NO', 'Yes', 'No', 'q', 'quit', 'Quit', 'QUIT'])
-		confirm_args = confirm_parser.parse_args([raw_input("\033[32mIs this correct? Answer with \033[95mY\033[32mes, \033[95mN\033[32mo or \033[95mQ\033[32muit. \033[0m").lower()])
-		if confirm_args.confirmed in ["n", "no", "N", "NO"]:
+		def get_response():
+			confirm_parser = argparse.ArgumentParser()
+			confirm_parser.add_argument('confirmed',  type=str, choices=['y', 'n', 'q'])
+			confirm_args = confirm_parser.parse_args([raw_input("\033[32mIs this correct? Answer with \033[95mY\033[32mes, \033[95mN\033[32mo or \033[95mQ\033[32muit. \033[0m").lower()])
+			return confirm_args.confirmed[0].lower()
+		response = get_response()
+		if response == "n":
 			return create(name, path)
-		elif confirm_args.confirmed in ["q", "quit", "QUIT", "Quit"]:
+		elif response == "q":
 			print "\n\033[32mFine. Be that way. But I think we both know you'll be back.\033[0m"
 			exit()
-		correct = True
-	tmp_dir = "klibs_" + sha1(project_path + str(time.time())).hexdigest()
-	tmp_path = os.path.join("/","tmp", tmp_dir)
-	shutil.copytree(source_path, tmp_path)
-	print "\t...Project template files successfully copied to temporary directory."
+		elif response == "y":
+			correct = True
+		else:
+			print "Pardon? I didn't catch that."
 
-	# replace generic strings in experiment.py with project author and name
-	temp_exp_f = open(os.path.join(tmp_path, "experiment.py"), "rt")
-	temp_exp = temp_exp_f.read().replace('PROJECT_NAME', name).replace('EXPERIMENTER_NAME', " ".join(auth_args.name))
-	open(os.path.join(tmp_path, "experiment.py"), "w+").write(temp_exp)
+	tmp_dir = "klibs_" + sha1(project_path + str(time.time())).hexdigest()
+	tmp_path = join("/","tmp", tmp_dir)
+
+	# create project directories
+	dir_structure = {"ExpAssets": {
+						".versions": None,
+						"Config": None,
+						"Resources": {"code": None, "font": None,"image": None},
+						"Local": {"logs":None},
+						"Data": {"incomplete":None},
+						"EDF": {"incomplete": None} }
+					}
+
+	def build_directory_structure(dir_map, parents=[]):
+		if dir_map is None:
+			return
+		parent_path = os.path.join(*parents) if len(parents) else ""
+
+		for d in dir_map:
+			dir_full_path = join(tmp_path, parent_path, d)
+			subdirs = dir_map[d]
+			try:
+				makedirs(dir_full_path)
+			except OSError as e:
+				print "failed"
+				print dir_map, parents
+				exit()
+			new_parents = [p for p in parents]
+			new_parents.append(d)
+			build_directory_structure(subdirs, new_parents)
+
+	build_directory_structure(dir_structure)
+	print "\t...Project template files successfully created in temporary project directory."
 
 	# replace generic file names with project-specific names
-	template_files = [['Config', "schema.sql"], ['Config', "factors.csv"], ['Config', "messaging.csv"], ['Config', 'params.py'], [None,".gitignore"]]
-	for f in template_files:
-		# establish the path to the newly copied template file
-		if f[0]:
-			template = os.path.join(tmp_path, 'ExpAssets', f[0], 'PROJECT_NAME_{0}'.format(f[1]))
-		elif f[1] == ".gitignore":
-			template = os.path.join(tmp_path, "gitignore.txt")
-		else:
-			template = os.path.join(tmp_path, 'ExpAssets', 'PROJECT_NAME_{0}'.format(f[1]))
+	template_files = [("schema.sql", ["ExpAssets", "Config"]),
+					  ("factors.csv", ["ExpAssets", "Config"]),
+					  ("messaging.csv", ["ExpAssets", "Config"]),
+					  ("params.py", ["ExpAssets", "Config"]),
+					  ("experiment.py", []),
+					  (".gitignore", [])]
 
-		# establish the matching path to the would-be project file
-		if f[0]:
-			project = os.path.join(tmp_path, 'ExpAssets', f[0], '{0}_{1}'.format(name, f[1]))
-		elif f[1] == ".gitignore":
-			project = os.path.join(tmp_path, '{0}'.format(f[1]))
-		else:
-			project = os.path.join(tmp_path, 'ExpAssets', '{0}_{1}'.format(name, f[1]))
-
-		shutil.move(template, project)
-		temp_project_f = open(project, "rt").read().replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
-		open(project, "w+").write(temp_project_f)
-	# versions_temp_dir = os.path.join(project_path, 'ExpAssets', "versions")
-	# versions_proj_dir = os.path.join(project_path, 'ExpAssets', ".versions")
-	# shutil.move(versions_temp_dir, versions_proj_dir)
+	for tf in template_files:
+		target_f_name = tf[0] if tf[0] in [".gitignore", "experiment.py"] else "{0}_{1}".format(name, tf[0])
+		template_f_path = join(source_path, tf[0] if tf[0] != ".gitignore" else "gitignore.txt")
 		try:
-			print "\t...'{0}' successfully configured".format("/".join(f))
+			project_f_path = join(tmp_path, join(*tf[1]), target_f_name)
 		except TypeError:
-			print "\t...'{0}' successfully configured".format(f[1])
+			project_f_path = join(tmp_path, target_f_name)
+		project_f_contents = open(template_f_path, "rt").read()
+		project_f_contents = project_f_contents.replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
+		project_f_contents = project_f_contents.replace('EXPERIMENTER_NAME', " ".join(auth_args.name))
+		project_f = open(project_f_path, "w+")
+		project_f.write(project_f_contents)
+		project_f.close()
+		try:
+			print "\t...'{0}' successfully created in temporary project directory".format(join(join(*tf[1]), target_f_name))
+		except TypeError:
+			print "\t...'{0}' successfully created in temporary project directory".format(target_f_name)
+
 	shutil.move(tmp_path, path)
-	os.rename(os.path.join(path, tmp_dir), os.path.join(path, name))
+	os.rename(join(path, tmp_dir), join(path, name))
 	print "\033[92m\nProject successfully created at: '\033[94m{0}\033[0m'".format(project_path)
-	# except OSError, e:
-	# 	if e.errno == 17:
-	# 		print "\033[91mError:\033[0m A directory or file already exists at '\033[94m{0}\033[0m'.".format(project_path)
-	# 	else:
-	# 		raise OSError(e)
-	# except Exception as e:
-	# 	print "\033[91mError: Project '{0}' not created at {1}.\033[0m".format(name, project_path)
-	# 	raise OSError(e)
+
 
 def update():
 	"""
@@ -147,12 +173,14 @@ def update():
 	 Generally, this just needs to be a lot more robust.
 	 You're using Popen() because it lets you get stdout, whereas subprocess.call() only provides a returncode
 	"""
-	print "Update isn't currently supported. It's coming in a later update of KLIBs. For now, you can do this manually simply by cloning the git repository (https://www.github.com/jmwmulle/klibs) and re-installing."
-	return
-	p = Popen(['git', '-C', '/usr/local/klibs/klibs_git', 'pull'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+	# print "Update isn't currently supported. It's coming in a later update of KLIBs. For now, you can do this manually simply by cloning the git repository (https://www.github.com/jmwmulle/klibs) and re-installing."
+	# return
+	p = Popen(['git', '-C', '/usr/local/lib/klibs/klibs_git', 'pull'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 	output, err = p.communicate()
-	print output
-	print err
+	if len(err):
+		print err
+	if len(output):
+		print output
 
 
 def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose):
@@ -275,12 +303,12 @@ def hard_reset(path):
 	#todo: require confirmation
 	for d in ['Data', 'EDF', '.versions']:
 		try:
-			shutil.rmtree(os.path.join(path, "ExpAssets", d))
+			shutil.rmtree(join(path, "ExpAssets", d))
 		except OSError:
 			pass
-	os.makedirs(os.path.join(path, "ExpAssets", "Data", "incomplete"))
-	os.makedirs(os.path.join(path, "ExpAssets", "EDF", "incomplete"))
-	os.mkdir(os.path.join(path, "ExpAssets", ".versions"))
+	os.makedirs(join(path, "ExpAssets", "Data", "incomplete"))
+	os.makedirs(join(path, "ExpAssets", "EDF", "incomplete"))
+	os.mkdir(join(path, "ExpAssets", ".versions"))
 	rebuild_db(path)
 
 

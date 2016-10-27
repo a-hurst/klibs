@@ -26,6 +26,8 @@ shutil.copymode(old_params_file, new_params_file)
 os.rename(old_params_file, "klibs/__KLParams.py")
 os.rename(new_params_file, old_params_file)
 
+
+
 install_packages = ['klibs']
 
 setup(
@@ -40,6 +42,7 @@ setup(
 
 
 # dirty hack until time is made to do this bit right via the installer
+
 try:
 	shutil.rmtree("/usr/local/lib/klibs")
 except:
@@ -48,26 +51,29 @@ except:
 	except:
 		pass
 shutil.copytree("lib/klibs", "/usr/local/lib/klibs")
-try:
-	os.remove("/usr/local/lib/klibs/__init__.py")
-except:
-	pass
-try:
-	os.remove("/usr/local/lib/klibs/template/__init__.py")
-except:
-	pass
-try:
-	os.remove("/usr/local/lib/klibs/template/ExpAssets/__init__.py")
-except:
-	pass
-try:
-	os.remove("/usr/local/lib/klibs/template/ExpAssets/Config/__init__.py")
-except:
-	pass
+# try:
+# 	os.remove("/usr/local/lib/klibs/__init__.py")
+# except:
+# 	pass
+# try:
+# 	os.remove("/usr/local/lib/klibs/template/__init__.py")
+# except:
+# 	pass
+# try:
+# 	os.remove("/usr/local/lib/klibs/template/ExpAssets/__init__.py")
+# except:
+# 	pass
+# try:
+# 	os.remove("/usr/local/lib/klibs/template/ExpAssets/Config/__init__.py")
+# except:
+# 	pass
 try:
 	os.remove("/usr/local/bin/klibs")
 except:
 	pass
 shutil.copyfile("bin/klibs", "/usr/local/bin/klibs")
 shutil.copymode("bin/klibs", "/usr/local/bin/klibs")
+print "Copying git to \"/usr/local/lib/klibs/klibs_git\". This may take a minute or two..."
+# print os.path.dirname(os.path.realpath(__file__))
+shutil.copytree(os.path.dirname(os.path.realpath(__file__)), "/usr/local/lib/klibs/klibs_git", True)
 

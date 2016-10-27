@@ -2,15 +2,15 @@
 author = 'jono'
 
 from random import seed
-
 # from klibs.KLUtilities import *
 # from klibs.KLTimeKeeper import TimeKeeper
 import time
 from datetime import datetime
 from klibs.KLConstants import *
-import os
+from os import makedirs
+from os.path import exists, join
 
-klibs_commit = '6c6be34b644c08a7afe3818103324956bc88ef02'
+klibs_commit = 'f91c76c498d59399604e9ec9f2779f1c41a74ffd'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -25,6 +25,7 @@ global log_file_path
 global database_path
 global database_backup_path
 global edf_dir
+global incomplete_edf_dir
 global schema_file_path
 global schema_file_path_legacy
 global schema_filename
@@ -48,7 +49,7 @@ exp = None
 exp_font_dir = "ExpAssets/Resources/font"
 sys_font_dir = "/Library/Fonts"
 user_font_dir = "~/Library/Fonts"
-klibs_font_dir = os.path.join(klibs_dir, "font")
+klibs_font_dir = join(klibs_dir, "font")
 font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
 
 
@@ -169,6 +170,7 @@ def init_project():
 	global database_path
 	global database_backup_path
 	global edf_dir
+	global incomplete_edf_dir
 	global schema_file_path
 	global schema_file_path_legacy
 	global schema_filename
@@ -181,6 +183,7 @@ def init_project():
 	global events_file_path
 	global versions_dir
 	global local_dir
+	global logs_dir
 	global initialized
 
 	key_maps = {"*": KeyMap("*", [], [], []),
@@ -204,20 +207,29 @@ def init_project():
 	events_filename = str(project_name) + MESSSAGING_EXT
 
 	# project paths
-	edf_dir = os.path.join(asset_dir, "EDF")  # todo: write edf management
-	log_file_path = os.path.join(asset_dir, log_filename)
-	schema_file_path = os.path.join(config_dir, schema_filename)
-	schema_file_path_legacy = os.path.join(asset_dir, schema_filename)
-	database_path = os.path.join(asset_dir, database_filename)
+	edf_dir = join(asset_dir, "EDF")  # todo: write edf management
+	incomplete_edf_dir = join(data_path, "incomplete")
+	log_file_path = join(asset_dir, log_filename)
+	schema_file_path = join(config_dir, schema_filename)
+	schema_file_path_legacy = join(asset_dir, schema_filename)
+	database_path = join(asset_dir, database_filename)
 	database_backup_path = database_path + BACK_EXT
-	data_path = os.path.join(asset_dir, "Data")
-	incomplete_data_path = os.path.join(data_path, "incomplete")
-	factors_file_path = os.path.join(config_dir, factors_filename)
-	config_file_path_legacy = os.path.join(asset_dir, factors_filename)
-	params_file_path = os.path.join(config_dir, params_filename)
-	events_file_path = os.path.join(config_dir, events_filename)
-	versions_dir = os.path.join(asset_dir, ".versions")
-	local_dir = os.path.join(asset_dir, "Local")
+	data_path = join(asset_dir, "Data")
+	incomplete_data_path = join(data_path, "incomplete")
+	factors_file_path = join(config_dir, factors_filename)
+	config_file_path_legacy = join(asset_dir, factors_filename)
+	params_file_path = join(config_dir, params_filename)
+	events_file_path = join(config_dir, events_filename)
+	versions_dir = join(asset_dir, ".versions")
+	local_dir = join(asset_dir, "Local")
+	logs_dir = join(local_dir, "logs")
+
+	for path in [local_dir, logs_dir, versions_dir, edf_dir, data_path, incomplete_data_path, incomplete_edf_dir]:
+		if not exists(path):
+			try:
+				makedirs(path)
+			except OSError:
+				pass
 
 	initialized = True
 	return True
@@ -243,9 +255,17 @@ def setup(project_name_str):
 	seed(random_seed)
 	project_name = project_name_str
 	asset_dir = "ExpAssets"
-	resources_dir = os.path.join(asset_dir, "Resources")
-	exp_font_dir = os.path.join(resources_dir, "font")
-	image_dir = os.path.join(resources_dir, "image")
-	config_dir = os.path.join(asset_dir, "Config")
-	logo_file_path = os.path.join(klibs_dir, "splash.png")
+	resources_dir = join(asset_dir, "Resources")
+	exp_font_dir = join(resources_dir, "font")
+	image_dir = join(resources_dir, "image")
+	config_dir = join(asset_dir, "Config")
+	logo_file_path = join(klibs_dir, "splash.png")
+
+	for path in [exp_font_dir, image_dir]:
+		if not exists(path):
+			try:
+				makedirs(path)
+			except OSError:
+				pass
+
 	return init_project()

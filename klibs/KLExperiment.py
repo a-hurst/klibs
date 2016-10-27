@@ -45,8 +45,7 @@ class Experiment(EnvAgent):
 	:raise EnvironmentError:
 	"""
 
-	__completion_message = "thanks for participating; please have the researcher return to the room."
-	__wrong_key_msg = None
+	__completion_message__ = "Thanks for participating; please have the researcher return to the room."
 	initialized = False
 	window = None
 	paused = False

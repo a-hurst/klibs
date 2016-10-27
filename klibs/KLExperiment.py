@@ -360,8 +360,8 @@ class Experiment(EnvAgent):
 			full_trace()
 
 		try:
-			if not self.evmevents_dumped:
-				self.evmdump_events()
+			if not self.evm.events_dumped:
+				self.evm.dump_events()
 		except:
 			pass
 

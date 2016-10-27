@@ -6,11 +6,13 @@ from os import remove, rename
 from os.path import exists, join, isfile
 
 from klibs.KLEnvironment import EnvAgent
+from klibs.KLExceptions import DatabaseException
+from klibs import P
 from klibs.KLConstants import DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, TAB, ID, SQL_NULL, SQL_COL_DELIM_STR, PY_FLOAT, \
 	PY_NUM, PY_BIN, PY_INT, PY_STR, SQL_INT, SQL_FLOAT, SQL_STR, SQL_NUMERIC, SQL_KEY, SQL_REAL, SQL_BIN, QUERY_SEL, \
 	DATA_EXT
-from klibs import P
 from klibs.KLUtilities import bool_to_int, boolean_to_logical, full_trace, type_str, snake_to_camel, iterable
+from klibs.KLUtilities import colored_stdout as cso
 
 class EntryTemplate(object):
 	null_field = "DELETE_THIS_FIELD"
@@ -155,21 +157,23 @@ class Database(EnvAgent):
 		self.db = None
 		self.cursor = None
 		self.schema = None
+		cso("<green>No database file was present at '{0}'.</green>", args=[P.database_path])
+		err_string = cso("<green>You can</green> <purple>(c)</purple><green>reate it,</green><purple>(s)</purple><green>"
+			"upply a different path or</green> <purple>(q)</purple><green>uit.</green>", False)
 		db_action = ArgumentParser()
-		db_action.add_argument('action', type=str, choices=['c', 'r'])
-		action = db_action.parse_args([raw_input(
-			"\033[32mYou can \033[95m(c)\033[32mreate them automatically or view a \033[95m(r)\033[32meport on the missing directories. \033[0m").lower()[0]])
-		# if action.action == "r":
-		err_string = "\033[32mNo database file was present at '{0}'. \nYou can (c)reate it, (s)upply a different path or (q)uit."
-		user_action = raw_input(err_string.format(P.database_path))
-		if user_action == DB_SUPPLY_PATH:
-			P.database_path = raw_input("Great. Where might it be?")
+		db_action.add_argument('action', type=str, choices=['c', 's', 'q'])
+		action = db_action.parse_args([raw_input(err_string).lower()[0]]).action
+
+		if action == DB_SUPPLY_PATH:
+			P.database_path = raw_input(cso("<green>Great. Where might it be?</green>", False))
 			self.__init_db__()
-		elif user_action == DB_CREATE:
+		elif action == DB_CREATE:
 			f = open(P.database_path, "a").close()
 			self.__init_db__()
+		elif action == "q":
+			raise DatabaseException("Quitting.")
 		else:
-			quit()
+			raise DatabaseException("No valid response.")
 
 	def __init_db__(self):
 		try:

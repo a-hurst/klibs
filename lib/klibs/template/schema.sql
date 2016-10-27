@@ -18,7 +18,8 @@ been caught much earlier.
 To do this, modify the document as needed, then, in your project. To rebuild the database with
 your changes just delete your database files, or just run:
 
-  rm PROJECT_PATH/PROJECT_NAME/ExpAssets/PROJECT_NAME.db*
+  cd PROJECT_PATH/PROJECT_NAME
+  klibs db-rebuild
 
 and run the experiment, this will force klibs to rebuild your database.
 
@@ -27,7 +28,7 @@ destroyed and rebuilt. If you wish to keep the data you currently have, be sure 
 
   klibs export PROJECT_PATH/PROJECT_NAME
 
-This wil export the database in it's current state to text files found in PROJECT_PATH/Data.
+This will export the database in it's current state to text files found in PROJECT_PATH/ExpAssets/Data.
 
 */
 
@@ -64,7 +65,6 @@ CREATE TABLE logs (
 CREATE TABLE trials (
 	id integer primary key autoincrement not null,
 	participant_id integer key not null,
-	practice integer not null,
 	block_num integer not null,
 	trial_num integer not null
 );

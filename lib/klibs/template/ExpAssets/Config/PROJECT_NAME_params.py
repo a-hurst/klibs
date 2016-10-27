@@ -6,9 +6,9 @@ import random
 #########################################
 # Available Hardware
 #########################################
-eye_tracker_available = True
-eye_tracking = True
-labjack_available = True
+eye_tracker_available = False
+eye_tracking = False
+labjack_available = False
 labjacking = False
 #
 #########################################
@@ -37,8 +37,8 @@ cue_back_size = 1,  # deg of visual angle
 #########################################
 # Experiment Structure
 #########################################
-multi_session_project = True
-collect_demographics = True
+multi_session_project = False
+collect_demographics = False
 practicing = False
 trials_per_block = 24
 blocks_per_experiment = 1

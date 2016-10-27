@@ -10,8 +10,10 @@ import traceback
 import imp
 import time
 import sys
+import errno
 from random import choice
 from hashlib import sha1
+from klibs.KLExceptions import DatabaseException
 from klibs.KLUtilities import colored_stdout as cso
 pylink_install_required = False
 klibs_version = "0.9.1.4"
@@ -171,13 +173,32 @@ def update():
 	"""
 	# cso("Update isn't currently supported. It's coming in a later update of KLIBs. For now, you can do this manually simply by cloning the git repository (https://www.github.com/jmwmulle/klibs) and re-installing.")
 	# return
-	p = Popen(['git', '-C', '/usr/local/lib/klibs/klibs_git', 'pull'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-	output, err = p.communicate()
-	if len(err):
-		cso(err)
-	if len(output):
-		cso(output)
+	from klibs import P
+	commit = None
+	try:
+		p = Popen(['git', '-C', '/usr/local/lib/klibs/klibs_git', 'pull'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+		output, err = p.communicate()
+		if len(err):
+			raise IOError(err)
+		if len(output):
+			cso(output)
+			p = Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE)
+			commit = p.communicate()[0][:-1]
+	except IOError as e:
+		print e
+		exit()
 
+	if commit != P.klibs_commit:
+		try:
+			p = Popen(['python', '/usr/local/lib/klibs/klibs_git/setup.py', 'install'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+			output, err = p.communicate()
+			if len(err):
+				raise IOError(err)
+			if len(output):
+				cso(output)
+		except IOError as e:
+			cso("<red>Root permissions required to reinstall klibs.</red>")
+			exit()
 
 def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose):
 	from klibs import  P
@@ -281,7 +302,15 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 			env.el.dummy_mode = P.eye_tracker_available is False
 	env.txtm = TextManager()
 	env.tk = TimeKeeper()
-	env.db = Database(project_name)
+	try:
+		env.db = Database(project_name)
+	except DatabaseException as e:
+		if e.message == "Quitting.":
+			env.evm.terminate()
+			exit()
+		else:
+			cso("<red>Unable to load database.</red>")
+			force_quit()
 	env.evm.import_events()
 	env.rc = ResponseCollector()
 
@@ -300,8 +329,8 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	except SystemExit:
 		pass
 	except Exception as e:
-		cso("\n")
-		cso("".join(traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]) + traceback.format_tb(sys.exc_info()[2])))
+		print "\n"
+		print "".join(traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]) + traceback.format_tb(sys.exc_info()[2]))
 		force_quit()
 
 

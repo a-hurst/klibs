@@ -101,6 +101,7 @@ class Event(NamedObject):
 		self.__created__ = time()
 		self.time_stamp = time_stamp
 		self.trial_time = trial_time
+		self.trial_id = P.trial_id
 		self.data = data
 		self.trial = P.trial_number
 		self.block = P.block_number
@@ -140,10 +141,12 @@ class TrialEvent(Event):
 		self.sdl_event_code = e_type
 		self.eyelink_time = eyelink_time
 
-
 	def __str__(self):
 		args = [self.sdl_event_code, self.__name__, self.trial_time, self.time_stamp, hex(id(self))]
 		return "<klibs.KLUtilities.TrialEvent[{0}]: {1} ({2}, {3}) at {4}>".format(*args)
+
+	def dump(self):
+		return [self.particpant_id, self.trial_id, self.trial, self.block, self.label, self.time_stamp, self.trial_time, self.eyelink_time, self.e_type]
 
 
 class EventManager(EnvAgent):
@@ -317,10 +320,7 @@ class EventManager(EnvAgent):
 		Records entire event queue to event table of the database.
 
 		"""
-		# todo: logic for when this is called a second time (ie. clear events from database before re-entering
-		for e in self.process_queue_data:
-			self.log_trial_event(e.label, e.trial_time)
-		for e in self.trial_event_log:
+		for e in self.trial_events:
 			try:
 				self.db.query_str_from_raw_data(TBL_EVENTS, e)
 				self.db.insert(e, TBL_EVENTS, False)
@@ -385,7 +385,6 @@ class EventManager(EnvAgent):
 			print "\t\033[94mEvent (\033[92mEDF\033[94m): \033[0m{0}".format(edf_send)
 		if P.verbose_mode and eeg:
 			print "\t\033[94mEvent (\033[92mEEG\033[94m): \033[0m{0}".format(eeg_send)
-
 
 	def registered(self, label):
 		"""

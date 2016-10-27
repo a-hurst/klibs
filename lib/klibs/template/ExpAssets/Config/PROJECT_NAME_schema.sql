@@ -19,7 +19,7 @@ To do this, modify the document as needed, then, in your project. To rebuild the
 your changes just delete your database files, or just run:
 
   cd PROJECT_PATH/PROJECT_NAME
-  klibs rebuild_db
+  klibs db-rebuild
 
 and run the experiment, this will force klibs to rebuild your database.
 
@@ -46,17 +46,20 @@ CREATE TABLE participants (
 
 CREATE TABLE events (
 	id integer primary key autoincrement not null,
-	user_id integer not null,
+	participant_id integer not null,
 	trial_id integer not null,
 	trial_num integer not null,
+	block_num integer not null,
 	label text not null,
+	unix_timestamp integer not null,
 	trial_clock float not null,
-	eyelink_clock integer
+	eyelink_clock integer,
+	sdl_event_code text not null
 );
 
 CREATE TABLE logs (
 	id integer primary key autoincrement not null,
-	user_id integer not null,
+	participant_id integer not null,
 	message text not null,
 	trial_clock float not null,
 	eyelink_clock integer

@@ -26,7 +26,10 @@ shutil.copymode(old_params_file, new_params_file)
 os.rename(old_params_file, "klibs/__KLParams.py")
 os.rename(new_params_file, old_params_file)
 
-
+copy_git = True
+if "--no-git-copy" in sys.argv:
+    copy_git = False
+    sys.argv.remove("--no-git-copy")
 
 install_packages = ['klibs']
 
@@ -37,7 +40,8 @@ setup(
 	author='Jonathan Mulle',
 	author_email='this.impetus@gmail.com',
 	url='http://github.com/jmwmulle/klibs',
-	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeLink']
+	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeLink'],
+
 )
 
 
@@ -73,7 +77,8 @@ except:
 	pass
 shutil.copyfile("bin/klibs", "/usr/local/bin/klibs")
 shutil.copymode("bin/klibs", "/usr/local/bin/klibs")
-print "Copying git to \"/usr/local/lib/klibs/klibs_git\". This may take a minute or two..."
-# print os.path.dirname(os.path.realpath(__file__))
-shutil.copytree(os.path.dirname(os.path.realpath(__file__)), "/usr/local/lib/klibs/klibs_git", True)
+
+if copy_git:
+	print "Copying git to \"/usr/local/lib/klibs/klibs_git\". This may take a minute or two..."
+	shutil.copytree(os.path.dirname(os.path.realpath(__file__)), "/usr/local/lib/klibs/klibs_git", True)
 

@@ -151,12 +151,18 @@ class Database(EnvAgent):
 		self.build_table_schemas()
 
 	def __catch_db_not_found__(self):
+		from argparse import ArgumentParser
 		self.db = None
 		self.cursor = None
 		self.schema = None
-		err_string = "No database file was present at '{0}'. \nYou can (c)reate it, (s)upply a different path or (q)uit."
+		db_action = ArgumentParser()
+		db_action.add_argument('action', type=str, choices=['c', 'r'])
+		action = db_action.parse_args([raw_input(
+			"\033[32mYou can \033[95m(c)\033[32mreate them automatically or view a \033[95m(r)\033[32meport on the missing directories. \033[0m").lower()[0]])
+		# if action.action == "r":
+		err_string = "\033[32mNo database file was present at '{0}'. \nYou can (c)reate it, (s)upply a different path or (q)uit."
 		user_action = raw_input(err_string.format(P.database_path))
-		if user_action ==DB_SUPPLY_PATH:
+		if user_action == DB_SUPPLY_PATH:
 			P.database_path = raw_input("Great. Where might it be?")
 			self.__init_db__()
 		elif user_action == DB_CREATE:

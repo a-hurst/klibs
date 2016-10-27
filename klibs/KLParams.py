@@ -10,7 +10,7 @@ from klibs.KLConstants import *
 from os import makedirs
 from os.path import exists, join
 
-klibs_commit = 'f91c76c498d59399604e9ec9f2779f1c41a74ffd'
+klibs_commit = '04d741871c19db7f7ee1deb04926cb5b06d4aea8'
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -29,7 +29,7 @@ global incomplete_edf_dir
 global schema_file_path
 global schema_file_path_legacy
 global schema_filename
-global data_path
+global data_dir
 global incomplete_data_path
 global factors_filename
 global factors_file_path
@@ -174,7 +174,7 @@ def init_project():
 	global schema_file_path
 	global schema_file_path_legacy
 	global schema_filename
-	global data_path
+	global data_dir
 	global incomplete_data_path
 	global factors_filename
 	global factors_file_path
@@ -207,15 +207,15 @@ def init_project():
 	events_filename = str(project_name) + MESSSAGING_EXT
 
 	# project paths
+	data_dir = join(asset_dir, "Data")
 	edf_dir = join(asset_dir, "EDF")  # todo: write edf management
-	incomplete_edf_dir = join(data_path, "incomplete")
+	incomplete_edf_dir = join(data_dir, "incomplete")
 	log_file_path = join(asset_dir, log_filename)
 	schema_file_path = join(config_dir, schema_filename)
 	schema_file_path_legacy = join(asset_dir, schema_filename)
 	database_path = join(asset_dir, database_filename)
 	database_backup_path = database_path + BACK_EXT
-	data_path = join(asset_dir, "Data")
-	incomplete_data_path = join(data_path, "incomplete")
+	incomplete_data_path = join(data_dir, "incomplete")
 	factors_file_path = join(config_dir, factors_filename)
 	config_file_path_legacy = join(asset_dir, factors_filename)
 	params_file_path = join(config_dir, params_filename)
@@ -224,7 +224,7 @@ def init_project():
 	local_dir = join(asset_dir, "Local")
 	logs_dir = join(local_dir, "logs")
 
-	for path in [local_dir, logs_dir, versions_dir, edf_dir, data_path, incomplete_data_path, incomplete_edf_dir]:
+	for path in [local_dir, logs_dir, versions_dir, edf_dir, data_dir, incomplete_data_path, incomplete_edf_dir]:
 		if not exists(path):
 			try:
 				makedirs(path)

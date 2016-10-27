@@ -154,9 +154,35 @@ def camel_to_snake(string):
 
 
 def chunk(items, chunk_size):
-    """Yield successive chunk-sized chunks from items."""
-    for i in range(0, len(items), chunk_size):
-        yield items[i:i+chunk_size]
+	"""Yield successive chunk-sized chunks from items."""
+	for i in range(0, len(items), chunk_size):
+		yield items[i:i+chunk_size]
+
+
+def colored_stdout(string, print_string=True, args=[]):
+	string = string.format(*args)
+	end_col = re.compile(r"</([a-z_]{1,8})>")
+	colors = {
+			"<purple>": '\033[95m',
+			"<purple_d>": '\033[35m',
+			"<blue>": '\033[94m',
+			"<blue_d>": '\033[34m',
+			"<green>": '\033[92m',
+			"<green_d>": '\033[32m',
+			"<red>": '\033[91m',
+			"<red_d>": '\033[31m',
+			"<cyan>": '\033[96m',
+			"<cyan_d>": '\033[36m',
+			"<bold>": '\033[1m'
+	}
+	for c in colors:
+		string = string.replace(c, colors[c])
+	original_color = "\033[0m"
+	string =  end_col.sub(original_color, string)
+	if print_string:
+		print string
+	else:
+		return string
 
 
 def deg_to_px(deg):
@@ -306,7 +332,7 @@ def log(msg, priority):
 
 
 def midpoint(p1, p2):
-    return int((p1[0]+p2[0])/2), int((p1[1]+p2[1])/2)
+	return int((p1[0]+p2[0])/2), int((p1[1]+p2[1])/2)
 
 
 def mean(values, as_int=False):

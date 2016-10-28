@@ -1,12 +1,11 @@
 __author__ = 'jono'
-from klibs.KLConstants import *
-from klibs import KLParams as Params
+from klibs import P
 
 try:
 	import u3
 except ImportError:
-	Params.labjack_available = False
-	if Params.labjacking:
+	P.labjack_available = False
+	if P.labjacking:
 		print "\n\033[91m\t - Unable to import LabJack library, 'u3'. Fix installation or install from here: https://labjack.com/support/software/examples/ud/labjackpython \033[0m"
 
 
@@ -17,7 +16,7 @@ class LabJack(object):
 
 	def __init__(self, experiment):
 		self.experiment = experiment
-		if Params.labjacking and Params.labjack_available:
+		if P.labjacking and P.labjack_available:
 			self.labjack = u3.U3()
 			self.labjack.configU3()
 			self.labjack.getFeedback(u3.LED(State=False))

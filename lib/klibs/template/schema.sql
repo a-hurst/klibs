@@ -46,20 +46,17 @@ CREATE TABLE participants (
 
 CREATE TABLE events (
 	id integer primary key autoincrement not null,
-	participant_id integer not null,
+	user_id integer not null,
 	trial_id integer not null,
 	trial_num integer not null,
-	block_num integer not null,
 	label text not null,
-	unix_timestamp integer not null,
 	trial_clock float not null,
-	eyelink_clock integer,
-	sdl_event_code text not null
+	eyelink_clock integer
 );
 
 CREATE TABLE logs (
 	id integer primary key autoincrement not null,
-	participant_id integer not null,
+	user_id integer not null,
 	message text not null,
 	trial_clock float not null,
 	eyelink_clock integer
@@ -68,7 +65,6 @@ CREATE TABLE logs (
 CREATE TABLE trials (
 	id integer primary key autoincrement not null,
 	participant_id integer key not null,
-	practice integer not null,
 	block_num integer not null,
 	trial_num integer not null
 );

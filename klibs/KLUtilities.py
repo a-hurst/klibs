@@ -3,19 +3,28 @@
 __author__ = 'jono'
 
 import math
-import sys
 import os
-import KLParams as Params
-from klibs.KLConstants import *
-import sdl2
 import ctypes
 import time
 import datetime
 import re
 import traceback
-from math import sin, cos, radians, pi, atan2, degrees, acos
-import subprocess
-import multiprocessing as mplib
+
+import multiprocessing as mp
+from sys import exc_info
+from sdl2 import SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents, SDL_GetError, \
+	SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_DISABLE, SDL_ENABLE, KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS
+from sdl2.ext import get_events
+from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
+from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
+from subprocess import Popen, PIPE
+
+from math import sin, cos, radians, pi, atan2, degrees
+
+from klibs.KLConstants import LEGACY_LOCATIONS, BL_RIGHT, BL_LEFT, BL_BOTTOM_RIGHT, BL_BOTTOM, BL_BOTTOM_LEFT, BL_TOP, \
+	BL_CENTER, BL_TOP_LEFT, BL_TOP_RIGHT, PARTICIPANT_FILE, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS, TF_DATA,\
+	EDF_EXT, EDF_FILE, DATETIME_STAMP, DATA_EXT, MOD_KEYS
+from klibs import P
 
 def absolute_position(position, destination):
 	height = None
@@ -41,8 +50,8 @@ def absolute_position(position, destination):
 			pass
 	if height is None and width is None:
 		try:
-			height = Params.screen_y
-			width = Params.screen_x
+			height = P.screen_y
+			width = P.screen_x
 		except:
 			raise TypeError("Argument 'destination' invalid; must be [x,y] iterable, numpy.ndarray or klibs.NumpySurface.")
 
@@ -146,13 +155,39 @@ def camel_to_snake(string):
 
 
 def chunk(items, chunk_size):
-    """Yield successive chunk-sized chunks from items."""
-    for i in range(0, len(items), chunk_size):
-        yield items[i:i+chunk_size]
+	"""Yield successive chunk-sized chunks from items."""
+	for i in range(0, len(items), chunk_size):
+		yield items[i:i+chunk_size]
+
+
+def colored_stdout(string, print_string=True, args=[]):
+	string = string.format(*args)
+	end_col = re.compile(r"</([a-z_]{1,8})>")
+	colors = {
+			"<purple>": '\033[95m',
+			"<purple_d>": '\033[35m',
+			"<blue>": '\033[94m',
+			"<blue_d>": '\033[34m',
+			"<green>": '\033[92m',
+			"<green_d>": '\033[32m',
+			"<red>": '\033[91m',
+			"<red_d>": '\033[31m',
+			"<cyan>": '\033[96m',
+			"<cyan_d>": '\033[36m',
+			"<bold>": '\033[1m'
+	}
+	for c in colors:
+		string = string.replace(c, colors[c])
+	original_color = "\033[0m"
+	string =  end_col.sub(original_color, string)
+	if print_string:
+		print string
+	else:
+		return string
 
 
 def deg_to_px(deg):
-	return int(deg * Params.ppd)  # todo: error checking?
+	return int(deg * P.ppd)  # todo: error checking?
 
 
 def equiv(comparator, canonical):
@@ -172,25 +207,25 @@ def equiv(comparator, canonical):
 
 
 def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, as_string=True):
-	participant_id = Params.participant_id if participant_id is None else participant_id
+	participant_id = P.participant_id if participant_id is None else participant_id
 	file_name_str = "p{0}_{1}{2}"
 	duplicate_file_name_str = "p{0}.{1}_{2}{3}"
 
 	if date is None:
 		date_query = "SELECT `created` FROM `participants` WHERE `id` = ?"
-		date = Params.database.query(date_query, q_vars=tuple([participant_id])).fetchall()[0][0][:10]
+		date = P.database.query(date_query, q_vars=tuple([participant_id])).fetchall()[0][0][:10]
 	if file_type == PARTICIPANT_FILE:
 		file_extension = TF_DATA
 		if incomplete:
-			file_path = Params.incomplete_data_path
+			file_path = P.incomplete_data_path
 			file_name_str = "p{0}_{1}_incomplete.txt"
 			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + TF_DATA
 		else:
-			file_path = Params.data_path
+			file_path = P.data_path
 	if file_type == EDF_FILE:
 		file_extension = EDF_EXT
-		file_path = Params.edf_dir
-		project_name_abbrev = Params.project_name[0:len(str(participant_id)) + 2]
+		file_path = P.edf_dir
+		project_name_abbrev = P.project_name[0:len(str(participant_id)) + 2]
 		file_name = file_name_str.format(participant_id, project_name_abbrev, file_extension)
 		return [file_name, os.path.join(file_path, file_name)]
 
@@ -210,19 +245,19 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 
 def flush():
 	pump()
-	sdl2.SDL_FlushEvents(sdl2.SDL_FIRSTEVENT, sdl2.SDL_LASTEVENT)
+	SDL_FlushEvents(SDL_FIRSTEVENT, SDL_LASTEVENT)
 	return
 
 
 def force_quit():
-	print subprocess.Popen("pkill", "-f", "–9", "python").Communicate()
+	Popen(['pkill', '-f', 'python'], stdout=PIPE, stderr=PIPE).communicate()
 
 
 def full_trace():
 	exception_list = traceback.format_stack()
 	exception_list = exception_list[:-2]
-	exception_list.extend(traceback.format_tb(sys.exc_info()[2]))
-	exception_list.extend(traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]))
+	exception_list.extend(traceback.format_tb(exc_info()[2]))
+	exception_list.extend(traceback.format_exception_only(exc_info()[0], exc_info()[1]))
 
 	exception_str = "Traceback (most recent call last):\n"
 	exception_str += "".join(exception_list)
@@ -231,14 +266,14 @@ def full_trace():
 
 
 def hide_mouse_cursor():
-	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
+	SDL_ShowCursor(SDL_DISABLE)
 
 
 def img(name, sub_dirs=None):
 	if sub_dirs:
 		sub_dirs = os.path.join(*sub_dirs)
-		return os.path.join(Params.image_dir, sub_dirs, name)
-	return os.path.join(Params.image_dir, name)
+		return os.path.join(P.image_dir, sub_dirs, name)
+	return os.path.join(P.image_dir, name)
 
 
 def indices_of(element, container, identity_comparison=False):
@@ -322,14 +357,14 @@ def log(msg, priority):
 	:param msg: The string to log
 	:param priority: An integer from 1-10 specifying how important the event is, 1 being most critical and 10 being routine. If set to 0 it will always be printed, regardless of what the user sets verbosity to. You probably shouldn't do that.
 	"""
-	if priority <= Params.verbosity:
-		with open(Params.log_file_path, 'a') as log_file:
+	if priority <= P.verbosity:
+		with open(P.log_file_path, 'a') as log_file:
 			log_file.write(str(priority) + ": " + msg)
 	return True
 
 
 def midpoint(p1, p2):
-    return int((p1[0]+p2[0])/2), int((p1[1]+p2[1])/2)
+	return int((p1[0]+p2[0])/2), int((p1[1]+p2[1])/2)
 
 
 def mean(values, as_int=False):
@@ -339,28 +374,22 @@ def mean(values, as_int=False):
 
 def mouse_pos(pump_event_queue=True, position=None):
 	if pump_event_queue:
-		sdl2.SDL_PumpEvents()
+		SDL_PumpEvents()
 	if not position:
 		x, y = ctypes.c_int(0), ctypes.c_int(0)
-		sdl2.mouse.SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
+		SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
 		return [x.value, y.value]
 	else:
-		sdl2.mouse.SDL_WarpMouseGlobal(*position)
+		SDL_WarpMouseGlobal(*position)
 		return position
 
 
 def mouse_angle(pump_event_queue=True, reference=None, rotation=0, clockwise=False):
-
 	if pump_event_queue:
-		sdl2.SDL_PumpEvents()
+		SDL_PumpEvents()
 	if reference is None:
-		reference = Params.screen_c
-	m = mouse_pos()
+		reference = P.screen_c
 	return angle_between(reference, mouse_pos(), rotation, clockwise)
-	# angle = degrees(math.atan2(float(m[0] - reference[0]), float(m[1] - reference[1]) * 180 / math.pi)) - 90
-	# angle += rotation
-	# angle %= 360
-	# return angle if clockwise else 360 - angle
 
 
 def now(format_time=False, format_template=DATETIME_STAMP):
@@ -386,24 +415,26 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False):
 		raise
 
 
-def pump(get_events=False):
-	from klibs.KLEventInterface import TrialEvent
-	while not Params.process_queue.empty():
-		event = Params.process_queue.get()
+def pump(return_events=False):
+	from klibs.KLEnvironment import evm
+	# try:
+	while not evm.clock_sync_queue.empty():
+		event = evm.clock_sync_queue.get()
+		# put event into the SDL event queue
+		sdl_event = SDL_Event()
+		sdl_event.type = SDL_RegisterEvents(1)
+		success = SDL_PushEvent(sdl_event)
 
-		# if event has been updated, ignore first encounter but remove it from update list
-		if event[0] in Params.updated_events:
-			Params.updated_events.remove(event[0])
-			continue
-		sdl_event = sdl2.SDL_Event()
-		sdl_event.type = sdl2.SDL_RegisterEvents(1)
-		success = sdl2.SDL_PushEvent(sdl_event)
-		Params.process_queue_data[sdl_event.type] = TrialEvent(event[0], event[1], event[2], sdl_event.type)
-		if success == 0:
-			raise RuntimeError(sdl2.SDL_GetError())
-	sdl2.SDL_PumpEvents()
-	if get_events:
-		return sdl2.ext.get_events()
+		# store the event (along with it's data) in the EventManager's log
+		event.append(sdl_event.type)
+		evm.log_trial_event(*event)
+
+		if success == 0: raise RuntimeError(SDL_GetError())
+	# except AttributeError:
+	# 	pass  # for when called before evm initialized
+	SDL_PumpEvents()
+	if return_events:
+		return get_events()
 
 
 def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepend=None, before_last=None, each_n=None, after_first=None, append=None):
@@ -489,20 +520,16 @@ def pt_to_px(pt_size):
 		raise ValueError("Argument 'pt_size' must be between 2 and 512.")
 	# dpi = 96  # CRT default
 
-	return int(math.floor(1.0 / 72 * Params.ppi * pt_size))
+	return int(math.floor(1.0 / 72 * P.ppi * pt_size))
 
 
 def px_to_deg(length):  # length = px
-	return length / Params.ppd
-
-
-def rgb_to_rgba(rgb):
-	return tuple(rgb) if len(rgb) == 4 else tuple([rgb[0], rgb[1], rgb[2], 255])
+	return length / P.ppd
 
 
 def show_mouse_cursor():
-	sdl2.mouse.SDL_ShowCursor(sdl2.SDL_ENABLE)
-	return sdl2.SDL_PumpEvents()
+	SDL_ShowCursor(SDL_ENABLE)
+	return pump()
 
 
 def safe_flag_string(flags, prefix=None, uc=True):
@@ -537,19 +564,19 @@ def snake_to_title(string):
 
 
 def sdl_key_code_to_str(sdl_keysym):
-	key_name = sdl2.keyboard.SDL_GetKeyName(sdl_keysym).replace("Keypad ", "")
+	key_name = SDL_GetKeyName(sdl_keysym).replace("Keypad ", "")
 	if key_name in MOD_KEYS:  # TODO: probably use sdl keysyms as keys instead of key_names
 		return False
 	if key_name == "Space":
 		return " "
-	if sdl2.keyboard.SDL_GetModState() not in (sdl2.KMOD_LSHIFT, sdl2.KMOD_RSHIFT, sdl2.KMOD_CAPS):
+	if SDL_GetModState() not in (KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS):
 		key_name = key_name.lower()
 	return key_name if len(key_name) == 1 else False  # to cover all keys that aren't alphanumeric or handled here
 
 
 def threaded(func):
 	def threaded_func(*args, **kwargs):
-		p = mplib.Process(target=func, args=args, kwargs=kwargs)
+		p = mp.Process(target=func, args=args, kwargs=kwargs)
 		p.start()
 		return p
 	return threaded_func
@@ -563,13 +590,3 @@ def acute_angle(vertex, p1, p2):
 	v_p2 = line_segment_len(vertex, p2)
 	p1_p2 = line_segment_len(p1, p2)
 	return degrees(acos((v_p1**2 + v_p2**2 - p1_p2**2) / (2 * v_p1 * v_p2)))
-
-
-
-class RGBCLI:
-	col = {"@P": '\033[95m',  # purple
-		   "@B": '\033[94m',  # blue
-		   "@R": '\033[91m',  # red
-		   "@T": '\033[1m',   # teal
-		   "@E": '\033[0m'    # return to normal
-	}

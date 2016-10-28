@@ -1,46 +1,53 @@
 # -*- coding: utf-8 -*-
-import math
-import sys
-import time
-import datetime
-# import thread
-# import billiard
-
-try:
-	import pylink
-except ImportError:
-	pass
-try:
-	import u3
-except ImportError:
-	pass
-
-from klibs.KLExceptions import *
-from klibs.KLConstants import *
-import klibs.KLParams as Params
-from klibs.KLTimeKeeper import TimeKeeper
-from klibs.KLAudio import *
-from klibs.KLUtilities import *
-from klibs.KLBoundary import *  # KLConstants, KLUtilities
-from klibs.KLMixins import *
-from klibs.KLNumpySurface import *
-from klibs.KLDraw import *
-from klibs.KLResponseCollectors import *
+__author__ = 'j. mulle, this.impetus@gmail.com'
 
 print "\n\n\033[92m*** Now loading KLIBS Environment ***\033[0m"
 print "\033[32m(Note: if a bunch of SDL errors were just reported, this was expected, do not be alarmed!)\033[0m"
 
-from klibs.KLDatabase import Database
-from klibs.KLTextManager import TextManager
-from klibs.KLKeyMap import *
-from klibs.KLEyeLink import *
-if PYLINK_AVAILABLE:
-	from klibs.KLELCustomDisplay import ELCustomDisplay
-from klibs.KLLabJack import *
-from klibs.KLEventInterface import *
-from klibs.KLDebug import *
-from klibs.KLExperiment import Experiment
+import KLNamedObject
+import KLEnvironment as env
+import KLExceptions
+import KLConstants
+from KLConstants import PYAUDIO_AVAILABLE, PYLINK_AVAILABLE
+import KLParams as P						# KLConstants
+import KLKeyMap								# KLConstants
+import KLLabJack							# KLParams
+import KLUtilities							# KLConstants, KLParams
+import KLTrialFactory						# KLConstants, KLParams
+import KLUserInterface						# KLConstants, KLParams, KLUtilities
+import KLDatabase							# KLConstants, KLParams, KLUtilities
+import KLTime							# KLConstants, KLParams, KLUtilities
 
+import KLEventInterface						# KLConstants, KLParams, KLUtilities, KLUserInterface
+import KLGraphics							# KLConstants, KLParams, KLUtilities
+import KLDebug								# KLParams, KLGraphics
+import KLBoundary							# KLConstants, KLUtilities, KLExceptions
+import KLText						# KLUtilities, KLGraphics
+import KLAudio								# KLConstants, KLParams, KLUtilities, KLGraphics
+import KLResponseCollectors					# KLConstants, KLParams, KLUtilities, KLUserInterface, KLBoundary, KLAudio
+import KLEyeLink
+import KLCommunication
+import KLEnvironment
+
+try:
+	# if additional classes have been defined at ExpAssets/Resources/code, load them
+	import sys
+	import os
+	from imp import load_source
+	from inspect import isclass
+	sys.path.append(P.code_dir)
+	for f in os.listdir(P.code_dir):
+		if f[-3:] != ".py":
+			if f[-3:] == ".pyc":
+				os.remove( os.path.join(P.code_dir, f) )
+			continue
+		for k, v in load_source("*", os.path.join(P.code_dir, f)).__dict__.iteritems():
+			if isclass(k):
+				import k
+except OSError:
+	pass
+
+from klibs.KLExperiment import Experiment
 
 #####################################################
 #

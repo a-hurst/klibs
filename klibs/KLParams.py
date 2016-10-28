@@ -2,16 +2,15 @@
 author = 'jono'
 
 from random import seed
-
 # from klibs.KLUtilities import *
 # from klibs.KLTimeKeeper import TimeKeeper
 import time
 from datetime import datetime
 from klibs.KLConstants import *
-import os
-import multiprocessing as mp
+from os import makedirs
+from os.path import exists, join
 
-klibs_commit = '897610a87bfbb3384cba41a7eb9bd4facc9296fb'
+klibs_commit = None  # populated at runtime
 
 #  project structure; default paths & filenames
 klibs_dir = klibs_dir = "/usr/local/lib/klibs"
@@ -26,13 +25,14 @@ global log_file_path
 global database_path
 global database_backup_path
 global edf_dir
+global incomplete_edf_dir
 global schema_file_path
 global schema_file_path_legacy
 global schema_filename
-global data_path
+global data_dir
 global incomplete_data_path
-global config_filename
-global config_file_path
+global factors_filename
+global factors_file_path
 global config_file_path_legacy
 global params_file_path
 global events_file_path
@@ -40,12 +40,16 @@ global versions_dir
 global initialized
 global random_seed
 global anonymous_username
+global logo_file_path
+global key_maps
+global local_dir
+code_dir = "ExpAssets/Resources/code"  # hard-coded because it's required *before* the Experiment class is instantiated
 
 exp = None
 exp_font_dir = "ExpAssets/Resources/font"
 sys_font_dir = "/Library/Fonts"
 user_font_dir = "~/Library/Fonts"
-klibs_font_dir = os.path.join(klibs_dir, "font")
+klibs_font_dir = join(klibs_dir, "font")
 font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
 
 
@@ -66,7 +70,7 @@ calibrate_targets = 9
 participant_id = None
 database = None
 
-key_maps = dict()  # todo: create a class, KeyMapper, to manage key maps
+
 id_field_name = "participant_id"
 collect_demographics = True
 demographics_collected = False
@@ -85,7 +89,6 @@ paused = False
 testing = False
 default_alert_duration = 1
 
-#  todo: add a lot more default colors, a default font, etc.
 default_fill_color = (45, 45, 45, 255)
 default_color = (255, 255, 255, 255)
 default_response_color = default_color
@@ -127,6 +130,7 @@ block_number = 0
 trials_per_block = 0
 blocks_per_experiment = 0
 between_subject_conditions = None
+multi_session_project = False
 
 run_practice_blocks = True
 show_practice_messages = True
@@ -146,17 +150,16 @@ data_column_format = DB_COL_TITLE
 # development mode & associated switches
 debug_level = 3
 development_mode = False  # when True, skips collect_demographics & prints various details to screen
+dm_trial_show_mouse = True
 dm_suppress_debug_pane = False
 dm_auto_threshold = True
 dm_print_log = True
 dm_print_events = True
 verbose_mode = False
-process_queue = mp.Queue()
-updated_events = []
-process_queue_data = {}
-
 
 def init_project():
+	from klibs.KLKeyMap import KeyMap
+	global key_maps
 	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
 	global project_name
 	global asset_dir
@@ -167,46 +170,71 @@ def init_project():
 	global database_path
 	global database_backup_path
 	global edf_dir
+	global incomplete_edf_dir
 	global schema_file_path
 	global schema_file_path_legacy
 	global schema_filename
-	global data_path
+	global data_dir
 	global incomplete_data_path
-	global config_filename
-	global config_file_path
+	global factors_filename
+	global factors_file_path
 	global config_file_path_legacy
 	global params_file_path
 	global events_file_path
 	global versions_dir
+	global local_dir
+	global logs_dir
 	global initialized
+
+	key_maps = {"*": KeyMap("*", [], [], []),
+				"drift_correct": KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"]),
+				"eyelink": KeyMap("eyelink",
+								   ["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
+								   [sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
+									sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
+									sdl2.SDLK_RIGHT],
+								   ["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])}
+	key_maps["*"].any_key = True
+
+
 
 	# file names
 	database_filename = str(project_name) + DB_EXT
 	schema_filename = str(project_name) + SCHEMA_EXT
 	log_filename = str(project_name) + LOG_EXT
-	config_filename = str(project_name) + CONFIG_EXT
+	factors_filename = str(project_name) + FACTORS_EXT
 	params_filename = str(project_name) + PARAMS_EXT
 	events_filename = str(project_name) + MESSSAGING_EXT
 
 	# project paths
-	edf_dir = os.path.join(asset_dir, "EDF")  # todo: write edf management
-	log_file_path = os.path.join(asset_dir, log_filename)
-	schema_file_path = os.path.join(config_dir, schema_filename)
-	schema_file_path_legacy = os.path.join(asset_dir, schema_filename)
-	database_path = os.path.join(asset_dir, database_filename)
+	data_dir = join(asset_dir, "Data")
+	edf_dir = join(asset_dir, "EDF")  # todo: write edf management
+	incomplete_edf_dir = join(data_dir, "incomplete")
+	log_file_path = join(asset_dir, log_filename)
+	schema_file_path = join(config_dir, schema_filename)
+	schema_file_path_legacy = join(asset_dir, schema_filename)
+	database_path = join(asset_dir, database_filename)
 	database_backup_path = database_path + BACK_EXT
-	data_path = os.path.join(asset_dir, "Data")
-	incomplete_data_path = os.path.join(data_path, "incomplete")
-	config_file_path = os.path.join(config_dir, config_filename)
-	config_file_path_legacy = os.path.join(asset_dir, config_filename)
-	params_file_path = os.path.join(config_dir, params_filename)
-	events_file_path = os.path.join(config_dir, events_filename)
-	versions_dir = os.path.join(asset_dir, ".versions")
+	incomplete_data_path = join(data_dir, "incomplete")
+	factors_file_path = join(config_dir, factors_filename)
+	config_file_path_legacy = join(asset_dir, factors_filename)
+	params_file_path = join(config_dir, params_filename)
+	events_file_path = join(config_dir, events_filename)
+	versions_dir = join(asset_dir, ".versions")
+	local_dir = join(asset_dir, "Local")
+	logs_dir = join(local_dir, "logs")
+
+	for path in [local_dir, logs_dir, versions_dir, edf_dir, data_dir, incomplete_data_path, incomplete_edf_dir]:
+		if not exists(path):
+			try:
+				makedirs(path)
+			except OSError:
+				pass
 
 	initialized = True
 	return True
 
-def setup(project_name_str, previous_random_seed):
+def setup(project_name_str):
 	global project_name
 	global asset_dir
 	global random_seed
@@ -215,17 +243,29 @@ def setup(project_name_str, previous_random_seed):
 	global image_dir
 	global config_dir
 	global resources_dir
+	global logo_file_path
+
 
 	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
 
 
 	#  seed the experiment with either a passed random_seed or else the current unix time
-	random_seed = previous_random_seed if previous_random_seed else time.time()
+	if not 'random_seed' in globals():  # if passed from CLI will be set by now
+		random_seed = time.time()
 	seed(random_seed)
 	project_name = project_name_str
 	asset_dir = "ExpAssets"
-	resources_dir = os.path.join(asset_dir, "Resources")
-	exp_font_dir = os.path.join(resources_dir, "font")
-	image_dir = os.path.join(resources_dir, "image")
-	config_dir = os.path.join(asset_dir, "Config")
+	resources_dir = join(asset_dir, "Resources")
+	exp_font_dir = join(resources_dir, "font")
+	image_dir = join(resources_dir, "image")
+	config_dir = join(asset_dir, "Config")
+	logo_file_path = join(klibs_dir, "splash.png")
+
+	for path in [exp_font_dir, image_dir]:
+		if not exists(path):
+			try:
+				makedirs(path)
+			except OSError:
+				pass
+
 	return init_project()

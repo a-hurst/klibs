@@ -4,12 +4,12 @@ import random
 from re import compile
 import csv
 from copy import copy
-
+from itertools import product
+from os.path import exists
 import numpy as np
 
-from klibs.KLUtilities import *
-from itertools import product
-from math import ceil
+from klibs.KLConstants import TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC, TF_STIM_FILE, TF_FACTOR
+from klibs import P
 
 
 class BlockIterator(object):
@@ -89,7 +89,7 @@ class TrialFactory(object):
 	practice_blocks = None
 	executed_trials = None
 	meta_factors = None
-	exp_parameters = []
+	exp_factors = []
 	max_trials = None
 	excluded_practice_factors = None
 	config_file_rows = []
@@ -99,15 +99,15 @@ class TrialFactory(object):
 	trial_generator = None
 	event_code_generator = None
 
-	def __init__(self, experiment, trial_generator=None):
-		self.experiment = experiment
+	def __init__(self, trial_generator=None):
+		self.trial_generator = trial_generator
 		self.param_weight_search = compile("^.*[ ]*\[([0-9]{1,3})\]$")
 		self.param_label_search = compile("^(.*)([ ]*\[[0-9]{1,3}\])$")
 
 	def __generate_trials(self, factors=None, block_count=None, trial_count=None):
 		#  by default just process self.exp_parameters, but, if a well-formatted factor list is passed, use that
 		if factors is None:
-			factors = self.exp_parameters
+			factors = self.exp_factors
 		trial_tuples = list(product(*[factor[1][:] for factor in factors]))
 		if len(trial_tuples) == 0: trial_tuples = [ [] ]
 
@@ -122,9 +122,9 @@ class TrialFactory(object):
 
 		# Run one complete set of trials in no values are supplied for trial & block length
 		if block_count is None:
-			block_count = 1 if not Params.blocks_per_experiment > 0 else Params.blocks_per_experiment
+			block_count = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
 		if trial_count is None:
-			trial_count = trial_set_count if not Params.trials_per_block > 0 else Params.trials_per_block
+			trial_count = trial_set_count if not P.trials_per_block > 0 else P.trials_per_block
 
 		total_trials = block_count * trial_count
 
@@ -148,7 +148,7 @@ class TrialFactory(object):
 		return blocks
 
 	def __generate_trials_from_stim_file(self):
-		for row in self.exp_parameters:
+		for row in self.exp_factors:
 			trial = []
 			for el in row:
 				if el[0] in [TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC]:
@@ -158,7 +158,7 @@ class TrialFactory(object):
 		#  not finished, just cramemd it here when talking with ross
 
 	def import_stim_file(self, path):
-		if os.path.exists(path):
+		if exists(path):
 			config_file = csv.reader(open(path, 'rb'))
 			row_count = 0
 			for row in config_file:
@@ -174,17 +174,17 @@ class TrialFactory(object):
 				row_count += 1
 		else:
 			raise ValueError("No config file found at provided path..")
-		if len(self.exp_parameters) == 0: return True
+		if len(self.exp_factors) == 0: return True
 		# Strip out trial_count column if it exists but doesn't contain integers
-		if self.exp_parameters[-1][0] in [TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC]:
-			if not all(type(val) is int for val in zip(*self.exp_parameters)[-1]):
-				self.exp_parameters = self.exp_parameters[:-1]
+		if self.exp_factors[-1][0] in [TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC]:
+			if not all(type(val) is int for val in zip(*self.exp_factors)[-1]):
+				self.exp_factors = self.exp_factors[:-1]
 			else:
 				self.trial_generation_scheme = TF_STIM_FILE
 
 	def generate(self):
 		try:
-			self.blocks = self.trial_generator(self.exp_parameters)
+			self.blocks = self.trial_generator(self.exp_factors)
 		except TypeError:
 			self.blocks = self.__generate_trials()
 
@@ -194,8 +194,8 @@ class TrialFactory(object):
 			if header:
 				column_name = el.split(".")
 				try:
-					if column_name[1] == TF_PARAM:
-						self.exp_parameters.append([column_name[0].replace(" ", ""), []])
+					if column_name[1] == TF_FACTOR:
+						self.exp_factors.append([column_name[0].replace(" ", ""), []])
 				except:
 					continue
 			else:
@@ -211,33 +211,33 @@ class TrialFactory(object):
 							pass
 					weight_val = 1 if weight is None else int(weight.group(1))
 					for i in range(weight_val):
-						self.exp_parameters[col][1].append(param_label)
+						self.exp_factors[col][1].append(param_label)
 			col += 1
 
 	def export_trials(self):
 		return BlockIterator(self.blocks)
 
 	def add_factor_by_inference(self, factor_name, generator, argument_list):
-		self.exp_parameters[factor_name] = {"f": generator, "arg_list": argument_list}
+		self.exp_factors[factor_name] = {"f": generator, "arg_list": argument_list}
 
 	def insert_block(self, block_num, practice, trial_count="*", factor_mask=None):
 		factors = []
 		col_index = 0
 		for col in factor_mask:
 			val_index = 0
-			col_name = self.exp_parameters[col_index][0]
+			col_name = self.exp_factors[col_index][0]
 			vals = []
 			for val in col:
 				for i in range(0,val):
 					try:
-						vals.append(self.exp_parameters[col_index][1][val_index])
+						vals.append(self.exp_factors[col_index][1][val_index])
 					except IndexError:
 						pass
 				val_index += 1
 			col_index += 1
 			factors.append([col_name, vals if len(vals) else [None]])
 		block = self.__generate_trials(factors, 1, trial_count)
-		self.experiment.blocks.insert(block_num - 1, block[0], practice)  # there is no "zero" block from the UI/UX perspective
+		self.blocks.insert(block_num - 1,[block[0], practice])  # there is no "zero" block from the UI/UX perspective
 
  	def define_trial(self, rule, quantity):
 		pass

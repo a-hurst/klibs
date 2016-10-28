@@ -2,6 +2,29 @@
 __author__ = 'jono'
 import sdl2
 
+try:
+	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode
+	from pylink.tracker import Sample, EndSaccadeEvent, EndFixationEvent, StartFixationEvent, StartSaccadeEvent
+	PYLINK_AVAILABLE = True
+except ImportError:
+	print "\t* Warning: Pylink library not found; eye tracking will not be available."
+	PYLINK_AVAILABLE = False
+
+try:
+	import pyaudio
+	import wave
+	from array import array
+	PYAUDIO_AVAILABLE = True
+except ImportError:
+	PYAUDIO_AVAILABLE = False
+	print "\t* Warning: Pyaudio library not found; audio recording, audio responses and audio sampling unavailable."
+
+try:
+	from u3 import *
+	LABJACK_AVAILABLE = True
+except ImportError:
+	LABJACK_AVAILABLE = False
+
 DB_EXT = ".db"
 EDF = "EDF"
 EDF_EXT = ".EDF"
@@ -9,7 +32,7 @@ DATA_EXT = ".txt"
 BACK_EXT = ".backup"
 LOG_EXT = "_log.txt"
 SCHEMA_EXT = "_schema.sql"
-CONFIG_EXT = "_config.csv"
+FACTORS_EXT = "_factors.csv"
 PARAMS_EXT = "_params.py"
 MESSSAGING_EXT = "_messaging.csv"
 INCH = "in"
@@ -131,7 +154,7 @@ UI_METHOD_KEYSYMS = [sdl2.SDLK_q, sdl2.SDLK_c, sdl2.SDLK_p]
 SCREEN_FLAGS = sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP | sdl2.SDL_RENDERER_ACCELERATED | sdl2.SDL_RENDERER_PRESENTVSYNC | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
 RECT_BOUNDARY = "rectangle"
 CIRCLE_BOUNDARY = "circle"
-ANULUS_BOUNDARY = "anulus"
+ANNULUS_BOUNDARY = "annulus"
 RGBA = "RGBA"
 
 # TrialFactory Constants
@@ -141,7 +164,7 @@ TF_STIM_FILE = 2
 TF_TRIAL_DATA = "Data"
 TF_TRIAL_PARAMETERS = "Parameters"
 TF_DATA = "data"
-TF_PARAM = "param"
+TF_FACTOR = "factor"
 TF_TRIAL_COUNT = "trial_count"
 TF_TRIAL_COUNT_UC = "Trial_Count"
 TF_NAS = ["na", "n/a", "NA", "N/A", "nA", "Na", "n/A", "N/a"]
@@ -189,8 +212,6 @@ RC_DRAW = 'draw'
 
 # EventInterface Event Constants
 
-EVI_CLOCK_START = "CLOCK_START"
-EVI_CLOCK_STOP = "CLOCK_STOP"
 EVI_TRIAL_START = "TRIAL_START"
 EVI_TRIAL_STOP = "TRIAL_STOP"
 EVI_BLOCK_START = "BLOCK_START"
@@ -215,4 +236,4 @@ EVI_CLOCK_SYNC = "CLOCK_SYNC"
 EVI_CLOCK_RESET = "CLOCK_RESET"
 EVI_DEREGISTER_EVENT = "DEREGISTER_EVENT"
 EVI_EVENT_SYNC_COMPLETE = "EVENT_SYNC_COMPLETE"
-EVI_CONSTANTS = [EVI_CLOCK_START, EVI_CLOCK_STOP, EVI_TRIAL_START, EVI_TRIAL_STOP, EVI_BLOCK_START, EVI_BLOCK_STOP, EVI_PR_TRIAL_START, EVI_PR_TRIAL_STOP, EVI_PR_BLOCK_START, EVI_PR_BLOCK_STOP, EVI_TRIAL_RECYCLED, EVI_EL_START_REC, EVI_EL_STOP_REC, EVI_EXP_SETUP_START, EVI_EXP_SETUP_STOP, EVI_EXP_END, EVI_T_PREP_START, EVI_T_PREP_STOP, EVI_T_CLEANUP_START, EVI_T_CLEANUP_STOP, EVI_SEND_TIME, EVI_SEND_TIMESTAMP, EVI_CLOCK_SYNC, EVI_CLOCK_RESET, EVI_DEREGISTER_EVENT, EVI_EVENT_SYNC_COMPLETE]
+EVI_CONSTANTS = [EVI_TRIAL_START, EVI_TRIAL_STOP, EVI_BLOCK_START, EVI_BLOCK_STOP, EVI_PR_TRIAL_START, EVI_PR_TRIAL_STOP, EVI_PR_BLOCK_START, EVI_PR_BLOCK_STOP, EVI_TRIAL_RECYCLED, EVI_EL_START_REC, EVI_EL_STOP_REC, EVI_EXP_SETUP_START, EVI_EXP_SETUP_STOP, EVI_EXP_END, EVI_T_PREP_START, EVI_T_PREP_STOP, EVI_T_CLEANUP_START, EVI_T_CLEANUP_STOP, EVI_SEND_TIME, EVI_CLOCK_SYNC, EVI_CLOCK_RESET, EVI_DEREGISTER_EVENT, EVI_EVENT_SYNC_COMPLETE]

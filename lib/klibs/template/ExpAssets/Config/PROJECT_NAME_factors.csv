@@ -1,0 +1,4 @@
+# Experimental parametric factorization file for PROJECT_NAME trial generation
+column_1.factor,    column_2.factor,    trial_count
+factor_1,           factor_3,           ,
+factor_2,           factor_4,           ,

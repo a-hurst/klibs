@@ -1,8 +1,7 @@
-import klibs
-
 __author__ = "EXPERIMENTER_NAME"
 
-from klibs import Params
+import klibs
+from klibs import P
 
 class PROJECT_NAME(klibs.Experiment):
 
@@ -10,7 +9,7 @@ class PROJECT_NAME(klibs.Experiment):
 		super(PROJECT_NAME, self).__init__(*args, **kwargs)
 
 	def setup(self):
-		Params.key_maps['PROJECT_NAME_response'] = klibs.KeyMap('PROJECT_NAME_response', [], [], [])
+		pass
 
 	def block(self):
 		pass
@@ -24,8 +23,8 @@ class PROJECT_NAME(klibs.Experiment):
 	def trial(self):
 
 		return {
-			"block_num": Params.block_number,
-			"trial_num": Params.trial_number
+			"block_num": P.block_number,
+			"trial_num": P.trial_number
 		}
 
 	def trial_clean_up(self):

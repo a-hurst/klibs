@@ -1,6 +1,10 @@
 __author__ = 'jono'
-import time
-from klibs.KLDraw import *
+from klibs import P
+from klibs.KLGraphics.KLDraw import *
+
+def v(text, args=None):
+	if P.verbose_mode:
+		print text.format(args)
 
 class Debugger(object):
 	experiment = None

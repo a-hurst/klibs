@@ -3,6 +3,7 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 
 print "\n\n\033[92m*** Now loading KLIBS Environment ***\033[0m"
 print "\033[32m(Note: if a bunch of SDL errors were just reported, this was expected, do not be alarmed!)\033[0m"
+import logging
 
 import KLNamedObject
 import KLEnvironment as env
@@ -49,6 +50,7 @@ except OSError:
 
 from klibs.KLExperiment import Experiment
 
+klog = logging.Logger()
 #####################################################
 #
 # SDL Keycode Reference for creating KeyMaps (https://wiki.libsdl.org/SDL_Keycode)

@@ -125,15 +125,12 @@ class Experiment(EnvAgent):
 						P.trial_id = 1
 					self.__trial__(trial, block.practice)
 					P.trial_number += 1
-					print "Ending trial {0}".format(self.database.last_id_from('trials') + 1)
 				except TrialException:
 					block.recycle()
 					P.recycle_count += 1
 					# self.evm.send('trial_recycled')
 					self.database.current(False)
 					clear()
-					print "Ending trial {0} due to TrialException".format(self.database.last_id_from('trials') + 1)
-				self.evm.clear()
 				self.rc.reset()
 		self.clean_up()
 		self.evm.dump_events()
@@ -174,7 +171,6 @@ class Experiment(EnvAgent):
 			tx = e
 		if P.eye_tracking:
 			self.el.stop()
-		self.evm.clear()
 		if tx:
 			raise tx
 

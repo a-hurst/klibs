@@ -1,6 +1,6 @@
 __author__ = 'jono'
 import collections
-
+import copy
 
 class NamedObject(object):
 
@@ -46,6 +46,9 @@ class NamedInventory(collections.MutableMapping):
 		except AttributeError:
 			return key
 
+	def __str__(self):
+		return str(self.store)
+
 	def add(self, key):
 		if not isinstance(key, NamedObject):
 			try:
@@ -81,11 +84,14 @@ class CachedInventory(NamedInventory):
 		except AttributeError:
 			raise TypeError("Only objects inheriting from KLObject can be stored in a KLInventory collection.")
 
-
 	def cache(self, label):
 		self.__cache_store__[label] = self.store
 		self.store = dict()
 
 	def dump(self):
 		return self.__cache_store__
+
+	def retrieve(self, k, cache=None):
+		return self.__getitem__(k, cache)
+
 

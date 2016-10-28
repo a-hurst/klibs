@@ -64,13 +64,13 @@ def create(name, path):
 		try:
 			auth_parse = argparse.ArgumentParser()
 			auth_parse.add_argument('name', type=str, nargs=2)
-			auth_args = auth_parse.parse_args(raw_input(cso("\n<green>Provide your first and last name: </green>", False)).split())
+			auth_args = auth_parse.parse_args(raw_input(cso("\n<green_d>Provide your first and last name: </green_d>", False)).split())
 			if len(auth_args.name) == 2:  # todo: add a check to ensure names are only letters
 				author_ok = True
 		except SystemExit:
 			one_name_peeps = ["Madonna", "Prince", "Cher", "Bono", "Sting"]
-			cso("<red>\nOk {0}, take it easy.</red> <green>First</green> <cyan>*and*</cyan> <green>last name. "\
-				"Let's try that again--you got this champ...</green>".format(choice(one_name_peeps)))
+			cso("<red>\nOk {0}, take it easy.</red> <green_d>First</green_d> <cyan>*and*</cyan> <green_d>last name. "\
+				"Let's try that again--you got this champ...</green_d>".format(choice(one_name_peeps)))
 			return create(name, path)
 
 	source_path = "/usr/local/lib/klibs/template"
@@ -84,20 +84,20 @@ def create(name, path):
 		def get_response():
 			confirm_parser = argparse.ArgumentParser()
 			confirm_parser.add_argument('confirmed',  type=str, choices=['y', 'n', 'q'])
-			confirm_args = confirm_parser.parse_args([raw_input(cso("<green>Is this correct? Answer with</green> <purple>Y</purple>" \
-																	"<green>es,</green> <purple>N</purple><green>o or</green> " \
-																	"<purple>Q</purple><green>uit.</green>", False))[0].lower()])
+			confirm_args = confirm_parser.parse_args([raw_input(cso("<green_d>Is this correct? Answer with</green_d> <purple>Y</purple>" \
+																	"<green_d>es,</green_d> <purple>N</purple><green_d>o or</green_d> " \
+																	"<purple>Q</purple><green_d>uit.</green_d>", False))[0].lower()])
 			return confirm_args.confirmed
 		response = get_response()
 		if response == "n":
 			return create(name, path)
 		elif response == "q":
-			cso("\n<green>Fine. Be that way. But I think we both know you'll be back.</green>")
+			cso("\n<green_d>Fine. Be that way. But I think we both know you'll be back.</green_d>")
 			exit()
 		elif response == "y":
 			correct = True
 		else:
-			cso("<green>Pardon? I didn't catch that.</green>")
+			cso("<green_d>Pardon? I didn't catch that.</green_d>")
 
 	tmp_dir = "klibs_" + sha1(project_path + str(time.time())).hexdigest()
 	tmp_path = join("/","tmp", tmp_dir)
@@ -161,7 +161,7 @@ def create(name, path):
 
 	shutil.move(tmp_path, path)
 	os.rename(join(path, tmp_dir), join(path, name))
-	cso("<green>\nProject successfully created at:</green> '<blue>{0}</blue>'".format(project_path))
+	cso("<green_d>\nProject successfully created at:</green_d> '<blue>{0}</blue>'".format(project_path))
 
 
 def update():
@@ -190,17 +190,20 @@ def update():
 
 	if commit != P.klibs_commit:
 		try:
-			p = Popen(['python', '/usr/local/lib/klibs/klibs_git/setup.py', 'install'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+			os.chdir("/usr/local/lib/klibs/klibs_git/")
+			p = Popen(['sudo', 'python', 'setup.py', 'install'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 			output, err = p.communicate()
 			if len(err):
 				raise IOError(err)
 			if len(output):
 				cso(output)
 		except IOError as e:
+			print e
 			cso("<red>Root permissions required to reinstall klibs.</red>")
 			exit()
 
 def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose):
+	from logging import INFO, DEBUG, WARNING, ERROR, CRITICAL
 	from klibs import  P
 	from klibs.KLGraphics import display_init
 	from klibs.KLEyeLink import EyeLinkExt
@@ -211,6 +214,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	from klibs.KLTime import TimeKeeper
 	from klibs.KLText import TextManager
 	from klibs.KLResponseCollectors import ResponseCollector
+	from klibs import klog
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
 
@@ -218,22 +222,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	project_name = os.path.split(path)[-1]
 	os.chdir(path)
 
-	# set some basic global Params
-	P.verbose_mode = verbose
-	if not show_debug_pane:
-		P.dm_suppress_debug_pane = True
-	if random_seed:
-		P.random_seed = random_seed
-	if development_mode:
-		P.development_mode = True
-		P.collect_demographics = False
-
-	# get actual current klibs commit & compare value currently in KLParams
-	P.klibs_commit = open("/usr/local/lib/klibs/current_commit.txt").read()
-	# if P.klibs_commit != Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE).communicate()[0][:-1]:
-	# 	pass # todo: warn user
-
-	# create project directories
+	# create any missing project directories
 	dir_structure = {"ExpAssets": {
 						".versions": None,
 						"Config": None,
@@ -276,11 +265,11 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 				cso("<red>Some expected or required directories for this project appear to be missing.</red>")
 			next_action = argparse.ArgumentParser()
 			next_action.add_argument('action',  type=str, choices=['c', 'r'])
-			action = next_action.parse_args([raw_input("<green>You can</green> <purple>(c)</purple><green>reate them" \
-													   " automatically or view a <purple>(r)</purple><green>eport on the" \
-													   " missing directories.</green>").lower()[0]])
+			action = next_action.parse_args([raw_input(cso("<green_d>You can</green_d> <purple>(c)</purple><green_d>reate them" \
+													   " automatically or view a <purple>(r)</purple><green_d>eport on the" \
+													   " missing directories.</green_d>", False)).lower()[0]])
 			if action.action == "r":
-				cso("<green>The following expected directories were not found:</green>")
+				cso("<green_d>The following expected directories were not found:</green_d>")
 				for md in missing_dirs:
 					cso("\t <purple>{0}</purple>".format(md))
 				return get_response(False)
@@ -293,6 +282,23 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
+	klog_config = {}
+	if P.
+	klog.basicConfig(filename='example.log', level=DEBUG)
+	# set some basic global Params
+	P.verbose_mode = verbose
+	if not show_debug_pane:
+		P.dm_suppress_debug_pane = True
+	if random_seed:
+		P.random_seed = random_seed
+	if development_mode:
+		P.development_mode = True
+		P.collect_demographics = False
+
+	# get actual current klibs commit & compare value currently in KLParams
+	P.klibs_commit = open("/usr/local/lib/klibs/current_commit.txt").read()
+	# if P.klibs_commit != Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE).communicate()[0][:-1]:
+	# 	pass # todo: warn user
 
 	# create runtime environment
 	env.evm = EventManager()

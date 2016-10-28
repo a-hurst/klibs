@@ -68,7 +68,7 @@ shutil.copymode("bin/klibs", "/usr/local/bin/klibs")
 
 p = sub.Popen(['git', 'rev-parse', 'HEAD'], stdout=sub.PIPE,stderr=sub.PIPE)
 commit = p.communicate()[0][:-1]
-open("/usr/local/lib/klibs/current_commit.txt", "w+").write(commit).close()
+open("/usr/local/lib/klibs/current_commit.txt", "w+").write(commit)
 # old_params_file = "klibs/KLParams.py"
 # new_params_file = "klibs/KLParams.tmp"
 # new_file = open(new_params_file, "w+")

@@ -1,14 +1,21 @@
 import random
+import logging
 # KlibsTesting Param overrides
 #
 # Any param that is commented out by default is either deprecated or else not yet implemented--don't uncomment or use
 #
 #########################################
+# Logging Defaults
+#########################################
+log_to_file = True
+level = logging.INFO
+
+#########################################
 # Available Hardware
 #########################################
-eye_tracker_available = True
-eye_tracking = True
-labjack_available = True
+eye_tracker_available = False
+eye_tracking = False
+labjack_available = False
 labjacking = False
 #
 #########################################
@@ -37,8 +44,8 @@ cue_back_size = 1,  # deg of visual angle
 #########################################
 # Experiment Structure
 #########################################
-multi_session_project = True
-collect_demographics = True
+multi_session_project = False
+collect_demographics = False
 practicing = False
 trials_per_block = 24
 blocks_per_experiment = 1

@@ -51,9 +51,10 @@ CREATE TABLE events (
 	trial_num integer not null,
 	block_num integer not null,
 	label text not null,
+	event_data text,
 	unix_timestamp integer not null,
-	trial_clock float not null,
-	eyelink_clock integer,
+	trial_time float not null,
+	eyelink_time integer,
 	sdl_event_code text not null
 );
 

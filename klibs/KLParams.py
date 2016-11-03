@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 author = 'jono'
-
+import logging, time
 from random import seed
-# from klibs.KLUtilities import *
-# from klibs.KLTimeKeeper import TimeKeeper
-import time
 from datetime import datetime
-from klibs.KLConstants import *
 from os import makedirs
 from os.path import exists, join
+
+from klibs.KLConstants import *
 
 klibs_commit = None  # populated at runtime
 
@@ -44,6 +42,13 @@ global logo_file_path
 global key_maps
 global local_dir
 code_dir = "ExpAssets/Resources/code"  # hard-coded because it's required *before* the Experiment class is instantiated
+
+#########################################
+# Logging Defaults
+#########################################
+log_to_file = True
+level = logging.INFO
+
 
 exp = None
 exp_font_dir = "ExpAssets/Resources/font"
@@ -81,7 +86,7 @@ eye_tracker_available = False
 exp_factors = None
 
 # labjack
-labjack_available = False  # todo: put this back to true you fucking monkey
+labjack_available = False
 labjacking = False
 
 instructions = False  # todo: instructions file

@@ -3,6 +3,7 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 
 print "\n\n\033[92m*** Now loading KLIBS Environment ***\033[0m"
 print "\033[32m(Note: if a bunch of SDL errors were just reported, this was expected, do not be alarmed!)\033[0m"
+import logging
 
 import KLNamedObject
 import KLEnvironment as env

@@ -128,7 +128,6 @@ class Experiment(EnvAgent):
 					# self.evm.send('trial_recycled')
 					self.database.current(False)
 					clear()
-				self.evm.clear()
 				self.rc.reset()
 		self.clean_up()
 		self.evm.dump_events()
@@ -168,7 +167,6 @@ class Experiment(EnvAgent):
 			tx = e
 		if P.eye_tracking:
 			self.el.stop()
-		self.evm.clear()
 		if tx:
 			raise tx
 

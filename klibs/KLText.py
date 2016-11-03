@@ -149,6 +149,7 @@ class TextManager(object):
 		:type style: :class:`~klibs.KLText.TextStyle`
 		:return:
 		"""
+		dict()
 		text = str(text)
 		#  The following vars are an intermediary stage in converting TextManager to the use of style objects
 		if not isinstance(style, TextStyle):

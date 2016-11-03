@@ -146,7 +146,17 @@ class TrialEvent(Event):
 		return "<klibs.KLUtilities.TrialEvent[{0}]: {1} ({2}, {3}) at {4}>".format(*args)
 
 	def dump(self):
-		return [self.particpant_id, self.trial_id, self.trial, self.block, self.label, self.time_stamp, self.trial_time, self.eyelink_time, self.e_type]
+		return {
+		"participant_id": self.participant_id,
+		"trial_id": self.trial_id,
+		"trial_num": self.trial,
+		"block_num": self.block,
+		"label": self.label,
+		"event_data": self.data,
+		"unix_timestamp": self.time_stamp,
+		"trial_time": self.trial_time,
+		"eyelink_time": self.eyelink_time,
+		"sdl_event_code" : self.sdl_event_code}
 
 
 class EventManager(EnvAgent):
@@ -175,7 +185,6 @@ class EventManager(EnvAgent):
 		self.clock_sync_queue = mp.Queue()
 		self.clock = __event_clock__(child, self.clock_sync_queue)
 		self.clock_p_id = self.clock.pid
-
 
 	def __poll__(self):
 		"""
@@ -284,49 +293,19 @@ class EventManager(EnvAgent):
 		self.issued_tickets.clear()
 		self.__all_tickets__ = []
 
-
-	# def deregister(self, label):
-	# 	"""
-	# 	Broken; do not use.
-	#
-	# 	:param label:
-	# 	:return: :raise RuntimeError:
-	# 	"""
-	# 	reg_start = time()
-	# 	# todo: fix this fucker, it's broken; trial clock doesn't look for lists, just strings or event objects
-	# 	removed = False
-	# 	try:
-	# 		self.__registry__.remove(label)
-	# 	except NameError:
-	# 		raise NameError("No such event '{0}' registered.".format(label))
-	# 	for e in self.queud_events:
-	# 		if e[1] == label:
-	# 			self.register_event([label, EVI_DEREGISTER_EVENT])
-	# 			if self.__poll__():
-	# 				self.queud_events.remove(e)
-	# 			else:
-	# 				raise RuntimeError("Cannot remove event '{0}' as it has already been sent.".format(label))
-	# 			removed = True
-	# 	if not removed:
-	# 		for e in self.issued_events:
-	# 			if e[1] == label:
-	# 				raise RuntimeError("Cannot remove event '{0}' as it has already been sent.".format(label))
-	# 		raise RuntimeError("No such event '{0}'.".format(label))
-	#
-	# 	return self.__sync__() - reg_start
-
 	def dump_events(self):
 		"""
 		Records entire event queue to event table of the database.
 
 		"""
-		for e in self.trial_events:
-			try:
-				self.db.query_str_from_raw_data(TBL_EVENTS, e)
-				self.db.insert(e, TBL_EVENTS, False)
-			except RuntimeError:
-				print "Event Table not found; if this is an old KLIBs experiment, consider updating the SQL schema to the new standard."
-				break
+		for cache in self.trial_events.dump().values():
+			for e in cache:
+				print e
+				try:
+					self.db.insert(cache[e].dump(), TBL_EVENTS, False)
+				except RuntimeError:
+					print "Event Table not found; if this is an old KLIBs experiment, consider updating the SQL schema to the new standard."
+					break
 		self.events_dumped = True
 
 	def import_events(self):
@@ -436,34 +415,6 @@ class EventManager(EnvAgent):
 		self.__sync_tickets__(stages=False)
 		# return self.__sync_tickets__(stages=False) - reg_start # this line is only used for debugging
 
-# def send(self, label, max_per_trial=1, args=None, eeg_code_to_edf=None, code=None, message=None):
-	# 	if label in self.issued_events and self.issued_events[label].issued >= max_per_trial:
-	# 		return
-	# 	if label not in self.sent:
-	# 		self.sent[label] = 1
-	# 	else:
-	# 		self.sent[label] += 1
-	# 	try:
-	# 		e = self.queud_events[label]
-	# 	except KeyError:
-	# 		try:
-	# 			iter(args)
-	# 			arg_count = len(args)
-	# 		except:
-	# 			arg_count = 0
-	# 		e = DataEvent(label, arg_count, eeg_code_to_edf, code, message)
-	# 		self.queud_events[label] = e
-	# 	if e.code:
-	# 		self.write(e.code, False, True)
-	# 	if e.message:
-	# 		try:
-	# 			message = e.message.format(*args)
-	# 		except TypeError:
-	# 			message = e.message
-	# 		if e.eeg_code_to_edf and e.code:
-	# 			message = "TA_{0}: {1}".format(e.code, message)
-	# 		self.write(message, True, False)
-
 	def since(self, label):
 		if type(label) is not str:
 			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
@@ -568,6 +519,65 @@ class EventManager(EnvAgent):
 	def debug_list_tickets(self):
 		for e in self.queued_tickets:
 			print e
+
+# def deregister(self, label):
+	# 	"""
+	# 	Broken; do not use.
+	#
+	# 	:param label:
+	# 	:return: :raise RuntimeError:
+	# 	"""
+	# 	reg_start = time()
+	# 	# todo: fix this fucker, it's broken; trial clock doesn't look for lists, just strings or event objects
+	# 	removed = False
+	# 	try:
+	# 		self.__registry__.remove(label)
+	# 	except NameError:
+	# 		raise NameError("No such event '{0}' registered.".format(label))
+	# 	for e in self.queud_events:
+	# 		if e[1] == label:
+	# 			self.register_event([label, EVI_DEREGISTER_EVENT])
+	# 			if self.__poll__():
+	# 				self.queud_events.remove(e)
+	# 			else:
+	# 				raise RuntimeError("Cannot remove event '{0}' as it has already been sent.".format(label))
+	# 			removed = True
+	# 	if not removed:
+	# 		for e in self.issued_events:
+	# 			if e[1] == label:
+	# 				raise RuntimeError("Cannot remove event '{0}' as it has already been sent.".format(label))
+	# 		raise RuntimeError("No such event '{0}'.".format(label))
+	#
+	# 	return self.__sync__() - reg_start
+
+
+# def send(self, label, max_per_trial=1, args=None, eeg_code_to_edf=None, code=None, message=None):
+	# 	if label in self.issued_events and self.issued_events[label].issued >= max_per_trial:
+	# 		return
+	# 	if label not in self.sent:
+	# 		self.sent[label] = 1
+	# 	else:
+	# 		self.sent[label] += 1
+	# 	try:
+	# 		e = self.queud_events[label]
+	# 	except KeyError:
+	# 		try:
+	# 			iter(args)
+	# 			arg_count = len(args)
+	# 		except:
+	# 			arg_count = 0
+	# 		e = DataEvent(label, arg_count, eeg_code_to_edf, code, message)
+	# 		self.queud_events[label] = e
+	# 	if e.code:
+	# 		self.write(e.code, False, True)
+	# 	if e.message:
+	# 		try:
+	# 			message = e.message.format(*args)
+	# 		except TypeError:
+	# 			message = e.message
+	# 		if e.eeg_code_to_edf and e.code:
+	# 			message = "TA_{0}: {1}".format(e.code, message)
+	# 		self.write(message, True, False)
 
 
 @threaded

@@ -209,7 +209,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	from logging import INFO, DEBUG, WARNING, ERROR, CRITICAL
 	from klibs import  P
 	from klibs.KLGraphics import display_init
-	from klibs.KLEyeLink import EyeLinkExt
+	from klibs import KLEyeLink
 	from klibs.KLDatabase import Database
 	from klibs.KLUtilities import force_quit
 	from klibs import env
@@ -306,11 +306,12 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	# create runtime environment
 	env.evm = EventManager()
 	if P.eye_tracking:
-		env.el = EyeLinkExt()
 		if no_eyelink is False:  #
-			print "NO EYELINK"
+			PYLINK_AVAILABLE = False
 			P.eye_tracker_available = False
-			env.el.dummy_mode = P.eye_tracker_available is False
+		reload(KLEyeLink)
+		env.el = KLEyeLink.EyeLinkExt()
+			
 	env.txtm = TextManager()
 	env.tk = TimeKeeper()
 	try:

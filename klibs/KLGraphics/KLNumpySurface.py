@@ -268,31 +268,26 @@ class NumpySurface(object):
 			return
 
 		if layer == NS_FOREGROUND or layer is None:
-			layer_image = Image.fromarray(self.foreground.astype(np.uint8))
-			scaled_image = layer_image.resize(size, Image.ANTIALIAS)
-			# scaled_image = ImageOps.fit(layer_image, size)
-			self.foreground = np.asarray(scaled_image)
-			# try:
-			# 	layer_image = Image.fromarray(self.foreground)
-			# 	scaled_image = layer_image.resize(size, Image.ANTIALIAS)
-			# 	# scaled_image = ImageOps.fit(layer_image, size)
-			# 	self.foreground = numpy.asarray(scaled_image)
-			# except AttributeError as e:
-			# 	if e.message != "'NoneType' object has no attribute '__array_interface__'":
-			# 		raise e
-			# except TypeError:
-			# 	pass
+			try:
+				layer_image = Image.fromarray(self.foreground.astype(np.uint8))
+				scaled_image = layer_image.resize(size, Image.ANTIALIAS)
+				self.foreground = np.asarray(scaled_image)
+			except AttributeError as e:
+				if e.message != "'NoneType' object has no attribute '__array_interface__'":
+					raise e
+			except TypeError:
+				pass
 
-		# if layer == NS_BACKGROUND or layer is None:
-		# 	try:
-		# 		layer_image = Image.fromarray(self.background)
-		# 		scaled_image = ImageOps.fit(layer_image, size)
-		# 		self.background = numpy.asarray(scaled_image)
-		# 	except AttributeError as e:
-		# 		if e.message != "'NoneType' object has no attribute '__array_interface__'":
-		# 			raise e
-		# 	except TypeError:
-		# 		pass
+		if layer == NS_BACKGROUND or layer is None:
+			try:
+				layer_image = Image.fromarray(self.background.astype(np.uint8))
+				scaled_image = layer_image.resize(size, Image.ANTIALIAS)
+				self.foreground = np.asarray(scaled_image)
+			except AttributeError as e:
+				if e.message != "'NoneType' object has no attribute '__array_interface__'":
+					raise e
+			except TypeError:
+				pass
 
 		self.resize(size)
 

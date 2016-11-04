@@ -1,6 +1,6 @@
 from copy import copy
 
-import numpy
+import numpy as np
 from PIL import Image
 from PIL import ImageOps
 import aggdraw
@@ -64,7 +64,7 @@ def ad_stroke(color, width=1, opacity=255):
 
 def add_alpha_channel(numpy_array, alpha_value=255):
 	try:
-		with_alpha = numpy.zeros((numpy_array.shape[0], numpy_array.shape[1], 4))
+		with_alpha = np.zeros((numpy_array.shape[0], numpy_array.shape[1], 4))
 		with_alpha[:, :, :3] = numpy_array
 		with_alpha[:, :, 3] = alpha_value
 		return with_alpha
@@ -80,7 +80,7 @@ def add_alpha_channel(numpy_array, alpha_value=255):
 
 
 def import_image_file(path):
-		return add_alpha_channel(numpy.array(Image.open(path)))
+		return add_alpha_channel(np.array(Image.open(path)))
 
 
 def grey_scale_to_alpha(source):
@@ -93,7 +93,7 @@ def grey_scale_to_alpha(source):
 			source = source.render()
 		elif type(source) is str:
 			source = import_image_file(source)
-		elif type(source) is not numpy.ndarray:
+		elif type(source) is not np.ndarray:
 			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
 		source[0: -1, 0: -1, 3] = source[0: -1, 0: -1, 0]
 		return source
@@ -140,13 +140,13 @@ class NumpySurface(object):
 			try:
 				self.foreground.setflags(write=1)
 			except AttributeError:
-				self.foreground = numpy.zeros((self.width, self.height, 4))
+				self.foreground = np.zeros((self.width, self.height, 4))
 				self.__ensure_writeable(NS_FOREGROUND)
 		else:
 			try:
 				self.background.setflags(write=1)
 			except AttributeError:
-				self.background = numpy.zeros((self.width, self.height, 4))
+				self.background = np.zeros((self.width, self.height, 4))
 				self.__ensure_writeable(NS_BACKGROUND)
 
 	def __fetch_layer(self, layer):
@@ -165,8 +165,8 @@ class NumpySurface(object):
 
 	def init_canvas(self):
 		if all(i is None for i in [self.background, self.foreground, self.width, self.height]):
-			self.foreground = numpy.zeroes((1,1,4))
-			self.background = numpy.zeroes((1,1,4))
+			self.foreground = np.zeros((1,1,4))
+			self.background = np.zeros((1,1,4))
 		else:
 			if self.foreground is None:
 				try:
@@ -178,7 +178,7 @@ class NumpySurface(object):
 				except AttributeError:
 					fg_height = self.height
 
-				self.foreground = numpy.zeros((fg_height, fg_width, 4))
+				self.foreground = np.zeros((fg_height, fg_width, 4))
 			if self.background is None:
 				try:
 					bg_width = self.foreground.shape[1] if self.foreground.shape[1] > self.width else self.width
@@ -189,7 +189,7 @@ class NumpySurface(object):
 				except AttributeError:
 					bg_height = self.height
 
-				self.background = numpy.zeros((bg_height, bg_width, 4))
+				self.background = np.zeros((bg_height, bg_width, 4))
 		self.__update_shape()
 
 	def average_color(self, layer=None):
@@ -214,7 +214,7 @@ class NumpySurface(object):
 		:raise ValueError:
 		"""
 		try:
-			source.foreground = source.foreground.astype(numpy.uint8)
+			source.foreground = source.foreground.astype(np.uint8)
 			source = source.render()
 		except AttributeError:
 			pass
@@ -268,26 +268,31 @@ class NumpySurface(object):
 			return
 
 		if layer == NS_FOREGROUND or layer is None:
-			try:
-				layer_image = Image.fromarray(self.foreground)
-				scaled_image = ImageOps.fit(layer_image, size)
-				self.foreground = numpy.asarray(scaled_image)
-			except AttributeError as e:
-				if e.message != "'NoneType' object has no attribute '__array_interface__'":
-					raise e
-			except TypeError:
-				pass
+			layer_image = Image.fromarray(self.foreground.astype(np.uint8))
+			scaled_image = layer_image.resize(size, Image.ANTIALIAS)
+			# scaled_image = ImageOps.fit(layer_image, size)
+			self.foreground = np.asarray(scaled_image)
+			# try:
+			# 	layer_image = Image.fromarray(self.foreground)
+			# 	scaled_image = layer_image.resize(size, Image.ANTIALIAS)
+			# 	# scaled_image = ImageOps.fit(layer_image, size)
+			# 	self.foreground = numpy.asarray(scaled_image)
+			# except AttributeError as e:
+			# 	if e.message != "'NoneType' object has no attribute '__array_interface__'":
+			# 		raise e
+			# except TypeError:
+			# 	pass
 
-		if layer == NS_BACKGROUND or layer is None:
-			try:
-				layer_image = Image.fromarray(self.background)
-				scaled_image = ImageOps.fit(layer_image, size)
-				self.background = numpy.asarray(scaled_image)
-			except AttributeError as e:
-				if e.message != "'NoneType' object has no attribute '__array_interface__'":
-					raise e
-			except TypeError:
-				pass
+		# if layer == NS_BACKGROUND or layer is None:
+		# 	try:
+		# 		layer_image = Image.fromarray(self.background)
+		# 		scaled_image = ImageOps.fit(layer_image, size)
+		# 		self.background = numpy.asarray(scaled_image)
+		# 	except AttributeError as e:
+		# 		if e.message != "'NoneType' object has no attribute '__array_interface__'":
+		# 			raise e
+		# 	except TypeError:
+		# 		pass
 
 		self.resize(size)
 
@@ -302,7 +307,7 @@ class NumpySurface(object):
 		:param position:
 		:return: :raise TypeError:
 		"""
-		image_content = add_alpha_channel(numpy.array(Image.open(image)))
+		image_content = add_alpha_channel(np.array(Image.open(image)))
 
 		if layer == NS_FOREGROUND:
 			self.foreground = image_content
@@ -355,7 +360,7 @@ class NumpySurface(object):
 		if type(region) is NumpySurface:
 			bounding_coords[2] = region.width + offset[0]
 			bounding_coords[3] = region.height + offset[1]
-		elif type(region) is numpy.ndarray:
+		elif type(region) is np.ndarray:
 			bounding_coords[2] = region.shape[1] + offset[0]
 			bounding_coords[3] = region.shape[0] + offset[1]
 		else:
@@ -395,7 +400,7 @@ class NumpySurface(object):
 			mask = mask.render()
 		elif type(mask) is str:
 			mask = import_image_file(mask)
-		elif type(mask) is not numpy.ndarray:
+		elif type(mask) is not np.ndarray:
 			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
 		if grey_scale:
 			mask = grey_scale_to_alpha(mask)
@@ -457,7 +462,7 @@ class NumpySurface(object):
 			else:
 				raise ValueError("Mask falls outside of layer bounds; reduce size or reposition.")
 
-			alpha_map = numpy.ones(mask.shape[:-1]) * 255 - mask[..., 3]
+			alpha_map = np.ones(mask.shape[:-1]) * 255 - mask[..., 3]
 			fg_x1 = position[0]
 			fg_x2 = alpha_map.shape[1] + position[0]
 			fg_y1 = position[1]
@@ -466,7 +471,7 @@ class NumpySurface(object):
 			flat_map = alpha_map.flatten()
 			flat_fg = self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3].flatten()
 			zipped_arrays = zip(flat_map, flat_fg)
-			flat_masked_region = numpy.asarray([min(x, y) for x, y in zipped_arrays])
+			flat_masked_region = np.asarray([min(x, y) for x, y in zipped_arrays])
 			masked_region = flat_masked_region.reshape(alpha_map.shape)
 			self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3] = masked_region
 
@@ -498,7 +503,7 @@ class NumpySurface(object):
 
 		# create some empty arrays of the new dimensions and ascertain clipping values if needed
 		try:
-			new_fg = numpy.zeros((dimensions[1], dimensions[0], 4))  # ie. new foreground
+			new_fg = np.zeros((dimensions[1], dimensions[0], 4))  # ie. new foreground
 			fg_clip = [	new_fg.shape[0] - (self.fg_offset[1] + self.foreground.shape[0]),
 						new_fg.shape[1] - (self.fg_offset[0] + self.foreground.shape[1]) ]
 			for clip in fg_clip:
@@ -506,7 +511,7 @@ class NumpySurface(object):
 				if clip >= 0:
 					fg_clip[axis] = self.foreground.shape[axis] + self.fg_offset[axis]
 
-			new_bg = numpy.zeros((dimensions[1], dimensions[0], 4))
+			new_bg = np.zeros((dimensions[1], dimensions[0], 4))
 			bg_clip = [new_bg.shape[0] - (self.bg_offset[1] + self.background.shape[0]),
 					   new_bg.shape[1] - (self.bg_offset[0] + self.background.shape[1])]
 			for clip in bg_clip:
@@ -554,7 +559,7 @@ class NumpySurface(object):
 		if self.background is None:
 			render_surface = copy(self.foreground)
 		else:  # flatten background and foreground together
-			render_surface = numpy.zeros((self.height, self.width, 4))
+			render_surface = np.zeros((self.height, self.width, 4))
 			bg_x1 = self.__background_offset[0]
 			bg_x2 = bg_x1 + self.background.shape[1]
 			bg_y1 = self.__background_offset[1]
@@ -568,7 +573,7 @@ class NumpySurface(object):
 			render_surface[bg_y1: bg_y2, bg_x1: bg_x2] = self.background
 			render_surface[fg_y1: fg_y2, fg_x1: fg_x2] = self.foreground
 
-		self.rendered = render_surface.astype(numpy.uint8)
+		self.rendered = render_surface.astype(np.uint8)
 		return self.rendered
 
 	def __update_shape(self):

@@ -15,25 +15,23 @@ if PYLINK_AVAILABLE:
 	from aggdraw import Draw, Pen
 	from PIL.Image import frombytes
 
-
+	from klibs.KLEnvironment import EnvAgent
 	from klibs import P
 	from klibs.KLUtilities import pump, mouse_pos
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import fill, flip, blit, aggdraw_to_array
 	from klibs.KLGraphics.KLDraw import drift_correct_target
-	import klibs.KLGraphics.KLNumpySurface as NpS
+	from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 	from klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
 
-	class ELCustomDisplay(EyeLinkCustomDisplay):
+	class ELCustomDisplay(EyeLinkCustomDisplay, EnvAgent):
 
 		window = None
-		experiment = None
-		tracker = None
 		size = [None, None]
 
-		def __init__(self, tracker):
-			self.size = window.size
-			self.tracker = tracker
+		def __init__(self):
+			EnvAgent.__init__(self)
+			self.size = self.exp.window.size
 			self.last_flip = None
 			self.fill_color = [255, 0, 0]
 			if sys.byteorder == 'little':
@@ -56,7 +54,7 @@ if PYLINK_AVAILABLE:
 				self.__target_beep__error__ = None
 
 		def setup_cal_display(self):
-			self.window = window
+			self.window = self.exp.window
 			self.clear_cal_display()
 
 		def exit_cal_display(self):
@@ -72,13 +70,15 @@ if PYLINK_AVAILABLE:
 		def erase_cal_target(self):
 			self.clear_cal_display()
 
-		def draw_cal_target(self, x, y=None, pump_events=True, flip=True):
-			if pump_events: pump
+		def draw_cal_target(self, x, y=None, pump_events=True, flip_screen=True):
+			fill()
+			if pump_events: pump()
 			if y is None:
 				y = x[1]
 				x = x[0]
 			blit(drift_correct_target(), 5, [int(x), int(y)])
-			if flip: flip()
+			# if flip_screen: flip()
+			flip()
 
 		def play_beep(self, clip):
 			try:
@@ -98,12 +98,12 @@ if PYLINK_AVAILABLE:
 					keysym.sym = ENTER_KEY if keysym.sym == SDLK_RETURN else keysym.sym
 					request = ui_request(keysym)
 					if keysym.sym == SDLK_ESCAPE:  # don't allow escape to control tracker unless calibrating
-						if self.tracker.in_setup():
+						if self.el.in_setup():
 							return [KeyInput(ESC_KEY, 0)]
 						else:
 							return 0
 					if request:
-						if request == SDLK_c and not self.tracker.in_setup():
+						if request == SDLK_c and not self.el.in_setup():
 							return [KeyInput(SDLK_ESCAPE, 0)]
 					return [KeyInput(keysym.sym, keysym.mod)]
 
@@ -131,6 +131,7 @@ if PYLINK_AVAILABLE:
 				self.imagebuffer.append(self.pal[buff[i] & 0x000000FF])
 				i += 1
 			try:
+				fill()
 				img = frombytes('RGBX', (width, totlines), self.imagebuffer.tostring()).convert('RGBA')
 				blit(NpS(asarray(img)), position=P.screen_c, registration=5)
 				flip()

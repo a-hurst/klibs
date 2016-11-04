@@ -307,7 +307,8 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	env.evm = EventManager()
 	if P.eye_tracking:
 		env.el = EyeLinkExt()
-		if no_eyelink:
+		if no_eyelink is False:  #
+			print "NO EYELINK"
 			P.eye_tracker_available = False
 			env.el.dummy_mode = P.eye_tracker_available is False
 	env.txtm = TextManager()

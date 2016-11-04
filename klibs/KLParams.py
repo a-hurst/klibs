@@ -84,6 +84,7 @@ demographics_collected = False
 eye_tracking = False
 eye_tracker_available = False
 exp_factors = None
+manually_initiate_eyelink_setup = False
 
 # labjack
 labjack_available = False
@@ -116,7 +117,7 @@ screen_y = None
 screen_x_y = None
 screen_degrees_x = None
 screen_degrees_y = None
-view_distance = 57  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen
+view_distance = 104  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen
 display_initialized = False
 
 saccadic_velocity_threshold = 20

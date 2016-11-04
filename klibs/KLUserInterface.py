@@ -73,9 +73,9 @@ def ui_request(key_press=None, execute=True, queue=None):
 					elif k.sym == SDLK_c:
 						# todo: error handling here
 						if execute:
-							from klibs import eyelink
+							from klibs.KLEnvironment import el
 							# if Params.eye_tracking and Params.eye_tracker_available:
-							return eyelink.calibrate()
+							return el.calibrate()
 						else:
 							return [True, "el_calibrate"]
 					elif k.sym == SDLK_p:

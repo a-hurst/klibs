@@ -2,6 +2,7 @@
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
 from klibs import PYLINK_AVAILABLE
+from klibs import P
 
 if PYLINK_AVAILABLE:
 	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode, EyeLinkCustomDisplay, KeyInput, \
@@ -9,5 +10,9 @@ if PYLINK_AVAILABLE:
 	from pylink.tracker import Sample, EndSaccadeEvent, EndFixationEvent, StartFixationEvent, StartSaccadeEvent
 	from KLEyeLinkExt import EyeLinkExt
 	from KLCustomEyeLinkDisplay import ELCustomDisplay
+	if P.development_mode:
+		print "Using PyLink"
 else:
 	from KLTryLink import TryLink as EyeLinkExt
+	if P.development_mode:
+		print "Using TryLink"

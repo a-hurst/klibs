@@ -408,7 +408,12 @@ class Experiment(EnvAgent):
 			copytree(P.config_dir, join(version_dir, "Config"))
 
 		if P.eye_tracking and P.eye_tracker_available:
-			self.el.setup()
+			try:
+				if not P.manually_initiate_eyelink_setup:
+					self.el.setup()
+			except AttributeError:
+				self.el.setup()
+			
 		self.blocks = self.trial_factory.export_trials()
 		self.setup()
 		try:

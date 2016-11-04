@@ -25,6 +25,7 @@ from klibs.KLConstants import LEGACY_LOCATIONS, BL_RIGHT, BL_LEFT, BL_BOTTOM_RIG
 	BL_CENTER, BL_TOP_LEFT, BL_TOP_RIGHT, PARTICIPANT_FILE, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS, TF_DATA,\
 	EDF_EXT, EDF_FILE, DATETIME_STAMP, DATA_EXT, MOD_KEYS
 from klibs import P
+from klibs import env
 
 def absolute_position(position, destination):
 	height = None
@@ -213,7 +214,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 
 	if date is None:
 		date_query = "SELECT `created` FROM `participants` WHERE `id` = ?"
-		date = P.database.query(date_query, q_vars=tuple([participant_id])).fetchall()[0][0][:10]
+		date = env.db.query(date_query, q_vars=tuple([participant_id])).fetchall()[0][0][:10]
 	if file_type == PARTICIPANT_FILE:
 		file_extension = TF_DATA
 		if incomplete:

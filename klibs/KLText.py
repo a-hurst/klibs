@@ -8,11 +8,13 @@ from math import floor
 from os.path import isfile, join
 
 from klibs import P
+from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
 from klibs.KLUtilities import pt_to_px
 from klibs.KLGraphics import NpS, rgb_to_rgba, argb32_to_rgba
 
 class TextStyle(object):
-	__font_size__ = None
+
+
 	#todo: render_size(str, width)
 	def __init__(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None, anti_alias=True):
 		"""
@@ -30,13 +32,21 @@ class TextStyle(object):
 		:param font_label:
 		:type font_label: String or Iterable
 		"""
+		self.bad_unit_message = "A valid size unit was not provided; please express size as either an integer or as \
+		pixels/points (ie. '12pt' or '12px')."
+		self.__font_size__ = None
+		self.__font_size_units__ = TEXT_PT
+		self.__line_height__ = 1.5
+		self.__line_height_units__ = TEXT_MULTIPLE
 		self.label = label
 		self.font_size = font_size if font_size else P.default_font_size
 		self.font_label = font_label if font_label else P.default_font_name
 		self.color = rgb_to_rgba(color) if color else (22, 22, 22, 255)
 		self.bg_color = rgb_to_rgba(bg_color) if bg_color else (0, 0, 0, 0)
-		self.line_height = line_height if line_height else 1.5
 		self.anti_aliased = anti_alias
+		if line_height:
+			self.line_height = line_height
+
 
 	@property
 	def font_size(self):
@@ -50,8 +60,32 @@ class TextStyle(object):
 	def font_size(self, size):
 		try:
 			self.__font_size__ = int(size)
+			self.__font_size_units__ = TEXT_PX
 		except ValueError:
-			self.__font_size__ = int(floor(1.0 / 72 * P.ppi * int(size[0:-2])))
+			self.__font_size__ = size[:-2]
+			self.__font_size_units__ = size[-2:].upper()
+			if self.__font_size_units__ not in [TEXT_PX, TEXT_PT]:
+				raise ValueError(self.bad_unit_message)
+
+	@property
+	def line_height(self):
+		if self.__line_height_units__ == TEXT_PX:
+			return self.__line_height__
+		elif self.__line_height_units__ == TEXT_MULTIPLE:
+			return self.__line_height__ * self.font_size_px
+		else:
+			return  pt_to_px(self.__line_height__)
+
+	@line_height.setter
+	def line_height(self, line_height_val):
+		try:
+			self.__line_height__ = int(line_height_val)
+			self.__line_height_units__ = TEXT_MULTIPLE
+		except ValueError:
+			self.__line_height__ = int(line_height_val[:-2])
+			self.__line_height_units__ = line_height_val[-2:].upper()
+			if self.__line_height_units__ not in [TEXT_PT, TEXT_PX]:
+				raise ValueError(self.bad_unit_message)
 
 	def __str__(self):
 		return "klibs.KLTextManager.TextStyle ('{0}') at {1}".format(self.label, hex(id(self)))
@@ -114,31 +148,43 @@ class TextManager(object):
 		lines = text.split("\n")
 		if width:
 			pass  # TODO: test various lengths until you get a size that works, then re-populate lines
-		lines_surfs = []
+		output = NpS(width=1, height=len(lines) * (style.font_size + style.line_height))
+		# lines_surfs = []
+		# final_width = 0 if not width else width
 		for line in lines:
 			if len(line):
-				lines_surfs.append(self.render(line, style, True))
-		text_dims = [0,0]
-		line_height = style.line_height * lines_surfs[0].height
-		#line_height = style.line_height * lines_surfs[0].shape[0]
-		for line in lines_surfs:
-			if line.width > text_dims[0]: text_dims[0] = line.width
-			#if line.shape[1] > text_dims[0]: text_dims[0] = line.shape[1]
-			text_dims[1] += int(line_height)
-		original_surfs = []
-		for l in lines_surfs:
-			original_surfs.append(l)
-			new = zeros((l.height, text_dims[0], 4))
-			#new = numpy.zeros((l.shape[0], text_dims[0], 4))
-			new[0:l.height,0:l.width,...] = l.foreground
-			#new[0:l.shape[0],0:l.shape[1],...] = l
-			lines_surfs[lines_surfs.index(l)] = NpS(new)
-			#lines_surfs[lines_surfs.index(l)] = new
-		text_surface = concatenate([l.render() for l in lines_surfs], 0)
-		#text_surface = numpy.concatenate([l for l in lines_surfs], 0)
+				l_surf = self.render(line, style, True)
+				if l_surf.width > output.width:
+					output.resize((l_surf.width, output.height), registration=7)
+				l_surf_pos = (0, lines.index(line) * (style.font_size + style.line_height))
+				output.blit(l_surf, position=l_surf_pos)
+		return output
+		# 	else:
+		# 		lines_surfs.append(NpS(width=final_width, height=style.font_size + style.line_height))
+		# 	if not width and lines_surfs[-1].width > final_width:
+		# 		final_width = lines_surfs[-1].width
+		# for l in lines_surfs
+		# text_dims = [0,0]
+		# #line_height = style.line_height * lines_surfs[0].shape[0]
+		# for line in lines_surfs:
+		# 	if line.width > text_dims[0]:
+		# 		text_dims[0] = line.width
+		# 	#if line.shape[1] > text_dims[0]: text_dims[0] = line.shape[1]
+		# 	text_dims[1] += int(style.line_height)
+		# original_surfs = []
+		# for l in lines_surfs:
+		# 	original_surfs.append(l)
+		# 	new = zeros((l.height, text_dims[0], 4))
+		# 	#new = numpy.zeros((l.shape[0], text_dims[0], 4))
+		# 	new[0:l.height,0:l.width,...] = l.foreground
+		# 	#new[0:l.shape[0],0:l.shape[1],...] = l
+		# 	lines_surfs[lines_surfs.index(l)] = NpS(new)
+		# 	#lines_surfs[lines_surfs.index(l)] = new
+		# text_surface = concatenate([l.render() for l in lines_surfs], 0)
+		# #text_surface = numpy.concatenate([l for l in lines_surfs], 0)
 
 		# return [text_surface, original_surfs]
-		return text_surface
+		# return text_surface
 
 	def render(self, text, style="default", max_width=None, from_wrap=False):
 		"""

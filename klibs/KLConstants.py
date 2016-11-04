@@ -169,6 +169,11 @@ TF_TRIAL_COUNT = "trial_count"
 TF_TRIAL_COUNT_UC = "Trial_Count"
 TF_NAS = ["na", "n/a", "NA", "N/A", "nA", "Na", "n/A", "N/a"]
 
+# TextManager Constants
+TEXT_PX = "PX"
+TEXT_MULTIPLE = "*"
+TEXT_PT = "PT"
+
 # Utilities Constants
 ENTERING = 1
 EXITING = 2

@@ -1,0 +1,142 @@
+{
+    "default_strings": {
+      "answer_not_supplied": "Please provide an answer.",
+      "invalid_answer": "Your answer must be one of the following: {0}"
+      "block_break": "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
+    },
+    "demographic": [
+        {
+            "title": "name",
+            "database_field": "userhash",
+            "query": "'What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.'",
+            "accepted": null,
+            "format": {
+                "type": "str",
+                "styles": {
+                    "query": "default",
+                    "input": "default",
+                    "error": "alert"
+                },
+                "positions": {
+                    "locations": {
+                        "query": "auto",
+                        "input": "auto",
+                        "error": "auto"
+                    },
+                    "registrations": {
+                        "query": "auto",
+                        "input": "auto",
+                        "error": "auto"
+                    }
+                },
+                "password": true,
+                "range": null,
+                "case_sensitive": true,
+                "accept_as_true": null,
+                "action": "hash"
+            },
+            "anonymous_value": "EVAL: now()",
+            "active": true
+        },
+        {
+            "title": "sex",
+            "database_field": "sex",
+            "query": "What is your sex? \nAnswer with:  (m)ale,(f)emale",
+            "accepted": ["m", "f"],
+            "format": {
+                "type": "str",
+                "styles": {
+                    "query": "default",
+                    "input": "default",
+                    "error": "alert"
+                },
+                 "positions": {
+                    "locations": {
+                        "query": "auto",
+                        "input": "auto",
+                        "error": "auto"
+                    },
+                    "registrations": {
+                        "query": "auto",
+                        "input": "auto",
+                        "error": "auto"
+                    }
+                },
+                "password": true,
+                "range": null,
+                "case_sensitive": false,
+                "accept_as_true": null,
+                "action": null
+            },
+            "anonymous_value": "EVAL: 'm' if now() % 2 > 0  else 'f'",
+            "active": true
+        },
+        {
+            "title": "handedness",
+            "database_field": "handedness",
+            "query": "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous.",
+            "accepted": ["r", "l", "a"],
+            "format": {
+                "type": "str",
+                "styles": {
+                    "query": "default",
+                    "input": "default",
+                    "error": "alert"
+                },
+                "positions": {
+                    "locations": {
+                        "query": "auto",
+                        "input": "auto",
+                        "error": "auto"
+                    },
+                    "registrations": {
+                        "query": "auto",
+                        "input": "auto",
+                        "error": "auto"
+                    }
+                },
+                "password": true,
+                "range": null,
+                "case_sensitive": false,
+                "accept_as_true": null,
+                "action": null
+            },
+            "anonymous_value": "a",
+            "active": true
+        },
+        {
+            "title": "age",
+            "database_field": "age",
+            "query": "What is  your age?",
+            "accepted": null,
+            "format": {
+                "type": "int",
+                "styles": {
+                    "query": "default",
+                    "input": "default",
+                    "error": "alert"
+                },
+                "positions": {
+                    "locations": {
+                        "query": "auto",
+                        "input": "auto",
+                        "error": "auto"
+                    },
+                    "registrations": {
+                        "query": "auto",
+                        "input": "auto",
+                        "error": "auto"
+                    }
+                },
+                "password": true,
+                "range": [0, 125],
+                "case_sensitive": null,
+                "accept_as_true": null,
+                "action": null
+            },
+            "anonymous_value": 1,
+            "active": true
+        }
+    ],
+    "experimental": null
+}

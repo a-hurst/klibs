@@ -121,7 +121,6 @@ class TextManager(object):
 		self.add_style("debug", 12, (225, 145, 85, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro", anti_alias=False)
 		self.default_font_size = P.default_font_size
 		self.default_color = P.default_color
-		self.add_style("default", P.default_font_size, P.default_color, font_label="Frutiger")
 		TTF_Init()
 
 	def __build_font_sizes__(self):

@@ -3,13 +3,18 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 
 
 from copy import copy
+from sdl2 import SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_RETURN, SDLK_KP_ENTER, SDLK_ESCAPE
+from hashlib import sha1
 
-from klibs.KLConstants import *
+from klibs.KLConstants import AUTO_POS,BL_CENTER, BL_TOP, BL_TOP_LEFT, BL_TOP_RIGHT, BL_LEFT, BL_RIGHT, BL_BOTTOM, \
+	BL_BOTTOM_LEFT, BL_BOTTOM_RIGHT, ALL, QUERY_ACTION_HASH
 from klibs.KLGraphics import blit, clear, fill, flip
 import klibs.KLParams as P
 from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump
-# from klibs.KLUserInterface import ui_request
+from klibs.KLUserInterface import ui_request
 
+global user_queries
+global block_break_messages
 
 
 def alert(text, blit=True, display_for=0):
@@ -39,81 +44,321 @@ def alert(text, blit=True, display_for=0):
 			pass
 			# todo: use ui_request and timekeeper
 
+
+def collect_demographics(anonymous=False):
+	from klibs.KLEnvironment import exp, db
+
+	global user_queries
+
+	"""
+	Gathers participant demographic information and enter it into the project database.
+	Should not be explicitly called; see ``P.collect_demographics``.
+	:param anonymous: Toggles generation of arbitrary participant info in lieu of participant-supplied info.
+	:type anonymous: Boolean
+	"""
+
+	# ie. demographic questions aren't being asked for this experiment
+	if not P.collect_demographics and not anonymous: return
+
+	if P.collect_demographics:
+		if P.multi_session_project:
+			id_str = query(
+				"If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.",
+				password=True, accepted=ALL)
+			if id_str:
+				return exp.init_session(id_str)
+
+	# first insert required, automatically-populated fields
+	db.init_entry('participants', instance_name='ptcp', set_current=True)
+	db.log("random_seed", P.random_seed)
+	db.log("klibs_commit", P.klibs_commit)
+	db.log('created', now(True))
+
+	# collect a response and handle errors for each question
+	for q in user_queries.demographic:
+		# todo: identify errors pertaining to fields where unique values are required; optionally retry the question
+		db.log(q.database_field, query(q, anonymous=anonymous))
+
+	# typical use; P.collect_demographics is True and called automatically by klibs
+	if not P.demographics_collected:
+		P.participant_id = db.insert()
+		P.demographics_collected = True
+	else:
+		#  The context for this is: collect_demographics is set to false but then explicitly called later
+		db.update(P.participant_id)
+
+	# unset the current DB entry and initialize the session for multi-session projects
+	db.current(False)
+	if P.collect_demographics and P.multi_session_project:
+		exp.init_session()
+
+	# ###################################################
+	# if anonymous:
+	# 	name = P.anonymous_username
+	# else:
+	#
+	#
+	#
+	# 	name_query_string = query(
+	# 		'What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.',
+	# 		password=True)
+	# 	name_hash = sha1(name_query_string)
+	# 	name = name_hash.hexdigest()
+	# self.db.log('userhash', name)
+	#
+	# # names must be unique; returns True if unique, False otherwise
+	# if self.db.is_unique('participants', 'userhash', name):
+	# 	try:
+	# 		for q in P.demographic_questions:
+	# 			if anonymous:
+	# 				self.db.log(q[0], q[4])
+	# 			else:
+	# 				self.db.log(q[0], query(q[1], accepted=q[2], return_type=q[3]))
+	# 	except AttributeError:
+	# 		if anonymous:
+	# 			sex = "m" if now() % 2 > 0  else "f"
+	# 			handedness = "a"
+	# 			age = 0
+	# 		else:
+	# 			sex_str = "What is your sex? \nAnswer with:  (m)ale,(f)emale"
+	# 			sex = query(sex_str, accepted=('m', 'M', 'f', 'F'))
+	# 			handedness_str = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
+	# 			handedness = query(handedness_str, accepted=('r', 'R', 'l', 'L', 'a', 'A'))
+	# 			age = query('What is  your age?', return_type='int')
+	# 			self.db.log('sex', sex)
+	# 			self.db.log('handedness', handedness)
+	# 			self.db.log('age', age)
+	# 	self.db.log('created', now(True))
+	# 	if not P.demographics_collected:
+	# 		P.participant_id = self.db.insert()
+	# 		P.demographics_collected = True
+	# 	else:
+	# 		#  The context for this is: collect_demographics is set to false but then explicitly called later
+	# 		self.db.update(P.participant_id)
+	# else:
+	# 	retry = query('That participant identifier has already been used. Do you wish to try another? (y/n) ')
+	# 	if retry == 'y':
+	# 		self.collect_demographics()
+	# 	else:
+	# 		self.fill()
+	# 		message("Thanks for participating!", location=P.screen_c)
+	# 		any_key()
+	# 		self.quit()
+	# self.db.current(False)
+	# if P.collect_demographics and P.multi_session_project:
+	# 	self.init_session()
+
+
+def init_messaging():
+	from klibs.KLCommunication import message
+	from klibs.KLEnvironment import txtm, exp
+	from klibs.KLJSON_Object import JSON_Object
+
+	global user_queries
+	global block_break_messages
+	# try to create question objects (ie. JSON_Objects with expected keys) from demographics file
+	try:
+		user_queries = JSON_Object(P.user_queries_file_path)
+	except ValueError:
+		raise ValueError("User queries file has at least one formatting error; cannot continue.")
+
+	# set default strings for communication
+	for k in user_queries.default_strings:
+		setattr(P, k, user_queries.default_strings[k])
+
+	# default styles can't be created until screen dimensions are loaded into Params from exp.display_init()
+	txtm.add_style("default", P.default_font_size, P.default_color, font_label="Frutiger")
+	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font_label="Frutiger")
+
+	if P.pre_render_block_messages:
+		for i in range(1, P.blocks_per_experiment, 1):
+			msg = P.block_break_message.format(i, P.blocks_per_experiment)
+			r_msg = message(msg, blit=False)
+			block_break_messages.append(r_msg)
+
+
 def message(text, style=None, location=None, registration=None, blit_txt=True, flip_screen=False, wrap_width=None):
+	"""
+	``heavy_modification_planned`` ``backwards_compatibility_planned``
+
+	Generates and optionally renders formatted text to the display.
+
+	.. warning:: While this method supports the arguments listed, only :class:`~klibs.KLTextManager.TextStyle`
+	should now be used.
+
+
+	:param text: Text to be displayed.
+	:type text: String
+	:param style: Name of :class:`~klibs.KLTextManager.TextStyle` to be used.
+	:type style: String
+	:param location: X-Y coordinates where the message should be placed. Default is screen center.
+	:type location: Iterable of Integers or `Location Constant`
+	:param registration: Location about message surface perimeter to be placed at supplied location. Default is
+	center.
+	:type registration: Integer
+	:param wrap_width: Maximum width (px) of text line before breaking.
+	:type wrap_width: Integer
+	:param blit_txt: Toggles whether message surface is automatically :func:`~klibs.KLExperiment.Experiment
+	.blit` to
+	the display buffer.
+	:type blit_txt: Boolean
+	:param flip_screen: Toggles whether :func:`~klibs.KLExperiment.Experiment.flip` is automatically called after
+	blit.
+	:type flip_screen: Boolean
+	:return: NumpySurface or Boolean
 		"""
-		``heavy_modification_planned`` ``backwards_compatibility_planned``
 
-		Generates and optionally renders formatted text to the display.
+	from klibs.KLEnvironment import txtm
 
-		.. warning:: While this method supports the arguments listed, only :class:`~klibs.KLTextManager.TextStyle`
-		should now be used.
+	if not style:
+		style = txtm.styles['default']
+	else:
+		try:
+			style = txtm.styles[style]
+		except TypeError:
+			pass
+	print style, style.font_size
+	# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
 
+	# process blit registration
+	if location == "center" and registration is None:  # an exception case for perfect centering
+		registration = BL_CENTER
+	if registration is None:
+		registration = BL_TOP_LEFT
 
-		:param text: Text to be displayed.
-		:type text: String
-		:param style: Name of :class:`~klibs.KLTextManager.TextStyle` to be used.
-		:type style: String
-		:param location: X-Y coordinates where the message should be placed. Default is screen center.
-		:type location: Iterable of Integers or `Location Constant`
-		:param registration: Location about message surface perimeter to be placed at supplied location. Default is
-		center.
-		:type registration: Integer
-		:param wrap_width: Maximum width (px) of text line before breaking.
-		:type wrap_width: Integer
-		:param blit_txt: Toggles whether message surface is automatically :func:`~klibs.KLExperiment.Experiment
-		.blit` to
-		the display buffer.
-		:type blit_txt: Boolean
-		:param flip_screen: Toggles whether :func:`~klibs.KLExperiment.Experiment.flip` is automatically called after
-		blit.
-		:type flip_screen: Boolean
-		:return: NumpySurface or Boolean
-			"""
-
-		from klibs.KLEnvironment import txtm
-
-		if not style:
-			style = txtm.styles['default']
-		else:
+	# process location, infer if need be; failure here is considered fatal
+	if not location:
+		x_offset = (P.screen_x - P.screen_x) // 2 + style.font_size
+		y_offset = (P.screen_y - P.screen_y) // 2 + style.font_size
+		location = (x_offset, y_offset)
+	else:
+		try:
+			iter(location)
+		except AttributeError:
 			try:
-				style = txtm.styles[style]
-			except TypeError:
-				pass
-		# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
+				location = absolute_position(location, P.screen_x_y)
+			except ValueError:
+				raise ValueError("Argument 'location' must be a location constant or iterable x,y coordinate pair")
 
-		render_config = {}
-		message_surface = None  # unless wrap is true, will remain empty
+	message_surface = txtm.render(text, style)
+	if not blit_txt:
+		return message_surface
+	else:
+		blit(message_surface, registration, location)
+	if flip_screen:
+		flip()
 
-		# process blit registration
-		if location == "center" and registration is None:  # an exception case for perfect centering
-			registration = 5
-		if registration is None:
-			registration = 7
+def query(query_ob, anonymous=False):
+	from klibs.KLEnvironment import txtm
 
-		# process location, infer if need be; failure here is considered fatal
-		if not location:
-			x_offset = (P.screen_x - P.screen_x) // 2 + style.font_size
-			y_offset = (P.screen_y - P.screen_y) // 2 + style.font_size
-			location = (x_offset, y_offset)
+	if anonymous:
+		return query_ob.anonymous_value
+
+	input_string = ''  # populated in loop below
+	error_string = None
+
+
+	f = query_ob.format
+	p = f.positions
+	print f.styles.query
+	q_text = message(query_ob.query, f.styles.query)
+
+	# address automatic positioning
+	if p.locations.query == AUTO_POS:
+		p.locations.query =  [P.screen_c[0], int(0.1 * P.screen_y)]
+		p.registrations.query = BL_CENTER
+
+	if p.locations.input == AUTO_POS:
+		v_pad = q_text.height + 2 * txtm.styles[f.styles.query].line_height
+		p.locations.input =  [P.screen_c[0], p.locations.query[1] + v_pad]
+		p.registrations.input = BL_CENTER
+
+	# define this to save typing it out repeatedly blow
+	def blit_question(input_text=None):
+		fill()
+		blit(q_text, p.locations.query, p.registrations.query)
+		try:
+			blit(input_text, p.locations.input, p.registrations.input)
+		except TypeError:
+			pass  # ie. input_text=None
+		flip()
+
+	# create an accepted answers string to present to user
+	if query_ob.accepted:
+		try:
+			iter(query_ob.accepted)
+			accepted_str = pretty_join(query_ob.accepted, delimiter=",", before_last='or', prepend='[ ', append=']')
+			invalid_answer_string = P.invalid_answer_string.format(accepted_str)
+		except:
+			raise TypeError("The 'accepted' key of a question object must be an array/list (JSON/Python).")
+
+	# user input loop; exited by breaking
+	while True:
+		input_surface = None
+		SDL_PumpEvents()
+		for event in pump(True):
+			if event.type is not SDL_KEYDOWN:
+				continue
+
+			ui_request(event.key.keysym)
+
+			# reset error and input strings if an error has been displayed
+			error_string = None
+
+			key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
+			sdl_keysym = key.keysym.sym
+
+			# handle deletions
+			if sdl_keysym == SDLK_BACKSPACE:
+				input_string = input_string[:-1]
+
+			# handle user indicating that they're finished
+			if sdl_keysym in (SDLK_KP_ENTER, SDLK_RETURN):  # ie. if enter or return
+				if len(input_string):
+					if query_ob.accepted:   # to make the accepted list work, there's a lot of checking yet to do
+						user_finished = input_string in query_ob.accepted
+						if not user_finished:
+							error_string = invalid_answer_string
+					else:
+						break
+				else:
+					error_string = P.no_answer_string
+
+				if error_string:
+					input_surface = message(error_string, f.styles.error)
+					input_string = ""
+
+			# escape erases the user input
+			if sdl_keysym == SDLK_ESCAPE:
+				input_string = ""
+				input_surface = None
+
+			if sdl_key_code_to_str(sdl_keysym):
+				input_string += sdl_key_code_to_str(sdl_keysym)
+				if f.case_sensitive is False:
+					input_string = input_string.lower()
+
+			# remove trailing whitespace
+			input_string = input_string.strip()
+
+			if f.password:
+				input_surface = message(len(input_string) * '*', f.style.input)
+
+			blit_question(input_text=input_surface)
+
+	fill()
+	flip()
+	if f.type is int:
+		return int(input_string)
+	elif f.type is str:
+		if f.action == QUERY_ACTION_HASH:
+			return sha1(str(input_string)).hexdigest()
 		else:
-			try:
-				iter(location)
-			except AttributeError:
-				try:
-					location = absolute_position(location, P.screen_x_y)
-				except ValueError:
-					raise ValueError("Argument 'location' must be a location constant or iterable x,y coordinate pair")
-
-		message_surface = txtm.render(text, style)
-		if not blit_txt:
-			return message_surface
-		else:
-			blit(message_surface, registration, location)
-		if flip_screen:
-			flip()
-
-def query():
-	pass
+			return str(input_string)
+	elif f.type is float:
+		return float(input_string)
+	elif f.type is bool:
+		return input_string in f.accept_as_true
 #
 # def query(query=None, password=False, font=None, font_size=None, color=None, locations=None, registration=5, return_type=None, accepted=None):
 # 		"""
@@ -129,210 +374,6 @@ def query():
 # 		usual parameters, where the first element would be applied to the query string and the second to the response.
 # 		If normal formatting values are supplied, they are applied to both the query and response text.
 #
-# 		:param query: A string of text to present to the participant usually a question or instruction about desired input.
-# 		:param password: When true participant input will appear on screen in asterisks, though real key presses are recorded.
-# 		:param font: See Experiment.message()
-# 		:param font_size: See Experiment.message()
-# 		:param color: See Experiment.message()
-# 		:param locations:
-# 		:param registration:
-# 		:param return_type:
-# 		:param accepted:
-# 		:return: boolean
-# 		:raise TypeError:
-#
-#
-# 		**Example**
-#
-#
-# 		The following::
-#
-# 			question = "What is your name?"
-# 			font = "Helvetica"
-# 			sizes = [24,16]
-# 			colors = [rgb(0,0,0), rgb(255,0,0)]
-# 			query(question, font=font_name, font_size=sizes, color=colors)
-#
-#
-# 		Produces this formatting structure:
-#
-# 			+----------+-------------+---------+-----------+
-# 			|**string**|**font size**|**color**| **font**  |
-# 			+----------+-------------+---------+-----------+
-# 			| query    |     24pt    | black   | Helvetica |
-# 			+----------+-------------+---------+-----------+
-# 			| response |   16pt      | red     | Helvetica |
-# 			+----------+-------------+---------+-----------+
-#
-# 		*Note: As with Experiment.message() <#message_def> this method will eventually accept a TextStyle object
-# 		instead of the formatting arguments currently implemented.*
-#
-# 		"""
-# 		# TODO: 'accepted' might be better as a KLKeyMap object? Or at least more robust than a list of letters?
-#
-# 		input_config = [None, None, None, None]  # font, font_size, color, bg_color
-# 		query_config = [None, None, None, None]
-# 		vertical_padding = None
-# 		input_location = None
-# 		query_location = None
-# 		query_registration = 8
-# 		input_registration = 2
-#
-# 		# build config argument(s) for __render_text()
-# 		# process the possibility of different query/input font sizes
-# 		if font_size is not None:
-# 			if type(font_size) is (tuple or list):
-# 				if len(font_size) == 2:
-# 					input_config[1] = tm.font_sizes[font_size[0]]
-# 					query_config[1] = tm.font_sizes[font_size[1]]
-# 					vertical_padding = query_config[1]
-# 					if input_config[1] < query_config[1]:  # smallest  size =  vertical padding from midline
-# 						vertical_padding = input_config[1]
-# 			else:
-# 				input_config[1] = tm.font_sizes[font_size]
-# 				query_config[1] = tm.font_sizes[font_size]
-# 				vertical_padding = tm.font_sizes[font_size]
-# 		else:
-# 			input_config[1] = tm.default_font_size
-# 			query_config[1] = tm.default_font_size
-# 			vertical_padding = tm.default_font_size
-#
-# 		if registration is not None:
-# 			if type(registration) is (tuple or list):
-# 				input_registration = registration[0]
-# 				query_registration = registration[1]
-# 			else:
-# 				input_registration = registration
-# 				query_registration = registration
-#
-# 		# process the (unlikely) possibility of different query/input fonts
-# 		if type(font) is tuple and len(font) == 2:
-# 			input_config[0] = font[0]
-# 			query_config[0] = font[1]
-# 		elif type(font) is str:
-# 			input_config[0] = font
-# 			query_config[0] = font
-# 		# else:
-# 		# 	input_config[0] = tm.default_font
-# 		# 	query_config[0] = tm.default_font
-#
-# 		# process the possibility of different query/input colors
-# 		if color is not None:
-# 			if len(color) == 2 and all(isinstance(col, tuple) for col in color):
-# 				input_config[2] = color[0]
-# 				query_config[2] = color[1]
-# 			else:
-# 				input_config[2] = color
-# 				query_config[2] = color
-# 		else:
-# 			input_config[2] = P.default_response_color
-# 			query_config[2] = P.default_input_color
-#
-# 		# process locations
-# 		generate_locations = False
-# 		if locations is not None:
-# 			if None in (locations.get('query'), locations.get('input')):
-# 				query_location = tm.fetch_print_location('query')
-# 				input_location = tm.fetch_print_location('response')
-# 			else:
-# 				query_location = locations['query']
-# 				input_location = locations['input']
-# 		else:
-# 			generate_locations = True
-# 		# infer locations if not provided (ie. center y, pad x from screen midline) create/ render query_surface
-# 		# Note: input_surface not declared until user input received, see while loop below
-# 		query_surface = None
-# 		# if query is None:
-# 		# 	query = tm.fetch_string('query')
-#
-# 		if query:
-# 			query_surface = tm.render_text(query, *query_config)
-# 		else:
-# 			raise ValueError("A default query string was not set and argument 'query' was not provided")
-#
-# 		query_baseline = (P.screen_y // 2) - vertical_padding
-# 		input_baseline = (P.screen_y // 2) + vertical_padding
-# 		horizontal_center = P.screen_x // 2
-# 		if generate_locations:
-# 			query_location = [horizontal_center, query_baseline]
-# 			input_location = [horizontal_center, input_baseline]
-#
-# 		fill(P.default_fill_color)
-# 		blit(query_surface, query_registration, query_location)
-# 		flip()
+
 #
 # 		# todo: split this into query_draw() [above code] and query_listen() [remaining code]
-# 		input_string = ''  # populated in loop below
-# 		user_finished = False  # True when enter or return are pressed
-# 		no_answer_string = 'Please provide an answer.'
-# 		invalid_answer_string = None
-# 		error_string = None
-# 		if accepted:
-# 			try:
-# 				iter(accepted)
-# 				accepted_str = pretty_join(accepted, delimiter=",", before_last='or', prepend='[ ', append=']')
-# 				invalid_answer_string = 'Your answer must be one of the following: {0}'.format(accepted_str)
-# 			except:
-# 				raise TypeError("Argument 'accepted' must be iterable.")
-# 		while not user_finished:
-# 			sdl2.SDL_PumpEvents()
-# 			for event in pump(True):
-# 				if event.type not in [sdl2.SDL_KEYUP, sdl2.SDL_KEYDOWN]:
-# 					continue
-# 				ui_request(event.key.keysym)
-# 				if event.type == sdl2.SDL_KEYUP:  # don't fetch letter on both events
-# 					continue
-# 				if error_string:
-# 					error_string = None
-# 					input_string = ''
-# 				key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
-# 				sdl_keysym = key.keysym.sym
-#
-# 				fill()
-# 				blit(query_surface, query_registration, query_location)
-#
-# 				if sdl_keysym == sdl2.SDLK_BACKSPACE:  # ie. backspace
-# 					input_string = input_string[:-1]
-#
-# 				if sdl_keysym in (sdl2.SDLK_KP_ENTER, sdl2.SDLK_RETURN):  # ie. if enter or return
-# 					if len(input_string) or accepted == ALL:
-# 						if accepted:   # to make the accepted list work, there's a lot of checking yet to do
-# 							if input_string in accepted or accepted == ALL:
-# 								user_finished = True
-# 							else:
-# 								error_string = invalid_answer_string
-# 						else:
-# 							user_finished = True
-# 					else:
-# 						error_string = no_answer_string
-# 					if error_string:
-# 						error_config = copy(input_config)
-# 						error_config[2] = tm.alert_color
-# 						input_surface = tm.render_text(error_string, *error_config)
-# 						input_string = ""
-# 				if sdl_keysym == sdl2.SDLK_ESCAPE:  # if escape, erase the string
-# 					input_string = ""
-# 					input_surface = None
-#
-# 				if sdl_key_code_to_str(sdl_keysym):
-# 					input_string += sdl_key_code_to_str(sdl_keysym)
-# 				render_str = len(input_string) * '*' if password else input_string
-# 				if not error_string:  # if error_string, input_surface already created with different config.
-# 					try:
-# 						input_surface = tm.render_text(render_str, *input_config)
-# 					except (IndexError, ValueError):
-# 						input_surface = None
-# 				if input_surface:
-# 					blit(input_surface, input_registration, input_location)
-# 				flip()
-# 					# else:
-# 					# 	pass  # until a key-up event occurs, could be a ui request (ie. quit, pause, calibrate)
-# 		fill()
-# 		flip()
-# 		if return_type in (int, str):
-# 			if return_type is int:
-# 				return int(input_string)
-# 			if return_type is str:
-# 				return str(input_string)
-# 		else:
-# 			return input_string

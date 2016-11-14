@@ -21,7 +21,7 @@ from subprocess import Popen, PIPE
 
 from math import sin, cos, radians, pi, atan2, degrees
 
-from klibs.KLConstants import LEGACY_LOCATIONS, BL_RIGHT, BL_LEFT, BL_BOTTOM_RIGHT, BL_BOTTOM, BL_BOTTOM_LEFT, BL_TOP, \
+from klibs.KLConstants import BL_RIGHT, BL_LEFT, BL_BOTTOM_RIGHT, BL_BOTTOM, BL_BOTTOM_LEFT, BL_TOP, \
 	BL_CENTER, BL_TOP_LEFT, BL_TOP_RIGHT, PARTICIPANT_FILE, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS, TF_DATA,\
 	EDF_EXT, EDF_FILE, DATETIME_STAMP, DATA_EXT, MOD_KEYS
 from klibs import P

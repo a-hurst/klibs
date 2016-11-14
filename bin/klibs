@@ -217,6 +217,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	from klibs.KLTime import TimeKeeper
 	from klibs.KLText import TextManager
 	from klibs.KLResponseCollectors import ResponseCollector
+	from klibs.KLCommunication import init_messaging, collect_demographics
 	import logging as lg
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
@@ -334,6 +335,12 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 
 		# create a display context if everything's gone well so far
 		env.exp.window = display_init(screen_size)
+
+		# create basic text styles and auto-render block-break messages if need configured to do so
+		init_messaging()
+
+		# create an anonymous user if not collecting demographic information
+		collect_demographics(not P.collect_demographics or P.development_mode)
 		env.exp.show_logo()
 
 		# off to the races team...

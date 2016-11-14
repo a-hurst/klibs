@@ -32,6 +32,7 @@ DATA_EXT = ".txt"
 BACK_EXT = ".backup"
 LOG_EXT = "_log.txt"
 SCHEMA_EXT = "_schema.sql"
+USER_QUERIES_EXT = "_user_queries.json"
 FACTORS_EXT = "_factors.csv"
 PARAMS_EXT = "_params.py"
 MESSSAGING_EXT = "_messaging.csv"
@@ -52,19 +53,8 @@ BL_RIGHT = 6
 BL_BOTTOM = 2
 BL_BOTTOM_LEFT = 1
 BL_BOTTOM_RIGHT = 3
-
-LEGACY_LOCATIONS = {
-		'center': BL_CENTER,
-		'topLeft': BL_TOP_LEFT,
-		'top': BL_TOP,
-		'topRight': BL_TOP_RIGHT,
-		'left': BL_TOP_LEFT,
-		'right': BL_RIGHT,
-		'bottomLeft': BL_BOTTOM_LEFT,
-		'bottom': BL_BOTTOM,
-		'bottomRight': BL_BOTTOM_RIGHT
-	}
-
+AUTO_POS = "auto"
+QUERY_ACTION_HASH = "hash"
 
 NS_FOREGROUND = 1  # NumpySurface foreground layer
 NS_BACKGROUND = 0  # NumpySurface background layer

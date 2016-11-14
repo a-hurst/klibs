@@ -14,16 +14,17 @@ import KLParams as P						# KLConstants
 import KLKeyMap								# KLConstants
 import KLLabJack							# KLParams
 import KLUtilities							# KLConstants, KLParams
+import KLJSON_Object						# KLUtilities
 import KLTrialFactory						# KLConstants, KLParams
 import KLUserInterface						# KLConstants, KLParams, KLUtilities
 import KLDatabase							# KLConstants, KLParams, KLUtilities
-import KLTime							# KLConstants, KLParams, KLUtilities
+import KLTime								# KLConstants, KLParams, KLUtilities
 
 import KLEventInterface						# KLConstants, KLParams, KLUtilities, KLUserInterface
 import KLGraphics							# KLConstants, KLParams, KLUtilities
 import KLDebug								# KLParams, KLGraphics
 import KLBoundary							# KLConstants, KLUtilities, KLExceptions
-import KLText						# KLUtilities, KLGraphics
+import KLText								# KLUtilities, KLGraphics
 import KLAudio								# KLConstants, KLParams, KLUtilities, KLGraphics
 import KLResponseCollectors					# KLConstants, KLParams, KLUtilities, KLUserInterface, KLBoundary, KLAudio
 import KLEyeLink

@@ -133,6 +133,7 @@ class EntryTemplate(object):
 
 
 # TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
+# TODO: look for required tables and columns explicitly and give informative error if absent (ie. participants, created)
 class Database(EnvAgent):
 	__default_table = None
 	__open_entries = {}

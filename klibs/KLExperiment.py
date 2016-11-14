@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
-from hashlib import sha1
 from sdl2 import SDL_Quit
 from abc import abstractmethod
 from os import mkdir
@@ -15,13 +14,14 @@ from klibs import P
 from klibs.KLKeyMap import KeyMap
 from klibs.KLConstants import ALL
 from klibs.KLUtilities import full_trace, pump, now, list_dimensions, force_quit, show_mouse_cursor, hide_mouse_cursor
+from klibs.KLJSON_Object import JSON_Object
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear #, display_init
 from klibs.KLDatabase import Database
 from klibs.KLUserInterface import any_key
 from klibs.KLAudio import AudioManager
 # from klibs.KLResponseCollectors import ResponseCollector
-from klibs.KLCommunication import message, query
+from klibs.KLCommunication import message, query, collect_demographics
 
 # from klibs.KLCommunication import  message
 # import klibs.eyelink as el
@@ -72,12 +72,6 @@ class Experiment(EnvAgent):
 
 		self.database = Database()
 
-		if P.pre_render_block_messages:
-			for i in range(1, P.blocks_per_experiment, 1):
-				msg = self.block_break_message.format(i, P.blocks_per_experiment)
-				r_msg = self.message(msg, blit=False)
-				self.block_break_messages.append(r_msg)
-
 		self.trial_factory = TrialFactory(self)
 		if P.manual_trial_generation is False:
 			try:
@@ -88,9 +82,6 @@ class Experiment(EnvAgent):
 
 		self.event_code_generator = None
 
-		# create an anonymous user if not collecting demographic information
-		if not P.collect_demographics or P.development_mode:
-			self.collect_demographics(True)
 		self.initialized = True
 
 	def show_logo(self):
@@ -149,6 +140,7 @@ class Experiment(EnvAgent):
 		tx = None
 		try:
 			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
+				print "Showing mouse cursor in Experiment.__trial__()"
 				show_mouse_cursor()
 			self.evm.start_clock()
 			if P.eye_tracking:
@@ -197,82 +189,6 @@ class Experiment(EnvAgent):
 		# 	except AttributeError as e:  # potentially gets called once before the Debugger is intialized during init
 		# 		if P.display_initialized:
 		# 			raise
-
-	def collect_demographics(self, anonymous_user=False):
-		"""
-		Gathers participant demographic information and enter it into the project database.
-		Should not be explicitly called; see ``P.collect_demographics``.
-		:param anonymous_user: Toggles generation of arbitrary participant info in lieu of participant-supplied info.
-		:type anonymous_user: Boolean
-		"""
-
-		# TODO: this function should have default questions/answers but should also be able to read from a CSV or dict
-		if not P.collect_demographics and not anonymous_user: return
-		if P.collect_demographics:
-			if P.multi_session_project:
-				id_str = query(
-					"If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.",
-					password=True, accepted=ALL)
-				if id_str:
-					return self.init_session(id_str)
-
-		self.db.init_entry('participants', instance_name='ptcp', set_current=True)
-		self.db.log("random_seed", P.random_seed)
-		try:
-			self.db.log("klibs_commit", P.klibs_commit)
-		except:
-			pass  # older .versions of klibs did not include this param/db entry
-		if anonymous_user:
-			name = P.anonymous_username
-		else:
-			name_query_string = query(
-				'What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.',
-				password=True)
-			name_hash = sha1(name_query_string)
-			name = name_hash.hexdigest()
-		self.db.log('userhash', name)
-
-		# names must be unique; returns True if unique, False otherwise
-		if self.db.is_unique('participants', 'userhash', name):
-			try:
-				for q in P.demographic_questions:
-					if anonymous_user:
-						self.db.log(q[0], q[4])
-					else:
-						self.db.log(q[0], query(q[1], accepted=q[2], return_type=q[3]))
-			except AttributeError:
-				if anonymous_user:
-					sex = "m" if now() % 2 > 0  else "f"
-					handedness = "a"
-					age = 0
-				else:
-					sex_str = "What is your sex? \nAnswer with:  (m)ale,(f)emale"
-					sex = query(sex_str, accepted=('m', 'M', 'f', 'F'))
-					handedness_str = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
-					handedness = query(handedness_str, accepted=('r', 'R', 'l', 'L', 'a', 'A'))
-					age = query('What is  your age?', return_type='int')
-					self.db.log('sex', sex)
-					self.db.log('handedness', handedness)
-					self.db.log('age', age)
-			self.db.log('created', now(True))
-			if not P.demographics_collected:
-				P.participant_id = self.db.insert()
-				P.demographics_collected = True
-			else:
-				#  The context for this is: collect_demographics is set to false but then explicitly called later
-				self.db.update(P.participant_id)
-		else:
-			retry = query('That participant identifier has already been used. Do you wish to try another? (y/n) ')
-			if retry == 'y':
-				self.collect_demographics()
-			else:
-				self.fill()
-				message("Thanks for participating!", location=P.screen_c)
-				any_key()
-				self.quit()
-		self.db.current(False)
-		if P.collect_demographics and P.multi_session_project:
-			self.init_session()
 
 	def insert_practice_block(self, block_nums, trial_counts=None, factor_masks=None):
 		try:
@@ -395,11 +311,12 @@ class Experiment(EnvAgent):
 		"""
 		if not self.initialized:
 			self.quit()
+
 		if P.collect_demographics:
 			if not P.demographics_collected:
-				self.collect_demographics(self.database)
-		elif not P.demographics_collected:
-			self.collect_demographics(self.database, True)
+				collect_demographics()
+		elif not P.demographics_collected:  # ie. anonymously, for dev. mode or when P.collect_demographics = False
+			collect_demographics(True)
 
 		if not P.development_mode:
 			version_dir = join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))

@@ -157,6 +157,32 @@ class TrialFactory(object):
 					trial.append(el[0])
 		#  not finished, just cramemd it here when talking with ross
 
+	def __parse_parameters_row(self, row, header=False):
+		col = 0
+		for el in row:
+			if header:
+				column_name = el.split(".")
+				try:
+					if column_name[1] == TF_FACTOR:
+						self.exp_factors.append([column_name[0].replace(" ", ""), []])
+				except:
+					continue
+			else:
+				if len(el) > 0:
+					weight = self.param_weight_search.match(el)
+					param_label = self.param_label_search.match(el).group(1) if weight is not None else el
+					try:
+						param_label = int(param_label)
+					except ValueError:
+						try:
+							param_label = float(param_label)
+						except ValueError:
+							pass
+					weight_val = 1 if weight is None else int(weight.group(1))
+					for i in range(weight_val):
+						self.exp_factors[col][1].append(param_label)
+			col += 1
+
 	def import_stim_file(self, path):
 		if exists(path):
 			config_file = csv.reader(open(path, 'rb'))
@@ -187,32 +213,6 @@ class TrialFactory(object):
 			self.blocks = self.trial_generator(self.exp_factors)
 		except TypeError:
 			self.blocks = self.__generate_trials()
-
-	def __parse_parameters_row(self, row, header=False):
-		col = 0
-		for el in row:
-			if header:
-				column_name = el.split(".")
-				try:
-					if column_name[1] == TF_FACTOR:
-						self.exp_factors.append([column_name[0].replace(" ", ""), []])
-				except:
-					continue
-			else:
-				if len(el) > 0:
-					weight = self.param_weight_search.match(el)
-					param_label = self.param_label_search.match(el).group(1) if weight is not None else el
-					try:
-						param_label = int(param_label)
-					except ValueError:
-						try:
-							param_label = float(param_label)
-						except ValueError:
-							pass
-					weight_val = 1 if weight is None else int(weight.group(1))
-					for i in range(weight_val):
-						self.exp_factors[col][1].append(param_label)
-			col += 1
 
 	def export_trials(self):
 		return BlockIterator(self.blocks)

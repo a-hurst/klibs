@@ -25,13 +25,13 @@ global database_backup_path
 global edf_dir
 global incomplete_edf_dir
 global schema_file_path
-global schema_file_path_legacy
 global schema_filename
+global user_queries_file_path
+global user_queries_filename
 global data_dir
 global incomplete_data_path
 global factors_filename
 global factors_file_path
-global config_file_path_legacy
 global params_file_path
 global events_file_path
 global versions_dir
@@ -58,12 +58,9 @@ klibs_font_dir = join(klibs_dir, "font")
 font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
 
 
-demographic_questions = [
-	['sex', "What is your sex? \nAnswer with:  (m)ale,(f)emale", ('m', 'M', 'f', 'F'), 'str', 'f'],
-	['handedness', "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous.",
-	 ('r', 'R', 'l', 'L', 'a', 'A'), 'str', 'r'],
-	['age', 'What is  your age?', None, 'int', -1]
-]
+# default strings for communicating with participant
+no_answer_string = None
+invalid_answer_string = None
 
 initialized = False
 audio_initialized = False
@@ -97,9 +94,10 @@ default_alert_duration = 1
 
 default_fill_color = (45, 45, 45, 255)
 default_color = (255, 255, 255, 255)
+default_alert_color = (236, 88, 64, 255)
 default_response_color = default_color
 default_input_color = default_color
-default_font_size = 28
+default_font_size = "28pt"
 default_font_name = 'Frutiger'
 default_timeout_message = "Too slow!"
 
@@ -179,6 +177,8 @@ def init_project():
 	global incomplete_edf_dir
 	global schema_file_path
 	global schema_file_path_legacy
+	global user_queries_file_path
+	global user_queries_filename
 	global schema_filename
 	global data_dir
 	global incomplete_data_path
@@ -207,6 +207,7 @@ def init_project():
 	# file names
 	database_filename = str(project_name) + DB_EXT
 	schema_filename = str(project_name) + SCHEMA_EXT
+	user_queries_filename = str(project_name) + USER_QUERIES_EXT
 	log_filename = str(project_name) + LOG_EXT
 	factors_filename = str(project_name) + FACTORS_EXT
 	params_filename = str(project_name) + PARAMS_EXT
@@ -219,6 +220,7 @@ def init_project():
 	log_file_path = join(asset_dir, log_filename)
 	schema_file_path = join(config_dir, schema_filename)
 	schema_file_path_legacy = join(asset_dir, schema_filename)
+	user_queries_file_path = join(config_dir, user_queries_filename)
 	database_path = join(asset_dir, database_filename)
 	database_backup_path = database_path + BACK_EXT
 	incomplete_data_path = join(data_dir, "incomplete")

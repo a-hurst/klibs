@@ -52,17 +52,13 @@ class TextStyle(object):
 	def font_size(self):
 		return self.__font_size__
 
-	@property
-	def font_size_px(self):
-		return pt_to_px(self.__font_size__)
-
 	@font_size.setter
 	def font_size(self, size):
 		try:
 			self.__font_size__ = int(size)
 			self.__font_size_units__ = TEXT_PX
 		except ValueError:
-			self.__font_size__ = size[:-2]
+			self.__font_size__ = int(size[:-2])
 			self.__font_size_units__ = size[-2:].upper()
 			if self.__font_size_units__ not in [TEXT_PX, TEXT_PT]:
 				raise ValueError(self.bad_unit_message)
@@ -72,7 +68,7 @@ class TextStyle(object):
 		if self.__line_height_units__ == TEXT_PX:
 			return self.__line_height__
 		elif self.__line_height_units__ == TEXT_MULTIPLE:
-			return self.__line_height__ * self.font_size_px
+			return self.__line_height__ * self.font_size
 		else:
 			return  pt_to_px(self.__line_height__)
 
@@ -148,16 +144,19 @@ class TextManager(object):
 		lines = text.split("\n")
 		if width:
 			pass  # TODO: test various lengths until you get a size that works, then re-populate lines
-		output = NpS(width=1, height=len(lines) * (style.font_size + style.line_height))
+		net_line_height = style.font_size + style.line_height
+		output = NpS(width=1, height=(len(lines) * net_line_height))
 		# lines_surfs = []
 		# final_width = 0 if not width else width
 		for line in lines:
 			if len(line):
 				l_surf = self.render(line, style, True)
-				if l_surf.width > output.width:
-					output.resize((l_surf.width, output.height), registration=7)
-				l_surf_pos = (0, lines.index(line) * (style.font_size + style.line_height))
-				output.blit(l_surf, position=l_surf_pos)
+			else:
+				l_surf = NpS(width=1, height=net_line_height)
+			if l_surf.width > output.width:
+				output.resize((l_surf.width, output.height))
+			l_surf_pos = (0, lines.index(line) * net_line_height)
+			output.blit(l_surf, position=l_surf_pos)
 		return output
 		# 	else:
 		# 		lines_surfs.append(NpS(width=final_width, height=style.font_size + style.line_height))
@@ -213,9 +212,9 @@ class TextManager(object):
 			surface_array = argb32_to_rgba(px)
 		else:
 			rendered_text = TTF_RenderUTF8_Solid(rendering_font, text, SDL_Color(*style.color)).contents
-			px = asarray(PixelView(rendered_text))
-			surface_array = zeros((px.shape[0], px.shape[1], 4));
-			surface_array[...] = px * 255
+			surface_array = asarray(PixelView(rendered_text))
+			# surface_array = zeros((px.shape[0], px.shape[1], 4));
+			# surface_array[...] = px * 255
 		if not from_wrap:
 			surface =  NpS(surface_array)
 		else:

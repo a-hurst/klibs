@@ -10,10 +10,11 @@ import traceback
 import imp
 import time
 import sys
-import errno
+
 from random import choice
 from hashlib import sha1
 from klibs.KLExceptions import DatabaseException
+from klibs.KLUtilities import hide_mouse_cursor
 from klibs.KLUtilities import colored_stdout as cso
 pylink_install_required = False
 klibs_version = "0.9.1.4"
@@ -325,7 +326,6 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 			force_quit()
 	env.evm.import_events()
 	env.rc = ResponseCollector()
-
 	# finally, import the project's Experiment class and instantiate
 	try:
 		experiment_file = imp.load_source(path, "experiment.py")
@@ -334,6 +334,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 
 		# create a display context if everything's gone well so far
 		env.exp.window = display_init(screen_size)
+		hide_mouse_cursor()
 		env.exp.show_logo()
 
 		# off to the races team...

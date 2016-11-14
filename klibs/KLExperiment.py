@@ -149,6 +149,7 @@ class Experiment(EnvAgent):
 		tx = None
 		try:
 			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
+				print "Showing mouse cursor in Experiment.__trial__()"
 				show_mouse_cursor()
 			self.evm.start_clock()
 			if P.eye_tracking:

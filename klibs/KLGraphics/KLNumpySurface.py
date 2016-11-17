@@ -5,7 +5,7 @@ from PIL import Image
 from PIL import ImageOps
 import aggdraw
 
-from klibs.KLConstants import NS_BACKGROUND, NS_FOREGROUND, BL_TOP_RIGHT
+from klibs.KLConstants import NS_BACKGROUND, NS_FOREGROUND, BL_TOP_RIGHT, BL_TOP_LEFT
 from klibs.KLUtilities import absolute_position, build_registrations, pump
 
 
@@ -105,19 +105,19 @@ class NumpySurface(object):
 	# todo: fg/bg dichotomy stupid and unwieldy; just use indexed layers
 
 	def __init__(self, foreground=None, background=None, fg_offset=None, bg_offset=None, width=None, height=None):
-		self.__foreground = None
-		self.__foreground_offset = None
-		self.__foreground_mask = None
-		self.__foreground_unmask = None
-		self.__fg_mask_position = None
-		self.__background = None
-		self.__background_offset = None
-		self.__background_mask = None
-		self.__background_unmask = None
-		self.__bg_mask_position = None
-		self.__height = None
-		self.__width = None
-		self.__bg_color = None
+		self.__foreground__ = None
+		self.__foreground_offset__ = None
+		self.__foreground_mask__ = None
+		self.__foreground_unmask__ = None
+		self.__fg_mask_pos__ = None
+		self.__background__ = None
+		self.__background_offset__ = None
+		self.__background_mask__ = None
+		self.__background_unmask__ = None
+		self.__bg_mask_position__ = None
+		self.__height__ = None
+		self.__width__ = None
+		self.__bg_color__ = None
 		self.rendered = None
 		self.bg = None
 		self.fg = None
@@ -129,27 +129,27 @@ class NumpySurface(object):
 		self.bg_offset = bg_offset
 		self.foreground = foreground
 		self.background = background
-		self.layers = {NS_FOREGROUND: self.__foreground, NS_BACKGROUND:self.__background}
+		self.layers = {NS_FOREGROUND: self.__foreground__, NS_BACKGROUND:self.__background__}
 		self.init_canvas()
 
 	def __str__(self):
 		return "klibs.NumpySurface, ({0} x {1}) at {2}".format(self.width, self.height, hex(id(self)))
 
-	def __ensure_writeable(self, layer=NS_FOREGROUND):
+	def __ensure_writeable__(self, layer=NS_FOREGROUND):
 		if layer == NS_FOREGROUND:
 			try:
 				self.foreground.setflags(write=1)
 			except AttributeError:
 				self.foreground = np.zeros((self.width, self.height, 4))
-				self.__ensure_writeable(NS_FOREGROUND)
+				self.__ensure_writeable__(NS_FOREGROUND)
 		else:
 			try:
 				self.background.setflags(write=1)
 			except AttributeError:
 				self.background = np.zeros((self.width, self.height, 4))
-				self.__ensure_writeable(NS_BACKGROUND)
+				self.__ensure_writeable__(NS_BACKGROUND)
 
-	def __fetch_layer(self, layer):
+	def __fetch_layer__(self, layer):
 		if layer == NS_FOREGROUND:
 			if self.foreground is not None:
 				return self.foreground
@@ -177,8 +177,8 @@ class NumpySurface(object):
 					fg_height = self.background.shape[0] if self.background.shape[0] > self.height else self.height
 				except AttributeError:
 					fg_height = self.height
-
 				self.foreground = np.zeros((fg_height, fg_width, 4))
+
 			if self.background is None:
 				try:
 					bg_width = self.foreground.shape[1] if self.foreground.shape[1] > self.width else self.width
@@ -190,7 +190,7 @@ class NumpySurface(object):
 					bg_height = self.height
 
 				self.background = np.zeros((bg_height, bg_width, 4))
-		self.__update_shape()
+		self.__update_shape__()
 
 	def average_color(self, layer=None):
 		# nope, doesn't work; were working it out with Ross but then you couldn't finish
@@ -236,7 +236,8 @@ class NumpySurface(object):
 		# don't attempt the blit if source can't fit
 		if behavior is None:
 			if source_height > self.height or source_width > self.width:
-				raise ValueError("Source is larger than destination in one or more dimensions.")
+				e_msg = "Source ({0} x {1}) is larger than destination ({2} x {3})".format(source_width, source_height, self.width, self.height)
+				raise ValueError(e_msg)
 			elif source_height + position[1] > self.height or source_width + position[0] > self.width:
 				raise ValueError("Source cannot be blit to position; destination bounds exceeded.")
 		x1 = position[0]
@@ -246,7 +247,7 @@ class NumpySurface(object):
 		# print "Position: {0}: ".format(position)
 		# print "Blit Coords: {0}: ".format([y1,y2,x1,x2])
 
-		self.__ensure_writeable(layer)
+		self.__ensure_writeable__(layer)
 		# todo: find out why this won't accept a 3rd dimension (ie. color)
 		if behavior == "resize":
 			if source_width > self.width: self.resize([self.height, source_width])
@@ -307,11 +308,11 @@ class NumpySurface(object):
 		if layer == NS_FOREGROUND:
 			self.foreground = image_content
 		elif layer == NS_BACKGROUND:
-			self.__set_background(image_content)
+			self.__set_background__(image_content)
 		else:
 			TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
 
-		self.__update_shape()  # only needed if resize not called; __update_shape called at the end of resize
+		self.__update_shape__()  # only needed if resize not called; __update_shape called at the end of resize
 		return self
 
 	def position_in_layer_bounds(self, position, layer=None):
@@ -322,7 +323,7 @@ class NumpySurface(object):
 		:return: :raise ValueError:
 		"""
 		layer = NS_FOREGROUND if type(layer) is None else layer
-		target = self.__fetch_layer(layer)
+		target = self.__fetch_layer__(layer)
 		try:
 			position_iter = iter(position)
 			if layer == NS_FOREGROUND:
@@ -345,7 +346,7 @@ class NumpySurface(object):
 		:return: :raise TypeError:
 		"""
 		bounding_coords = [0, 0, 0, 0]  # ie. x1, y1, x2, y2
-		target = self.__fetch_layer(layer)
+		target = self.__fetch_layer__(layer)
 		if type(offset) is int:
 			offset = (offset, offset)
 		elif type(offset) in (tuple, list) and len(offset) == 2 and all(type(i) is int and i > 0 for i in offset):
@@ -374,7 +375,7 @@ class NumpySurface(object):
 		:return:
 		"""
 		if self.position_in_layer_bounds(location, layer):
-			return self.__fetch_layer(layer)[location[1]][location[0]]
+			return self.__fetch_layer__(layer)[location[1]][location[0]]
 		else:
 			return False
 
@@ -400,9 +401,9 @@ class NumpySurface(object):
 		if grey_scale:
 			mask = grey_scale_to_alpha(mask)
 		if layer == NS_FOREGROUND:
-			self.__foreground_unmask = copy(self.foreground)
-			self.__foreground_mask = mask
-			self.__ensure_writeable(NS_FOREGROUND)
+			self.__foreground_unmask__ = copy(self.foreground)
+			self.__foreground_mask__ = mask
+			self.__ensure_writeable__(NS_FOREGROUND)
 			if auto_truncate:
 				try:
 					iter(position)
@@ -453,7 +454,7 @@ class NumpySurface(object):
 				position = new_pos
 
 			elif self.region_in_layer_bounds(mask, position, NS_FOREGROUND):
-				self.__fg_mask_position = position
+				self.__fg_mask_pos__ = position
 			else:
 				raise ValueError("Mask falls outside of layer bounds; reduce size or reposition.")
 
@@ -478,7 +479,7 @@ class NumpySurface(object):
 		"""
 		return self.render(True)
 
-	def resize(self, dimensions=None, registration=BL_TOP_RIGHT, fill=[0, 0, 0, 0]):
+	def resize(self, dimensions=None, registration=BL_TOP_LEFT, fill=[0, 0, 0, 0]):
 		# todo: add "extend" function, which wraps this
 		"""
 
@@ -494,7 +495,7 @@ class NumpySurface(object):
 			raise ValueError("Argument fill must be a rgb or rgba color iterable.")
 
 		if dimensions is None:
-			return self.__update_shape()
+			return self.__update_shape__()
 
 		# create some empty arrays of the new dimensions and ascertain clipping values if needed
 		try:
@@ -555,14 +556,14 @@ class NumpySurface(object):
 			render_surface = copy(self.foreground)
 		else:  # flatten background and foreground together
 			render_surface = np.zeros((self.height, self.width, 4))
-			bg_x1 = self.__background_offset[0]
+			bg_x1 = self.__background_offset__[0]
 			bg_x2 = bg_x1 + self.background.shape[1]
-			bg_y1 = self.__background_offset[1]
+			bg_y1 = self.__background_offset__[1]
 			bg_y2 = bg_y1 + self.background.shape[0]
 
-			fg_x1 = self.__foreground_offset[0]
+			fg_x1 = self.__foreground_offset__[0]
 			fg_x2 = fg_x1 + self.foreground.shape[1]
-			fg_y1 = self.__foreground_offset[1]
+			fg_y1 = self.__foreground_offset__[1]
 			fg_y2 = fg_y1 + self.foreground.shape[0]
 
 			render_surface[bg_y1: bg_y2, bg_x1: bg_x2] = self.background
@@ -571,7 +572,7 @@ class NumpySurface(object):
 		self.rendered = render_surface.astype(np.uint8)
 		return self.rendered
 
-	def __update_shape(self):
+	def __update_shape__(self):
 		for surface in [self.foreground, self.background]:
 			try:
 				if self.width < surface.shape[1]:
@@ -583,54 +584,60 @@ class NumpySurface(object):
 
 		return True
 
-	def __set_foreground(self, foreground_content=None):
+	def __set_foreground__(self, foreground_content=None):
 		if foreground_content.shape[1] > self.width:
 			self.width = foreground_content.shape[1]
 		if foreground_content.shape[0] > self.height:
 			self.height = foreground_content.shape[0]
-		self.__foreground = foreground_content
-		self.fg = self.__foreground  # convenience alias
+		self.__foreground__ = foreground_content
+		self.fg = self.__foreground__  # convenience alias
 
-	def __set_background(self, background_content):
+	def __set_background__(self, background_content):
 		if background_content.shape[1] > self.width:
 			self.width = background_content.shape[1]
 		if background_content.shape[0] > self.height:
 			self.height = background_content.shape[0]
-		self.__background = background_content
-		self.bg = self.__background  # convenience alias
+		self.__background__ = background_content
+		self.bg = self.__background__  # convenience alias
 
 	@property
 	def height(self):
-		return self.__height
+		return self.__height__
 
 	@height.setter
 	def height(self, height_value):
-		if type(height_value) is int and height_value > 0:
-			self.__height = height_value
-		else:
-			self.__height = 0
+		try:
+			if int(height_value) > 0:
+				self.__height__ = int(height_value)
+			else:
+				raise ValueError
+		except (ValueError, TypeError):
+			self.__height__ = 0
 
 	@property
 	def width(self):
-		return self.__width
+		return self.__width__
 
 	@width.setter
 	def width(self, width_value):
-		if type(width_value) is int and width_value > 0:
-			self.__width = width_value  # todo: extend a numpy array with empty pixels?
-		else:
-			self.__width = 0
+		try:
+			if int(width_value) > 0:
+				self.__width__ = int(width_value)
+			else:
+				raise ValueError
+		except (ValueError, TypeError):
+			self.__width__ = 0
 
 	@property
 	def foreground(self):
-		return self.__foreground
+		return self.__foreground__
 
 	@foreground.setter
 	def foreground(self, foreground_content):
 		from klibs.KLGraphics import aggdraw_to_array
 		if foreground_content is None:
-			self.__foreground = None
-			self.fg = self.__foreground
+			self.__foreground__ = None
+			self.fg = self.__foreground__
 			return
 		try:
 			fg_array = add_alpha_channel(foreground_content)  # ie. numpy.ndarray
@@ -653,20 +660,20 @@ class NumpySurface(object):
 			self.width = fg_array.shape[1]
 		if fg_array.shape[0] > self.height:
 			self.height = fg_array.shape[0]
-		self.__foreground = fg_array
-		self.fg = self.__foreground  # convenience alias
+		self.__foreground__ = fg_array
+		self.fg = self.__foreground__  # convenience alias
 
 
 	@property
 	def background(self):
-		return self.__background
+		return self.__background__
 
 	@background.setter
 	def background(self, background_content):
 		from klibs.KLGraphics import aggdraw_to_array
 		if background_content is None:
-			self.__background = None
-			self.bg = self.__background
+			self.__background__ = None
+			self.bg = self.__background__
 			return
 		try:
 			bg_array = add_alpha_channel(background_content)  # ie. numpy.ndarray
@@ -689,19 +696,19 @@ class NumpySurface(object):
 			self.width = bg_array.shape[1]
 		if bg_array.shape[0] > self.height:
 			self.height = bg_array.shape[0]
-		self.__background = bg_array
-		self.bg = self.__background  # convenience alias
+		self.__background__ = bg_array
+		self.bg = self.__background__  # convenience alias
 
 	@property
 	def background_color(self):
-		return self.__bg_color
+		return self.__bg_color__
 
 	@background_color.setter
 	def background_color(self, color):
 		if type(color) is tuple and len(color) in (3, 4):
 			if len(color) == 3:
 				color[3] = 255
-			self.__bg_color = color
+			self.__bg_color__ = color
 		else:
 			raise TypeError("NumpySurface.background_color must be a tuple of integers (ie. rgb or rgba color value).")
 
@@ -711,31 +718,31 @@ class NumpySurface(object):
 
 	@property
 	def fg_offset(self):
-		return self.__foreground_offset
+		return self.__foreground_offset__
 
 	@fg_offset.setter
 	def fg_offset(self, offset):
 		try:
 			iter(offset)
-			self.__foreground_offset = offset
+			self.__foreground_offset__ = offset
 		except TypeError:
 			if offset is None:
-				self.__foreground_offset = (0, 0)
+				self.__foreground_offset__ = (0, 0)
 			else:
 				raise ValueError("Background and foreground offsets must be iterable.")
 
 	@property
 	def bg_offset(self):
-		return self.__background_offset
+		return self.__background_offset__
 
 	@bg_offset.setter
 	def bg_offset(self, offset):
 		try:
 			iter(offset)
-			self.__background_offset = offset
+			self.__background_offset__ = offset
 		except TypeError:
 			if offset is None:
-				self.__background_offset = (0, 0)
+				self.__background_offset__ = (0, 0)
 			else:
 				raise ValueError("Background and foreground offsets must be iterable.")
 

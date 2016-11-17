@@ -1,7 +1,7 @@
 {
     "default_strings": {
       "answer_not_supplied": "Please provide an answer.",
-      "invalid_answer": "Your answer must be one of the following: {0}"
+      "invalid_answer": "Your answer must be one of the following: {0}",
       "block_break": "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
     },
     "demographic": [
@@ -29,10 +29,11 @@
                         "error": "auto"
                     }
                 },
-                "password": true,
+                "password": false,
                 "range": null,
                 "case_sensitive": true,
                 "accept_as_true": null,
+                "length": [8,32],
                 "action": "hash"
             },
             "anonymous_value": "EVAL: now()",
@@ -66,6 +67,7 @@
                 "range": null,
                 "case_sensitive": false,
                 "accept_as_true": null,
+                "length": null,
                 "action": null
             },
             "anonymous_value": "EVAL: 'm' if now() % 2 > 0  else 'f'",
@@ -99,6 +101,7 @@
                 "range": null,
                 "case_sensitive": false,
                 "accept_as_true": null,
+                "length": null,
                 "action": null
             },
             "anonymous_value": "a",
@@ -132,6 +135,7 @@
                 "range": [0, 125],
                 "case_sensitive": null,
                 "accept_as_true": null,
+                "length": null,
                 "action": null
             },
             "anonymous_value": 1,

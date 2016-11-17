@@ -7,7 +7,7 @@ from sdl2 import SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_RE
 from hashlib import sha1
 
 from klibs.KLConstants import AUTO_POS,BL_CENTER, BL_TOP, BL_TOP_LEFT, BL_TOP_RIGHT, BL_LEFT, BL_RIGHT, BL_BOTTOM, \
-	BL_BOTTOM_LEFT, BL_BOTTOM_RIGHT, ALL, QUERY_ACTION_HASH
+	BL_BOTTOM_LEFT, BL_BOTTOM_RIGHT, ALL, QUERY_ACTION_HASH, DELIM_NOT_LAST, DELIM_NOT_FIRST
 from klibs.KLGraphics import blit, clear, fill, flip
 import klibs.KLParams as P
 from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump
@@ -77,7 +77,9 @@ def collect_demographics(anonymous=False):
 	# collect a response and handle errors for each question
 	for q in user_queries.demographic:
 		# todo: identify errors pertaining to fields where unique values are required; optionally retry the question
-		db.log(q.database_field, query(q, anonymous=anonymous))
+		resp = query(q, anonymous=anonymous)
+		print resp
+		db.log(q.database_field, resp)
 
 	# typical use; P.collect_demographics is True and called automatically by klibs
 	if not P.demographics_collected:
@@ -91,62 +93,6 @@ def collect_demographics(anonymous=False):
 	db.current(False)
 	if P.collect_demographics and P.multi_session_project:
 		exp.init_session()
-
-	# ###################################################
-	# if anonymous:
-	# 	name = P.anonymous_username
-	# else:
-	#
-	#
-	#
-	# 	name_query_string = query(
-	# 		'What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.',
-	# 		password=True)
-	# 	name_hash = sha1(name_query_string)
-	# 	name = name_hash.hexdigest()
-	# self.db.log('userhash', name)
-	#
-	# # names must be unique; returns True if unique, False otherwise
-	# if self.db.is_unique('participants', 'userhash', name):
-	# 	try:
-	# 		for q in P.demographic_questions:
-	# 			if anonymous:
-	# 				self.db.log(q[0], q[4])
-	# 			else:
-	# 				self.db.log(q[0], query(q[1], accepted=q[2], return_type=q[3]))
-	# 	except AttributeError:
-	# 		if anonymous:
-	# 			sex = "m" if now() % 2 > 0  else "f"
-	# 			handedness = "a"
-	# 			age = 0
-	# 		else:
-	# 			sex_str = "What is your sex? \nAnswer with:  (m)ale,(f)emale"
-	# 			sex = query(sex_str, accepted=('m', 'M', 'f', 'F'))
-	# 			handedness_str = "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous."
-	# 			handedness = query(handedness_str, accepted=('r', 'R', 'l', 'L', 'a', 'A'))
-	# 			age = query('What is  your age?', return_type='int')
-	# 			self.db.log('sex', sex)
-	# 			self.db.log('handedness', handedness)
-	# 			self.db.log('age', age)
-	# 	self.db.log('created', now(True))
-	# 	if not P.demographics_collected:
-	# 		P.participant_id = self.db.insert()
-	# 		P.demographics_collected = True
-	# 	else:
-	# 		#  The context for this is: collect_demographics is set to false but then explicitly called later
-	# 		self.db.update(P.participant_id)
-	# else:
-	# 	retry = query('That participant identifier has already been used. Do you wish to try another? (y/n) ')
-	# 	if retry == 'y':
-	# 		self.collect_demographics()
-	# 	else:
-	# 		self.fill()
-	# 		message("Thanks for participating!", location=P.screen_c)
-	# 		any_key()
-	# 		self.quit()
-	# self.db.current(False)
-	# if P.collect_demographics and P.multi_session_project:
-	# 	self.init_session()
 
 
 def init_messaging():
@@ -217,7 +163,6 @@ def message(text, style=None, location=None, registration=None, blit_txt=True, f
 			style = txtm.styles[style]
 		except TypeError:
 			pass
-	print style, style.font_size
 	# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
 
 	# process blit registration
@@ -248,6 +193,7 @@ def message(text, style=None, location=None, registration=None, blit_txt=True, f
 	if flip_screen:
 		flip()
 
+
 def query(query_ob, anonymous=False):
 	from klibs.KLEnvironment import txtm
 
@@ -259,9 +205,15 @@ def query(query_ob, anonymous=False):
 
 
 	f = query_ob.format
+	if f.type in ("int", "float", "str", "bool"):
+		f.type = eval(f.type)
+	elif f.type is None:
+		pass
+	else:
+		e_msg = "Invalid data type for query '{0}'".format(query_ob.title)
+		raise ValueError(e_msg)
 	p = f.positions
-	print f.styles.query
-	q_text = message(query_ob.query, f.styles.query)
+	q_text = message(query_ob.query, f.styles.query, blit_txt=False)
 
 	# address automatic positioning
 	if p.locations.query == AUTO_POS:
@@ -276,9 +228,9 @@ def query(query_ob, anonymous=False):
 	# define this to save typing it out repeatedly blow
 	def blit_question(input_text=None):
 		fill()
-		blit(q_text, p.locations.query, p.registrations.query)
+		blit(q_text, p.registrations.query, p.locations.query)
 		try:
-			blit(input_text, p.locations.input, p.registrations.input)
+			blit(input_text, p.registrations.input, p.locations.input)
 		except TypeError:
 			pass  # ie. input_text=None
 		flip()
@@ -287,19 +239,24 @@ def query(query_ob, anonymous=False):
 	if query_ob.accepted:
 		try:
 			iter(query_ob.accepted)
-			accepted_str = pretty_join(query_ob.accepted, delimiter=",", before_last='or', prepend='[ ', append=']')
-			invalid_answer_string = P.invalid_answer_string.format(accepted_str)
+			accepted_str = pretty_join(query_ob.accepted, delimiter=",", delimit_behaviors=[DELIM_NOT_LAST],
+									   wrap_each="'", before_last='or', prepend='[ ', append=']')
+			invalid_answer_string = P.invalid_answer.format(accepted_str)
+
 		except:
 			raise TypeError("The 'accepted' key of a question object must be an array/list (JSON/Python).")
 
-	# user input loop; exited by breaking
-	while True:
-		input_surface = None
-		SDL_PumpEvents()
-		for event in pump(True):
-			if event.type is not SDL_KEYDOWN:
-				continue
+	blit_question()
 
+	# user input loop; exited by breaking
+	SDL_PumpEvents()
+	user_finished = False
+
+	while not user_finished:
+		input_surface = None
+		for event in pump(True):
+			if event.type !=  SDL_KEYDOWN:
+				continue
 			ui_request(event.key.keysym)
 
 			# reset error and input strings if an error has been displayed
@@ -315,17 +272,28 @@ def query(query_ob, anonymous=False):
 			# handle user indicating that they're finished
 			if sdl_keysym in (SDLK_KP_ENTER, SDLK_RETURN):  # ie. if enter or return
 				if len(input_string):
-					if query_ob.accepted:   # to make the accepted list work, there's a lot of checking yet to do
-						user_finished = input_string in query_ob.accepted
-						if not user_finished:
-							error_string = invalid_answer_string
-					else:
-						break
+					if f.type == "int":
+						try:
+							input_string = int(input_string)
+						except ValueError:
+							error_string = "Please respond with an integer."
+					elif f.type == "float":
+						try:
+							input_string = float(input_string)
+						except ValueError:
+							error_string = "Please respond with a number."
+					if not error_string:
+						if query_ob.accepted:   # to make the accepted list work, there's a lot of checking yet to do
+							user_finished = input_string in query_ob.accepted
+							if not user_finished:
+								error_string = invalid_answer_string
+						else:
+							user_finished = True
 				else:
 					error_string = P.no_answer_string
 
 				if error_string:
-					input_surface = message(error_string, f.styles.error)
+					input_surface = message(error_string, f.styles.error, blit_txt=False)
 					input_string = ""
 
 			# escape erases the user input
@@ -339,10 +307,13 @@ def query(query_ob, anonymous=False):
 					input_string = input_string.lower()
 
 			# remove trailing whitespace
-			input_string = input_string.strip()
+			input_string = str(input_string).strip()
 
-			if f.password:
-				input_surface = message(len(input_string) * '*', f.style.input)
+			if not input_surface:
+				if f.password:
+					input_surface = message(len(input_string) * '*', f.styles.input, blit_txt=False)
+				else:
+					input_surface = message(input_string, f.styles.input, blit_txt=False)
 
 			blit_question(input_text=input_surface)
 
@@ -359,21 +330,5 @@ def query(query_ob, anonymous=False):
 		return float(input_string)
 	elif f.type is bool:
 		return input_string in f.accept_as_true
-#
-# def query(query=None, password=False, font=None, font_size=None, color=None, locations=None, registration=5, return_type=None, accepted=None):
-# 		"""
-# 		``relocation_planned`` ``backwards_compatibility_planned``
-#
-# 		Convenience function for collecting participant input with real-time visual feedback.
-#
-# 		Presents a string (ie. a question or response instruction) to the participant. Then listens for keyboard input
-# 		and displays the participant's response on screen in real time.
-#
-# 		Experiment.query() makes two separate calls to Experiment.message(), which allows for query text and response
-# 		text to be formatted independently. All of the formatting arguments can optionally be length-2 lists of the
-# 		usual parameters, where the first element would be applied to the query string and the second to the response.
-# 		If normal formatting values are supplied, they are applied to both the query and response text.
-#
-
-#
-# 		# todo: split this into query_draw() [above code] and query_listen() [remaining code]
+	else:
+		return input_string

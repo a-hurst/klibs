@@ -23,7 +23,7 @@ from math import sin, cos, radians, pi, atan2, degrees
 
 from klibs.KLConstants import BL_RIGHT, BL_LEFT, BL_BOTTOM_RIGHT, BL_BOTTOM, BL_BOTTOM_LEFT, BL_TOP, \
 	BL_CENTER, BL_TOP_LEFT, BL_TOP_RIGHT, PARTICIPANT_FILE, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS, TF_DATA,\
-	EDF_EXT, EDF_FILE, DATETIME_STAMP, DATA_EXT, MOD_KEYS
+	EDF_EXT, EDF_FILE, DATETIME_STAMP, DATA_EXT, MOD_KEYS, DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP
 from klibs import P
 from klibs import env
 
@@ -438,7 +438,7 @@ def pump(return_events=False):
 		return get_events()
 
 
-def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepend=None, before_last=None, each_n=None, after_first=None, append=None):
+def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap_each=None, prepend=None, before_last=None, each_n=None, after_first=None, append=None):
 	"""Automates string combination. Parameters:
 	:param array: A list of strings to be joined
 	:param config: A dict with any of the following keys:
@@ -483,16 +483,16 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepe
 	for n in range(len(array)):
 		#if after first iteration, print whitespace
 		if n > 1:
-			output = output + whitespace
+			output += whitespace
 		#if beforeLast is set, print it and add whitespace
 		if (n == (len(array) - 1)) and before_last is not None:
-			output = output + before_last + whitespace
+			output += before_last + whitespace
 		# if eachN is set and the iterator is divisible by N, print an eachN and add whitespace
 		if each_n is tuple:
 			if len(each_n) == 2:
 				if type(each_n[0]) is int:
 					if n % each_n == 0:
-						output = output + str(each_n[1]) + whitespace
+						output += str(each_n[1]) + whitespace
 				else:
 					log_str = "Klib.prettyJoin() config parameter 'eachN[0]' must be an int, '{0}' {1} passed. {2}"
 					log(log_str.format(each_n, type(each_n, 10)))
@@ -500,16 +500,30 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behavior=None, prepe
 				raise ValueError("Argument 'each_n' must have length 2.")
 		elif each_n is not None:
 			raise TypeError("Argument 'each_n' must be a tuple of length 2.")
+
 		# if delimiter is set to default or wrap, print a delimiter before the array item
-		if delimit_behavior in ('wrap', None):
+		if DELIM_WRAP in delimit_behaviors:
 			output += delimiter
+
 		# finally print the array item
-		output = output + str(array[n]) + delimiter + whitespace
-		# if afterFirst is set, print it and add whitespace
+		if wrap_each:
+			output += wrap_each + str(array[n]) + wrap_each
+		else:
+			output += str(array[n])
+		if n == 1 and DELIM_NOT_FIRST in delimit_behaviors:
+			output += whitespace
+		elif n == len(array) - 1 and DELIM_NOT_LAST in delimit_behaviors:
+			pass
+		elif n == len(array) - 2 and DELIM_NOT_LAST in delimit_behaviors:
+			pass
+		else:
+			output += delimiter + whitespace
+
+		# if after_first is set, print it and add whitespace
 		if (n == 0) and (after_first is not None):
-			output = output + after_first + whitespace
+			output += after_first + whitespace
 	if append is not None:
-		output = output + append
+		output += append
 
 	return output
 

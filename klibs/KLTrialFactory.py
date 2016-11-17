@@ -242,6 +242,14 @@ class TrialFactory(object):
  	def define_trial(self, rule, quantity):
 		pass
 
+	def num_values(self, factor):
+		for i in self.exp_factors:
+			if i[0] == factor:
+				return len(i[1])
+		e_msg = "Factor '{0}' not found.".format(factor)
+		raise ValueError(e_msg)
+
+
 	@property
 	def trial_generation_function(self, trial_generator):
 		return self.trial_generator

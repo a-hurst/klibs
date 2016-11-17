@@ -363,7 +363,6 @@ if PYLINK_AVAILABLE:
 			else:
 				return False
 
-
 		def stop(self):
 			self.stopRecording()
 

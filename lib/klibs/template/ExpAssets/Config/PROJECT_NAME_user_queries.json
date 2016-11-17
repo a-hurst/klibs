@@ -8,7 +8,7 @@
         {
             "title": "name",
             "database_field": "userhash",
-            "query": "'What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.'",
+            "query": "What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.",
             "accepted": null,
             "format": {
                 "type": "str",
@@ -29,11 +29,10 @@
                         "error": "auto"
                     }
                 },
-                "password": false,
+                "password": true,
                 "range": null,
                 "case_sensitive": true,
                 "accept_as_true": null,
-                "length": [8,32],
                 "action": "hash"
             },
             "anonymous_value": "EVAL: now()",
@@ -63,11 +62,10 @@
                         "error": "auto"
                     }
                 },
-                "password": true,
+                "password": false,
                 "range": null,
                 "case_sensitive": false,
                 "accept_as_true": null,
-                "length": null,
                 "action": null
             },
             "anonymous_value": "EVAL: 'm' if now() % 2 > 0  else 'f'",
@@ -97,11 +95,10 @@
                         "error": "auto"
                     }
                 },
-                "password": true,
+                "password": false,
                 "range": null,
                 "case_sensitive": false,
                 "accept_as_true": null,
-                "length": null,
                 "action": null
             },
             "anonymous_value": "a",
@@ -131,11 +128,10 @@
                         "error": "auto"
                     }
                 },
-                "password": true,
+                "password": false,
                 "range": [0, 125],
                 "case_sensitive": null,
                 "accept_as_true": null,
-                "length": null,
                 "action": null
             },
             "anonymous_value": 1,

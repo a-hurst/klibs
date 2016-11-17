@@ -36,7 +36,7 @@ class TextStyle(object):
 		pixels/points (ie. '12pt' or '12px')."
 		self.__font_size__ = None
 		self.__font_size_units__ = TEXT_PT
-		self.__line_height__ = 1.5
+		self.__line_height__ = 0.5
 		self.__line_height_units__ = TEXT_MULTIPLE
 		self.label = label
 		self.font_size = font_size if font_size else P.default_font_size

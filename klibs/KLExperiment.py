@@ -12,9 +12,7 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
-from klibs.KLConstants import ALL
 from klibs.KLUtilities import full_trace, pump, now, list_dimensions, force_quit, show_mouse_cursor, hide_mouse_cursor
-from klibs.KLJSON_Object import JSON_Object
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear #, display_init
 from klibs.KLDatabase import Database
@@ -140,7 +138,6 @@ class Experiment(EnvAgent):
 		tx = None
 		try:
 			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
-				print "Showing mouse cursor in Experiment.__trial__()"
 				show_mouse_cursor()
 			self.evm.start_clock()
 			if P.eye_tracking:

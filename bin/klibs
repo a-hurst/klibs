@@ -140,6 +140,7 @@ def create(name, path):
 					  ("factors.csv", ["ExpAssets", "Config"]),
 					  ("messaging.csv", ["ExpAssets", "Config"]),
 					  ("params.py", ["ExpAssets", "Config"]),
+					  ("user_queries.JSON", ["ExpAssets", "Config"]),
 					  ("experiment.py", []),
 					  (".gitignore", [])]
 

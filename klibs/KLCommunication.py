@@ -77,9 +77,7 @@ def collect_demographics(anonymous=False):
 	# collect a response and handle errors for each question
 	for q in user_queries.demographic:
 		# todo: identify errors pertaining to fields where unique values are required; optionally retry the question
-		resp = query(q, anonymous=anonymous)
-		print resp
-		db.log(q.database_field, resp)
+		db.log(q.database_field, query(q, anonymous=anonymous))
 
 	# typical use; P.collect_demographics is True and called automatically by klibs
 	if not P.demographics_collected:

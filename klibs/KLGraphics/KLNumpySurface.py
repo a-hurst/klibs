@@ -264,33 +264,42 @@ class NumpySurface(object):
 		return self
 
 	def scale(self, size, layer=None):
+		import time
 		# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
 		if not self.has_content():
 			return
 
 		if layer == NS_FOREGROUND or layer is None:
-			try:
-				layer_image = Image.fromarray(self.foreground.astype(np.uint8))
-				scaled_image = layer_image.resize(size, Image.ANTIALIAS)
-				self.foreground = np.asarray(scaled_image)
-			except AttributeError as e:
-				if e.message != "'NoneType' object has no attribute '__array_interface__'":
-					raise e
-			except TypeError:
-				pass
+			layer_image = Image.fromarray(self.foreground.astype(np.uint8))
+			scaled_image = layer_image.resize(size)
+			self.foreground = np.asarray(scaled_image)
+			# try:
+			# 	layer_image = Image.fromarray(self.foreground, "RGBA")
+			# 	print layer_image
+			# 	scaled_image = layer_image.resize(size)
+			# 	print scaled_image
+			# 	print "got here"
+			# 	self.foreground = np.asarray(scaled_image)
+			# 	print self.foreground.shape
+			# except AttributeError as e:
+			# 	if e.message != "'NoneType' object has no attribute '__array_interface__'":
+			# 		raise e
+			# except TypeError:
+			# 	pass
+		#
+		# if layer == NS_BACKGROUND or layer is None:
+		# 	try:
+		# 		layer_image = Image.fromarray(self.background.astype(np.uint8))
+		# 		scaled_image = layer_image.resize(size, Image.ANTIALIAS)
+		# 		self.foreground = np.asarray(scaled_image)
+		# 	except AttributeError as e:
+		# 		if e.message != "'NoneType' object has no attribute '__array_interface__'":
+		# 			raise e
+		# 	except TypeError:
+		# 		pass
 
-		if layer == NS_BACKGROUND or layer is None:
-			try:
-				layer_image = Image.fromarray(self.background.astype(np.uint8))
-				scaled_image = layer_image.resize(size, Image.ANTIALIAS)
-				self.foreground = np.asarray(scaled_image)
-			except AttributeError as e:
-				if e.message != "'NoneType' object has no attribute '__array_interface__'":
-					raise e
-			except TypeError:
-				pass
-
-		self.resize(size)
+		self.__update_shape__()
+		# self.resize(size)
 
 		return self
 

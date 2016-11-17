@@ -121,7 +121,6 @@ class Experiment(EnvAgent):
 					clear()
 				self.rc.reset()
 		self.clean_up()
-		self.evm.dump_events()
 		self.database.db.commit()
 		self.database.db.close()
 

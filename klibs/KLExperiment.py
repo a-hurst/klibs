@@ -140,10 +140,10 @@ class Experiment(EnvAgent):
 			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
 				show_mouse_cursor()
 			self.evm.start_clock()
-			if P.eye_tracking:
+			if P.eye_tracking and not P.manual_eyelink_recording:
 				self.el.start(P.trial_number)
 			self.__log_trial__(self.trial())
-			if P.eye_tracking:
+			if P.eye_tracking and not P.:
 				self.el.stop()
 			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
 				hide_mouse_cursor()
@@ -154,7 +154,8 @@ class Experiment(EnvAgent):
 			self.trial_clean_up()
 			self.evm.stop_clock()
 			tx = e
-		if P.eye_tracking:
+		if P.eye_tracking and not P.manual_eyelink_recording:
+			# todo: add a warning, here, if the recording hasn't been stopped when under manual control
 			self.el.stop()
 		if tx:
 			raise tx
@@ -323,7 +324,7 @@ class Experiment(EnvAgent):
 
 		if P.eye_tracking and P.eye_tracker_available:
 			try:
-				if not P.manually_initiate_eyelink_setup:
+				if not P.manual_eyelink_setup:
 					self.el.setup()
 			except AttributeError:
 				self.el.setup()

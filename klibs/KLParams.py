@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+TODO: set this up such that all vars are in a dict with a key representing whether the var should be included in the
+user's template of the params file, then autogenerate the template doc. AND the runtime params from that dict
+"""
+
 author = 'jono'
 import logging, time
 from random import seed
@@ -81,7 +86,8 @@ demographics_collected = False
 eye_tracking = False
 eye_tracker_available = False
 exp_factors = None
-manually_initiate_eyelink_setup = False
+manual_eyelink_setup = False
+manual_eyelink_recording = False
 
 # labjack
 labjack_available = False

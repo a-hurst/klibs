@@ -119,7 +119,6 @@ class Experiment(EnvAgent):
 					clear()
 				self.rc.reset()
 		self.clean_up()
-		self.evm.dump_events()
 		self.database.db.commit()
 		self.database.db.close()
 
@@ -143,7 +142,7 @@ class Experiment(EnvAgent):
 			if P.eye_tracking and not P.manual_eyelink_recording:
 				self.el.start(P.trial_number)
 			self.__log_trial__(self.trial())
-			if P.eye_tracking and not P.:
+			if P.eye_tracking and not P.manual_eyelink_recording:
 				self.el.stop()
 			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
 				hide_mouse_cursor()

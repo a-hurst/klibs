@@ -188,7 +188,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 		else:
 			raise EyeLinkError("Only ASCII text may be written to an EDF file.")
 
-	def within_boundary(self, label, valid_events, event_queue=None, report=EL_TRUE, inspect=EL_GAZE_START,
+	def within_boundary(self, label, valid_events, event_queue=None, report=EL_TRUE, inspect=None,
 						return_queue=False):
 		"""
 		For use when checking in real-time; uses entire event queue, whether supplied or fetched

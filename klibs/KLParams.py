@@ -99,6 +99,7 @@ testing = False
 default_alert_duration = 1
 
 default_fill_color = (45, 45, 45, 255)
+default_drift_correct_fill_color = (125, 125, 125, 255)
 default_color = (255, 255, 255, 255)
 default_alert_color = (236, 88, 64, 255)
 default_response_color = default_color

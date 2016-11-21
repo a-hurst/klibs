@@ -16,7 +16,6 @@ from klibs.KLUserInterface import ui_request
 
 
 class TryLink(EnvAgent, BoundaryInspector):
-	__dummy_mode__ = None
 	__anonymous_boundaries__ = 0
 	__gaze_boundaries__ = {}
 	experiment = None
@@ -31,14 +30,12 @@ class TryLink(EnvAgent, BoundaryInspector):
 		EnvAgent.__init__(self)
 		BoundaryInspector.__init__(self)
 		self.__current_sample__ = False
-		self.dummy_mode = P.eye_tracker_available is False if self.dummy_mode is None else self.dummy_mode is True
 
-	# REWRITE
 	def __eye__(self):
 		self.eye = EL_NO_EYES
 		return self.eye != EL_NO_EYES
 
-	def __within_boundary__(self, label, event):
+	def __within_boundary__(self, label, event, report=None, inspect=None):
 		"""
 		For checking individual events; not for public use, but is a rather shared interface for the public methods
 		within_boundary(), saccade_to_boundary(), fixated_boundary()
@@ -50,14 +47,17 @@ class TryLink(EnvAgent, BoundaryInspector):
 		timestamp = event.getTime()
 		return timestamp if super(TryLink, self).within_boundary(label, event.getGaze()) else False
 
+	def __exited_boundary__(self, label, event, report):
+		timestamp = event.getTime()
+		return timestamp if not super(TryLink, self).within_boundary(label, event.getGaze()) else False
+
 	def calibrate(self):
 		pass
-	# REWRITE
 
 	def clear_queue(self):
 		pass
 
-	def drift_correct(self, location=None, boundary=None,  el_draw_fixation=EL_TRUE, samples=EL_TRUE):
+	def drift_correct(self, location=None, boundary=None,  el_draw_fixation=EL_TRUE, samples=EL_TRUE, fill_color=None):
 		"""
 
 		:param location:
@@ -76,7 +76,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 		while True:
 			event_queue = pump(True)
 			ui_request(queue=event_queue)
-			fill()
+			fill(P.default_drift_correct_fill_color if not fill_color else fill_color)
 			blit(drift_correct_target(), 5, location)
 			flip()
 			for e in event_queue:
@@ -87,7 +87,8 @@ class TryLink(EnvAgent, BoundaryInspector):
 					# if clicked:
 					# 	return fixated
 
-	def fixated_boundary(self, label, inspect=EL_FIXATION_END, event_queue=None, return_queue=False):
+	def fixated_boundary(self, label, valid_events=None, inspect=EL_FIXATION_END, event_queue=None, report=None,
+						 return_queue=False):
 		"""
 		Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
 		In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
@@ -104,9 +105,6 @@ class TryLink(EnvAgent, BoundaryInspector):
 			return fix_start_time if not return_queue else [fix_start_time, event_queue]
 		return False
 
-	def in_setup(self):
-		return False
-
 	def gaze(self, eye_required=None, return_integers=True):
 		try:
 			return mouse_pos()
@@ -120,12 +118,14 @@ class TryLink(EnvAgent, BoundaryInspector):
 	def getNextData(self):
 		return MouseEvent()
 
-	def now(self, unit=TK_S):
-		if unit == TK_MS:
-			return self.evm.trial_time_ms if self.evm.start_time else self.evm.timestamp
+	def in_setup(self):
+		return False
+
+	def now(self):
 		return self.evm.trial_time if self.evm.start_time else self.evm.timestamp
 
-	def saccade_to_boundary(self, label, inspect=EL_SACCADE_END, event_queue=None, return_queue=False):
+	def saccade_to_boundary(self, label, valid_events=None, event_queue=None,
+							report=None, inspect=None, return_queue=False):
 		"""
 		Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
 		In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
@@ -188,7 +188,8 @@ class TryLink(EnvAgent, BoundaryInspector):
 		else:
 			raise EyeLinkError("Only ASCII text may be written to an EDF file.")
 
-	def within_boundary(self, label, inspect=EL_MOCK_EVENT, event_queue=None, return_queue=False):
+	def within_boundary(self, label, valid_events, event_queue=None, report=EL_TRUE, inspect=EL_GAZE_START,
+						return_queue=False):
 		"""
 		For use when checking in real-time; uses entire event queue, whether supplied or fetched
 
@@ -203,68 +204,6 @@ class TryLink(EnvAgent, BoundaryInspector):
 	def listen(self, **kwargs):
 		pass
 
-	@property
-	def dummy_mode(self):
-		return self.__dummy_mode__
-
-	@dummy_mode.setter
-	def dummy_mode(self, status):
-		self.__dummy_mode__ = status
-
-	# Everything from here down are legacy functions that wrap newer counterparts with different names for
-	# backwards compatibility
-
-	def shut_down_eyelink(self):
-		pass
-
-	# re: all "gaze_boundary" methods: Refactored boundary behavior to a mixin (KLMixins)
-	def fetch_gaze_boundary(self, label):
-		return self.boundaries[label]
-
-	def add_gaze_boundary(self, bounds, label=None, shape=RECT_BOUNDARY):
-		#  resolving legacy use of this function prior (ie. commit 451b634e1584e2ba2d37eb58fa5f707dd7554ca8 & earlier)
-		if type(bounds) is str and type(label) in [list, tuple]:
-			__bounds = label
-			name = bounds
-			bounds = __bounds
-		if name is None:
-			name = "anonymous_{0}".format(self.__anonymous_boundaries__)
-
-		if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
-			raise ValueError(
-				"Argument 'shape' must be a shape constant (ie. EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY).")
-
-		self.add_boundary(name, bounds, shape)
-
-	def clear_gaze_boundaries(self):
-		# legacy function
-		self.clear_boundaries()
-		self.dc_width = P.screen_y // 60
-		dc_tl = [P.screen_x // 2 - self.dc_width // 2, P.screen_y // 2 - self.dc_width // 2]
-		dc_br = [P.screen_x // 2 + self.dc_width // 2, P.screen_y // 2 + self.dc_width // 2]
-		self.add_boundary("drift_correct", [dc_tl, dc_br])
-
-	def draw_gaze_boundary(self, label="*"):
-		return self.draw_boundary(label)
-
-		shape = None
-		boundary = None
-		try:
-			boundary_dict = self.__gaze_boundaries__[label]
-			boundary = boundary_dict["bounds"]
-			shape = boundary_dict['shape']
-		except:
-			if shape is None:
-				raise IndexError("No boundary registered with name '{0}'.".format(boundary))
-			if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
-				raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
-		width = boundary[1][1] - boundary[0][1]
-		height = boundary[1][0] - boundary[0][0]
-		blit(Rectangle(width, height, [3, [255, 255, 255, 255]]).render(),
-							 position=(boundary[0][0] - 3, boundary[0][1] - 3), registration=7)
-
-	def remove_gaze_boundary(self, name):
-		self.remove_boundary(name)
 
 class MouseEvent(EnvAgent):
 

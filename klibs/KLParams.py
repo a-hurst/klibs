@@ -166,6 +166,7 @@ dm_suppress_debug_pane = False
 dm_auto_threshold = True
 dm_print_log = True
 dm_print_events = True
+el_track_gaze = True
 verbose_mode = False
 
 def init_project():

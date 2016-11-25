@@ -15,7 +15,7 @@ if PYLINK_AVAILABLE:
 	from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_FALSE, EL_GAZE_POS,\
 		EL_SACCADE_END, EL_SACCADE_START, EL_FIXATION_END, EL_FIXATION_START, EL_ALL_EVENTS, EL_RIGHT_EYE, EL_LEFT_EYE, \
 		EDF_FILE, EL_GAZE_START, EL_GAZE_END, EL_TIME_START, EL_TIME_END, EL_BLINK_START, EL_BLINK_END, EL_BOTH_EYES, \
-		TK_S, TK_MS
+		TK_S, TK_MS, EL_AVG_GAZE
 	from klibs import P
 	from klibs.KLUtilities import full_trace, iterable, show_mouse_cursor, hide_mouse_cursor, mouse_pos, now, exp_file_name
 	from klibs.KLUserInterface import ui_request
@@ -80,16 +80,18 @@ if PYLINK_AVAILABLE:
 			if e_type == EL_GAZE_POS:
 				timestamp = event.getTime()
 				if self.eye == EL_LEFT_EYE and event.isLeftSample():
-					x, y  = event.getLeftEye().getGaze()
-				elif self.eye == EL_RIGHT_EYE and event.isRightSample():
+					x, y  = [int(n) for n in event.getLeftEye().getGaze()]
+				elif self.eye == [int(n) for n in EL_RIGHT_EYE and event.isRightSample()]:
 					x, y = event.getRightEye().getGaze()
-				elif self.eye != EL_NO_EYES and event.isBinocular():
+				elif self.eye != [int(n) for n in EL_NO_EYES and event.isBinocular()]:
 					x, y  = event.getLeftEye().getGaze()
 				else:
 					return False
+				print "GAZE POS", x, y, self.boundaries[label].bounds 
 
 			elif e_type == EL_FIXATION_END:
-				x, y = event.getAverageGaze()
+				x, y = [int(n) for n in event.getAverageGaze()]
+				print "FIXATION END", x, y, self.boundaries[label].bounds 
 				timestamp = event.getStartTime()
 			else:
 				x, y = event.getStartGaze() if inspect == EL_GAZE_START else event.getEndGaze()
@@ -158,8 +160,8 @@ if PYLINK_AVAILABLE:
 					raise TrialException("EyeLink not ready.")
 				return self.drift_correct()
 
-		def fixated_boundary(self, label, valid_events=EL_FIXATION_START, event_queue=None, report=EL_TIME_START,
-							 inspect=EL_GAZE_END, return_queue=False):
+		def fixated_boundary(self, label, valid_events=EL_FIXATION_END, event_queue=None, report=EL_TIME_START,
+							 inspect=EL_AVG_GAZE, return_queue=False):
 			"""
 			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
 			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
@@ -178,11 +180,11 @@ if PYLINK_AVAILABLE:
 			if not event_queue:
 				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
 			for e in event_queue:
-	#				p_v = [e.getStartGaze(), e.getEndGaze(), e.getStartPPD(), e.getEndPPD(), e.getStartTime(), e.getEndTime(), e.getAverageGaze()]
-	#				x, y = e.getAverageGaze()
-	#				p_v = [e.getStartTime(), e.getEndTime(), e.getAverageGaze(), x, y]
-	#				print "FixationEvent | startGaze: {0}, endGaze:{1}, avgGze:{6}, startPPD: {2}, endPPD:{3}, startTime: {4}, endTime:{5}".format(*p_v)
-	#				print "FixationEvent | avgGze:{2}, avgX: {3}, avgY: {4}, startTime: {0}, endTime:{1}".format(*p_v)
+				# p_v = [e.getStartGaze(), e.getEndGaze(), e.getAverageGaze(), self.boundaries[label].bounds]
+				# pos = [int(n) for n in e.getAverageGaze()]
+#				p_v = [e.getStartTime(), e.getEndTime(), e.getAverageGaze(), x, y]
+				# print "FixationEvent | startGaze: {0}, endGaze: {1}, avgGaze: {2}, bounds: {3}".format(*p_v)
+				# print "FixationEvent | avgGze:{2}, avgX: {3}, avgY: {4}, startTime: {0}, endTime:{1}".format(*p_v)
 				fixation_end_time = self.within_boundary(label, valid_events, [e], report, inspect, return_queue)
 				if fixation_end_time:
 					return fixation_end_time if not return_queue else [fixation_end_time, event_queue]

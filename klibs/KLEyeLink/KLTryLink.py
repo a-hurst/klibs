@@ -200,7 +200,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 	@abc.abstractmethod
 	def listen(self, **kwargs):
 		pass
-
+		
 
 class MouseEvent(EnvAgent):
 

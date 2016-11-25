@@ -118,6 +118,7 @@ EL_TEMP_FILE = "temp_participant{0}".format(EDF)
 
 EL_GAZE_START = "gaze_start"
 EL_GAZE_END = "gaze_end"
+EL_AVG_GAZE = "average_gaze"
 EL_TIME_START = "time_start"
 EL_TIME_END = "time_end"
 # these mirror eyelink event codes where their counterpart exists

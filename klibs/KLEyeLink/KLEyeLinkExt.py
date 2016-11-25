@@ -189,11 +189,6 @@ if PYLINK_AVAILABLE:
 			return False
 
 		def gaze(self, eye_required=None, return_integers=True):
-			if self.dummy_mode:
-				try:
-					return mouse_pos()
-				except:
-					raise RuntimeError("No gaze (or simulation) to report; both eye & mouse tracking unavailable.")
 			sample = []
 			if self.sample():
 				if not eye_required:
@@ -318,26 +313,22 @@ if PYLINK_AVAILABLE:
 			# 	openGraphics(P.screen_x_y)
 			# else:
 			openGraphicsEx(self.custom_display)	
-			if not self.dummy_mode:
-				self.edf_filename = exp_file_name(EDF_FILE)
-				flushGetkeyQueue()
-				self.setOfflineMode()
-				# TODO: have a default "can't connect to tracker; do you want to switch to dummy_mode" UI pop up
-				# Running this with pylink installed whilst unconnected to a tracker throws: RuntimeError: Link terminated
-				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(P.screen_x, P.screen_y))
-				self.setLinkEventFilter("FIXATION,SACCADE,BLINK,LEFT,RIGHT")
-				self.openDataFile(self.edf_filename[0])
-				self.write("DISPLAY_COORDS 0 0 {0} {1}".format(P.screen_x, P.screen_y))
-				self.setSaccadeVelocityThreshold(P.saccadic_velocity_threshold)
-				self.setAccelerationThreshold(P.saccadic_acceleration_threshold)
-				self.setMotionThreshold(P.saccadic_motion_threshold)
-				self.calibrate()
-				beginRealTimeMode(10)
+
+			self.edf_filename = exp_file_name(EDF_FILE)
+			flushGetkeyQueue()
+			self.setOfflineMode()
+			self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(P.screen_x, P.screen_y))
+			self.setLinkEventFilter("FIXATION,SACCADE,BLINK,LEFT,RIGHT")
+			self.openDataFile(self.edf_filename[0])
+			self.write("DISPLAY_COORDS 0 0 {0} {1}".format(P.screen_x, P.screen_y))
+			self.setSaccadeVelocityThreshold(P.saccadic_velocity_threshold)
+			self.setAccelerationThreshold(P.saccadic_acceleration_threshold)
+			self.setMotionThreshold(P.saccadic_motion_threshold)
+			self.calibrate()
+			beginRealTimeMode(10)
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 			self.start_time = [now(), None]
-			# ToDo: put some exceptions n here
-			if self.dummy_mode: return True
 			start = self.startRecording(samples, events, link_samples, link_events)
 			if start == 0:
 				self.start_time[1] = self.now()

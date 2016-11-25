@@ -168,13 +168,10 @@ class TryLink(EnvAgent, BoundaryInspector):
 
 	def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 		self.start_time = [self.evm.timestamp, self.evm.timestamp]
-		if self.dummy_mode:
-			return True
-		else:
-			self.write("TRIAL_ID {0}".format(str(trial_number)))
-			self.write("TRIAL_START")
-			self.write("SYNCTIME {0}".format('0.0'))
-			return self.evm.timestamp - self.start_time[0] # ie. delay spent initializing the recording
+		self.write("TRIAL_ID {0}".format(str(trial_number)))
+		self.write("TRIAL_START")
+		self.write("SYNCTIME {0}".format('0.0'))
+		return self.evm.timestamp - self.start_time[0] # ie. delay spent initializing the recording
 
 	def stop(self):
 		pass

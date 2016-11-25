@@ -25,6 +25,7 @@ class BoundaryInspector(object):
 			self.add_boundary(*b)
 
 	def within_boundary(self, label, reference):
+		reference = [int(n) for n in reference]
 		if not self.boundaries[label].active:
 			raise BoundaryError("Boundary '{0}' is not active for searching.".format(label))
 		return self.boundaries[label].within(reference)

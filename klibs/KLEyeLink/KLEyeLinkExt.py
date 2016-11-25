@@ -15,7 +15,7 @@ if PYLINK_AVAILABLE:
 	from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_FALSE, EL_GAZE_POS,\
 		EL_SACCADE_END, EL_SACCADE_START, EL_FIXATION_END, EL_FIXATION_START, EL_ALL_EVENTS, EL_RIGHT_EYE, EL_LEFT_EYE, \
 		EDF_FILE, EL_GAZE_START, EL_GAZE_END, EL_TIME_START, EL_TIME_END, EL_BLINK_START, EL_BLINK_END, EL_BOTH_EYES, \
-		TK_S, TK_MS
+		TK_S, TK_MS, EL_AVG_GAZE
 	from klibs import P
 	from klibs.KLUtilities import full_trace, iterable, show_mouse_cursor, hide_mouse_cursor, mouse_pos, now, exp_file_name
 	from klibs.KLUserInterface import ui_request
@@ -89,7 +89,8 @@ if PYLINK_AVAILABLE:
 					return False
 
 			elif e_type == EL_FIXATION_END:
-				x, y = event.getAverageGaze()
+				x, y = [int(n) for n in event.getAverageGaze()]
+				print x, y, self.boundaries[label].bounds 
 				timestamp = event.getStartTime()
 			else:
 				x, y = event.getStartGaze() if inspect == EL_GAZE_START else event.getEndGaze()
@@ -158,8 +159,8 @@ if PYLINK_AVAILABLE:
 					raise TrialException("EyeLink not ready.")
 				return self.drift_correct()
 
-		def fixated_boundary(self, label, valid_events=EL_FIXATION_START, event_queue=None, report=EL_TIME_START,
-							 inspect=EL_GAZE_END, return_queue=False):
+		def fixated_boundary(self, label, valid_events=EL_FIXATION_END, event_queue=None, report=EL_TIME_START,
+							 inspect=EL_AVG_GAZE, return_queue=False):
 			"""
 			Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
 			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
@@ -178,22 +179,17 @@ if PYLINK_AVAILABLE:
 			if not event_queue:
 				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
 			for e in event_queue:
-	#				p_v = [e.getStartGaze(), e.getEndGaze(), e.getStartPPD(), e.getEndPPD(), e.getStartTime(), e.getEndTime(), e.getAverageGaze()]
-	#				x, y = e.getAverageGaze()
-	#				p_v = [e.getStartTime(), e.getEndTime(), e.getAverageGaze(), x, y]
-	#				print "FixationEvent | startGaze: {0}, endGaze:{1}, avgGze:{6}, startPPD: {2}, endPPD:{3}, startTime: {4}, endTime:{5}".format(*p_v)
-	#				print "FixationEvent | avgGze:{2}, avgX: {3}, avgY: {4}, startTime: {0}, endTime:{1}".format(*p_v)
+				# p_v = [e.getStartGaze(), e.getEndGaze(), e.getAverageGaze(), self.boundaries[label].bounds]
+				# pos = [int(n) for n in e.getAverageGaze()]
+#				p_v = [e.getStartTime(), e.getEndTime(), e.getAverageGaze(), x, y]
+				# print "FixationEvent | startGaze: {0}, endGaze: {1}, avgGaze: {2}, bounds: {3}".format(*p_v)
+				# print "FixationEvent | avgGze:{2}, avgX: {3}, avgY: {4}, startTime: {0}, endTime:{1}".format(*p_v)
 				fixation_end_time = self.within_boundary(label, valid_events, [e], report, inspect, return_queue)
 				if fixation_end_time:
 					return fixation_end_time if not return_queue else [fixation_end_time, event_queue]
 			return False
 
 		def gaze(self, eye_required=None, return_integers=True):
-			if self.dummy_mode:
-				try:
-					return mouse_pos()
-				except:
-					raise RuntimeError("No gaze (or simulation) to report; both eye & mouse tracking unavailable.")
 			sample = []
 			if self.sample():
 				if not eye_required:
@@ -318,26 +314,25 @@ if PYLINK_AVAILABLE:
 			# 	openGraphics(P.screen_x_y)
 			# else:
 			openGraphicsEx(self.custom_display)	
-			if not self.dummy_mode:
-				self.edf_filename = exp_file_name(EDF_FILE)
-				flushGetkeyQueue()
-				self.setOfflineMode()
-				# TODO: have a default "can't connect to tracker; do you want to switch to dummy_mode" UI pop up
-				# Running this with pylink installed whilst unconnected to a tracker throws: RuntimeError: Link terminated
-				self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(P.screen_x, P.screen_y))
-				self.setLinkEventFilter("FIXATION,SACCADE,BLINK,LEFT,RIGHT")
-				self.openDataFile(self.edf_filename[0])
-				self.write("DISPLAY_COORDS 0 0 {0} {1}".format(P.screen_x, P.screen_y))
-				self.setSaccadeVelocityThreshold(P.saccadic_velocity_threshold)
-				self.setAccelerationThreshold(P.saccadic_acceleration_threshold)
-				self.setMotionThreshold(P.saccadic_motion_threshold)
-				self.calibrate()
-				beginRealTimeMode(10)
+
+			self.edf_filename = exp_file_name(EDF_FILE)
+			flushGetkeyQueue()
+			self.setOfflineMode()
+			# TODO: have a default "can't connect to tracker; do you want to switch to dummy_mode" UI pop up
+			# Running this with pylink installed whilst unconnected to a tracker throws: RuntimeError: Link terminated
+			self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(P.screen_x, P.screen_y))
+			self.setLinkEventFilter("FIXATION,SACCADE,BLINK,LEFT,RIGHT")
+			self.openDataFile(self.edf_filename[0])
+			self.write("DISPLAY_COORDS 0 0 {0} {1}".format(P.screen_x, P.screen_y))
+			self.setSaccadeVelocityThreshold(P.saccadic_velocity_threshold)
+			self.setAccelerationThreshold(P.saccadic_acceleration_threshold)
+			self.setMotionThreshold(P.saccadic_motion_threshold)
+			self.calibrate()
+			beginRealTimeMode(10)
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 			self.start_time = [now(), None]
 			# ToDo: put some exceptions n here
-			if self.dummy_mode: return True
 			start = self.startRecording(samples, events, link_samples, link_events)
 			if start == 0:
 				self.start_time[1] = self.now()
@@ -401,3 +396,58 @@ if PYLINK_AVAILABLE:
 		@abc.abstractmethod
 		def listen(self, **kwargs):
 			pass
+
+# Everything from here down are legacy functions that wrap newer counterparts with different names for
+		# backwards compatibility
+
+		def shut_down_eyelink(self):
+			self.shut_down()
+
+		# re: all "gaze_boundary" methods: Refactored boundary behavior to a mixin (KLMixins)
+		def fetch_gaze_boundary(self, label):
+			return self.boundaries[label]
+
+		def add_gaze_boundary(self, bounds, label=None, shape=RECT_BOUNDARY):
+			#  resolving legacy use of this function prior (ie. commit 451b634e1584e2ba2d37eb58fa5f707dd7554ca8 & earlier)
+			if type(bounds) is str and type(label) in [list, tuple]:
+				__bounds = label
+				name = bounds
+				bounds = __bounds
+			if name is None:
+				name = "anonymous_{0}".format(self.__anonymous_boundaries__)
+
+			if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
+				raise ValueError(
+					"Argument 'shape' must be a shape constant (ie. EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY).")
+
+			self.add_boundary(name, bounds, shape)
+
+		def clear_gaze_boundaries(self):
+			# legacy function
+			self.clear_boundaries()
+			self.dc_width = P.screen_y // 60
+			dc_tl = [P.screen_x // 2 - self.dc_width // 2, P.screen_y // 2 - self.dc_width // 2]
+			dc_br = [P.screen_x // 2 + self.dc_width // 2, P.screen_y // 2 + self.dc_width // 2]
+			self.add_boundary("drift_correct", [dc_tl, dc_br])
+
+		def draw_gaze_boundary(self, label="*", blit=True):
+			return self.draw_boundary(label)
+
+			shape = None
+			boundary = None
+			try:
+				boundary_dict = self.__gaze_boundaries[label]
+				boundary = boundary_dict["bounds"]
+				shape = boundary_dict['shape']
+			except:
+				if shape is None:
+					raise IndexError("No boundary registered with name '{0}'.".format(boundary))
+				if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
+					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+			width = boundary[1][1] - boundary[0][1]
+			height = boundary[1][0] - boundary[0][0]
+			blit(Rectangle(width, height, [3, [255, 255, 255, 255]]).render(),
+								 position=(boundary[0][0] - 3, boundary[0][1] - 3), registration=7)
+
+		def remove_gaze_boundary(self, name):
+			self.remove_boundary(name)

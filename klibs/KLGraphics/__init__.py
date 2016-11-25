@@ -10,9 +10,11 @@ from os.path import isfile
 from klibs import P
 from klibs.KLUtilities import absolute_position, build_registrations, pump, hide_mouse_cursor, deg_to_px
 from klibs.KLConstants import *
-from KLDraw import Drawbject, FixationCross
+from KLDraw import Drawbject, FixationCross, Circle
 from KLNumpySurface import NumpySurface as NpS
 
+# populated on first call to flip() if needed
+global tracker_dot
 
 def aggdraw_to_numpy_surface(draw_context):
 	"""
@@ -45,7 +47,6 @@ def argb32_to_rgba(np_array):
 
 
 def blit(source, registration=7, location=(0,0), position=None):
-		# todo: this fucker is static. get it the hell out of Experiment
 		"""
 		Draws passed content to display buffer.
 
@@ -59,6 +60,7 @@ def blit(source, registration=7, location=(0,0), position=None):
 
 		:raise TypeError:
 		"""
+
 		if position:
 			location = position  # fixing stupid argument name, preserving backwards compatibility
 		if isinstance(source, NpS):
@@ -258,7 +260,19 @@ def flip(window=None):
 
 	:raises: ValueError
 	"""
-	from klibs.KLEnvironment import exp
+	from klibs.KLEnvironment import exp, el
+	global tracker_dot
+
+	if P.development_mode and P.el_track_gaze and P.eye_tracking:
+		try:
+			tracker_dot
+		except NameError:
+			tracker_dot = Circle(8, stroke=[2, (255,255,255)], fill=(255,0,0)).render()
+		try:
+			blit(tracker_dot, 5, el.gaze())
+		except RuntimeError:
+			pass
+
 	if exp:
 		exp.before_flip()
 	if not window:

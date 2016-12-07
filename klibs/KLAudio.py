@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
-
+import warnings
 import math
-import sdl2.ext
-from sdl2.sdlmixer import Mix_LoadWAV, Mix_PlayChannel, Mix_Playing, Mix_VolumeChunk
+
+with warnings.catch_warnings():
+	warnings.simplefilter("ignore")
+	import sdl2.ext
+	from sdl2.sdlmixer import Mix_LoadWAV, Mix_PlayChannel, Mix_Playing, Mix_VolumeChunk
+	warnings.simplefilter("default")
 
 
 from klibs.KLConstants import AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_AUTO_THRESHOLD, AR_RATE, AR_THRESHOLD, AUDIO_ON, \

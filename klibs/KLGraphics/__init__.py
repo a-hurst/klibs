@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
-
+import warnings
 import numpy as np
-from PIL import Image
-import OpenGL.GL as gl
-import sdl2
+
+with warnings.catch_warnings():
+	warnings.simplefilter("ignore")
+	import sdl2
+	from PIL import Image
+	import OpenGL.GL as gl
+	warnings.simplefilter("default")
+
 from math import sqrt, atan, degrees
 from os.path import isfile
 from klibs import P

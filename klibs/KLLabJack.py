@@ -1,8 +1,12 @@
 __author__ = 'jono'
+import warnings
 from klibs import P
 
 try:
-	import u3
+	with warnings.catch_warnings():
+		warnings.simplefilter("ignore")
+		import u3
+		warnings.simplefilter("default")
 except ImportError:
 	P.labjack_available = False
 	if P.labjacking:

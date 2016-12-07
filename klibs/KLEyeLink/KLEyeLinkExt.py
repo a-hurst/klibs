@@ -180,11 +180,6 @@ if PYLINK_AVAILABLE:
 			if not event_queue:
 				event_queue = self.get_event_queue([inspect] if not return_queue else EL_ALL_EVENTS)
 			for e in event_queue:
-				# p_v = [e.getStartGaze(), e.getEndGaze(), e.getAverageGaze(), self.boundaries[label].bounds]
-				# pos = [int(n) for n in e.getAverageGaze()]
-#				p_v = [e.getStartTime(), e.getEndTime(), e.getAverageGaze(), x, y]
-				# print "FixationEvent | startGaze: {0}, endGaze: {1}, avgGaze: {2}, bounds: {3}".format(*p_v)
-				# print "FixationEvent | avgGze:{2}, avgX: {3}, avgY: {4}, startTime: {0}, endTime:{1}".format(*p_v)
 				fixation_end_time = self.within_boundary(label, valid_events, [e], report, inspect, return_queue)
 				if fixation_end_time:
 					return fixation_end_time if not return_queue else [fixation_end_time, event_queue]
@@ -231,8 +226,6 @@ if PYLINK_AVAILABLE:
 				elif len(exclude) and d_type in exclude:
 					continue
 				data = self.getFloatData()
-	#				p_v = [data.getStartGaze(), data.getEndGaze(), data.getStartPPD(), data.getEndPPD(), data.getStartTime(), data.getEndTime(), data.getAverageGaze()]
-	#				print "FixationEvent | startGaze: {0}, endGaze:{1}, avgGze:{6}, startPPD: {2}, endPPD:{3}, startTime: {4}, endTime:{5}".format(*p_v)
 			# once the same sample has been sent twice, gtfo
 				if data == last_sample:
 					break

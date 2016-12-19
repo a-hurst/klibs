@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
-
 from copy import copy
 from sdl2 import SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_RETURN, SDLK_KP_ENTER, SDLK_ESCAPE
 from hashlib import sha1
@@ -46,6 +45,11 @@ def alert(text, blit=True, display_for=0):
 
 
 def collect_demographics(anonymous=False):
+	"""
+
+	:param anonymous:
+	:return:
+	"""
 	from klibs.KLEnvironment import exp, db
 
 	global user_queries
@@ -94,6 +98,11 @@ def collect_demographics(anonymous=False):
 
 
 def init_messaging():
+	"""
+
+
+	:raise ValueError:
+	"""
 	from klibs.KLCommunication import message
 	from klibs.KLEnvironment import txtm, exp
 	from klibs.KLJSON_Object import JSON_Object
@@ -123,8 +132,6 @@ def init_messaging():
 
 def message(text, style=None, location=None, registration=None, blit_txt=True, flip_screen=False, wrap_width=None):
 	"""
-	``heavy_modification_planned`` ``backwards_compatibility_planned``
-
 	Generates and optionally renders formatted text to the display.
 
 	.. warning:: While this method supports the arguments listed, only :class:`~klibs.KLTextManager.TextStyle`
@@ -193,6 +200,12 @@ def message(text, style=None, location=None, registration=None, blit_txt=True, f
 
 
 def query(query_ob, anonymous=False):
+	"""
+
+	:param query_ob:
+	:param anonymous:
+	:return: :raise TypeError:
+	"""
 	from klibs.KLEnvironment import txtm
 
 	if anonymous:

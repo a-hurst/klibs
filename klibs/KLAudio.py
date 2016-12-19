@@ -37,6 +37,10 @@ class AudioManager(object):
 	listeners = {}
 
 	def __init__(self):
+		"""
+
+
+		"""
 		super(AudioManager, self).__init__()
 
 	# def create_listener(self, name=None, threshold=AR_AUTO_THRESHOLD):
@@ -48,6 +52,11 @@ class AudioManager(object):
 	# 	return listener
 
 	def clip(self, file_path):
+		"""
+
+		:param file_path:
+		:return:
+		"""
 		return AudioClip(file_path)
 
 
@@ -60,16 +69,30 @@ class AudioClip(object):
 		__volume_increment = 12.8
 
 		def __init__(self, file_path):
+			"""
+
+			:param file_path:
+			"""
 			super(AudioClip, self).__init__()
 			self.sample = Mix_LoadWAV(sdl2.ext.compat.byteify(file_path, "utf-8"))
 			self.started = False
 			self.channel = self.default_channel
 
 		def play(self, channel=-1, loops=0):
+			"""
+
+			:param channel:
+			:param loops:
+			"""
 			self.channel = Mix_PlayChannel(channel, self.sample, loops)
 			self.__playing = True
 
 		def playing(self):
+			"""
+
+
+			:return:
+			"""
 			if self.started:
 				if Mix_Playing(self.channel):
 					return True
@@ -80,14 +103,27 @@ class AudioClip(object):
 			return False
 
 		def volume_up(self, steps=1):
+			"""
+
+			:param steps:
+			"""
 			self.__volume += steps * self.__volume_increment
 			self.__volume = int(self.volume)
 
 		def volume_down(self, steps=1):
+			"""
+
+			:param steps:
+			"""
 			self.__volume -= steps * self.__volume_increment
 			self.__volume = int(self.volume)
 
 		def mute(self, state=AUDIO_ON):
+			"""
+
+			:param state:
+			:return:
+			"""
 			Mix_VolumeChunk(self.sample, 0 if state == AUDIO_OFF else self.__volume)
 			return False
 
@@ -109,6 +145,11 @@ class AudioClip(object):
 class AudioSample(object):
 
 	def __init__(self, raw_sample, threshold):
+		"""
+
+		:param raw_sample:
+		:param threshold:
+		"""
 		super(AudioSample, self).__init__()
 		self.array = array('h', raw_sample)
 		self.peak = max(self.array)
@@ -117,9 +158,19 @@ class AudioSample(object):
 		self.threshold = None if threshold == AR_AUTO_THRESHOLD else threshold
 
 	def is_below(self, threshold=None):
+		"""
+
+		:param threshold:
+		:return:
+		"""
 		return self.peak < threshold if threshold else self.threshold
 
 	def is_above(self, threshold=None):
+		"""
+
+		:param threshold:
+		:return:
+		"""
 		return self.trough > threshold if threshold else self.threshold
 
 
@@ -128,6 +179,10 @@ class AudioStream(object):
 	stream = None
 
 	def __init__(self, threshold=1):
+		"""
+
+		:param threshold:
+		"""
 		super(AudioStream, self).__init__()
 		self.p = pyaudio.PyAudio()
 		self.threshold = 1
@@ -137,6 +192,11 @@ class AudioStream(object):
 		# 	self.threshold = threshold
 
 	def sample(self):
+		"""
+
+
+		:return:
+		"""
 		if not self.stream:
 			self.init_stream()
 		# try:
@@ -149,6 +209,10 @@ class AudioStream(object):
 		# 	return AudioSample(self.stream.read(AR_CHUNK_SIZE), P.AR_AUTO_THRESHOLD)
 
 	def init_stream(self):
+		"""
+
+
+		"""
 		try:
 			self.kill_stream()
 		except (AttributeError, IOError) as e:
@@ -165,6 +229,11 @@ class AudioStream(object):
 
 	def get_ambient_level(self, period=1):
 
+		"""
+
+		:param period:
+		:return:
+		"""
 		sample_period = P.tk.countdown(period)
 		warn_message = "Please remain quite while the ambient noise level is sampled. Sampling will begin in 3 seconds."
 		sampling_message = "Sampling Complete In {0} Seconds"
@@ -183,6 +252,12 @@ class AudioStream(object):
 		return sum(peaks) / len(peaks)
 
 	def get_peak_during(self, period=3, message=None):
+		"""
+
+		:param period:
+		:param message:
+		:return:
+		"""
 		# initial_diameter = int(P.screen_x * 0.05)
 		local_peak = 0
 		pump()

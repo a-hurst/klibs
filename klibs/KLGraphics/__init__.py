@@ -222,8 +222,6 @@ def display_init(diagonal_in):
 
 def draw_fixation(location=BL_CENTER, size=None, stroke=None, color=None, fill_color=None, flip=False):
 		"""
-		``heavy_modification_possible`` ``relocation_planned``
-
 		Creates and renders a FixationCross (see :mod:`~klibs.KLDraw` inside an optional background circle at provided or
 		default location.
 
@@ -279,7 +277,7 @@ def flip(window=None):
 	from klibs.KLEnvironment import exp, el
 	global tracker_dot
 
-	if P.development_mode and P.el_track_gaze and P.eye_tracking:
+	if P.development_mode and P.el_track_gaze and P.eye_tracking and P.in_trial:
 		try:
 			tracker_dot
 		except NameError:

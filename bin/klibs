@@ -343,9 +343,6 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		init_messaging()
 
 		# create an anonymous user if not collecting demographic information
-		print "debug cd:"
-		print P.collect_demographics, P.development_mode
-		print not P.collect_demographics or P.development_mode
 		collect_demographics(not P.collect_demographics or P.development_mode)
 
 		# off to the races team...

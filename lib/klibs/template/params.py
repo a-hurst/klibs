@@ -11,6 +11,12 @@ log_to_file = True
 level = logging.INFO
 
 #########################################
+# Display Settings
+#########################################
+additional_displays = []
+screen_origin = (0,0)  # always (0,0) unless multiple displays in use
+#
+#########################################
 # Available Hardware
 #########################################
 eye_tracker_available = False
@@ -32,6 +38,7 @@ default_timeout_message = "Too slow!"
 #########################################
 # EyeLink Sensitivities
 #########################################
+view_distance = 104  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen
 saccadic_velocity_threshold = 20
 saccadic_acceleration_threshold = 5000
 saccadic_motion_threshold = 0.15

@@ -122,6 +122,8 @@ screen_y = None
 screen_x_y = None
 screen_degrees_x = None
 screen_degrees_y = None
+additional_displays = []
+screen_origin = (0,0)  # always (0,0) unless multiple displays in use
 view_distance = 104  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen
 display_initialized = False
 

@@ -35,8 +35,8 @@ global user_queries_file_path
 global user_queries_filename
 global data_dir
 global incomplete_data_path
-global factors_filename
-global factors_file_path
+global ind_vars_filename
+global ind_vars_file_path
 global params_file_path
 global events_file_path
 global versions_dir
@@ -168,6 +168,7 @@ dm_print_log = True
 dm_print_events = True
 el_track_gaze = True
 verbose_mode = False
+in_trial = False
 
 def init_project():
 	from klibs.KLKeyMap import KeyMap
@@ -190,8 +191,8 @@ def init_project():
 	global schema_filename
 	global data_dir
 	global incomplete_data_path
-	global factors_filename
-	global factors_file_path
+	global ind_vars_filename
+	global ind_vars_file_path
 	global config_file_path_legacy
 	global params_file_path
 	global events_file_path
@@ -211,13 +212,12 @@ def init_project():
 	key_maps["*"].any_key = True
 
 
-
 	# file names
 	database_filename = str(project_name) + DB_EXT
 	schema_filename = str(project_name) + SCHEMA_EXT
 	user_queries_filename = str(project_name) + USER_QUERIES_EXT
 	log_filename = str(project_name) + LOG_EXT
-	factors_filename = str(project_name) + FACTORS_EXT
+	ind_vars_filename = str(project_name) + FACTORS_EXT
 	params_filename = str(project_name) + PARAMS_EXT
 	events_filename = str(project_name) + MESSSAGING_EXT
 
@@ -232,8 +232,8 @@ def init_project():
 	database_path = join(asset_dir, database_filename)
 	database_backup_path = database_path + BACK_EXT
 	incomplete_data_path = join(data_dir, "incomplete")
-	factors_file_path = join(config_dir, factors_filename)
-	config_file_path_legacy = join(asset_dir, factors_filename)
+	ind_vars_file_path = join(config_dir, ind_vars_filename)
+	config_file_path_legacy = join(asset_dir, ind_vars_filename)
 	params_file_path = join(config_dir, params_filename)
 	events_file_path = join(config_dir, events_filename)
 	versions_dir = join(asset_dir, ".versions")

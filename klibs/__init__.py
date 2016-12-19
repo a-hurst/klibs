@@ -15,6 +15,7 @@ import KLParams as P						# KLConstants
 import KLKeyMap								# KLConstants
 import KLLabJack							# KLParams
 import KLUtilities							# KLConstants, KLParams
+import KLIndependentVariable				# KLUtilities, KLNamedObject
 import KLJSON_Object						# KLUtilities
 import KLTrialFactory						# KLConstants, KLParams
 import KLUserInterface						# KLConstants, KLParams, KLUtilities

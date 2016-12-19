@@ -72,12 +72,7 @@ class Experiment(EnvAgent):
 
 		self.trial_factory = TrialFactory(self)
 		if P.manual_trial_generation is False:
-			try:
-				self.trial_factory.import_stim_file(P.factors_file_path)
-			except ValueError:
-				self.trial_factory.import_stim_file(P.config_file_path_legacy)
 			self.trial_factory.generate()
-
 		self.event_code_generator = None
 
 		self.initialized = True
@@ -141,7 +136,9 @@ class Experiment(EnvAgent):
 			self.evm.start_clock()
 			if P.eye_tracking and not P.manual_eyelink_recording:
 				self.el.start(P.trial_number)
+			P.in_trial = True
 			self.__log_trial__(self.trial())
+			P.in_trial = False
 			if P.eye_tracking and not P.manual_eyelink_recording:
 				self.el.stop()
 			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):

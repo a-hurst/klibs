@@ -387,3 +387,63 @@ if PYLINK_AVAILABLE:
 		@abc.abstractmethod
 		def listen(self, **kwargs):
 			pass
+
+
+		# Everything from here down are legacy functions that wrap newer counterparts with different names for
+		# backwards compatibility
+
+		def shut_down_eyelink(self):
+			self.shut_down()
+
+		# re: all "gaze_boundary" methods: Refactored boundary behavior to a mixin (KLMixins)
+		def fetch_gaze_boundary(self, label):
+			return self.boundaries[label]
+
+
+		def add_gaze_boundary(self, bounds, label=None, shape=RECT_BOUNDARY):
+			#  resolving legacy use of this function prior (ie. commit 451b634e1584e2ba2d37eb58fa5f707dd7554ca8 & earlier)
+			if type(bounds) is str and type(label) in [list, tuple]:
+				__bounds = label
+				name = bounds
+				bounds = __bounds
+			if name is None:
+				name = "anonymous_{0}".format(self.__anonymous_boundaries__)
+
+			if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
+				raise ValueError(
+					"Argument 'shape' must be a shape constant (ie. EL_RECT_BOUNDARY, EL_CIRCLE_BOUNDARY).")
+
+			self.add_boundary(name, bounds, shape)
+
+
+		def clear_gaze_boundaries(self):
+			# legacy function
+			self.clear_boundaries()
+			self.dc_width = P.screen_y // 60
+			dc_tl = [P.screen_x // 2 - self.dc_width // 2, P.screen_y // 2 - self.dc_width // 2]
+			dc_br = [P.screen_x // 2 + self.dc_width // 2, P.screen_y // 2 + self.dc_width // 2]
+			self.add_boundary("drift_correct", [dc_tl, dc_br])
+
+
+		def draw_gaze_boundary(self, label="*", blit=True):
+			return self.draw_boundary(label)
+
+			shape = None
+			boundary = None
+			try:
+				boundary_dict = self.__gaze_boundaries[label]
+				boundary = boundary_dict["bounds"]
+				shape = boundary_dict['shape']
+			except:
+				if shape is None:
+					raise IndexError("No boundary registered with name '{0}'.".format(boundary))
+				if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
+					raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
+			width = boundary[1][1] - boundary[0][1]
+			height = boundary[1][0] - boundary[0][0]
+			blit(Rectangle(width, height, [3, [255, 255, 255, 255]]).render(),
+				 position=(boundary[0][0] - 3, boundary[0][1] - 3), registration=7)
+
+
+		def remove_gaze_boundary(self, name):
+			self.remove_boundary(name)

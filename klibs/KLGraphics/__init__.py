@@ -110,8 +110,8 @@ def blit(source, registration=7, location=(0,0), position=None):
 		# convert english location strings to x,y coordinates of destination surface
 		if type(location) is str:
 			location = absolute_position(location, P.screen_x_y)
-		location[0] += P.screen_origin[0]
-		location[1] += P.screen_origin[1]
+		# location[0] += P.screen_origin[0]
+		# location[1] += P.screen_origin[1]
 		# define boundaries coordinates of region being blit to
 		x_bounds = [location[0], location[0] + width]
 		y_bounds = [location[1], location[1] + height]
@@ -179,14 +179,16 @@ def display_init(diagonal_in):
 		P.screen_x = root.winfo_screenwidth()
 		P.screen_y = root.winfo_screenheight()
 		P.screen_x_y = (P.screen_x, P.screen_y)
-		# create listing for primary display, set it as target (ie. index 2 = True)
-		target_display = [(0, (0,0), True)]
 
-		# add registered additional displays, if any set to target display, set primary's target index to false
+		# todo: make this configuration process more fool-proof/klibsian/informative; probably create "display objects"
 		for d in P.additional_displays:
 			if d[2]:
-				target_display = d
-		P.screen_origin = (-1 * n for n in target_display[1])
+				P.screen_x_y = list(d[1])
+				P.screen_x = d[1][0]
+				P.screen_y = d[1][1]
+
+		if P.screen_origin is None:
+			P.screen_origin = (0, 0)
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()

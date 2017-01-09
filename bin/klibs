@@ -288,9 +288,16 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
-	klog_config = {}
-	# if P.
-	lg.basicConfig(filename='example.log', level=DEBUG)
+
+	# if a local params file exists, do the same:
+	if os.path.exists(P.params_local_file_path):
+		for k, v in imp.load_source("*", P.params_local_file_path).__dict__.iteritems():
+			setattr(P, k, v)
+
+	# logging and debugging will go here one day....
+	# klog_config = {}
+	# lg.basicConfig(filename='example.log', level=DEBUG)
+
 	# set some basic global Params
 	P.verbose_mode = verbose
 	if not show_debug_pane:
@@ -304,7 +311,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	# get actual current klibs commit & compare value currently in KLParams
 	P.klibs_commit = open("/usr/local/lib/klibs/current_commit.txt").read()
 	# if P.klibs_commit != Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE).communicate()[0][:-1]:
-	# 	pass # todo: warn user
+	# 	pass # todo: check if current commit matches experiment.py and warn user if not
 
 	# create runtime environment
 	env.evm = EventManager()

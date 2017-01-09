@@ -334,52 +334,6 @@ class Experiment(EnvAgent):
 
 		self.quit()
 
-
-	# @property
-	# def db_name(self):
-	# 	return self.__db_name
-	#
-	# @db_name.setter
-	# def db_name(self, db_name):
-	# 	self.__db_name = db_name
-	#
-	# @property
-	# def event_code_generator(self):
-	# 	return self.__event_code_function
-	#
-	# @event_code_generator.setter
-	# def event_code_generator(self, event_code_function):
-	# 	if type(event_code_function).__name__ == 'function':
-	# 		self.__event_code_function = event_code_function
-	# 	elif event_code_function is None:
-	# 		self.__event_code_function = None
-	# 	else:
-	# 		raise ValueError('App.codeFunc must be set to a function.')
-	#
-	# @property
-	# def no_tracker(self):
-	# 	return self.__no_tracker
-	#
-	# @no_tracker.setter
-	# def no_tracker(self, no_tracker):
-	# 	if type(no_tracker) is bool:
-	# 		self.__no_tracker = no_tracker
-	# 	else:
-	# 		raise ValueError('App.noTracker must be a boolean value.')
-	#
-	# @property
-	# def participant_instructions(self):
-	# 	pass
-	#
-	# @participant_instructions.getter
-	# def participant_instructions(self):
-	# 	return self.participant_instructions
-	#
-	# @participant_instructions.setter
-	# def participant_instructions(self, instructions_file):
-	# 	with open("ExpAssets/participant_instructions.txt", "r") as ins_file:
-	# 		self.participant_instructions = ins_file.read()
-
 	@abstractmethod
 	def clean_up(self):
 		return

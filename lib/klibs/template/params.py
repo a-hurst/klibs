@@ -53,6 +53,7 @@ cue_back_size = 1,  # deg of visual angle
 #########################################
 multi_session_project = False
 collect_demographics = False
+manual_demographics_collection = False
 practicing = False
 trials_per_block = 24
 blocks_per_experiment = 1

@@ -6,7 +6,7 @@ from sdl2 import SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_RE
 from hashlib import sha1
 
 from klibs.KLConstants import AUTO_POS,BL_CENTER, BL_TOP, BL_TOP_LEFT, BL_TOP_RIGHT, BL_LEFT, BL_RIGHT, BL_BOTTOM, \
-	BL_BOTTOM_LEFT, BL_BOTTOM_RIGHT, ALL, QUERY_ACTION_HASH, DELIM_NOT_LAST, DELIM_NOT_FIRST
+	BL_BOTTOM_LEFT, BL_BOTTOM_RIGHT, ALL, QUERY_ACTION_HASH, DELIM_NOT_LAST, DELIM_NOT_FIRST, QUERY_ACTION_UPPERCASE
 from klibs.KLGraphics import blit, clear, fill, flip
 import klibs.KLParams as P
 from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump
@@ -335,6 +335,8 @@ def query(query_ob, anonymous=False):
 	elif f.type is str:
 		if f.action == QUERY_ACTION_HASH:
 			return sha1(str(input_string)).hexdigest()
+		elif f.action == QUERY_ACTION_UPPERCASE:
+			return str(input_string).upper()
 		else:
 			return str(input_string)
 	elif f.type is float:

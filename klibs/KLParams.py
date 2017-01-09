@@ -38,6 +38,7 @@ global incomplete_data_path
 global ind_vars_filename
 global ind_vars_file_path
 global params_file_path
+global params_local_file_path
 global events_file_path
 global versions_dir
 global initialized
@@ -198,6 +199,7 @@ def init_project():
 	global ind_vars_file_path
 	global config_file_path_legacy
 	global params_file_path
+	global params_local_file_path
 	global events_file_path
 	global versions_dir
 	global local_dir
@@ -226,6 +228,7 @@ def init_project():
 
 	# project paths
 	data_dir = join(asset_dir, "Data")
+	local_dir = join(asset_dir, "Local")
 	edf_dir = join(asset_dir, "EDF")  # todo: write edf management
 	incomplete_edf_dir = join(data_dir, "incomplete")
 	log_file_path = join(asset_dir, log_filename)
@@ -238,9 +241,9 @@ def init_project():
 	ind_vars_file_path = join(config_dir, ind_vars_filename)
 	config_file_path_legacy = join(asset_dir, ind_vars_filename)
 	params_file_path = join(config_dir, params_filename)
+	params_local_file_path = join(local_dir, params_filename)
 	events_file_path = join(config_dir, events_filename)
 	versions_dir = join(asset_dir, ".versions")
-	local_dir = join(asset_dir, "Local")
 	logs_dir = join(local_dir, "logs")
 
 	for path in [local_dir, logs_dir, versions_dir, edf_dir, data_dir, incomplete_data_path, incomplete_edf_dir]:

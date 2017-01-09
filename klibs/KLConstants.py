@@ -55,6 +55,7 @@ BL_BOTTOM_LEFT = 1
 BL_BOTTOM_RIGHT = 3
 AUTO_POS = "auto"
 QUERY_ACTION_HASH = "hash"
+QUERY_ACTION_UPPERCASE = "uppercase"
 
 NS_FOREGROUND = 1  # NumpySurface foreground layer
 NS_BACKGROUND = 0  # NumpySurface background layer

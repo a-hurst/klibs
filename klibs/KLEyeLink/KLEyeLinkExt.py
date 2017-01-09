@@ -87,15 +87,12 @@ if PYLINK_AVAILABLE:
 					x, y  = event.getLeftEye().getGaze()
 				else:
 					return False
-				print "GAZE POS", x, y, self.boundaries[label].bounds 
 
 			elif e_type == EL_FIXATION_END:
 				x, y = [int(n) for n in event.getAverageGaze()]
-				print "FIXATION END", x, y, self.boundaries[label].bounds 
 				timestamp = event.getStartTime()
 			else:
 				x, y = event.getStartGaze() if inspect == EL_GAZE_START else event.getEndGaze()
-				ppd_x, ppd_y = event.getStartPPD()
 				timestamp = event.getStartTime() if report == EL_TIME_START else event.getEndTime()
 
 			result = super(EyeLink, self).within_boundary(label, (x, y))

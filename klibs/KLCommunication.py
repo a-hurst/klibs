@@ -4,13 +4,14 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 from copy import copy
 from sdl2 import SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_RETURN, SDLK_KP_ENTER, SDLK_ESCAPE
 from hashlib import sha1
+from sqlite3 import IntegrityError
 
 from klibs.KLConstants import AUTO_POS,BL_CENTER, BL_TOP, BL_TOP_LEFT, BL_TOP_RIGHT, BL_LEFT, BL_RIGHT, BL_BOTTOM, \
 	BL_BOTTOM_LEFT, BL_BOTTOM_RIGHT, ALL, QUERY_ACTION_HASH, DELIM_NOT_LAST, DELIM_NOT_FIRST, QUERY_ACTION_UPPERCASE
 from klibs.KLGraphics import blit, clear, fill, flip
 import klibs.KLParams as P
 from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump
-from klibs.KLUserInterface import ui_request
+from klibs.KLUserInterface import ui_request, any_key
 
 global user_queries
 global block_break_messages
@@ -78,7 +79,14 @@ def collect_demographics(anonymous=False):
 
 	# typical use; P.collect_demographics is True and called automatically by klibs
 	if not P.demographics_collected:
-		P.participant_id = db.insert()
+		try:
+			P.participant_id = db.insert()
+		except IntegrityError:
+			fill()
+			# todo: this will generally be a correct error message but in fact is a blanket catch-all for UNIQUE conflicts
+			message("That user already exists. Please try again.", location=P.screen_c, registration=5, flip_screen=True)
+			any_key()
+			return collect_demographics(anonymous)
 		P.demographics_collected = True
 	else:
 		#  The context for this is: collect_demographics is set to false but then explicitly called later

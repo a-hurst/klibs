@@ -4,6 +4,7 @@ import abc
 import aggdraw
 from sdl2 import SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDLK_c, SDLK_v
 
+from klibs.KLExceptions import TrialException
 from  klibs.KLNamedObject import *
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, RC_FIXATION, RC_MOUSEDOWN, RC_MOUSEUP, \
@@ -436,6 +437,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 
 	def __init__(self):
 		super(DrawResponse, self).__init__(RC_DRAW)
+		BoundaryInspector.__init__(self)
 		self.points = []
 		self.stop_boundary = None
 		self.start_boundary = None
@@ -481,26 +483,37 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		if not self.started:
 			if self.within_boundary(self.start_boundary, mp):
 				self.started = True
-		if self.started and not self.start_time:
-			self.start_time = self.evm.trial_time
+				self.start_time = P.clock.trial_time
+
+		# if boundaries, test for completion condition
 		if self.within_boundary(self.stop_boundary, mp):
 			if self.stop_eligible and not self.stopped:
 				self.stopped = True
-				self.responses.append([self.points, self.evm.trial_time])
+				try:
+					self.responses.append([self.points, self.points[-1][2] - self.points[0][2]])
+				except IndexError:
+					raise TrialException("Too few points.")
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
-		if not self.within_boundary(self.start_boundary, mp) and not self.stop_eligible and self.started:
-			self.stop_eligible = True
-		if self.started and not self.stopped: # and self.within_boundary(mp, self.canvas_boundary):
-			timestamp = self.evm.trial_time - self.start_time
-			trial_time = self.evm.trial_time
+		# don't allow checking for stopped condition until started and outside of start boundary
+		self.stop_eligible = not self.within_boundary(self.start_boundary, mp) and self.started
+		if self.stop_eligible:
+			try:
+				timestamp = P.clock.trial_time - self.first_sample_time
+			except TypeError:
+				self.first_sample_time = P.clock.trial_time
+				timestamp = 0.0
+			p = [mp[0] - self.x_offset, mp[1] - self.y_offset]
+			if tuple(p) in P.ignore_points_at:
+				return
+			p.append(timestamp)
 			try:
 				# don't repeat points
 				if mp != self.points[-1]:
 					self.points.append(tuple(p))
 			except IndexError:
-					self.points.append(tuple(p))
+				self.points.append(tuple(p))
 
 	def reset(self):
 		self.responses = []

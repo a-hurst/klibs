@@ -134,5 +134,9 @@ class IndependentVariableSet(NamedInventory):
 		"""
 		return [iv.to_list() for iv in self.enabled]
 
+	def delete(self, ivar_old):
+		self.__delitem__(ivar_old)
+
+
 
 

@@ -149,7 +149,7 @@ class TrialFactory(object):
 			blocks.append(block.tolist())
 		return blocks
 
-	def generate(self):
+	def generate(self, exp_factors=None):
 		"""
 
 
@@ -157,13 +157,17 @@ class TrialFactory(object):
 		import sys
 		from imp import load_source
 
-		sys.path.append(P.ind_vars_file_path)
-		for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
-			# if isinstance(v, IndependentVariableSet):
-			try:
-				self.exp_factors = v.to_list()
-			except (AttributeError, TypeError):
-				pass
+		if not exp_factors:
+			sys.path.append(P.ind_vars_file_path)
+			for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
+				# if isinstance(v, IndependentVariableSet):
+				try:
+					self.exp_factors = v.to_list()
+				except (AttributeError, TypeError):
+					pass
+		else:
+			self.exp_factors = exp_factors.to_list()
+
 		try:
 			self.blocks = self.trial_generator(self.exp_factors)
 		except TypeError:

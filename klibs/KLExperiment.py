@@ -306,11 +306,11 @@ class Experiment(EnvAgent):
 		if not self.initialized:
 			self.quit()
 
-		if P.collect_demographics:
-			if not P.demographics_collected:
-				collect_demographics()
-		elif not P.demographics_collected:  # ie. anonymously, for dev. mode or when P.collect_demographics = False
-			collect_demographics(True)
+		# if P.collect_demographics:
+		# 	if not P.demographics_collected:
+		# 		collect_demographics()
+		# elif not P.demographics_collected:  # ie. anonymously, for dev. mode or when P.collect_demographics = False
+		# 	collect_demographics(True)
 
 		if not P.development_mode:
 			version_dir = join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))

@@ -314,7 +314,10 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 			P.eye_tracker_available = False
 		reload(KLEyeLink)
 		env.el = KLEyeLink.EyeLinkExt()
-			
+
+	if not P.labjack_available:
+		P.labjacking = False
+
 	env.txtm = TextManager()
 	env.tk = TimeKeeper()
 	try:
@@ -343,7 +346,8 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		init_messaging()
 
 		# create an anonymous user if not collecting demographic information
-		collect_demographics(not P.collect_demographics or P.development_mode)
+		if not P.manual_demographics_collection:
+			collect_demographics(not P.collect_demographics or P.development_mode)
 
 		# off to the races team...
 		env.exp.run()

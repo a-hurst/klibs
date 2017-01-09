@@ -162,7 +162,7 @@ class TrialFactory(object):
 
 		sys.path.append(P.ind_vars_file_path)
 		for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
-			if k == P.ind_vars_file_name:
+			if k == P.ind_vars_filename:
 				self.exp_factors = v.to_list()
 		try:
 			self.blocks = self.trial_generator(self.exp_factors)

@@ -81,6 +81,7 @@ database = None
 id_field_name = "participant_id"
 collect_demographics = True
 demographics_collected = False
+manual_demographics_collection = False
 
 # eye tracking
 eye_tracking = False

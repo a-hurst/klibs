@@ -51,7 +51,7 @@ def argb32_to_rgba(np_array):
 		return out
 
 
-def blit(source, registration=7, location=(0,0), position=None):
+def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 		"""
 		Draws passed content to display buffer.
 
@@ -91,6 +91,9 @@ def blit(source, registration=7, location=(0,0), position=None):
 			return blit(NpS(source), registration, location, position)
 		else:
 			raise TypeError("Argument 'source' must be np.ndarray, klibs.KLNumpySurface.NumpySurface, or inherit from klibs.KLDraw.Drawbect.")
+
+		if flip_x:
+			content = np.fliplr(content)
 
 		# configure OpenGL for blit
 		gl.glEnable(gl.GL_BLEND)

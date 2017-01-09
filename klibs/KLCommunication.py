@@ -64,13 +64,6 @@ def collect_demographics(anonymous=False):
 	# ie. demographic questions aren't being asked for this experiment
 	if not P.collect_demographics and not anonymous: return
 
-	if P.collect_demographics:
-		if P.multi_session_project:
-			id_str = query(
-				"If you have already created an id for this experiment, please enter it now. Otherwise press 'return'.",
-				password=True, accepted=ALL)
-			if id_str:
-				return exp.init_session(id_str)
 
 	# first insert required, automatically-populated fields
 	db.init_entry('participants', instance_name='ptcp', set_current=True)
@@ -93,8 +86,12 @@ def collect_demographics(anonymous=False):
 
 	# unset the current DB entry and initialize the session for multi-session projects
 	db.current(False)
-	if P.collect_demographics and P.multi_session_project:
-		exp.init_session()
+
+	if P.multi_session_project and not P.manual_demographics_collection:
+		try:
+			exp.init_session()
+		except:
+			pass
 
 
 def init_messaging():
@@ -218,9 +215,12 @@ def query(query_ob, anonymous=False):
 	f = query_ob.format
 	if f.type in ("int", "float", "str", "bool"):
 		f.type = eval(f.type)
+	elif f.type in (int, float, str, bool):
+		pass
 	elif f.type is None:
 		pass
 	else:
+		print f.type
 		e_msg = "Invalid data type for query '{0}'".format(query_ob.title)
 		raise ValueError(e_msg)
 	p = f.positions
@@ -282,7 +282,7 @@ def query(query_ob, anonymous=False):
 
 			# handle user indicating that they're finished
 			if sdl_keysym in (SDLK_KP_ENTER, SDLK_RETURN):  # ie. if enter or return
-				if len(input_string):
+				if len(input_string) or query_ob.allow_null:
 					if f.type == "int":
 						try:
 							input_string = int(input_string)

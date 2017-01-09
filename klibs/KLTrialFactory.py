@@ -10,7 +10,7 @@ import numpy as np
 
 from klibs.KLConstants import TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC, TF_STIM_FILE, TF_FACTOR
 from klibs import P
-
+from klibs.KLIndependentVariable import IndependentVariableSet
 
 class BlockIterator(object):
 	def __init__(self, blocks):
@@ -105,8 +105,6 @@ class TrialFactory(object):
 		:param trial_generator:
 		"""
 		self.trial_generator = trial_generator
-		self.param_weight_search = compile("^.*[ ]*\[([0-9]{1,3})\]$")
-		self.param_label_search = compile("^(.*)([ ]*\[[0-9]{1,3}\])$")
 
 	def __generate_trials__(self, factors=None, block_count=None, trial_count=None):
 		#  by default just process self.exp_parameters, but, if a well-formatted factor list is passed, use that
@@ -115,7 +113,6 @@ class TrialFactory(object):
 
 		trial_tuples = list(product(*[factor[1][:] for factor in factors]))
 		if len(trial_tuples) == 0: trial_tuples = [ [] ]
-
 		# convert each trial tuple to list and insert at the front of it a boolean indicating if it is a practice trial
 		trial_set = []
 		for t in trial_tuples:
@@ -162,8 +159,11 @@ class TrialFactory(object):
 
 		sys.path.append(P.ind_vars_file_path)
 		for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
-			if k == P.ind_vars_filename:
+			# if isinstance(v, IndependentVariableSet):
+			try:
 				self.exp_factors = v.to_list()
+			except (AttributeError, TypeError):
+				pass
 		try:
 			self.blocks = self.trial_generator(self.exp_factors)
 		except TypeError:

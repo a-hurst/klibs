@@ -304,6 +304,7 @@ class Experiment(EnvAgent):
 		:param kwargs:
 		"""
 		if not self.initialized:
+			print "here"
 			self.quit()
 
 		# if P.collect_demographics:

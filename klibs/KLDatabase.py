@@ -428,9 +428,10 @@ class Database(EnvAgent):
 		except AttributeError:
 			self.cursor.execute(self.query_str_from_raw_data(table, data))
 		except sqlite3.OperationalError:
-			full_trace()
+			print full_trace()
+			print "\n\n"
 			print "Tried to match the following:\n\t{0}\nwith\n\t{1}".format(self.table_schemas[table], data.insert_query())
-			self.experiment.quit()
+			self.exp.quit()
 		self.db.commit()
 		return self.cursor.lastrowid
 

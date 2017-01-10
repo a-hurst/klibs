@@ -6,7 +6,7 @@ from sdl2 import SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP,
 
 from klibs.KLExceptions import TrialException
 from  klibs.KLNamedObject import *
-from klibs.KLEnvironment import EnvAgent
+from klibs.KLEnvironment import EnvAgent, evm
 from klibs.KLConstants import RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, RC_FIXATION, RC_MOUSEDOWN, RC_MOUSEUP, \
 	RC_SACCADE, NO_RESPONSE, EL_SACCADE_START, EL_SACCADE_END, STROKE_INNER, MAX_WAIT, TIMEOUT, TK_S, TK_MS
 from klibs import P
@@ -483,7 +483,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		if not self.started:
 			if self.within_boundary(self.start_boundary, mp):
 				self.started = True
-				self.start_time = P.clock.trial_time
+				self.start_time = self.evm.trial_time
 
 		# if boundaries, test for completion condition
 		if self.within_boundary(self.stop_boundary, mp):
@@ -500,9 +500,9 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.stop_eligible = not self.within_boundary(self.start_boundary, mp) and self.started
 		if self.stop_eligible:
 			try:
-				timestamp = P.clock.trial_time - self.first_sample_time
+				timestamp = self.evm.trial_time - self.first_sample_time
 			except TypeError:
-				self.first_sample_time = P.clock.trial_time
+				self.first_sample_time = self.evm.trial_time
 				timestamp = 0.0
 			p = [mp[0] - self.x_offset, mp[1] - self.y_offset]
 			if tuple(p) in P.ignore_points_at:

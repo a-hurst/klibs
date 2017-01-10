@@ -334,6 +334,7 @@ def linear_intersection(line_1, line_2):
 	d = (determinant(*l1_xy[0:2]), determinant(*l2_xy[0:2]))
 	return (determinant(d, d_x) / div, determinant(d, d_y) / div)
 
+
 def line_segment_len(a, b):
 	dy = b[1] - a[1]
 	dx = b[0] - a[0]
@@ -599,6 +600,7 @@ def threaded(func):
 
 def type_str(var):
 	return type(var).__name__
+
 
 def acute_angle(vertex, p1, p2):
 	v_p1 = line_segment_len(vertex, p1)

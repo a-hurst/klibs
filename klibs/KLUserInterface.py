@@ -85,6 +85,7 @@ def ui_request(key_press=None, execute=True, queue=None):
 							return [True, "pause" if not P.paused else "unpause"]
 		return False
 
+
 def pause():
 		"""
 		``broken`` ``heavy_modification_planned`` ``backwards_compatibility_expected``

@@ -77,13 +77,6 @@ class Experiment(EnvAgent):
 
 		self.initialized = True
 
-	def show_logo(self):
-		fill()
-		blit(P.logo_file_path, 5, P.screen_c)
-		flip()
-		any_key()
-
-
 	def __execute_experiment__(self, *args, **kwargs):
 		"""
 		Private method, launches and manages the experiment after KLExperiment object's run() method is called.
@@ -325,7 +318,7 @@ class Experiment(EnvAgent):
 					self.el.setup()
 			except AttributeError:
 				self.el.setup()
-			
+
 		self.blocks = self.trial_factory.export_trials()
 		self.setup()
 		try:
@@ -334,6 +327,12 @@ class Experiment(EnvAgent):
 			force_quit()
 
 		self.quit()
+
+	def show_logo(self):
+		fill()
+		blit(P.logo_file_path, 5, P.screen_c)
+		flip()
+		any_key()
 
 	@abstractmethod
 	def clean_up(self):

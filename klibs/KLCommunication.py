@@ -82,6 +82,7 @@ def collect_demographics(anonymous=False):
 	if not P.demographics_collected:
 		try:
 			P.participant_id = db.insert()
+			P.p_id = P.participant_id   # short hand for long queries
 		except IntegrityError:
 			fill()
 			# todo: this will generally be a correct error message but in fact is a blanket catch-all for UNIQUE conflicts

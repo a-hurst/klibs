@@ -29,6 +29,9 @@ class IndependentVariable(NamedObject):
 		self.enabled = True
 		self.data_type = data_type
 
+	def __str__(self):
+		return "klibs.IndependentVariable, ({0} entries at {2})".format(len(self.values), self.height, hex(id(self)))
+
 	def add_value(self, name, distribution=1):
 		"""
 

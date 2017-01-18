@@ -411,6 +411,7 @@ def rebuild_db(path):
 
 
 def hard_reset(path):
+	# todo: rewrite this entire thing, it's a hot mess now and no longer applies to the currnet klibs dir structre
 	from klibs.KLUtilities import iterable
 	#todo: require confirmation
 	for d in ['Data', 'EDF', '.versions', ('Local', 'logs')]:

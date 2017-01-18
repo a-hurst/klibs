@@ -76,6 +76,7 @@ calibrate_with_audio = True
 calibrate_targets = 9
 
 participant_id = None
+p_id = None
 database = None
 
 

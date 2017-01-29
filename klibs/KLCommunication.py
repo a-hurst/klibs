@@ -10,7 +10,7 @@ from klibs.KLConstants import AUTO_POS,BL_CENTER, BL_TOP, BL_TOP_LEFT, BL_TOP_RI
 	BL_BOTTOM_LEFT, BL_BOTTOM_RIGHT, ALL, QUERY_ACTION_HASH, DELIM_NOT_LAST, DELIM_NOT_FIRST, QUERY_ACTION_UPPERCASE
 from klibs.KLGraphics import blit, clear, fill, flip
 import klibs.KLParams as P
-from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump
+from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump, flush
 from klibs.KLUserInterface import ui_request, any_key
 
 global user_queries
@@ -270,6 +270,7 @@ def query(query_ob, anonymous=False):
 	blit_question()
 
 	# user input loop; exited by breaking
+	flush()
 	SDL_PumpEvents()
 	user_finished = False
 
@@ -347,6 +348,8 @@ def query(query_ob, anonymous=False):
 			return sha1(str(input_string)).hexdigest()
 		elif f.action == QUERY_ACTION_UPPERCASE:
 			return str(input_string).upper()
+		elif query_ob.allow_null and len(input_string) == 0:
+			return None
 		else:
 			return str(input_string)
 	elif f.type is float:

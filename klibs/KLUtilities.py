@@ -569,16 +569,6 @@ def safe_flag_string(flags, prefix=None, uc=True):
 	return eval(flag_string)
 
 
-def snake_to_camel(string):
-	words = string.split('_')
-	return words[0] + "".join(x.title() for x in words[1:])
-
-
-def snake_to_title(string):
-	words = string.split('_')
-	return words[0] + "".join(x.title() for x in words)
-
-
 def sdl_key_code_to_str(sdl_keysym):
 	key_name = SDL_GetKeyName(sdl_keysym).replace("Keypad ", "")
 	if key_name in MOD_KEYS:  # TODO: probably use sdl keysyms as keys instead of key_names
@@ -589,6 +579,23 @@ def sdl_key_code_to_str(sdl_keysym):
 		key_name = key_name.lower()
 	return key_name if len(key_name) == 1 else False  # to cover all keys that aren't alphanumeric or handled here
 
+
+def snake_to_camel(string):
+	words = string.split('_')
+	return words[0] + "".join(x.title() for x in words[1:])
+
+
+def snake_to_title(string):
+	words = string.split('_')
+	return words[0] + "".join(x.title() for x in words)
+
+
+def str_pad(string, str_len, pad_char=" ", pad_dir="r"):
+	pad_len = str_len - len(string)
+	if pad_len < 1:
+		raise ValueError("Desired string length shorter current string.")
+	padding = "".join([pad_char] * pad_len)
+	return string+padding if pad_dir == "r" else padding+string
 
 def threaded(func):
 	def threaded_func(*args, **kwargs):
@@ -601,6 +608,53 @@ def threaded(func):
 def type_str(var):
 	return type(var).__name__
 
+
+def unicode_to_str(content):
+		"""
+
+		:param content:
+		:return:
+		"""
+		import unicodedata
+
+		if type(content) is unicode:
+			# convert string to ascii
+			converted = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
+
+			# convert JS booleans to Python booleans
+			if converted in ("true", "false"):
+				converted = converted == "true"
+
+		# elif type(content) in (list, dict):
+		elif iterable(content):
+			#  manage dicts first
+			try:
+				converted = {}  # converted output for this level of the data
+				for k in content:
+					v = content[k]  # ensure the keys are ascii strings
+					if type(k) is unicode:
+						k = unicode_to_str(k)
+					if type(v) is unicode:
+						converted[k] = unicode_to_str(v)
+					elif iterable(v):
+						converted[k] = unicode_to_str(v)
+					else:
+						converted[k] = v
+
+			except (TypeError, IndexError):
+				converted = []
+				for i in content:
+					if type(i) is unicode:
+						converted.append(unicode_to_str(i))
+					elif iterable(i):
+						converted.append(unicode_to_str(i))
+					else:
+						converted.append(i)
+
+		else:
+			# assume it's numeric
+			return content
+		return converted
 
 def acute_angle(vertex, p1, p2):
 	v_p1 = line_segment_len(vertex, p1)

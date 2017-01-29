@@ -11,7 +11,7 @@ from klibs import P
 from klibs.KLConstants import DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, TAB, ID, SQL_NULL, SQL_COL_DELIM_STR, PY_FLOAT, \
 	PY_NUM, PY_BIN, PY_INT, PY_STR, SQL_INT, SQL_FLOAT, SQL_STR, SQL_NUMERIC, SQL_KEY, SQL_REAL, SQL_BIN, QUERY_SEL, \
 	DATA_EXT
-from klibs.KLUtilities import bool_to_int, boolean_to_logical, full_trace, type_str, snake_to_camel, iterable
+from klibs.KLUtilities import bool_to_int, boolean_to_logical, full_trace, type_str, snake_to_camel, iterable, unicode_to_str
 from klibs.KLUtilities import colored_stdout as cso
 
 class EntryTemplate(object):
@@ -246,15 +246,15 @@ class Database(EnvAgent):
 
 				# convert sqlite3 types to python types
 				for col in columns:
-					if col[2] == SQL_STR:
+					if col[2].lower() == SQL_STR:
 						col_type = PY_STR
-					elif col[2] == SQL_BIN:
+					elif col[2].lower() == SQL_BIN:
 						col_type = PY_BIN
-					elif col[2] in (SQL_INT, SQL_KEY):
+					elif col[2].lower() in (SQL_INT, SQL_KEY):
 						col_type = PY_INT
-					elif col[2] in (SQL_FLOAT, SQL_REAL):
+					elif col[2].lower() in (SQL_FLOAT, SQL_REAL):
 						col_type = PY_FLOAT
-					elif col[2] == SQL_NUMERIC:
+					elif col[2].lower() == SQL_NUMERIC:
 						 col_type = PY_NUM
 					else:
 						raise ValueError("Invalid or unsupported type ({0}) for {1}.{2}'".format(col[2], table, col[1]))
@@ -265,7 +265,7 @@ class Database(EnvAgent):
 		return True
 
 	def collect_export_data(self, multi_file=True,  join_tables=[]):
-		participant_ids = self.query("SELECT `id`, `userhash` FROM `participants`").fetchall()
+		participant_ids = self.query("SELECT `id`, `userhash` FROM `participants`")
 		participant_ids.insert(0, (-1,))  # for test data collected before anonymous_user added to collect_demographics()
 		default_fields = P.default_participant_fields if multi_file else P.default_participant_fields_sf
 
@@ -304,8 +304,7 @@ class Database(EnvAgent):
 			q += " WHERE `trials`.`participant_id` = ?"
 			q = q.format(*q_vars)
 			p_data = []
-			print q, p
-			for trial in self.query(q, q_vars=tuple([p[0]])).fetchall():
+			for trial in self.query(q, q_vars=tuple([p[0]])):
 				row_str = TAB.join(str(col) for col in trial)
 				if p[0] == -1: row_str = TAB.join([P.default_demo_participant_str, row_str])
 				p_data.append(row_str) if multi_file else data.append(row_str)
@@ -328,12 +327,8 @@ class Database(EnvAgent):
 	def empty(self, table):
 		pass
 
-	def exists(self, table, column, value, value_type=SQL_STR):
-		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL, SQL_NUMERIC]:
-			query_str = "SELECT * FROM `{0}` WHERE `{1}` = {2}".format(table, column, value)
-		else:
-			query_str = "SELECT * FROM `{0}` WHERE `{1}` = '{2}'".format(table, column, value)
-		return len(self.query(query_str, QUERY_SEL, True).fetchall()) > 0
+	def exists(self, table, column, value):
+		return len(self.query("SELECT * FROM `?` WHERE `?` = ?", QUERY_SEL, q_vars=[table, column, value])) > 0
 
 	def export(self, multi_file=True, join_tables=None):
 
@@ -373,8 +368,8 @@ class Database(EnvAgent):
 		klibs_vars = [ "KLIBS INFO", ["KLIBs Commit", P.klibs_commit]]
 		try:
 			if user_id:  # if building a header for a single participant, include the random seed
-				q = "SELECT `random_seed` from `participants` WHERE `participants`.`id` = '{0}'".format(user_id)
-				klibs_vars.append(["random_seed", self.query(q).fetchall()[0][0]])
+				q = "SELECT `random_seed` from `participants` WHERE `participants`.`id` = ?"
+				klibs_vars.append(["random_seed", self.query(q, q_vars=[user_id])[0][0]])
 		except sqlite3.OperationalError:
 			pass  # older klibs databases won't have this column
 		eyelink_vars = [ "EYELINK SETTINGS",
@@ -435,25 +430,15 @@ class Database(EnvAgent):
 		self.db.commit()
 		return self.cursor.lastrowid
 
-	def is_unique(self, table, column, value, value_type=SQL_STR):
-		if value_type in [SQL_FLOAT, SQL_INT, SQL_REAL, SQL_NUMERIC]:
-			query_str = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
-		else:
-			query_str = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
-		return len(self.query(query_str, QUERY_SEL, [value], True).fetchall()) == 0
+	def is_unique(self, table, column, value):
+			return len(self.query("SELECT * FROM `?` WHERE `?` = ?", q_vars=[table, column, value])) == 0
 
-	def last_id_from(self, table, id_column='id'):
+	def last_id_from(self, table):
 		if not table in self.table_schemas:
 			raise ValueError("Table '{0}' not found in current database".format(table))
-
-		found = False
-		for col in self.table_schemas[table]:
-			if col[0] == id_column:
-				found = True
-		if not found:
-			raise ValueError("Table '{0}' does not have column '{1}'.".format(table, id_column))
-		query = "SELECT max(`{0}`) from `{1}`".format(id_column, table)
-		return self.query(query).fetchall()[0][0]
+		# dunno why, but this does NOT work if the format statement isn't used in place of a proper SQL var
+		# return self.query("SELECT max(?) from `{0}` WHERE `participant_id`=?".format(table), q_vars=['id'])[0][0]
+		return self.query("SELECT max({0}) from `{1}` WHERE `participant_id`={2}".format('id', table, P.participant_id))[0][0]
 
 	def log(self, field, value, instance=None, set_to_current=True):
 		# convert boolean strings/boolean literals to uppercase boolean strings for R
@@ -471,7 +456,7 @@ class Database(EnvAgent):
 
 	def p_filename_str(self, participant_id, multi_file=False, incomplete=False, duplicate_count=None):
 			if multi_file:
-		 		created = str(self.query("SELECT `created` FROM `participants` WHERE `id` = {0}".format(1)).fetchone()[0][:10])
+		 		created = str(self.query("SELECT `created` FROM `participants` WHERE `id` = ?", q_vars=[1], fetch_all=False).fetchone()[0][:10])
 			fname = "p{0}.{1}".format(str(participant_id), created) if multi_file else "{0}_all_trials".format(P.project_name)
 			if duplicate_count: fname += "_{0}".format(duplicate_count)
 			if incomplete: fname += "_incomplete"
@@ -481,15 +466,21 @@ class Database(EnvAgent):
 			else:
 				return [fname, join(P.data_path, fname)]
 
-	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True):
-		try:
+	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
+		if q_vars:
 			result = self.cursor.execute(query, tuple(q_vars))
-		except:
-			if q_vars:
-				full_trace()
+		else:
 			result = self.cursor.execute(query)
+		# try:
+		# except:
+		# 		full_trace()
 		if query_type != QUERY_SEL: self.db.commit()
-		return result if return_result else True
+		if return_result:
+			if fetch_all:
+				return unicode_to_str(result.fetchall())
+			else:
+				return result
+		return True
 
 	def query_str_from_raw_data(self, table, data):
 		try:

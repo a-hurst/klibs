@@ -282,6 +282,12 @@ class Experiment(EnvAgent):
 
 		SDL_Quit()
 
+		# temporary lines added for certain experiments using a log file
+		try:
+			self.log_f.close()
+		except AttributeError:
+			pass
+
 		try:
 			self.evm.terminate()
 		except RuntimeError:
@@ -328,15 +334,15 @@ class Experiment(EnvAgent):
 
 		self.quit()
 
+	@abstractmethod
+	def clean_up(self):
+		return
+
 	def show_logo(self):
 		fill()
 		blit(P.logo_file_path, 5, P.screen_c)
 		flip()
 		any_key()
-
-	@abstractmethod
-	def clean_up(self):
-		return
 
 	@abstractmethod
 	def display_refresh(self):

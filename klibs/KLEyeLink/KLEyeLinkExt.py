@@ -6,7 +6,7 @@ from klibs import PYLINK_AVAILABLE
 
 if PYLINK_AVAILABLE:
 	from pylink import EyeLink, openGraphics, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode, EyeLinkCustomDisplay, KeyInput, \
-						DC_TARG_BEEP, CAL_TARG_BEEP, CAL_ERR_BEEP, DC_ERR_BEEP, ENTER_KEY, ESC_KEY
+						DC_TARG_BEEP, CAL_TARG_BEEP, CAL_ERR_BEEP, DC_ERR_BEEP, ENTER_KEY, ESC_KEY, endRealTimeMode, pumpDelay
 
 	from pylink.tracker import Sample, EndSaccadeEvent, EndFixationEvent, StartFixationEvent, StartSaccadeEvent
 
@@ -38,13 +38,13 @@ if PYLINK_AVAILABLE:
 	class EyeLinkExt(EyeLink, EnvAgent, BoundaryInspector):
 		__anonymous_boundaries__ = 0
 		__gaze_boundaries__ = {}
+		__eye_used__ = None
 		gaze_dot = None
 		experiment = None
 		custom_display = None
 		dc_width = None  # ie. drift-correct width
 		edf_filename = None
 		unresolved_exceptions = 0
-		eye = None
 		start_time = [None, None]
 		draw_gaze = False
 
@@ -117,7 +117,7 @@ if PYLINK_AVAILABLE:
 		def clear_queue(self):
 			self.resetData()
 
-		def drift_correct(self, location=None, boundary=None, el_draw_fixation=EL_FALSE, samples=EL_TRUE, fill_color=None):
+		def drift_correct(self, location=None, boundary=None, el_draw_fixation=EL_FALSE, samples=EL_TRUE, fill_color=None, target_img=None):
 			"""
 			:param location:
 			:param el_draw_fixation:
@@ -140,7 +140,7 @@ if PYLINK_AVAILABLE:
 			try:
 				if el_draw_fixation == EL_FALSE:
 					fill(P.default_drift_correct_fill_color if not fill_color else fill_color)
-					blit(drift_correct_target(), 5, location)
+					blit(drift_correct_target() if target_img is None else target_img, 5, location)
 					flip()
 				self.doDriftCorrect(location[0], location[1], el_draw_fixation, samples)
 				clear()
@@ -234,8 +234,9 @@ if PYLINK_AVAILABLE:
 		def in_setup(self):
 			return self.inSetup() != 0
 
-		def now(self):
-			return self.trackerTime()
+		def now(self, unit=TK_MS):
+			time = self.trackerTime()
+			return time if unit == TK_MS else time * 0.001
 
 		def saccade_to_boundary(self, label, valid_events=EL_SACCADE_END, event_queue=None,
 								  report=EL_TIME_START, inspect=EL_GAZE_END, return_queue=False):
@@ -336,7 +337,12 @@ if PYLINK_AVAILABLE:
 				return False
 
 		def stop(self):
+			endRealTimeMode()
+			pumpDelay(100)
 			self.stopRecording()
+			self.sendMessage("TRIAL OK")
+			while self.getkey():
+				pass
 
 		def shut_down(self):
 			if self.isRecording() == 0:
@@ -385,7 +391,13 @@ if PYLINK_AVAILABLE:
 		def listen(self, **kwargs):
 			pass
 
+		@property
+		def eye(self):
+			return self.eyeAvailable()
 
+		@eye.setter
+		def eye(self, eye_used):
+			self.__eye_used__ = eye_used
 		# Everything from here down are legacy functions that wrap newer counterparts with different names for
 		# backwards compatibility
 

@@ -295,6 +295,24 @@ class NumpySurface(object):
 
 		return self
 
+	def rotate(self, angle, layer=None):
+	# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
+		if not self.has_content():
+			return
+
+		if layer == NS_FOREGROUND or layer is None:
+			try:
+				layer_image = Image.fromarray(self.foreground.astype(np.uint8))
+				scaled_image = layer_image.Image.rotate(angle, Image.ANTIALIAS)
+				self.foreground = np.asarray(scaled_image)
+			except AttributeError as e:
+				if e.message != "'NoneType' object has no attribute '__array_interface__'":
+					raise e
+			except TypeError:
+				pass
+		self.__update_shape__()
+		return self
+
 	def layer_from_file(self, image, layer=NS_FOREGROUND, position=None):
 		# todo: better error handling; check if the file has a valid image extension, make sure path is a valid type
 		"""

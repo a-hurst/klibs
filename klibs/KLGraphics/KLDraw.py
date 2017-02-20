@@ -66,7 +66,7 @@ colors = load_source("*", join(P.klibs_dir, "color_wheel_color_list.py")).colors
 class Drawbject(object):
 	transparent_brush = Brush((255, 0, 0), 0)
 
-	def __init__(self, width, height, stroke, fill):
+	def __init__(self, width, height, stroke, fill, rotation=0):
 		super(Drawbject, self).__init__()
 
 		self.__stroke = None
@@ -82,7 +82,7 @@ class Drawbject(object):
 		self.surface_height = None
 		self.surface = None
 		self.rendered = None
-
+		self.rotation = rotation
 		try:
 			iter(stroke)
 			self.stroke = stroke
@@ -115,9 +115,10 @@ class Drawbject(object):
 		self.surface.setantialias(True)
 
 	def render(self):
+		from PIL.Image import BICUBIC
 		self.init_surface()
 		self.draw()
-		surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tostring())
+		surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tostring()).rotate(self.rotation, BICUBIC, True)
 		self.rendered = NpS(asarray(surface_bytes)).render()
 		return self.rendered
 
@@ -337,28 +338,50 @@ class Rectangle(Drawbject):
 
 class Asterisk(Drawbject):
 
-	def __init__(self, size, color, stroke=1, auto_draw=True):
-		stroke = int(0.2 * size)
+	def __init__(self, size, color, stroke=1):
 		super(Asterisk, self).__init__(size, size, (stroke, color), fill=None)
 		self.size = size
-		if auto_draw:
-			self.draw()
+
 
 	def draw(self, as_numpy_surface=False):
 		x_os = int(self.surface_width * 0.925)
 		y_os = int(self.surface_height * 0.75)
-		l1 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height - 1]
-		l2 = [x_os + 1, y_os, self.surface_width - x_os + 1, self.surface_height - y_os]
-		l3 = [self.surface_width - x_os + 1, y_os, x_os + 1, self.surface_height - y_os]
-		self.surface.line([l1[0], l1[1], l1[2],l1[3]], self.stroke)
-		self.surface.line([l2[0], l2[1], l2[2],l2[3]], self.stroke)
-		self.surface.line([l3[0], l3[1], l3[2],l3[3]], self.stroke)
+		l1 = [x_os + 1, y_os + 1, self.surface_width - x_os + 1, self.surface_height - y_os + 1]
+		l2 = [self.surface_width - x_os + 1, y_os + 1, x_os + 1, self.surface_height - y_os + 1]
+		l3 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height + 1]
+		self.surface.line((l1[0], l1[1], l1[2],l1[3]), self.stroke)
+		self.surface.line((l2[0], l2[1], l2[2],l2[3]), self.stroke)
+		self.surface.line((l3[0], l3[1], l3[2],l3[3]), self.stroke)
 
-		return self
+		return self.surface
 
 	@property
 	def __name__(self):
 		return "Asterisk"
+
+
+class Asterisk2(Drawbject):
+
+	def __init__(self, size, color, stroke=1):
+		super(Asterisk2, self).__init__(size, size, (stroke, color), fill=None)
+		self.size = size
+
+
+	def draw(self, as_numpy_surface=False):
+		l1 = [1, 1, self.surface_width + 1, self.surface_height + 1]
+		l2 = [self.surface_width + 1, 1, 1, self.surface_height + 1]
+		l3 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height + 1]
+		l4 = [1, self.surface_height // 2 + 1, self.surface_width + 1, self.surface_height // 2 + 1]
+		self.surface.line((l1[0], l1[1], l1[2],l1[3]), self.stroke)
+		self.surface.line((l2[0], l2[1], l2[2],l2[3]), self.stroke)
+		self.surface.line((l3[0], l3[1], l3[2],l3[3]), self.stroke)
+		self.surface.line((l4[0], l4[1], l4[2],l4[3]), self.stroke)
+
+		return self.surface
+
+	@property
+	def __name__(self):
+		return "Asterisk2"
 
 
 class Line(Drawbject):
@@ -398,6 +421,51 @@ class Line(Drawbject):
 		return self.surface
 
 
+class Triangle(Drawbject):
+
+	def __init__(self, base, height, rotation=0, stroke=None, fill=None):
+		self.base = base
+		self.height = height
+		self.rotation = rotation
+
+		super(Triangle, self).__init__(base, height, stroke, fill, rotation)
+
+	def draw(self, as_numpy_surface=False):
+		self.surface.polygon((1, 1, self.base // 2 + 1, self.height + 1, self.base + 1, 1), self.stroke, self.fill)
+
+	@property
+	def __name__(self):
+		return "Triangle"
+
+class Arrow(Drawbject):
+	def __init__(self, tail_w, tail_h, head_w, head_h, rotation=0, stroke=None, fill=None):
+		self.tail_w = tail_w
+		self.tail_h = tail_h
+		self.head_h = head_h
+		self.head_w = head_w
+		surf_x = self.head_w + self.tail_w
+		surf_y = self.head_h if head_h > tail_h else tail_h
+		super(Arrow, self).__init__(surf_x, surf_y, stroke, fill, rotation)
+
+
+	def draw(self, as_numpy_surface=False):
+		surf_cy = self.head_h // 2 if self.head_h > self.tail_h else self.tail_h // 2
+		pts = []
+		# start the tail
+		pts += [1, (surf_cy - self.tail_h // 2) + 1]
+		pts += [self.tail_w + 1, (surf_cy - self.tail_h // 2) + 1]
+		# # draw the head
+		pts += [self.tail_w + 1, (surf_cy - self.head_h // 2) + 1]
+		pts += [self.tail_w + self.head_w + 1, surf_cy + 1]
+		pts += [self.tail_w + 1, (surf_cy + self.head_h // 2) + 1]
+		# finish the tail
+		pts += [self.tail_w + 1, (surf_cy + self.tail_h // 2) + 1]
+		pts += [1, (surf_cy +  self.tail_h // 2) + 1]
+		self.surface.polygon(pts, self.stroke, self.fill)
+
+		@property
+		def __name__(self):
+			return "Arrow"
 
 class ColorWheel(Drawbject):
 

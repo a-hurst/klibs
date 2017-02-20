@@ -23,7 +23,7 @@ from math import sin, cos, radians, pi, atan2, degrees
 
 from klibs.KLConstants import BL_RIGHT, BL_LEFT, BL_BOTTOM_RIGHT, BL_BOTTOM, BL_BOTTOM_LEFT, BL_TOP, \
 	BL_CENTER, BL_TOP_LEFT, BL_TOP_RIGHT, PARTICIPANT_FILE, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS, TF_DATA,\
-	EDF_EXT, EDF_FILE, DATETIME_STAMP, DATA_EXT, MOD_KEYS, DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP
+	EDF_EXT, EDF_FILE, DATETIME_STAMP, DATA_EXT, MOD_KEYS, DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP, TK_S, TK_MS
 from klibs import P
 from klibs import env
 
@@ -540,7 +540,7 @@ def pt_to_px(pt_size):
 
 
 def px_to_deg(length):  # length = px
-	return length / P.ppd
+	return int(length / P.ppd)
 
 
 def show_mouse_cursor():
@@ -596,6 +596,7 @@ def str_pad(string, str_len, pad_char=" ", pad_dir="r"):
 		raise ValueError("Desired string length shorter current string.")
 	padding = "".join([pad_char] * pad_len)
 	return string+padding if pad_dir == "r" else padding+string
+
 
 def threaded(func):
 	def threaded_func(*args, **kwargs):
@@ -655,6 +656,17 @@ def unicode_to_str(content):
 			# assume it's numeric
 			return content
 		return converted
+
+
+def smart_sleep(interval, units=TK_MS):
+	from klibs.KLUserInterface import ui_request
+	from time import time
+	if units == TK_MS:
+		interval *= .001
+	start = time()
+	while time() - start < interval:
+		ui_request()
+
 
 def acute_angle(vertex, p1, p2):
 	v_p1 = line_segment_len(vertex, p1)

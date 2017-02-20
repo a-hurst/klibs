@@ -164,5 +164,3 @@ class TimeKeeper(EnvAgent):
 		if label is not None:
 			self.countdowns[label] = countdown
 		return countdown
-
-

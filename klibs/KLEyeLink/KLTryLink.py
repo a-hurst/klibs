@@ -23,8 +23,10 @@ class TryLink(EnvAgent, BoundaryInspector):
 	dc_width = None  # ie. drift-correct width
 	edf_filename = None
 	unresolved_exceptions = 0
-	eye = None
 	start_time = [None, None]
+	__eye_used__ = None
+	last_mouse_pos = None
+	last_mouse_time = None
 
 	def __init__(self):
 		EnvAgent.__init__(self)
@@ -57,7 +59,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 	def clear_queue(self):
 		pass
 
-	def drift_correct(self, location=None, boundary=None,  el_draw_fixation=EL_TRUE, samples=EL_TRUE, fill_color=None):
+	def drift_correct(self, location=None, boundary=None,  el_draw_fixation=EL_TRUE, samples=EL_TRUE, fill_color=None, target_img=None):
 		"""
 
 		:param location:
@@ -77,7 +79,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 			event_queue = pump(True)
 			ui_request(queue=event_queue)
 			fill(P.default_drift_correct_fill_color if not fill_color else fill_color)
-			blit(drift_correct_target(), 5, location)
+			blit(drift_correct_target() if target_img is None else target_img, 5, location)
 			flip()
 			for e in event_queue:
 				if e.type == SDL_MOUSEBUTTONDOWN and super(TryLink, self).within_boundary(boundary, [e.button.x, e.button.y]):
@@ -116,13 +118,21 @@ class TryLink(EnvAgent, BoundaryInspector):
 		return [MouseEvent()]
 
 	def getNextData(self):
-		return MouseEvent()
+		e = MouseEvent()
+		e.star_pos = self.last_mouse_pos
+		e.start_time = self.last_mouse_time
+		self.last_mouse_pos = e.getGaze()
+		self.last_mouse_time = e.getStartTime()
+		return e
 
 	def in_setup(self):
 		return False
 
-	def now(self):
-		return self.evm.trial_time if self.evm.start_time else self.evm.timestamp
+	def now(self, unit=TK_MS):
+		if unit == TK_S:
+			return self.evm.trial_time if self.evm.start_time else self.evm.timestamp
+		else:
+			return self.evm.trial_time_ms if self.evm.start_time else self.evm.timestamp * 1000
 
 	def saccade_to_boundary(self, label, valid_events=None, event_queue=None,
 							report=None, inspect=None, return_queue=False):
@@ -200,26 +210,80 @@ class TryLink(EnvAgent, BoundaryInspector):
 	@abc.abstractmethod
 	def listen(self, **kwargs):
 		pass
-		
+
+	@property
+	def eye(self):
+		return self.eyeAvailable()
+
+	@eye.setter
+	def eye(self, eye_used):
+		self.__eye_used__ = eye_used
+
+	def getNewestSample(self):
+		return self.sample()
+
+	def sendMessage(self, msg):
+		pass
+
+	def eyeAvailable(self):
+		return 1
 
 class MouseEvent(EnvAgent):
 
 	def __init__(self):
 		super(MouseEvent, self).__init__()
 		self.__sample__ = mouse_pos()
-		if not self.evm.start_time:
-			self.__time__ = self.evm.timestamp
-		else:
-			self.__time__ = self.evm.trial_time
+		self.__start_pos__ = None
+		self.__start_time__ = None
+
+		try:
+			if not self.evm.start_time:
+				self.__time__ = self.evm.timestamp
+			else:
+				self.__time__ = self.evm.trial_time
+		except AttributeError:
+			import time
+			self.__time__ = time.time()
 
 	def getGaze(self):
 		return self.__sample__
+
+	def getEndGaze(self):
+		return self.__sample__
+
+	def getStartGaze(self):
+		return self.__start_pos__ if self.__start_pos__ else self.__sample__
 
 	def getTime(self):
 		return self.__time__
 
 	def getStartTime(self):
-		return self.__time__
+		return self.__start_time__ if self.__start_time__ else self.__time__
 
 	def getEndTime(self):
 		return self.__time__
+
+	def isRightSample(self):
+		return 1
+
+	def isLeftSample(self):
+		return 1
+
+	def getFloatData(self):
+		return self
+
+	@property
+	def start_pos(self):
+		return self.__start_pos__
+
+	@start_pos.setter
+	def start_pos(self, pos):
+		self.__start_pos__ =  pos
+
+	@property
+	def start_pos(self):
+		return self.__start_pos__
+
+	@start_pos.setter
+	def start_time(self, pos):
+		self.__start_time__ = pos

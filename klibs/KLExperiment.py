@@ -360,7 +360,6 @@ class Experiment(EnvAgent):
 	def trial(self):
 		pass
 
-
 	@abstractmethod
 	def trial_prep(self):
 		pass

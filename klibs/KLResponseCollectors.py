@@ -154,7 +154,7 @@ class KeyPressResponse(ResponseType):
 				if self.key_map:
 					if self.key_map.validate(sdl_keysym):
 						if len(self.responses) < self.min_response_count:
-							self.responses.append([self.key_map.read(sdl_keysym, "data"), self.evm.trial_time])
+							self.responses.append([self.key_map.read(sdl_keysym, "data"), self.evm.trial_time_ms])
 						if self.interrupts:
 							return self.responses if self.max_response_count > 1 else self.responses[0]
 					else:
@@ -718,12 +718,9 @@ class ResponseCollector(EnvAgent):
 			e_queue = pump(True)
 
 			# after pumping issued trial events will be registered with the evm
-			if self.end_collection_event in self.evm.trial_events:
+			if self.evm.after(self.end_collection_event):
 				break
-			# for e in event_queue:
-			# 	if e.type in self.evm.clock_sync_queue:
-			# 		if P.process_queue_data[e.type].label == self.end_collection_event:
-			# 			break
+
 			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
 				ui_request(queue=e_queue)
 
@@ -733,6 +730,7 @@ class ResponseCollector(EnvAgent):
 				interrupt = self.listeners[l].collect(e_queue, mouseclick_boundaries)
 			if interrupt:
 				break
+
 			# display callback
 			try:
 				self.display_callback(*self.display_args, **self.display_kwargs)

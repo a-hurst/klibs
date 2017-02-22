@@ -214,7 +214,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 
 	if date is None:
 		date_query = "SELECT `created` FROM `participants` WHERE `id` = ?"
-		date = env.db.query(date_query, q_vars=tuple([participant_id])).fetchall()[0][0][:10]
+		date = env.db.query(date_query, q_vars=tuple([participant_id]))[0][0][:10]
 	if file_type == PARTICIPANT_FILE:
 		file_extension = TF_DATA
 		if incomplete:

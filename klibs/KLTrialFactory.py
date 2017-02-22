@@ -5,7 +5,8 @@ from re import compile
 import csv
 from copy import copy
 from itertools import product
-from os.path import exists
+from os.path import exists, join
+from os import makedirs
 import numpy as np
 
 from klibs.KLConstants import TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC, TF_STIM_FILE, TF_FACTOR
@@ -231,6 +232,28 @@ class TrialFactory(object):
 		e_msg = "Factor '{0}' not found.".format(factor)
 		raise ValueError(e_msg)
 
+	def dump(self):
+		if not exists(P.local_dir):
+			makedirs(P.local_dir)
+		log_f = open(join(P.local_dir, "TrialFactory_dump.txt"), "w+")
+		log_f.write("Blocks: {0}, Trials: {1}\n\n".format(P.blocks_per_experiment, P.trials_per_block))
+		log_f.write("*****************************************\n")
+		log_f.write("*                 Factors               *\n")
+		log_f.write("*****************************************\n\n")
+		for f in self.exp_factors:
+			log_f.write("{0}: {1}\n".format(f[0], f[1]))
+		log_f.write("\n\n\n*****************************************\n")
+		log_f.write("*                Trials                 *\n")
+		log_f.write("*****************************************\n\n")
+		block_num = 1
+		for b in self.blocks:
+			log_f.write("Block {0}\n".format(block_num))
+			trial_num = 1
+			for t in b:
+				log_f.write("\tTrial {0}: {1} \n".format(trial_num, t))
+				trial_num += 1
+			log_f.write("\n")
+		log_f.close()
 
 	@property
 	def trial_generation_function(self, trial_generator):

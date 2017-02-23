@@ -718,8 +718,11 @@ class ResponseCollector(EnvAgent):
 			e_queue = pump(True)
 
 			# after pumping issued trial events will be registered with the evm
-			if self.evm.after(self.end_collection_event):
-				break
+			try:
+				if self.evm.after(self.end_collection_event):
+					break
+			except ValueError:
+				pass  # if end_collection_event is None
 
 			if not self.using(RC_KEYPRESS):  # else ui_requests are handled automatically by all keypress responders
 				ui_request(queue=e_queue)
@@ -739,7 +742,6 @@ class ResponseCollector(EnvAgent):
 			except KeyError:
 				pass
 		hide_mouse_cursor()
-
 
 	def reset(self):
 		for l in self.listeners:

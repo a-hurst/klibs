@@ -3,7 +3,7 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import os
 import csv
-from time import time
+from time import time, sleep
 import abc
 import multiprocessing as mp
 from os import kill
@@ -630,7 +630,7 @@ def __event_clock__(pipe, queue):
 			if e.label == EVI_SEND_TIME:
 				if not trial_started:
 					# print "TrialStarted: {0}, current time: {1}".format(trial_started, trial_time())
-					time.sleep(0.1)
+					sleep(0.1)
 					pipe.send(RuntimeError("Trial has not started."))
 				events.remove(e)
 				sent.append(e)

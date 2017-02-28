@@ -91,8 +91,7 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 			return blit(NpS(source), registration, location, position)
 		else:
 			raise TypeError("Argument 'source' must be np.ndarray, klibs.KLNumpySurface.NumpySurface, or inherit from klibs.KLDraw.Drawbect.")
-
-		if flip_x:
+		if any([not flip_x and P.blit_flip_x, flip_x]):
 			content = np.fliplr(content)
 
 		# configure OpenGL for blit

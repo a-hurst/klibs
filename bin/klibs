@@ -290,7 +290,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		setattr(P, k, v)
 
 	# if a local params file exists, do the same:
-	if os.path.exists(P.params_local_file_path):
+	if os.path.exists(P.params_local_file_path) and not P.dm_ignore_local_overrides:
 		for k, v in imp.load_source("*", P.params_local_file_path).__dict__.iteritems():
 			setattr(P, k, v)
 

@@ -159,16 +159,25 @@ class TrialFactory(object):
 		from imp import load_source
 
 		if not exp_factors:
-			sys.path.append(P.ind_vars_file_path)
-			for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
-				# if isinstance(v, IndependentVariableSet):
-				try:
-					self.exp_factors = v.to_list()
-				except (AttributeError, TypeError):
-					pass
+			try:
+				if P.dm_ignore_local_overrides:
+					raise RuntimeError("Ignoring local overrides")
+				sys.path.append(P.ind_vars_file_local_path)
+				for k, v in load_source("*", P.ind_vars_file_local_path).__dict__.iteritems():
+					try:
+						self.exp_factors = v.to_list()
+					except (AttributeError, TypeError):
+						pass
+			except (IOError, RuntimeError):
+				for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
+					try:
+						self.exp_factors = v.to_list()
+					except (AttributeError, TypeError):
+						pass
+
 		else:
 			self.exp_factors = exp_factors.to_list()
-
+		print "exp_factors: {0}".format(self.exp_factors)
 		try:
 			self.blocks = self.trial_generator(self.exp_factors)
 		except TypeError:

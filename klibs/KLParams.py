@@ -37,6 +37,7 @@ global data_dir
 global incomplete_data_path
 global ind_vars_filename
 global ind_vars_file_path
+global ind_vars_file_local_path
 global params_file_path
 global params_local_file_path
 global events_file_path
@@ -77,7 +78,6 @@ calibrate_targets = 9
 
 participant_id = None
 p_id = None
-database = None
 
 
 id_field_name = "participant_id"
@@ -129,7 +129,7 @@ additional_displays = []
 screen_origin = (0,0)  # always (0,0) unless multiple displays in use
 view_distance = 104  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen
 display_initialized = False
-
+blit_flip_x = False
 saccadic_velocity_threshold = 20
 saccadic_acceleration_threshold = 5000
 saccadic_motion_threshold = 0.15
@@ -171,6 +171,7 @@ dm_suppress_debug_pane = False
 dm_auto_threshold = True
 dm_print_log = True
 dm_print_events = True
+dm_ignore_local_overrides = False
 el_track_gaze = True
 verbose_mode = False
 in_trial = False
@@ -198,6 +199,7 @@ def init_project():
 	global incomplete_data_path
 	global ind_vars_filename
 	global ind_vars_file_path
+	global ind_vars_file_local_path
 	global config_file_path_legacy
 	global params_file_path
 	global params_local_file_path
@@ -240,6 +242,7 @@ def init_project():
 	database_backup_path = database_path + BACK_EXT
 	incomplete_data_path = join(data_dir, "incomplete")
 	ind_vars_file_path = join(config_dir, ind_vars_filename)
+	ind_vars_file_local_path = join(local_dir, ind_vars_filename)
 	config_file_path_legacy = join(asset_dir, ind_vars_filename)
 	params_file_path = join(config_dir, params_filename)
 	params_local_file_path = join(local_dir, params_filename)

@@ -10,12 +10,41 @@ from klibs.KLConstants import AUTO_POS,BL_CENTER, BL_TOP, BL_TOP_LEFT, BL_TOP_RI
 	BL_BOTTOM_LEFT, BL_BOTTOM_RIGHT, ALL, QUERY_ACTION_HASH, DELIM_NOT_LAST, DELIM_NOT_FIRST, QUERY_ACTION_UPPERCASE
 from klibs.KLGraphics import blit, clear, fill, flip
 import klibs.KLParams as P
-from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump, flush
+from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump, flush, iterable
 from klibs.KLUserInterface import ui_request, any_key
 
 global user_queries
 global block_break_messages
 
+__user_queries__ = None
+
+class UserQuerySet(object):
+	def __init__(self):
+		self.query_set = None
+		self.default_strings = {}
+
+	def import_queries(self):
+		from klibs.KLJSON_Object import JSON_Object
+		try:
+			self.query_set = JSON_Object(P.user_queries_file_path)
+			for k in self.query_set:
+				setattr(self, k, self.query_set[k])
+		except ValueError:
+			raise ValueError("User queries file has at least one formatting error; cannot continue.")
+
+		# set default strings for communication
+		for k in self.default_strings:
+			setattr(P, k, self.default_strings[k])
+
+	# @property
+	# def user_queries():
+	# 	return __user_queries__
+	#
+	# @user_queries.setter
+	# def user_queries(query_set):
+	# 	__user_queries__ = query_set
+
+user_queries = UserQuerySet()
 
 def alert(text, blit=True, display_for=0):
 		"""
@@ -52,8 +81,9 @@ def collect_demographics(anonymous=False):
 	:return:
 	"""
 	from klibs.KLEnvironment import exp, db
-
 	global user_queries
+
+
 
 	"""
 	Gathers participant demographic information and enter it into the project database.
@@ -82,11 +112,10 @@ def collect_demographics(anonymous=False):
 	if not P.demographics_collected:
 		try:
 			P.participant_id = db.insert()
-			P.p_id = P.participant_id   # short hand for long queries
+			P.p_id = P.participant_id
 		except IntegrityError:
-			fill()
 			# todo: this will generally be a correct error message but in fact is a blanket catch-all for UNIQUE conflicts
-			message("That user already exists. Please try again.", location=P.screen_c, registration=5, flip_screen=True)
+			message("That user already exists. Please try again.", location=P.screen_c, registration=5, clear_screen=True, flip_screen=True)
 			any_key()
 			return collect_demographics(anonymous)
 		P.demographics_collected = True
@@ -112,19 +141,13 @@ def init_messaging():
 	"""
 	from klibs.KLCommunication import message
 	from klibs.KLEnvironment import txtm, exp
-	from klibs.KLJSON_Object import JSON_Object
+
 
 	global user_queries
 	global block_break_messages
-	# try to create question objects (ie. JSON_Objects with expected keys) from demographics file
-	try:
-		user_queries = JSON_Object(P.user_queries_file_path)
-	except ValueError:
-		raise ValueError("User queries file has at least one formatting error; cannot continue.")
 
-	# set default strings for communication
-	for k in user_queries.default_strings:
-		setattr(P, k, user_queries.default_strings[k])
+	# try to create question objects (ie. JSON_Objects with expected keys) from demographics file
+	user_queries.import_queries()
 
 	# default styles can't be created until screen dimensions are loaded into Params from exp.display_init()
 	txtm.add_style("default", P.default_font_size, P.default_color, font_label="Frutiger")
@@ -137,7 +160,7 @@ def init_messaging():
 			block_break_messages.append(r_msg)
 
 
-def message(text, style=None, location=None, registration=None, blit_txt=True, flip_screen=False, wrap_width=None):
+def message(text, style=None, location=None, registration=None, blit_txt=True, flip_screen=False, clear_screen=False, wrap_width=None):
 	"""
 	Generates and optionally renders formatted text to the display.
 
@@ -201,6 +224,8 @@ def message(text, style=None, location=None, registration=None, blit_txt=True, f
 	if not blit_txt:
 		return message_surface
 	else:
+		if clear_screen:
+			fill(clear_screen if iterable(clear_screen) else P.default_fill_color)
 		blit(message_surface, registration, location)
 	if flip_screen:
 		flip()

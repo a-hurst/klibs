@@ -12,6 +12,7 @@ import numpy as np
 from klibs.KLConstants import TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC, TF_STIM_FILE, TF_FACTOR
 from klibs import P
 from klibs.KLIndependentVariable import IndependentVariableSet
+from klibs.KLEnvironment import EnvAgent
 
 class BlockIterator(object):
 	def __init__(self, blocks):
@@ -90,7 +91,7 @@ class TrialFactory(object):
 	practice_blocks = None
 	executed_trials = None
 	meta_factors = None
-	exp_factors = []
+	exp_factors = None
 	max_trials = None
 	excluded_practice_factors = None
 	config_file_rows = []
@@ -157,7 +158,6 @@ class TrialFactory(object):
 		"""
 		import sys
 		from imp import load_source
-
 		if not exp_factors:
 			try:
 				if P.dm_ignore_local_overrides:
@@ -169,6 +169,7 @@ class TrialFactory(object):
 					except (AttributeError, TypeError):
 						pass
 			except (IOError, RuntimeError):
+				print "getting here"
 				for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
 					try:
 						self.exp_factors = v.to_list()
@@ -177,7 +178,6 @@ class TrialFactory(object):
 
 		else:
 			self.exp_factors = exp_factors.to_list()
-		print "exp_factors: {0}".format(self.exp_factors)
 		try:
 			self.blocks = self.trial_generator(self.exp_factors)
 		except TypeError:

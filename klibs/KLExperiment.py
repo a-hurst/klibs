@@ -84,7 +84,8 @@ class Experiment(EnvAgent):
 		:param kwargs:
 		"""
 
-
+		if not self.blocks:
+			self.blocks = self.trial_factory.export_trials()
 		for block in self.blocks:
 			P.recycle_count = 0
 			P.block_number = self.blocks.i
@@ -303,7 +304,6 @@ class Experiment(EnvAgent):
 		:param kwargs:
 		"""
 		if not self.initialized:
-			print "here"
 			self.quit()
 
 		# if P.collect_demographics:
@@ -325,7 +325,7 @@ class Experiment(EnvAgent):
 			except AttributeError:
 				self.el.setup()
 
-		self.blocks = self.trial_factory.export_trials()
+		# self.blocks = self.trial_factory.export_trials()
 		self.setup()
 		try:
 			self.__execute_experiment__(*args, **kwargs)

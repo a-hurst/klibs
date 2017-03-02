@@ -5,6 +5,7 @@ from copy import copy
 from sdl2 import SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_RETURN, SDLK_KP_ENTER, SDLK_ESCAPE
 from hashlib import sha1
 from sqlite3 import IntegrityError
+from time import time
 
 from klibs.KLConstants import AUTO_POS,BL_CENTER, BL_TOP, BL_TOP_LEFT, BL_TOP_RIGHT, BL_LEFT, BL_RIGHT, BL_BOTTOM, \
 	BL_BOTTOM_LEFT, BL_BOTTOM_RIGHT, ALL, QUERY_ACTION_HASH, DELIM_NOT_LAST, DELIM_NOT_FIRST, QUERY_ACTION_UPPERCASE
@@ -383,3 +384,4 @@ def query(query_ob, anonymous=False):
 		return input_string in f.accept_as_true
 	else:
 		return input_string
+

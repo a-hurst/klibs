@@ -1,6 +1,7 @@
 __author__ = 'jono'
-from sdl2 import SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, SDLK_q, SDLK_p, SDLK_c
-
+from sdl2 import SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, SDLK_q, SDLK_p, SDLK_c,SDLK_UP, SDLK_DOWN, SDLK_LEFT, \
+	SDLK_RIGHT, SDLK_b, SDLK_a
+from time import time
 from klibs.KLConstants import MOD_KEYS, UI_METHOD_KEYSYMS
 from klibs import P
 from klibs.KLUtilities import pump
@@ -22,6 +23,28 @@ def any_key(allow_mouse_click=True):
 					any_key_pressed = True
 
 		return True
+
+def konami_code(callback=None):
+	start = time()
+	sequence = []
+	konami_sequence = [SDLK_UP, SDLK_DOWN, SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_LEFT, SDLK_RIGHT, SDLK_b, SDLK_a]
+	while True:
+		print sequence
+		for event in pump(True):
+			if time() - start > 10:
+				return False
+			if event.type != SDL_KEYDOWN:
+				continue
+			ui_request(event.key.keysym)
+			key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
+			# if not len(sequence) and key.keysym.sym != SDLK_UP:
+			# 	return False
+			sequence.append(key.keysym.sym)
+			if len(sequence) == 10:
+				if sequence == konami_sequence:
+					if callable(callback):
+						callback()
+					return True
 
 
 def ui_request(key_press=None, execute=True, queue=None):

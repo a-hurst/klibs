@@ -115,10 +115,10 @@ class Drawbject(object):
 		self.surface.setantialias(True)
 
 	def render(self):
-		from PIL.Image import BICUBIC
+		from PIL.Image import BILINEAR
 		self.init_surface()
 		self.draw()
-		surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tostring()).rotate(self.rotation, BICUBIC, True)
+		surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tostring()).rotate(self.rotation, BILINEAR, False)
 		self.rendered = NpS(asarray(surface_bytes)).render()
 		return self.rendered
 
@@ -293,11 +293,11 @@ class Annulus(Drawbject):
 	def draw(self,  as_numpy_surface=False):
 		if self.stroke:
 			stroked_path_pen = Pen(tuple(self.stroke_color), self.ring_width)
-			xy_1 = 2 + self.ring_width
-			xy_2 = self.surface_width - (2 + self.ring_width)
+			xy_1 = 2 + self.ring_width//2
+			xy_2 = self.surface_width - (2 + self.ring_width//2)
 			self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroked_path_pen, self.transparent_brush)
-		xy_1 = 2 + self.ring_width
-		xy_2 = self.surface_width - (2 + self.ring_width)
+		xy_1 = 2 + self.ring_width//2
+		xy_2 = self.surface_width - (2 + self.ring_width//2)
 		path_pen = Pen(tuple(self.fill_color), self.ring_inner_width)
 		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
 

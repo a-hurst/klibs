@@ -363,6 +363,7 @@ class AnnulusBoundary(Boundary):
 		"""
 		super(AnnulusBoundary, self).__init__(label)
 		self.__r_inner__ = None
+		self.__r_outer__ = None
 		self.__span_range__ = None
 		self.__span__ = None
 		self.__center__ = None
@@ -375,7 +376,7 @@ class AnnulusBoundary(Boundary):
 
 		:return:
 		"""
-		return [self.__center__, self.__r_inner__, self.__r_outer, self.__span__]
+		return [self.__center__, self.__r_inner__, self.__r_outer__, self.__span__]
 
 	@bounds.setter
 	def bounds(self, boundary_data):
@@ -397,7 +398,8 @@ class AnnulusBoundary(Boundary):
 		self.__center__ = boundary_data[0]
 		self.__r_inner__ = boundary_data[1]
 		self.__span__ = boundary_data[2]
-		self.__span_range__ = range(self.__r_inner__, self.__r_inner__ + self.__span__)
+		self.__r_outer__ = self.__r_inner__ + self.__span__
+		self.__span_range__ = range(self.__r_inner__, self.__r_outer__)
 
 	@property
 	def center(self):
@@ -426,6 +428,15 @@ class AnnulusBoundary(Boundary):
 		"""
 		return self.__r_inner__
 
+	@property
+	def outer_radius(self):
+		"""
+
+
+		:return:
+		"""
+		return self.__r_outer__
+
 	def within(self, reference):
 		"""
 
@@ -433,4 +444,4 @@ class AnnulusBoundary(Boundary):
 		:return:
 		"""
 		d_xy = line_segment_len(reference, self.__center__) if iterable(reference) else reference
-		return  d_xy in self.__span_range__
+		return  int(d_xy) in self.__span_range__

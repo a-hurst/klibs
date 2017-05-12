@@ -75,6 +75,7 @@ class Drawbject(object):
 		self.stroke_alignment = STROKE_INNER
 		self.__fill = None
 		self.fill_color = None
+		self.opacity = None
 		self.stroke_width = 0
 		self.object_width = width
 		self.object_height = height
@@ -119,7 +120,15 @@ class Drawbject(object):
 		self.init_surface()
 		self.draw()
 		surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tostring()).rotate(self.rotation, BILINEAR, False)
-		self.rendered = NpS(asarray(surface_bytes)).render()
+		surface_array = asarray(surface_bytes)
+
+		if self.opacity < 255: # Apply opacity (if not fully opaque) to whole Drawbject
+			surface_array.setflags(write=1) # make RGBA values writeable
+			for x in range(self.surface.size[0]):
+				for y in range(self.surface.size[1]):
+					surface_array[x][y][3] = int(surface_array_[x][y][3] * self.opacity/255)
+
+		self.rendered = NpS(surface_array).render()
 		return self.rendered
 
 	@abc.abstractproperty
@@ -149,14 +158,14 @@ class Drawbject(object):
 			raise ValueError("Invalid value provided for stroke alignment; see KLConstants for accepted values")
 
 		if len(color) == 4:
-			opacity = color[3]
+			self.opacity = color[3]
 			color = [i for i in color[0:3]]
 		else:
 			color = [i for i in color]
-			opacity = 255
+			self.opacity = 255
 		self.stroke_color = color
 		self.stroke_width = width
-		self.__stroke = Pen(tuple(color), width, opacity)
+		self.__stroke = Pen(tuple(color), width, 255)
 		if self.surface: # don't call this when initializing the Drawbject for the first time
 			self.init_surface()
 		return self
@@ -171,13 +180,13 @@ class Drawbject(object):
 			self.fill_color = None
 			return self
 		if len(color) == 4:
-			opacity = color[3] if type(color[3]) is int else int(color[3] * 255)
+			self.opacity = color[3] if type(color[3]) is int else int(color[3] * 255)
 			color = tuple(color[0:3])
 		else:
 			color = tuple(color)
-			opacity = 255
+			self.opacity = 255
 		self.fill_color = color
-		self.__fill = Brush(color, opacity)
+		self.__fill = Brush(color, 255)
 		if self.surface: # don't call this when initializing the Drawbject for the first time
 			self.init_surface()
 		return self

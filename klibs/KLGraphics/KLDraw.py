@@ -126,7 +126,7 @@ class Drawbject(object):
 			surface_array.setflags(write=1) # make RGBA values writeable
 			for x in range(self.surface.size[0]):
 				for y in range(self.surface.size[1]):
-					surface_array[x][y][3] = int(surface_array_[x][y][3] * self.opacity/255)
+					surface_array[x][y][3] = int(surface_array[x][y][3] * self.opacity/255)
 
 		self.rendered = NpS(surface_array).render()
 		return self.rendered

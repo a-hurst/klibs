@@ -19,7 +19,7 @@ from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, S
 from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
 from subprocess import Popen, PIPE
 
-from math import sin, cos, radians, pi, atan2, degrees
+from math import sin, cos, radians, pi, atan2, degrees, ceil
 
 from klibs.KLConstants import BL_RIGHT, BL_LEFT, BL_BOTTOM_RIGHT, BL_BOTTOM, BL_BOTTOM_LEFT, BL_TOP, \
 	BL_CENTER, BL_TOP_LEFT, BL_TOP_RIGHT, PARTICIPANT_FILE, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS, TF_DATA,\
@@ -187,8 +187,14 @@ def colored_stdout(string, print_string=True, args=[]):
 		return string
 
 
-def deg_to_px(deg):
-	return int(deg * P.ppd)  # todo: error checking?
+def deg_to_px(deg, even=False):
+	# Some things don't draw as expected unless the px value given is even.
+	# If even=True, deg_to_px will round up to nearest multiple of 2.
+	if even:
+		px = ceil((deg * P.ppd) / 2.0) * 2
+	else:
+		px = deg * P.ppd
+	return int(px)  # todo: error checking?
 
 
 def equiv(comparator, canonical):

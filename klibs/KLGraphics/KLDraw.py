@@ -291,6 +291,8 @@ class Annulus(Drawbject):
 			self.ring_inner_width = ring_width - 2 * stroke[0]
 		except TypeError:
 			self.ring_inner_width = ring_width
+		if self.ring_width > self.radius:
+			raise ValueError("Ring width of annulus larger than radius; decrease ring_width or increase diameter")
 		if self.ring_inner_width < 1:
 			raise ValueError("Annulus area subsumed by stroke; increase ring_width or decrease stroke size")
 		if stroke is None:

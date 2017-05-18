@@ -706,7 +706,7 @@ class ResponseCollector(EnvAgent):
 
 	def __collect__(self, mouseclick_boundaries):
 		while True:
-			if P.development_mode and not self.end_collection_event:
+			'''if P.development_mode and not self.end_collection_event:
 				try:
 					t = self.evm.trial_time
 					if self.terminate_after[1] == TK_MS: t *= 1000
@@ -714,7 +714,7 @@ class ResponseCollector(EnvAgent):
 						print "Broke due to force timeout."
 						break
 				except TypeError:
-					pass
+					pass'''
 			e_queue = pump(True)
 
 			# after pumping issued trial events will be registered with the evm

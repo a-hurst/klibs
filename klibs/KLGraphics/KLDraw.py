@@ -404,31 +404,36 @@ class Line(Drawbject):
 			self.p1, self.p2 = pts
 		else:
 			self.p1 = (0,0)
-			self.p2 = point_pos(self.p1, length, rotation)
+			self.p2 = point_pos(self.p1, length, -90, rotation) # A rotation of 0 draws a vertical line
 
 		self.__translate_to_positive__()
-		w = thickness + self.p2[0]
-		h = thickness + self.p1[1] if self.p1[1] > self.p2[1] else self.p2[1]
-		super(Line, self).__init__(w + thickness, h + thickness, [thickness, color, STROKE_INNER], fill=None)
-		f_vars = [length, rotation, self.p1[0], self.p1[1], self.p2[0], self.p2[1], self.surface_width, self.surface_height]
-		print "Len {0}px at {1}deg: ({2}, {3}) => ({4}, {5}) on canvas ({6} x {7})".format(*f_vars)
-		# super(Line, self).__init__(self.p2[0] + thickness, self.p2[1] + thickness, [thickness, color, STROKE_INNER], fill=None)
+		# determine surface margins depending on the rotation and thickness of the line so it doesn't get cropped at the corners
+		margin = point_pos((0,0), thickness/2.0, -90, rotation)
+		self.margin = map(abs, margin)
+		w = abs(self.p1[0] - self.p2[0]) + self.margin[1] * 2
+		h = abs(self.p1[1] - self.p2[1]) + self.margin[0] * 2
+		super(Line, self).__init__(w, h, [thickness, color, STROKE_INNER], fill=None)
+		if P.development_mode:
+			f_vars = [length, rotation, self.p1[0], self.p1[1], self.p2[0], self.p2[1], self.surface_width, self.surface_height]
+			print "Len {0}px at {1}deg: ({2}, {3}) => ({4}, {5}) on canvas ({6} x {7})".format(*f_vars)
 
 		if auto_draw:
 			self.draw()
 
 	def __translate_to_positive__(self):
-		self.p1 = (self.p1[0] - self.p1[0], abs(self.p1[1]))
-		self.p2 = (self.p2[0] - self.p2[0], abs(self.p2[1]))
-
-		# ie. x1_trans = 2 * mid_p[x] - x1, y1=y1; ghislain and jon worked this out
-		x_trans = 2 *midpoint(self.p1, self.p2)[0]
-		self.p1 = (x_trans - self.p1[0], self.p1[1])
-		self.p2 = (x_trans - self.p2[0], self.p2[1])
-
+		# Translates line coordinates into aggdraw surface space (i.e. top-left corner becomes (0,0)) by offsetting the coordinates
+		# such that the furthest left point is aligned to x=0 and the furthest up point is aligned to y=0.
+		x_offset = -min(self.p1[0], self.p2[0])
+		y_offset = -min(self.p1[1], self.p2[1])
+		self.p1 = (self.p1[0] + x_offset, self.p1[1] + y_offset)
+		self.p2 = (self.p2[0] + x_offset, self.p2[1] + y_offset)
 
 	def draw(self, as_numpy_surface=False):
-		self.surface.line((self.p1[0]+1, self.p1[1]+1, self.p2[0], self.p2[1]), self.stroke)
+		x1 = self.p1[0] + (self.margin[1] + 1)
+		y1 = self.p1[1] + (self.margin[0] + 1)
+		x2 = self.p2[0] + (self.margin[1] + 1)
+		y2 = self.p2[1] + (self.margin[0] + 1)
+		self.surface.line((x1, y2, x2, y1), self.stroke)
 
 		return self.surface
 

@@ -562,7 +562,7 @@ class ResponseCollector(EnvAgent):
 	terminate_after = 10  # seconds
 
 	def __init__(self, display_callback=None, response_window=MAX_WAIT, null_response=NO_RESPONSE, response_count=[0,1],\
-				 flip=True):
+				 flip=False):
 		super(ResponseCollector, self).__init__()
 		self.__response_window__ = response_window
 		self.__null_response_value__ = null_response

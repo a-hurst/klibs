@@ -145,10 +145,11 @@ class TrialFactory(object):
 		if total_trials < trial_set_count:
 			while len(trials) > total_trials:
 				trials.pop()
+
+		# Divide full list of trials into blocks of equal size (block size = trial_count)
 		blocks = []
-		np_blocks = np.array_split(trials, block_count)
-		for block in np_blocks:
-			blocks.append(block.tolist())
+		for i in range(0, len(trials), trial_count):
+			blocks.append(trials[i:i + trial_count])
 		return blocks
 
 	def generate(self, exp_factors=None):

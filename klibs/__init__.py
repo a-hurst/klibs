@@ -10,7 +10,7 @@ import KLNamedObject
 import KLEnvironment as env
 import KLExceptions
 import KLConstants
-from KLConstants import PYAUDIO_AVAILABLE, PYLINK_AVAILABLE
+from KLConstants import PYAUDIO_AVAILABLE, PYLINK_AVAILABLE, SLACK_STATUS
 import KLParams as P						# KLConstants
 import KLKeyMap								# KLConstants
 import KLLabJack							# KLParams

@@ -25,6 +25,20 @@ try:
 except ImportError:
 	LABJACK_AVAILABLE = False
 
+try:
+	import os # To test for presence of API key environment variable
+	import socket # To test internet connect to slack.com
+	from slacker import Slacker
+	socket.create_connection(("www.slack.com", 80))
+	os.environ['SLACK_API_KEY']
+	SLACK_STATUS = "available"
+except ImportError: # if slacker library not installed
+	SLACK_STATUS = "slacker_missing"
+except OSError: # if slack.com not reachable
+	SLACK_STATUS = "no_connection"
+except KeyError: # if API key not defined in environment
+	SLACK_STATUS = "no_API_key"
+
 DB_EXT = ".db"
 EDF = "EDF"
 EDF_EXT = ".EDF"

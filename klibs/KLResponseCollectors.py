@@ -22,13 +22,14 @@ from klibs.KLAudio import AudioStream
 class ResponseType(NamedObject, EnvAgent):
 	__timed_out__ = False
 
-	def __init__(self, name=None):
+	def __init__(self, start_time, name=None):
 		super(ResponseType, self).__init__(name)
 		self.responses = []
 		self.__interrupts__ = False
 		self.__null_response_value__ = NO_RESPONSE
 		self.__min_response_count__ = 0
 		self.__max_response_count__ = 1
+		self.__rc_start_time__ = start_time
 		self.inactive_phases = []
 		self.active_phases = []
 
@@ -136,8 +137,8 @@ class ResponseType(NamedObject, EnvAgent):
 
 class KeyPressResponse(ResponseType):
 
-	def __init__(self):
-		super(KeyPressResponse, self).__init__(RC_KEYPRESS)
+	def __init__(self, rc_start_time):
+		super(KeyPressResponse, self).__init__(rc_start_time, RC_KEYPRESS)
 		self.__key_map__ = None
 
 	def collect_response(self, event_queue):
@@ -154,7 +155,7 @@ class KeyPressResponse(ResponseType):
 				if self.key_map:
 					if self.key_map.validate(sdl_keysym):
 						if len(self.responses) < self.min_response_count:
-							self.responses.append([self.key_map.read(sdl_keysym, "data"), self.evm.trial_time_ms])
+							self.responses.append([self.key_map.read(sdl_keysym, "data"), (self.evm.trial_time_ms - self.__rc_start_time__[0])])
 						if self.interrupts:
 							return self.responses if self.max_response_count > 1 else self.responses[0]
 					else:
@@ -183,8 +184,8 @@ class KeyPressResponse(ResponseType):
 
 class AudioResponse(ResponseType):
 
-	def __init__(self):
-		super(AudioResponse, self).__init__(RC_AUDIO)
+	def __init__(self, rc_start_time):
+		super(AudioResponse, self).__init__(rc_start_time, RC_AUDIO)
 		self.stream = AudioStream()
 		self.threshold_valid = False
 		self.calibrated = False
@@ -255,7 +256,7 @@ class AudioResponse(ResponseType):
 			raise RuntimeError("AudioResponse not ready for collection; calibration not completed.")
 		if self.stream.sample().peak >= self.stream.threshold:
 			if len(self.responses) < self.min_response_count:
-				self.responses.append([self.stream.sample().peak, self.evm.trial_time])
+				self.responses.append([self.stream.sample().peak, (self.evm.trial_time_ms - self.__rc_start_time__[0])])
 			if self.interrupts:
 				self.stop()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
@@ -269,8 +270,8 @@ class AudioResponse(ResponseType):
 
 class MouseDownResponse(ResponseType, BoundaryInspector):
 
-	def __init__(self):
-		super(MouseDownResponse, self).__init__(RC_MOUSEDOWN)
+	def __init__(self, rc_start_time):
+		super(MouseDownResponse, self).__init__(rc_start_time, RC_MOUSEDOWN)
 
 	def collect_response(self, event_queue):
 		for event in event_queue:
@@ -278,14 +279,14 @@ class MouseDownResponse(ResponseType, BoundaryInspector):
 				if len(self.responses) < self.min_response_count:
 					boundary =  self.within_boundaries([event.x, event.y])
 					if boundary:
-						self.responses.append( [boundary, [event.x, event.y], self.evm.trial_time] )
+						self.responses.append( [boundary, [event.x, event.y], (self.evm.trial_time_ms - self.__rc_start_time__[0])] )
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
 class MouseUpResponse(ResponseType, BoundaryInspector):
 
-	def __init__(self):
-		super(MouseUpResponse, self).__init__(RC_MOUSEUP)
+	def __init__(self, rc_start_time):
+		super(MouseUpResponse, self).__init__(rc_start_time, RC_MOUSEUP)
 
 	def collect_response(self, event_queue):
 		for event in event_queue:
@@ -293,13 +294,13 @@ class MouseUpResponse(ResponseType, BoundaryInspector):
 				if len(self.responses) < self.min_response_count:
 					boundary = self.within_boundaries([event.x, event.y])
 					if boundary:
-						self.responses.append([boundary, [event.x, event.y], self.evm.trial_time])
+						self.responses.append([boundary, [event.x, event.y], (self.evm.trial_time_ms - self.__rc_start_time__[0])])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
 
 class JoystickResponse(ResponseType):
-	def __init__(self):
+	def __init__(self, rc_start_time):
 		pass
 
 	def collect_response(self):
@@ -312,8 +313,8 @@ class SaccadeResponse(ResponseType):
 	include_start = True
 	include_end = False
 
-	def __init__(self):
-		super(SaccadeResponse, self).__init__(RC_SACCADE)
+	def __init__(self, rc_start_time):
+		super(SaccadeResponse, self).__init__(rc_start_time, RC_SACCADE)
 
 	def collect_response(self):
 		for e in self.el.get_event_queue([self.el.eyelink.ENDSACC]):
@@ -350,8 +351,8 @@ class SaccadeResponse(ResponseType):
 
 class FixationResponse(ResponseType):
 
-	def __init__(self):
-		super(FixationResponse, self).__init__(RC_FIXATION)
+	def __init__(self, rc_start_time):
+		super(FixationResponse, self).__init__(rc_start_time, RC_FIXATION)
 
 
 class ColorSelectionResponse(ResponseType, BoundaryInspector):
@@ -366,8 +367,8 @@ class ColorSelectionResponse(ResponseType, BoundaryInspector):
 	color_response = False
 	click_boundary = None
 
-	def __init__(self):
-		ResponseType.__init__(self, RC_COLORSELECT)
+	def __init__(self, rc_start_time):
+		ResponseType.__init__(self, rc_start_time, RC_COLORSELECT)
 		BoundaryInspector.__init__(self)
 		# self.__name__ = RC_COLORSELECT  # done manually due to inheritance conflicts
 
@@ -380,7 +381,7 @@ class ColorSelectionResponse(ResponseType, BoundaryInspector):
 					continue
 				response = angle_between(P.screen_c, pos, self.__target__.rotation)
 				if len(self.responses) < self.min_response_count:
-					self.responses.append([response, self.evm.trial_time])
+					self.responses.append([response, (self.evm.trial_time_ms - self.__rc_start_time__[0])])
 					if self.interrupts:
 						return self.responses if self.max_response_count > 1 else self.responses[0]
 
@@ -435,8 +436,8 @@ class ColorSelectionResponse(ResponseType, BoundaryInspector):
 
 class DrawResponse(ResponseType, BoundaryInspector):
 
-	def __init__(self):
-		super(DrawResponse, self).__init__(RC_DRAW)
+	def __init__(self, rc_start_time):
+		super(DrawResponse, self).__init__(rc_start_time, RC_DRAW)
 		BoundaryInspector.__init__(self)
 		self.points = []
 		self.stop_boundary = None
@@ -551,8 +552,10 @@ class ResponseCollector(EnvAgent):
 	__null_response_value__ = None
 	__min_response_count__ = None
 	__max_response_count__ = None
+	__first_loop__ = True
 	__interrupt__ = None
 	__uses__ = None
+	rc_start_time = [None] # in list so it can be passed by reference to ResponseListener classes
 	callbacks = {}
 	listeners = None
 	response_window = None
@@ -580,16 +583,17 @@ class ResponseCollector(EnvAgent):
 		self.response_countdown = None
 		self.responses = {RC_AUDIO:[], RC_KEYPRESS:[]}
 		self.display_callback = display_callback
+		self.has_display_callback = callable(self.display_callback)
 		self.flip = flip
 
 		# individual assignment for easy configuring in experiment.setup()
-		self.audio_listener = AudioResponse()
-		self.keypress_listener = KeyPressResponse()
-		self.mousedown_listener = MouseDownResponse()
-		self.mouseup_listener = MouseUpResponse()
-		self.fixation_listener = FixationResponse()
-		self.color_listener = ColorSelectionResponse()
-		self.draw_listener = DrawResponse()
+		self.audio_listener = AudioResponse(self.rc_start_time)
+		self.keypress_listener = KeyPressResponse(self.rc_start_time)
+		self.mousedown_listener = MouseDownResponse(self.rc_start_time)
+		self.mouseup_listener = MouseUpResponse(self.rc_start_time)
+		self.fixation_listener = FixationResponse(self.rc_start_time)
+		self.color_listener = ColorSelectionResponse(self.rc_start_time)
+		self.draw_listener = DrawResponse(self.rc_start_time)
 
 		# dict of listeners for iterating during collect()
 		self.listeners = NamedInventory()
@@ -683,6 +687,10 @@ class ResponseCollector(EnvAgent):
 			except KeyError:
 				pass
 
+		# If there is no display callback, response period start is immediately before collection starts
+		if not self.has_display_callback:
+			self.rc_start_time[0] = self.evm.trial_time_ms # the only element in list, which is used for mutability only
+
 		# the actual response collection loop
 		self.__collect__(mouseclick_boundaries)
 
@@ -728,19 +736,28 @@ class ResponseCollector(EnvAgent):
 				ui_request(queue=e_queue)
 
 			# get responses for all active listeners
-			interrupt = False
-			for l in self.using():
-				interrupt = self.listeners[l].collect(e_queue, mouseclick_boundaries)
-			if interrupt:
-				break
+			if not (self.__first_loop__ and self.has_display_callback): # Don't collect on first loop if there is a display callback
+				interrupt = False
+				for l in self.using():
+					interrupt = self.listeners[l].collect(e_queue, mouseclick_boundaries)
+				if interrupt:
+					break
 
 			# display callback
-			try:
-				self.display_callback(*self.display_args, **self.display_kwargs)
-			except TypeError:
-				self.display_callback(*self.display_args)
-			except KeyError:
-				pass
+			if self.has_display_callback:
+				try:
+					self.display_callback(*self.display_args, **self.display_kwargs)
+				except TypeError:
+					self.display_callback(*self.display_args)
+				except KeyError:
+					pass
+
+			# If there is a display callback, response period start is immediately after flip of first loop
+			if self.__first_loop__:
+				if self.has_display_callback: # if there is a display callback, start of response period is immediately after first flip
+					self.rc_start_time[0] = self.evm.trial_time_ms # the only element in list, which is used for mutability only
+				self.__first_loop__ = False
+
 		hide_mouse_cursor()
 
 	def reset(self):

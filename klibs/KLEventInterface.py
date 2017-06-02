@@ -194,7 +194,7 @@ class EventManager(EnvAgent):
 		"""
 		self.polling = True
 		while not self.pipe.poll():
-			ui_request()
+			pass
 		self.polling = False
 		t = self.pipe.recv()
 		if isinstance(t, Exception):

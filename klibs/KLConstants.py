@@ -34,7 +34,7 @@ try:
 	SLACK_STATUS = "available"
 except ImportError: # if slacker library not installed
 	SLACK_STATUS = "slacker_missing"
-except OSError: # if slack.com not reachable
+except socket.gaierror: # if slack.com not reachable
 	SLACK_STATUS = "no_connection"
 except KeyError: # if API key not defined in environment
 	SLACK_STATUS = "no_API_key"

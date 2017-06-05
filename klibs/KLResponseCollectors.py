@@ -711,6 +711,7 @@ class ResponseCollector(EnvAgent):
 		if self.using(RC_AUDIO):
 			self.audio_listener.stop()
 		self.response_countdown = None
+		self.rc_start_time[0] = None # Reset before next trial
 
 	def __collect__(self, mouseclick_boundaries):
 		while True:
@@ -737,7 +738,7 @@ class ResponseCollector(EnvAgent):
 				ui_request(queue=e_queue)
 
 			# get responses for all active listeners
-			if not (self.__first_loop__ and self.has_display_callback): # Don't collect on first loop if there is a display callback
+			if self.rc_start_time[0]: # Only start collecting once a start time value has been set
 				interrupt = False
 				for l in self.using():
 					interrupt = self.listeners[l].collect(e_queue, mouseclick_boundaries)

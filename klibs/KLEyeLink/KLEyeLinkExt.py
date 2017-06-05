@@ -80,11 +80,11 @@ if PYLINK_AVAILABLE:
 			if e_type == EL_GAZE_POS:
 				timestamp = event.getTime()
 				if self.eye == EL_LEFT_EYE and event.isLeftSample():
-					x, y  = [int(n) for n in event.getLeftEye().getGaze()]
-				elif self.eye == [int(n) for n in EL_RIGHT_EYE and event.isRightSample()]:
-					x, y = event.getRightEye().getGaze()
-				elif self.eye != [int(n) for n in EL_NO_EYES and event.isBinocular()]:
-					x, y  = event.getLeftEye().getGaze()
+					x, y = [int(n) for n in event.getLeftEye().getGaze()]
+				elif self.eye == EL_RIGHT_EYE and event.isRightSample():
+					x, y = [int(n) for n in event.getRightEye().getGaze()]
+				elif self.eye != EL_NO_EYES and event.isBinocular():
+					x, y = [int(n) for n in event.getLeftEye().getGaze()]
 				else:
 					return False
 

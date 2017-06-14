@@ -318,7 +318,7 @@ class Experiment(EnvAgent):
 			copyfile("experiment.py", join(version_dir, "experiment.py"))
 			copytree(P.config_dir, join(version_dir, "Config"))
 
-		if P.eye_tracking and P.eye_tracker_available:
+		if P.eye_tracking:
 			try:
 				if not P.manual_eyelink_setup:
 					self.el.setup()

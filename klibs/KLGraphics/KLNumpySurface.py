@@ -231,7 +231,7 @@ class NumpySurface(object):
 			position = absolute_position(position, self)
 
 		registration = build_registrations(source_height, source_width)[registration]
-		position = (position[0] + registration[0], position[1] + registration[1])
+		position = (int(position[0] + registration[0]), int(position[1] + registration[1]))
 
 		# don't attempt the blit if source can't fit
 		if behavior is None:
@@ -241,9 +241,9 @@ class NumpySurface(object):
 			elif source_height + position[1] > self.height or source_width + position[0] > self.width:
 				raise ValueError("Source cannot be blit to position; destination bounds exceeded.")
 		x1 = position[0]
-		x2 = position[0] + source_width
+		x2 = position[0] + int(source_width)
 		y1 = position[1]
-		y2 = position[1] + source_height
+		y2 = position[1] + int(source_height)
 		# print "Position: {0}: ".format(position)
 		# print "Blit Coords: {0}: ".format([y1,y2,x1,x2])
 

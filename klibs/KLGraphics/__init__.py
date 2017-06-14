@@ -2,6 +2,7 @@
 __author__ = 'j. mulle, this.impetus@gmail.com'
 import warnings
 import numpy as np
+from time import time
 
 with warnings.catch_warnings():
 	warnings.simplefilter("ignore")
@@ -176,11 +177,19 @@ def display_init(diagonal_in):
 		:raise TypeError:
 		"""
 
-		import Tkinter
-		root = Tkinter.Tk()
-		P.screen_x = root.winfo_screenwidth()
-		P.screen_y = root.winfo_screenheight()
+		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
+		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
+		sdl2.SDL_PumpEvents()
+
+		display_mode = sdl2.video.SDL_DisplayMode()
+		sdl2.SDL_GetDisplayMode(0,0,display_mode)
+
+		P.screen_x = display_mode.w
+		P.screen_y = display_mode.h
 		P.screen_x_y = (P.screen_x, P.screen_y)
+
+		P.refresh_rate = display_mode.refresh_rate
+		P.refresh_time = 1000.0 / P.refresh_rate
 
 		# todo: make this configuration process more fool-proof/klibsian/informative; probably create "display objects"
 		for d in P.additional_displays:
@@ -191,13 +200,10 @@ def display_init(diagonal_in):
 
 		if P.screen_origin is None:
 			P.screen_origin = (0, 0)
-		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
-		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
-		sdl2.SDL_PumpEvents()
+
 		window = sdl2.ext.Window("experiment", P.screen_x_y, P.screen_origin, SCREEN_FLAGS)
 		P.screen_diagonal_in = diagonal_in
 		P.screen_c = (P.screen_x / 2, P.screen_y / 2)
-
 		P.diagonal_px = sqrt(P.screen_x**2.0  + P.screen_y**2.0)
 		P.ppi = int(P.diagonal_px / diagonal_in)
 		P.monitor_x = P.screen_x / P.ppi
@@ -296,7 +302,16 @@ def flip(window=None):
 			window = exp.window.window
 		except AttributeError:
 			raise ValueError("flip requires an sdl2.window object when called outside of experiment runtime.")
+
+	# Note: On some systems, redrawing the screen will sometimes take longer than expected (up to 100ms in some cases). 
+	# Since this is obviously a problem for timing-sensitive research, we time how long each flip takes, and print
+	# a warning whenever it takes longer than expected (with threshold of 1ms).
+	flip_start = time()
 	sdl2.SDL_GL_SwapWindow(window)
+	flip_time = time() - flip_start
+	if P.development_mode:
+		if flip_time > (P.refresh_time + 1):
+			print "Warning: Screen refresh took %.2f ms (expected %.2f ms)" % (flip_time * 1000, P.refresh_time)
 
 
 def rgb_to_rgba(rgb):

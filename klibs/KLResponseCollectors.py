@@ -552,7 +552,6 @@ class ResponseCollector(EnvAgent):
 	__null_response_value__ = None
 	__min_response_count__ = None
 	__max_response_count__ = None
-	__first_loop__ = True
 	__interrupt__ = None
 	__uses__ = None
 	rc_start_time = [None] # in list so it can be passed by reference to ResponseListener classes
@@ -583,7 +582,7 @@ class ResponseCollector(EnvAgent):
 		self.response_countdown = None
 		self.responses = {RC_AUDIO:[], RC_KEYPRESS:[]}
 		self.display_callback = display_callback
-		self.has_display_callback = callable(self.display_callback)
+		self.has_display_callback = False
 		self.flip = flip
 
 		# individual assignment for easy configuring in experiment.setup()
@@ -687,6 +686,9 @@ class ResponseCollector(EnvAgent):
 			except KeyError:
 				pass
 
+		# Check if there is a display callback
+		self.has_display_callback = callable(self.display_callback)
+		
 		# If there is no display callback, response period start is immediately before collection starts
 		if not self.has_display_callback:
 			self.rc_start_time[0] = self.evm.trial_time_ms # the only element in list, which is used for mutability only
@@ -714,6 +716,7 @@ class ResponseCollector(EnvAgent):
 		self.rc_start_time[0] = None # Reset before next trial
 
 	def __collect__(self, mouseclick_boundaries):
+		first_loop = True
 		while True:
 			if not self.end_collection_event:
 				try:
@@ -755,10 +758,10 @@ class ResponseCollector(EnvAgent):
 					pass
 
 			# If there is a display callback, response period start is immediately after flip of first loop
-			if self.__first_loop__:
+			if first_loop:
 				if self.has_display_callback: # if there is a display callback, start of response period is immediately after first flip
 					self.rc_start_time[0] = self.evm.trial_time_ms # the only element in list, which is used for mutability only
-				self.__first_loop__ = False
+				first_loop = False
 
 		hide_mouse_cursor()
 

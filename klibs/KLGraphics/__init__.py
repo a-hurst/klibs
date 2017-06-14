@@ -308,10 +308,10 @@ def flip(window=None):
 	# a warning whenever it takes longer than expected (with threshold of 1ms).
 	flip_start = time()
 	sdl2.SDL_GL_SwapWindow(window)
-	flip_time = time() - flip_start
+	flip_time = (time() - flip_start) * 1000 # convert to ms
 	if P.development_mode:
 		if flip_time > (P.refresh_time + 1):
-			print "Warning: Screen refresh took %.2f ms (expected %.2f ms)" % (flip_time * 1000, P.refresh_time)
+			print "Warning: Screen refresh took %.2f ms (expected %.2f ms)" % (flip_time, P.refresh_time)
 
 
 def rgb_to_rgba(rgb):

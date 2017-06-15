@@ -119,7 +119,10 @@ class Drawbject(object):
 		from PIL.Image import BILINEAR
 		self.init_surface()
 		self.draw()
-		surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tostring()).rotate(self.rotation, BILINEAR, False)
+		try: # old aggdraw uses tostring()
+			surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tostring()).rotate(self.rotation, BILINEAR, False)
+		except AttributeError: # new aggdraw uses tobytes()
+			surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tobytes()).rotate(self.rotation, BILINEAR, False)
 		surface_array = asarray(surface_bytes)
 
 		if self.opacity < 255: # Apply opacity (if not fully opaque) to whole Drawbject

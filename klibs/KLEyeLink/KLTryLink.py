@@ -25,6 +25,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 	edf_filename = None
 	unresolved_exceptions = 0
 	start_time = [None, None]
+	__recording__ = False
 	__eye_used__ = None
 	last_mouse_pos = None
 	last_mouse_time = None
@@ -284,6 +285,8 @@ class TryLink(EnvAgent, BoundaryInspector):
 		return self.calibrate()
 
 	def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
+		self.__recording__ = True
+		self.mouse_event_queue = []
 		self.start_time = [self.evm.timestamp, self.evm.timestamp]
 		self.write("TRIAL_ID {0}".format(str(trial_number)))
 		self.write("TRIAL_START")
@@ -291,7 +294,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 		return self.evm.timestamp - self.start_time[0] # ie. delay spent initializing the recording
 
 	def stop(self):
-		pass
+		self.__recording__ = False
 
 	def shut_down(self):
 		return 0
@@ -325,6 +328,10 @@ class TryLink(EnvAgent, BoundaryInspector):
 	@eye.setter
 	def eye(self, eye_used):
 		self.__eye_used__ = eye_used
+
+	@property
+	def recording(self):
+		return self.__recording__
 
 	def getNewestSample(self):
 		return self.sample()

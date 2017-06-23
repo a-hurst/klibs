@@ -189,7 +189,7 @@ class Experiment(EnvAgent):
 			trial_counts = ([P.trials_per_block]  if trial_counts is None else [trial_counts]) * len(block_nums)
 		while len(trial_counts) < len(block_nums):
 			trial_counts.append(P.trials_per_block)
-		if list_dimensions(factor_masks) == 2:
+		if list_dimensions(factor_masks) == 2 or not factor_masks:
 			factor_masks = [factor_masks] * len(block_nums)
 		for i in range(0, len(block_nums)):
 			self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_masks[i])

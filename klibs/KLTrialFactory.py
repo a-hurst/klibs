@@ -35,7 +35,8 @@ class BlockIterator(object):
 
 	def insert(self, index, block, practice):
 		if self.i <= index:
-			self.practice_blocks.append(index)
+			if practice:
+				self.practice_blocks.append(index)
 			self.blocks.insert(index, block)
 			self.length = len(self.blocks)
 		else:
@@ -124,7 +125,7 @@ class TrialFactory(object):
 		trials = copy(trial_set)
 		random.shuffle(trials)
 
-		# Run one complete set of trials in no values are supplied for trial & block length
+		# Generate one complete set of trials in which no values are supplied for trial & block length
 		if block_count is None:
 			block_count = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
 		if trial_count is None:
@@ -201,7 +202,7 @@ class TrialFactory(object):
 		"""
 		self.exp_factors[factor_name] = {"f": generator, "arg_list": argument_list}
 
-	def insert_block(self, block_num, practice, trial_count="*", factor_mask=None):
+	def insert_block(self, block_num, practice=False, trial_count=None, factor_mask=None):
 		"""
 
 		:param block_num:
@@ -209,23 +210,27 @@ class TrialFactory(object):
 		:param trial_count:
 		:param factor_mask:
 		"""
-		factors = []
-		col_index = 0
-		for col in factor_mask:
-			val_index = 0
-			col_name = self.exp_factors[col_index][0]
-			vals = []
-			for val in col:
-				for i in range(0,val):
-					try:
-						vals.append(self.exp_factors[col_index][1][val_index])
-					except IndexError:
-						pass
-				val_index += 1
-			col_index += 1
-			factors.append([col_name, vals if len(vals) else [None]])
+		if not factor_mask:
+			# If no factor mask, generate trials randomly based on self.exp_factors
+			factors = None
+		else:
+			factors = []
+			col_index = 0
+			for col in factor_mask:
+				val_index = 0
+				col_name = self.exp_factors[col_index][0]
+				vals = []
+				for val in col:
+					for i in range(0,val):
+						try:
+							vals.append(self.exp_factors[col_index][1][val_index])
+						except IndexError:
+							pass
+					val_index += 1
+				col_index += 1
+				factors.append([col_name, vals if len(vals) else [None]])
 		block = self.__generate_trials__(factors, 1, trial_count)
-		self.blocks.insert(block_num - 1,[block[0], practice])  # there is no "zero" block from the UI/UX perspective
+		self.blocks.insert(block_num - 1, block[0], practice)  # there is no "zero" block from the UI/UX perspective
 
  	def define_trial(self, rule, quantity):
 		pass

@@ -12,8 +12,8 @@ import traceback
 
 import multiprocessing as mp
 from sys import exc_info
-from sdl2 import SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents, SDL_GetError, \
-	SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_DISABLE, SDL_ENABLE, KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS
+from sdl2 import SDL_Event, SDL_PeepEvents, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents, SDL_GetError, \
+	SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_MOUSEMOTION, SDL_PEEKEVENT, SDL_DISABLE, SDL_ENABLE, KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS
 from sdl2.ext import get_events
 from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
 from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
@@ -441,6 +441,23 @@ def pump(return_events=False):
 	# except AttributeError:
 	# 	pass  # for when called before evm initialized
 	SDL_PumpEvents()
+
+	# If we are using TryLink, check the SDL event queue after every pump and append any
+	# mouse motion events to the TryLink event queue, where they can be used as a stand-in
+	# for saccades.
+	from klibs.KLEnvironment import el
+	from klibs.KLEyeLink.KLTryLink import TryLink
+	if isinstance(el, TryLink):
+		while True:
+			evarray = (SDL_Event * 10)()
+			ptr = ctypes.cast(evarray, ctypes.POINTER(SDL_Event))
+			ret = SDL_PeepEvents(ptr, 10, SDL_PEEKEVENT, SDL_MOUSEMOTION, SDL_MOUSEMOTION)
+			if ret <= 0:
+				break
+			el.mouse_event_queue += list(evarray)[:ret]
+			if ret < 10:
+				break
+
 	if return_events:
 		return get_events()
 

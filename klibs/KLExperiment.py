@@ -130,6 +130,8 @@ class Experiment(EnvAgent):
 			self.evm.start_clock()
 			if P.eye_tracking and not P.manual_eyelink_recording:
 				self.el.start(P.trial_number)
+				if not P.eye_tracker_available:
+					self.el.mouse_event_queue = [] # flush mouse event queue before every trial
 			P.in_trial = True
 			self.__log_trial__(self.trial())
 			P.in_trial = False

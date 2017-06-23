@@ -116,6 +116,26 @@ if PYLINK_AVAILABLE:
 			end_in_boundary   = super(EyeLink, self).within_boundary(label, (x2, y2))
 			return timestamp if (start_in_boundary and not end_in_boundary) else False
 
+		def __saccade_in_direction__(self, doi, event, report):
+			e_type = event.getType()
+			# rule out impossible combinations
+			if e_type in [EL_SACCADE_START, EL_FIXATION_START, EL_FIXATION_END, EL_GAZE_POS, EL_BLINK_START, EL_BLINK_END]:
+				err_str = "Only saccade_end events are valid for boundary-exit tests; {0} passed.".format(e_type)
+				raise EyeLinkError(err_str)
+				
+			sacc_direction = [None, None]
+			sxp, syp = event.getStartGaze()
+			exp, eyp = event.getEndGaze()
+			
+			sacc_direction[0] = "right" if (exp - sxp) > 0 else "left"
+			sacc_direction[1] = "down"  if (eyp - syp) > 0 else "up"
+			
+			timestamp = event.getStartTime() if report == EL_TIME_START else event.getEndTime()
+			
+			# Check if the direction(s) of interest match the direction of the saccade
+			result = all(direction in sacc_direction for direction in doi)
+			return timestamp if result else False
+
 		def calibrate(self):
 			self.doTrackerSetup()
 
@@ -314,6 +334,36 @@ if PYLINK_AVAILABLE:
 				timestamp = self.__exited_boundary__(label, e, report)
 				if timestamp:
 					return timestamp if not return_queue else [timestamp, event_queue]
+			return False
+
+		def saccade_in_direction(self, doi, event_queue=None, report=EL_TIME_START, return_queue=False):
+			"""
+			Checks for any saccades in the direction(s) of interest, returning immediately if one is encountered.
+			In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
+			impertinent.
+
+			:param doi: direction of interest, either as a single string or list of strings
+			:param event_queue:
+			:param report:
+			:param return_queue:
+			:return:
+			"""
+			if isinstance(doi, basestring): 
+				doi = [doi] # if direction of interest is a string, make it a list
+				
+			for direction in doi:
+				if direction not in ['up', 'down', 'left', 'right']:
+					err_str = "'{0}' is not a valid direction. Valid directions are 'up', 'down', 'left', and 'right'.".format(direction)
+					raise EyeLinkError(err_str)
+				
+			if not event_queue:
+				event_queue = self.get_event_queue([EL_SACCADE_END])
+				if not len(event_queue):
+					return False
+			for e in event_queue:
+				exit_time = self.__saccade_in_direction__(doi, e, report)
+				if exit_time:
+					return exit_time if not return_queue else [exit_time, event_queue]
 			return False
 
 		def sample(self):

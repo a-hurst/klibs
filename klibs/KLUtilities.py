@@ -448,7 +448,7 @@ def pump(return_events=False):
 	from klibs.KLEnvironment import el
 	from klibs.KLEyeLink.KLTryLink import TryLink
 	if isinstance(el, TryLink):
-		while self.el.recording:
+		while el.recording:
 			evarray = (SDL_Event * 10)()
 			ptr = ctypes.cast(evarray, ctypes.POINTER(SDL_Event))
 			ret = SDL_PeepEvents(ptr, 10, SDL_PEEKEVENT, SDL_MOUSEMOTION, SDL_MOUSEMOTION)

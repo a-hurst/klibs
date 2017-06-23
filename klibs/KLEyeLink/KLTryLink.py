@@ -6,7 +6,7 @@ from sdl2 import SDL_MOUSEBUTTONDOWN
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EyeLinkError
 from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_GAZE_POS, EL_SACCADE_END,\
-	EL_SACCADE_START, EL_FIXATION_END, EL_TIME_START, TK_S, TK_MS
+	EL_SACCADE_START, EL_FIXATION_END, EL_ALL_EVENTS, EL_TIME_START, TK_S, TK_MS
 from klibs import P
 from klibs.KLUtilities import angle_between, iterable, mouse_pos, show_mouse_cursor, hide_mouse_cursor, pump
 from klibs.KLBoundary import BoundaryInspector
@@ -154,45 +154,67 @@ class TryLink(EnvAgent, BoundaryInspector):
 		part of a fixation or saccade are removed from the queue.
 		"""
 		queue = []
-		mouse_queue_length = len(self.mouse_event_queue)
+		samples = True if EL_GAZE_POS in include or (not len(include) and EL_GAZE_POS not in exclude) else False
+		events = True if include != [EL_GAZE_POS] and exclude != EL_ALL_EVENTS else False
 
+		mouse_queue_length = len(self.mouse_event_queue)
 		if mouse_queue_length == 0:
 			return queue
 		elif mouse_queue_length == 1:
-			queue.append(MouseEvent())
+			if samples:
+				queue.append(MouseEvent())
 		else:
-			start_pos = 0
-			offset = 0
-			for i in range(0, mouse_queue_length-1):
-				e_first = self.mouse_event_queue[start_pos].motion
-				e = self.mouse_event_queue[i-offset].motion
-				e_next = self.mouse_event_queue[i+1].motion
+			if samples:
+				queue.append(MouseEvent())
+			if events:
+				start_pos = 0
+				offset = 0
+				for i in range(0, mouse_queue_length-1):
+					e_first = self.mouse_event_queue[start_pos].motion
+					e = self.mouse_event_queue[i-offset].motion
+					e_next = self.mouse_event_queue[i+1].motion
+					event_types = []
 
-				if abs(e_next.x-e.x) < 4 and abs(e_next.y-e.y) < 4:
-					offset += 1
-				elif (e_next.timestamp-e.timestamp) > (P.refresh_time * 2 + 1):
-					# if two adjacent mouse motion events are separated by more than one flip,
-					# treat e as the end of a saccade, e_next as the start of a saccade, and 
-					# the interval between them as a fixation.
-					print "saccade end: {0},{1} to {2},{3}".format(e_first.x-e_first.xrel, e_first.y-e_first.yrel, e.x, e.y)
-					queue.append(MouseEvent(start_event=e_first, end_event=e, el_type=EL_SACCADE_END))
-					print "fixation: {0}".format(e_next.timestamp-e.timestamp)
-					queue.append(MouseEvent(start_event=e, end_event=e_next, el_type=EL_FIXATION_END))
-					start_pos = i+1
-					offset = 0
-				
-				else:
-					dot_product = e.xrel*e_next.xrel + e.yrel*e_next.yrel
-					determinant = e.xrel*e_next.yrel + e.yrel*e_next.xrel
-					angle = atan2(determinant, dot_product)
-					threshold = radians(45) # greater than 45 degrees difference means new saccade
-					if not (threshold >= angle >= -threshold):
-						print "saccade end: {0},{1} to {2},{3}".format(e_first.x-e_first.xrel, e_first.y-e_first.yrel, e.x, e.y)
-						queue.append(MouseEvent(start_event=e_first, end_event=e, el_type=EL_SACCADE_END))
+					if abs(e_next.x-e.x) < 4 and abs(e_next.y-e.y) < 4:
+						offset += 1
+					elif (e_next.timestamp-e.timestamp) > (P.refresh_time * 2 + 1):
+						# if two adjacent mouse motion events are separated by more than two flips,
+						# treat e as the end of a saccade, e_next as the start of a saccade, and 
+						# the interval between them as a fixation.
+						event_types.append(EL_SACCADE_END)
+						event_types.append(EL_FIXATION_END)
+					
+					else:
+						dot_product = e.xrel*e_next.xrel + e.yrel*e_next.yrel
+						determinant = e.xrel*e_next.yrel + e.yrel*e_next.xrel
+						angle = atan2(determinant, dot_product)
+						threshold = radians(45) # greater than 45 degrees difference means new saccade
+						if not (threshold >= angle >= -threshold):
+							event_types.append(EL_SACCADE_END)
+					
+					# Filter events returned based on include/exclude criteria
+					if len(event_types): # if any events have occured this loop
+						# update the starting event and reset the offset value before next loop
 						start_pos = i+1
 						offset = 0
+						for d_type in event_types:
+							if len(include) and d_type not in include:
+								continue
+							if len(exclude) and d_type in exclude:
+								continue
+							if d_type == EL_SACCADE_END:
+								if P.development_mode:
+									print "saccade: {0},{1} to {2},{3}".format(e_first.x-e_first.xrel, e_first.y-e_first.yrel, e.x, e.y)
+								queue.append(MouseEvent(start_event=e_first, end_event=e, el_type=EL_SACCADE_END))
+							elif d_type == EL_FIXATION_END:
+								if P.development_mode:
+									print "fixation: {0}".format(e_next.timestamp-e.timestamp)
+								queue.append(MouseEvent(start_event=e, end_event=e_next, el_type=EL_FIXATION_END))
+						
 
-			self.mouse_event_queue = self.mouse_event_queue[start_pos:] # empty mouse event queue up to start position
+
+				
+				self.mouse_event_queue = self.mouse_event_queue[start_pos:] # empty mouse event queue up to start position
 		return queue
 
 	def getNextData(self):
@@ -266,7 +288,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 				raise EyeLinkError(err_str)
 			
 		if not event_queue:
-			event_queue = self.get_event_queue()
+			event_queue = self.get_event_queue([EL_SACCADE_END])
 			if not len(event_queue):
 				return False
 		for e in event_queue:

@@ -179,6 +179,36 @@ class Experiment(EnvAgent):
 		# 			raise
 
 	def insert_practice_block(self, block_nums, trial_counts=None, factor_masks=None):
+		"""
+		Adds one or more practice blocks to the experiment. This function must be called during setup(),
+		otherwise the trials will have already been exported and this function will no longer have
+		any effect. If you want to add a block to the experiment after setup() for whatever reason,
+		you can manually generate one using trial_factory.generate() and then insert it using
+		self.blocks.insert().
+		
+		If multiple block indexes are given but only a single integer is given for trial counts, 
+		then all practice blocks inserted will be trial_counts trials long. If not trial_counts 
+		value is provided, the number of trials per practice block defaults to the global 
+		experiment trials_per_block parameter.
+
+		If multiple block indexes are given but only a single factor mask is provided, the same
+		factor mask will be applied to all appended practice blocks. If no factor mask is provided,
+		the function will generate a full set of trials based on all possible combination of factors,
+		and will randomly select trial_counts trials from it for each practice block.
+
+		:param block_nums: Numbers in the sequence of blocks at which to append practice blocks.
+		:type block_nums: Iterable of Ints
+		:param trial_counts: Numbers of trials per practice block.
+		:type trial_counts: Iterable of Ints
+		:param factor_masks: Mask specifying the possible combinations of factors for each practice block.
+		:type factor_masks: Iterable of Iterables of Ints
+		:raises: TrialException
+		"""
+		if self.blocks:
+			# If setup has passed and trial execution has started, blocks have already been exported
+			# from trial_factory so this function will no longer work. If it is called after it is no
+			# longer useful, we throw a TrialException
+			raise TrialException("Practice blocks cannot be inserted after setup() is complete.")
 		try:
 			iter(block_nums)
 		except TypeError:

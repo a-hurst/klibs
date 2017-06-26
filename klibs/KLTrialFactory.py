@@ -181,9 +181,9 @@ class TrialFactory(object):
 		else:
 			self.exp_factors = exp_factors.to_list()
 		try:
-			self.blocks = self.trial_generator(self.exp_factors)
+			self.blocks = BlockIterator(self.trial_generator(self.exp_factors))
 		except TypeError:
-			self.blocks = self.__generate_trials__()
+			self.blocks = BlockIterator(self.__generate_trials__())
 
 	def export_trials(self):
 		"""
@@ -191,7 +191,7 @@ class TrialFactory(object):
 
 		:return:
 		"""
-		return BlockIterator(self.blocks)
+		return self.blocks
 
 	def add_factor_by_inference(self, factor_name, generator, argument_list):
 		"""
@@ -267,6 +267,7 @@ class TrialFactory(object):
 			for t in b:
 				log_f.write("\tTrial {0}: {1} \n".format(trial_num, t))
 				trial_num += 1
+			block_num += 1
 			log_f.write("\n")
 		log_f.close()
 

@@ -49,7 +49,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 		timestamp = event.getTime()
 		return timestamp if super(TryLink, self).within_boundary(label, event.getGaze()) else False
 
-	def __exited_boundary__(self, label, event, report):
+	def __exited_boundary__(self, label, event, report=None):
 		timestamp = event.getTime()
 		return timestamp if not super(TryLink, self).within_boundary(label, event.getGaze()) else False
 
@@ -162,8 +162,8 @@ class TryLink(EnvAgent, BoundaryInspector):
 		:return:
 		"""
 		# todo: only allow saccade start/end inspections
-		sacc_start_time = self.__within_boundary__(label, self.sample())
-		if not sacc_start_time:
+		sacc_start_time = self.__exited_boundary__(label, self.sample())
+		if sacc_start_time:
 			return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
 		return False
 

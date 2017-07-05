@@ -73,7 +73,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 		pass
 
 	def clear_queue(self):
-		pass
+		self.mouse_event_queue = []
 
 	def drift_correct(self, location=None, boundary=None,  el_draw_fixation=EL_TRUE, samples=EL_TRUE, fill_color=None, target_img=None):
 		"""

@@ -12,9 +12,9 @@ if PYLINK_AVAILABLE:
 
 	from klibs.KLExceptions import *
 	from klibs.KLEnvironment import EnvAgent
-	from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_FALSE, EL_GAZE_POS,\
-		EL_SACCADE_END, EL_SACCADE_START, EL_FIXATION_END, EL_FIXATION_START, EL_ALL_EVENTS, EL_RIGHT_EYE, EL_LEFT_EYE, \
-		EDF_FILE, EL_GAZE_START, EL_GAZE_END, EL_TIME_START, EL_TIME_END, EL_BLINK_START, EL_BLINK_END, EL_BOTH_EYES, \
+	from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_FALSE, EL_GAZE_POS, \
+		EL_SACCADE_END, EL_SACCADE_START, EL_FIXATION_END, EL_FIXATION_START, EL_FIXATION_ALL, EL_ALL_EVENTS, EL_RIGHT_EYE, \
+		EL_LEFT_EYE, EDF_FILE, EL_GAZE_START, EL_GAZE_END, EL_TIME_START, EL_TIME_END, EL_BLINK_START, EL_BLINK_END, EL_BOTH_EYES, \
 		TK_S, TK_MS, EL_AVG_GAZE
 	from klibs import P
 	from klibs.KLUtilities import full_trace, iterable, show_mouse_cursor, hide_mouse_cursor, mouse_pos, now, exp_file_name
@@ -104,7 +104,7 @@ if PYLINK_AVAILABLE:
 		def __exited_boundary__(self, label, event, report):
 			e_type = event.getType()
 			# rule out impossible combinations
-			if e_type not EL_SACCADE_END:
+			if e_type != EL_SACCADE_END:
 				err_str = "Only saccade_end events are valid for boundary-exit tests; {0} passed.".format(e_type)
 				raise EyeLinkError(err_str)
 
@@ -285,7 +285,7 @@ if PYLINK_AVAILABLE:
 				if not len(event_queue):
 					return False
 			for e in event_queue:
-				if e.getType() not EL_SACCADE_END:
+				if e.getType() != EL_SACCADE_END:
 					continue
 				timestamp = self.__within_boundary__(label, e, report, EL_GAZE_END)
 				if timestamp:
@@ -309,7 +309,7 @@ if PYLINK_AVAILABLE:
 				if not len(event_queue):
 					return False
 			for e in event_queue:
-				if e.getType() not EL_SACCADE_END:
+				if e.getType() != EL_SACCADE_END:
 					continue
 				timestamp = self.__exited_boundary__(label, e, report)
 				if timestamp:

@@ -31,14 +31,20 @@ setup(
 		'PyAudio'
 	],
 	dependency_links=[
-		'https://github.com/jakul/aggdraw/tarball/master#egg=aggdraw-1.2.0'
-	],
-	scripts=['bin/klibs']
+		'https://github.com/pytroll/aggdraw/tarball/master#egg=aggdraw-1.2.1'
+	]
 
 )
 
 
 # dirty hack until time is made to do this bit right via the installer
+
+try:
+    os.remove("/usr/local/bin/klibs")
+except:
+    pass
+shutil.copyfile("bin/klibs", "/usr/local/bin/klibs")
+shutil.copymode("bin/klibs", "/usr/local/bin/klibs")
 
 try:
 	shutil.rmtree("/usr/local/lib/klibs")

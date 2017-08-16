@@ -570,34 +570,32 @@ class ResponseCollector(EnvAgent):
 		self.__null_response_value__ = null_response
 		self.__min_response_count__ = response_count[0]
 		self.__max_response_count__ = response_count[1]
-		self.__uses__ = {RC_AUDIO:False,
-					   RC_KEYPRESS:False,
-					   RC_MOUSEUP:False,
-					   RC_MOUSEDOWN:False,
-					   RC_FIXATION:False,
-					   RC_SACCADE:False,
-					   RC_COLORSELECT: False,
-					   RC_DRAW: False
-					   }
+		self.__rc_index__ = {RC_AUDIO		:AudioResponse,
+						 	 RC_KEYPRESS	:KeyPressResponse,
+						 	 RC_MOUSEUP		:MouseDownResponse,
+						 	 RC_MOUSEDOWN	:MouseUpResponse,
+						 	 RC_FIXATION	:FixationResponse,
+						 	 RC_SACCADE		:SaccadeResponse,
+						 	 RC_COLORSELECT	:ColorSelectionResponse,
+						 	 RC_DRAW		:DrawResponse
+					 		}
+		self.__uses__ 	  = {RC_AUDIO		:False,
+					  	   	 RC_KEYPRESS	:False,
+					  	   	 RC_MOUSEUP		:False,
+					  	   	 RC_MOUSEDOWN	:False,
+					  	   	 RC_FIXATION	:False,
+					  	   	 RC_SACCADE		:False,
+					  	   	 RC_COLORSELECT	:False,
+					  	   	 RC_DRAW		:False
+					  	   	}
 		self.response_countdown = None
 		self.responses = {RC_AUDIO:[], RC_KEYPRESS:[]}
 		self.display_callback = display_callback
 		self.has_display_callback = False
 		self.flip = flip
 
-		# individual assignment for easy configuring in experiment.setup()
-		self.audio_listener = AudioResponse(self.rc_start_time)
-		self.keypress_listener = KeyPressResponse(self.rc_start_time)
-		self.mousedown_listener = MouseDownResponse(self.rc_start_time)
-		self.mouseup_listener = MouseUpResponse(self.rc_start_time)
-		self.fixation_listener = FixationResponse(self.rc_start_time)
-		self.color_listener = ColorSelectionResponse(self.rc_start_time)
-		self.draw_listener = DrawResponse(self.rc_start_time)
-
 		# dict of listeners for iterating during collect()
 		self.listeners = NamedInventory()
-		self.listeners.add([self.audio_listener, self.keypress_listener, self.fixation_listener, self.mousedown_listener,\
-						   self.mouseup_listener, self.color_listener, self.draw_listener])
 
 		# todo: require that an eyelink object be passed to the rc before these are initiated
 		# self.listeners[RC_SACCADE] = self.saccade_listener
@@ -612,7 +610,8 @@ class ResponseCollector(EnvAgent):
 		if not iterable(listeners): listeners = [listeners]
 		for l in listeners:
 			try:
-				self.__uses__[l] = True
+				self.__uses__[l]  = True
+				self.listeners.add(self.__rc_index__[l](self.rc_start_time))
 			except KeyError:
 				raise ValueError('{0} is not a valid response type.'.format(l))
 
@@ -774,6 +773,7 @@ class ResponseCollector(EnvAgent):
 
 	def enable(self, listener):
 		self.__uses__[listener] = True
+		self.listeners.add(self.__rc_index__[l](self.rc_start_time))
 
 	def enabled(self):
 		en = []
@@ -781,6 +781,37 @@ class ResponseCollector(EnvAgent):
 			if self.__uses__[l.name]:
 				en.append(l.name)
 		return en
+
+	# Use properties as nice aliases for response listeners in self.listeners
+
+	def __get_listener__(self, listener):
+		try:
+			return self.listeners[listener]
+		except KeyError:
+			raise ValueError("'{0}' listener is not currently in use.".format(listener))
+
+	@property
+	def audio_listener(self):
+		return self.__get_listener__(RC_AUDIO)
+	@property
+	def keypress_listener(self):
+		return self.__get_listener__(RC_KEYPRESS)
+	@property
+	def mousedown_listener(self):
+		return self.__get_listener__(RC_MOUSEDOWN)
+	@property
+	def mouseup_listener(self):
+		return self.__get_listener__(RC_MOUSEUP)
+	@property
+	def fixation_listener(self):
+		return self.__get_listener__(RC_FIXATION)
+	@property
+	def color_listener(self):
+		return self.__get_listener__(RC_COLORSELECT)
+	@property
+	def draw_listener(self):
+		return self.__get_listener__(RC_DRAW)
+
 
 	@property
 	def response_window(self):

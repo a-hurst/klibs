@@ -182,7 +182,7 @@ def display_init(diagonal_in):
 		sdl2.SDL_PumpEvents()
 
 		display_mode = sdl2.video.SDL_DisplayMode()
-		sdl2.SDL_GetDisplayMode(0,0,display_mode)
+		sdl2.SDL_GetCurrentDisplayMode(0,display_mode)
 
 		P.screen_x = display_mode.w
 		P.screen_y = display_mode.h

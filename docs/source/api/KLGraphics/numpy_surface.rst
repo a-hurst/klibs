@@ -1,7 +1,7 @@
 KLNumpySurface
 ==============
 
-.. automodule:: klibs.KLNumpySurface
+.. automodule:: klibs.KLGraphics.KLNumpySurface
 	:undoc-members:
 	:members:
 

@@ -393,9 +393,9 @@ class MouseEvent(EnvAgent):
 
 			try:
 				if not self.evm.start_time:
-					self.__time__ = self.evm.timestamp
+					self.__time__ = self.evm.timestamp*1000
 				else:
-					self.__time__ = self.evm.trial_time
+					self.__time__ = self.evm.trial_time_ms
 			except AttributeError:
 				import time
 				self.__time__ = time.time()
@@ -420,6 +420,9 @@ class MouseEvent(EnvAgent):
 
 	def getEndTime(self):
 		return self.__time__
+
+	def getEye(self):
+		return 1 #right eye, because that's the value of TryLink's self.el.eye
 
 	def isRightSample(self):
 		return 1

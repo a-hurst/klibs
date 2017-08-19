@@ -574,6 +574,48 @@ def safe_flag_string(flags, prefix=None, uc=True):
 
 	return eval(flag_string)
 
+def scale(coords, canvas_size, target_size=None, scale=True, center=False):
+	'''
+	A function to scale and/or center layout pixel coordinates from a given resolution to a 
+	smaller or larger resolution, respecting aspect ratio. For example, if an animation was
+	written based on the pixel coordinates of a 1920x1080 display and you wanted to be able 
+	to test the project out on a laptop with a resolution of 1280x800, this function will 
+	scale the animation coordinates down to suit the smaller display. In addition, on a larger
+	display you might not want to scale pixel coordinates up, but you might want to center the 
+	layout on your screen instead of having it up in the top-left corner. 
+	
+	This function should only be used when expressing your layout in degrees of visual angle 
+	is impossible or impractical.
+
+	:param coords: A tuple of x,y coordinates to transform.
+	:param canvas_size: A tuple giving the resolution of the screen the animation was written for.
+	:param target_size: A tuple giving the pixel dimensions of the intended output (default: P.screen_x_y)
+	:param scale: If True, the input coordinates will be scaled to target_size.
+	:param center: If True, the input coordinate will be adjusted so that the animation is centered on the screen.
+
+	:return: A tuple containing the translated x
+	'''
+	x,y = coords
+	if tuple(canvas_size) == P.screen_x_y:
+		return coords
+	if not target_size:
+		target_size = P.screen_x_y if scale else canvas_size
+	if scale:
+		canvas_size = [float(i) for i in canvas_size]
+		target_size = [float(i) for i in target_size]
+		canvas_ratio = canvas_size[0]/canvas_size[1]
+		target_ratio = target_size[0]/target_size[1]
+		if target_ratio > canvas_ratio:
+			target_size[0] = target_size[1]*canvas_ratio
+		elif target_ratio < canvas_ratio:
+			target_size[1] = target_size[0]*canvas_ratio
+		x = int( (x/canvas_size[0])*target_size[0] )
+		y = int( (y/canvas_size[1])*target_size[1] )
+	
+	if center:
+		x = x + int(P.screen_x/2 - (target_size[0]/2))
+		y = y + int(P.screen_y/2 - (target_size[1]/2))
+	return (x,y)
 
 def sdl_key_code_to_str(sdl_keysym):
 	key_name = SDL_GetKeyName(sdl_keysym).replace("Keypad ", "")

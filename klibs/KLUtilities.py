@@ -194,7 +194,7 @@ def deg_to_px(deg, even=False):
 		px = ceil((deg * P.ppd) / 2.0) * 2
 	else:
 		px = deg * P.ppd
-	return int(px)  # todo: error checking?
+	return int(px)	# todo: error checking?
 
 
 def equiv(comparator, canonical):
@@ -236,7 +236,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 		file_name = file_name_str.format(participant_id, project_name_abbrev, file_extension)
 		return [file_name, os.path.join(file_path, file_name)]
 
-	file_name = file_name_str.format(participant_id, date, file_extension)  # second format arg = date sliced from date-time
+	file_name = file_name_str.format(participant_id, date, file_extension)	# second format arg = date sliced from date-time
 	if os.path.isfile(os.path.join(file_path, file_name)):
 		unique_file = False
 		append = 1
@@ -342,6 +342,17 @@ def linear_intersection(line_1, line_2):
 
 
 def line_segment_len(a, b):
+	"""Determines the distance between two points on a 2D plane (e.g. the distance
+	between two pairs of x,y pixel coordinates).
+
+	Args:
+		a (iter(x, y)): An iterable containing a single pair of x,y coordinates.
+		b (iter(x, y)): An iterable containing a single pair of x,y coordinates.
+
+	Returns:
+		The distance between points a and b.
+
+	"""
 	dy = b[1] - a[1]
 	dx = b[0] - a[0]
 	return math.sqrt(dy**2 + dx**2)
@@ -381,6 +392,20 @@ def mean(values, as_int=False):
 
 
 def mouse_pos(pump_event_queue=True, position=None):
+	"""Returns the current coordinates of the mouse cursor, or alternatively
+	warps the position of the cursor to a specific location on the screen.
+
+	Args:
+		pump_event_queue (bool): Pumps the SDL2 event queue. See documentation
+			for pump() for more information.
+		position (None or iterable(int,int)): The x,y pixel coordinates to warp
+			the cursor to if desired.
+
+	Returns:
+		The x,y coordinates of the cursor as integer values in a list. If position
+		is not None, this will be the coordinates the cursor was warped to.
+
+	"""
 	if pump_event_queue:
 		SDL_PumpEvents()
 	if not position:
@@ -405,6 +430,16 @@ def now(format_time=False, format_template=DATETIME_STAMP):
 
 
 def peak(v1, v2):
+	"""Returns the greater of two values.
+
+	Args:
+		v1 (numeric): The first value to be compared.
+		v2 (numeric): The second value to be compared.
+
+	Returns:
+		The greater of the two values. If both values are equal, v2 is returned.
+
+	"""
 	if v1 > v2:
 		return v1
 	else:
@@ -424,8 +459,30 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False):
 
 
 def pump(return_events=False):
+
+	"""Pumps the SDL2 event queue and appends its contents to the EventManager log.
+	 The SDL2 event queue contains SDL_Event objects representing keypresses, mouse
+	 movements, mouse clicks, and other input events that have occured since last
+	 check.
+
+	 Pumping the SDL2 event queue clears its contents, so be careful of calling it
+	 (or functions that call it implicitly) multiple times in the same loop, as it
+	 may result in unexpected problems watching for input (e.g if you have two
+	 functions checking for mouse clicks within two different boundaries and both
+	 call pump(), the second one will only return True if a click within that boundary
+	 occurred within the sub-millisecond interval between the first and second functions.)
+	 To avoid these problems, you can manually fetch the queue once per loop and pass its
+	 contents to each of the functions in the loop inspecting user input.
+
+	Args:
+		return_events (bool): If true, returns the contents of the SDL2 event queue.
+
+	Returns:
+		A list of SDL_Event objects, if return_events=True. Otherwise, the return 
+		value is None.
+
+	"""
 	from klibs.KLEnvironment import evm
-	# try:
 	while not evm.clock_sync_queue.empty():
 		event = evm.clock_sync_queue.get()
 		# put event into the SDL event queue
@@ -439,7 +496,7 @@ def pump(return_events=False):
 
 		if success == 0: raise RuntimeError(SDL_GetError())
 	# except AttributeError:
-	# 	pass  # for when called before evm initialized
+	#	pass  # for when called before evm initialized
 	SDL_PumpEvents()
 	if return_events:
 		return get_events()
@@ -453,27 +510,27 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap
 	**Config Keys**
 
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| **Key**           |     **Description**                                                                               |
+	| **Key**			|	  **Description**																				|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| prepend           |      [coming]                                                                                     |
+	| prepend			|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| afterFirst        |      [coming]                                                                                     |
+	| afterFirst		|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| beforeLast        |      [coming]                                                                                     |
+	| beforeLast		|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| eachN             |      [coming]                                                                                     |
+	| eachN				|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| whitespace        | Whitespace to place between elements. Should be a positive integer, but can be a string if the    |
-	|                   | number is smaller than three and greater than zero. May also be the string None or False, but     |
-	|                   | you should probably just not set it if that's what you want.                                      |
+	| whitespace		| Whitespace to place between elements. Should be a positive integer, but can be a string if the	|
+	|					| number is smaller than three and greater than zero. May also be the string None or False, but		|
+	|					| you should probably just not set it if that's what you want.										|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| append            |      [coming]                                                                                     |
+	| append			|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimiter         |      [coming]                                                                                     |
+	| delimiter			|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimitBehavior   |      [coming]                                                                                     |
+	| delimitBehavior	|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimitBehaviour  |      [coming]                                                                                     |
+	| delimitBehaviour	|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
 
 
@@ -540,13 +597,13 @@ def pt_to_px(pt_size):
 		raise TypeError("Argument 'pt_size' must be an integer.")
 	if 512 < pt_size < 2:
 		raise ValueError("Argument 'pt_size' must be between 2 and 512.")
-	# dpi = 96  # CRT default
+	# dpi = 96	# CRT default
 
 	return int(math.floor(1.0 / 72 * P.ppi * pt_size))
 
 
-def px_to_deg(length):  # length = px
-	return int(length / P.ppd)
+def px_to_deg(length):	# length = px
+	return float(length / P.ppd)
 
 
 def show_mouse_cursor():
@@ -678,9 +735,9 @@ def unicode_to_str(content):
 		elif iterable(content):
 			#  manage dicts first
 			try:
-				converted = {}  # converted output for this level of the data
+				converted = {}	# converted output for this level of the data
 				for k in content:
-					v = content[k]  # ensure the keys are ascii strings
+					v = content[k]	# ensure the keys are ascii strings
 					if type(k) is unicode:
 						k = unicode_to_str(k)
 					if type(v) is unicode:

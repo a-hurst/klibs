@@ -194,7 +194,8 @@ def message(text, style=None, location=None, registration=None, blit_txt=True, f
 	blit.
 	:type flip_screen: Boolean
 	:return: NumpySurface or Boolean
-		"""
+	
+	"""
 
 	from klibs.KLEnvironment import txtm
 

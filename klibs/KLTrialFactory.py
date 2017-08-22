@@ -44,6 +44,7 @@ class BlockIterator(object):
 
 	def next(self):
 		if self.i >= self.length:
+			self.i = 0 # reset index so we can iterate over it again
 			raise StopIteration
 		else:
 			self.i += 1
@@ -65,6 +66,7 @@ class TrialIterator(BlockIterator):
 
 	def next(self):
 		if self.i >= self.length:
+			self.i = 0
 			raise StopIteration
 		else:
 			self.i += 1

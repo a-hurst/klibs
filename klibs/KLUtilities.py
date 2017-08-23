@@ -228,7 +228,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 			file_name_str = "p{0}_{1}_incomplete.txt"
 			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + TF_DATA
 		else:
-			file_path = P.data_path
+			file_path = P.data_dir
 	if file_type == EDF_FILE:
 		file_extension = EDF_EXT
 		file_path = P.edf_dir

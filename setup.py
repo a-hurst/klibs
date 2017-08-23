@@ -15,6 +15,7 @@ copy_git = True
 if "--no-git-copy" in sys.argv:
     copy_git = False
     sys.argv.remove("--no-git-copy")
+	
 
 install_packages = ['klibs']
 
@@ -26,6 +27,7 @@ setup(
 	author_email='this.impetus@gmail.com',
 	url='http://github.com/jmwmulle/klibs',
 	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeLink'],
+	scripts=['bin/klibs'],
 
 )
 
@@ -56,12 +58,12 @@ shutil.copytree("lib/klibs", "/usr/local/lib/klibs")
 # 	os.remove("/usr/local/lib/klibs/template/ExpAssets/Config/__init__.py")
 # except:
 # 	pass
-try:
-	os.remove("/usr/local/bin/klibs")
-except:
-	pass
-shutil.copyfile("bin/klibs", "/usr/local/bin/klibs")
-shutil.copymode("bin/klibs", "/usr/local/bin/klibs")
+#try:
+#	os.remove("/usr/local/bin/klibs")
+#except:
+#	pass
+#shutil.copyfile("bin/klibs", "/usr/local/bin/klibs")
+#shutil.copymode("bin/klibs", "/usr/local/bin/klibs")
 
 p = sub.Popen(['git', 'rev-parse', 'HEAD'], stdout=sub.PIPE,stderr=sub.PIPE)
 commit = p.communicate()[0][:-1]

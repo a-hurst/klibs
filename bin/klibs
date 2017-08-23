@@ -227,6 +227,13 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	# get project name and set working directory to top of project
 	project_name = os.path.split(path)[-1]
 	os.chdir(path)
+	
+	# check if the project directory contains an experiment.py file. If it doesn't,
+	# it probably isn't the parent directory of a KLibs project and we should quit.
+	if not os.path.isfile('experiment.py'):
+		cso("\n<red>Error: no 'experiment.py' file was found in the project directory.\n" \
+			"Please make sure you are in a valid project folder and try 'klibs run' again.</red>\n")
+		exit()
 
 	# create any missing project directories
 	dir_structure = {"ExpAssets": {

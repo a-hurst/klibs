@@ -169,7 +169,7 @@ def init_messaging():
 
 def message(text, style=None, location=None, registration=None, blit_txt=True, flip_screen=False, clear_screen=False, wrap_width=None):
 	"""
-	Generates and optionally renders formatted text to the display.
+	Generates formatted text, and optionally renders it to the display.
 
 	.. warning:: While this method supports the arguments listed, only :class:`~klibs.KLTextManager.TextStyle`
 	should now be used.

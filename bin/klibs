@@ -374,7 +374,8 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 
 
 def export(path, multi_file=True, join_tables=None):
-	from klibs import P, KLDatabase
+	from klibs import P
+	from klibs.KLDatabase import Database
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
 
@@ -389,7 +390,7 @@ def export(path, multi_file=True, join_tables=None):
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
 
-	KLDatabase(project_name).export(multi_file, join_tables)
+	Database(project_name).export(multi_file, join_tables)
 
 
 def rebuild_db(path):

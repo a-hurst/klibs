@@ -145,9 +145,6 @@ class Database(EnvAgent):
 	table_schemas = {}
 	experiment = None
 	data_columns = None
-	default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]
-	default_participant_fields_sf = [["userhash", "participant"], "random_seed", "sex", "age", "handedness"]
-	default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
 	data_column_format = DB_COL_TITLE
 
 	def __init__(self, project_name=None):
@@ -265,7 +262,7 @@ class Database(EnvAgent):
 		return True
 
 	def collect_export_data(self, multi_file=True,  join_tables=[]):
-		participant_ids = self.query("SELECT `id`, `userhash` FROM `participants`")
+		participant_ids = self.query("SELECT `id`, `{0}` FROM `participants`".format(P.unique_identifier))
 		participant_ids.insert(0, (-1,))  # for test data collected before anonymous_user added to collect_demographics()
 		default_fields = P.default_participant_fields if multi_file else P.default_participant_fields_sf
 
@@ -365,22 +362,27 @@ class Database(EnvAgent):
 		# todo: make sure the block_per_experiment line reflects new trial factory block insertion logic
 		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export--probably this should be added to the participant table at run time
 		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", P.klibs_version], ["Display Diagonal Inches", P.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*P.screen_x_y)], ["Random Seed", random_seed]]
-		klibs_vars = [ "KLIBS INFO", ["KLIBs Commit", P.klibs_commit]]
+		klibs_vars   = ["KLIBS INFO", ["KLIBs Commit", P.klibs_commit]]
+		eyelink_vars = ["EYELINK SETTINGS",
+						["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
+						["Saccadic Acceleration Threshold", P.saccadic_acceleration_threshold],
+						["Saccadic Motion Threshold", P.saccadic_motion_threshold]]
+		exp_vars 	 = ["EXPERIMENT SETTINGS",
+						["Trials Per Block", P.trials_per_block],
+						["Blocks Per Experiment", P.blocks_per_experiment]]
+
 		try:
 			if user_id:  # if building a header for a single participant, include the random seed
 				q = "SELECT `random_seed` from `participants` WHERE `participants`.`id` = ?"
 				klibs_vars.append(["random_seed", self.query(q, q_vars=[user_id])[0][0]])
 		except sqlite3.OperationalError:
 			pass  # older klibs databases won't have this column
-		eyelink_vars = [ "EYELINK SETTINGS",
-						 ["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
-						 ["Saccadic Acceleration Threshold", P.saccadic_acceleration_threshold],
-						 ["Saccadic Motion Threshold", P.saccadic_motion_threshold]]
-		exp_vars = [ "EXPERIMENT SETTINGS",
-					 ["Trials Per Block", P.trials_per_block],
-					 ["Blocks Per Experiment", P.blocks_per_experiment]]
+		
 		header = ""
-		for info in [klibs_vars, eyelink_vars, exp_vars]:
+		header_info = [klibs_vars, exp_vars]
+		if P.eye_tracking and P.eye_tracker_available:
+			header_info.insert(1, eyelink_vars)
+		for info in header_info:
 			header += "# >>> {0}\n".format(info[0])
 			header += "\n".join(["# {0}: {1}".format(var[0], var[1]) for var in info[1:]])
 			header += "\n"
@@ -465,7 +467,7 @@ class Database(EnvAgent):
 			if incomplete:
 				return [fname, join(P.incomplete_data_path, fname)]
 			else:
-				return [fname, join(P.data_path, fname)]
+				return [fname, join(P.data_dir, fname)]
 
 	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
 		if q_vars:

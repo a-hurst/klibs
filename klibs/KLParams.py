@@ -81,6 +81,7 @@ p_id = None
 
 
 id_field_name = "participant_id"
+unique_identifier = "userhash"
 collect_demographics = True
 demographics_collected = False
 manual_demographics_collection = False

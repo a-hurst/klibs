@@ -60,10 +60,11 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 		avoid performance issues resulting from the extra overhead.
 
 		Args:
-			source (NumpySurface|Drawbject|Array|Image): Image data to be buffered.
+			source (:obj:`NumpySurface`|:obj:`Drawbject`|:obj:`numpy.array`|
+				:obj:`Pillow.Image`): Image data to be buffered.
 			registration (int): An integer from 1 to 9 indicating which location on the
 				surface will be aligned to the location value (see manual for more info).
-			location((int,int)): A tuple of x,y pixel coordinates indicating where to
+			location(tuple(int,int)): A tuple of x,y pixel coordinates indicating where to
 				draw the object to.
 			position(iter|str): (depricated) Location to draw object, in form of either
 				an iterable of pixel coordiantes or a location string (e.g "center").

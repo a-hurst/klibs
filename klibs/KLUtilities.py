@@ -228,7 +228,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 			file_name_str = "p{0}_{1}_incomplete.txt"
 			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + TF_DATA
 		else:
-			file_path = P.data_path
+			file_path = P.data_dir
 	if file_type == EDF_FILE:
 		file_extension = EDF_EXT
 		file_path = P.edf_dir
@@ -398,7 +398,7 @@ def mouse_pos(pump_event_queue=True, position=None):
 	Args:
 		pump_event_queue (bool): Pumps the SDL2 event queue. See documentation
 			for pump() for more information.
-		position (None or iterable(int,int)): The x,y pixel coordinates to warp
+		position (None or iter(int,int)): The x,y pixel coordinates to warp
 			the cursor to if desired.
 
 	Returns:

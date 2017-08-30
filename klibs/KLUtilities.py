@@ -631,7 +631,7 @@ def safe_flag_string(flags, prefix=None, uc=True):
 
 	return eval(flag_string)
 
-def scale(coords, canvas_size, target_size=None, scale=True, center=False):
+def scale(coords, canvas_size, target_size=None, scale=True, center=True):
 	'''
 	A function to scale and/or center layout pixel coordinates from a given resolution to a 
 	smaller or larger resolution, respecting aspect ratio. For example, if an animation was
@@ -665,7 +665,7 @@ def scale(coords, canvas_size, target_size=None, scale=True, center=False):
 		if target_ratio > canvas_ratio:
 			target_size[0] = target_size[1]*canvas_ratio
 		elif target_ratio < canvas_ratio:
-			target_size[1] = target_size[0]*canvas_ratio
+			target_size[1] = target_size[0]/canvas_ratio
 		x = int( (x/canvas_size[0])*target_size[0] )
 		y = int( (y/canvas_size[1])*target_size[1] )
 	

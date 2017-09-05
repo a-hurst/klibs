@@ -13,14 +13,19 @@ if "--no-git-copy" in sys.argv:
 
 install_packages = ['klibs']
 
+#TODO: Figure out some sane minimum version for the dependencies.
+#TODO: Figure out a more elegant solution to installing the lib directory
+#TODO: Come up with a consistent version number strategy across KLibs.
+
 setup(
 	name='KLIBs',
 	version='0.1a',
 	description='A framework for building psychological experiments in Python',
-	author='Jonathan Mulle',
+	author='Jonathan Mulle & Austin Hurst',
 	author_email='this.impetus@gmail.com',
 	url='http://github.com/jmwmulle/klibs',
 	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeLink'],
+	scripts=['bin/klibs'],
 	python_requires='>=2.7, <3',
 	install_requires=[
 		'numpy', 
@@ -38,13 +43,6 @@ setup(
 
 
 # dirty hack until time is made to do this bit right via the installer
-
-try:
-    os.remove("/usr/local/bin/klibs")
-except:
-    pass
-shutil.copyfile("bin/klibs", "/usr/local/bin/klibs")
-shutil.copymode("bin/klibs", "/usr/local/bin/klibs")
 
 try:
 	shutil.rmtree("/usr/local/lib/klibs")

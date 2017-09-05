@@ -54,17 +54,26 @@ def argb32_to_rgba(np_array):
 
 def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 		"""
-		Draws passed content to display buffer.
+		Draws passed content to the display buffer. All content that is not in already
+		rendered to Numpy Array format will be rendered when it is passed to this
+		function, thus it is recommended to render beforehand whenever possible to
+		avoid performance issues resulting from the extra overhead.
 
-		:param source: Image data to be buffered.
-		:type source: :class:`~klibs.KLNumpySurface.NumpySurface`, :class:`~klibs.KLDraw.Drawjbect`, Numpy Array, `PIL.Image <http://pillow.readthedocs.org/en/3.0.x/reference/Image.html>`_
-		:param registration: Location on perimeter of surface that will be aligned to position (see manual for more information).
-		:type registration: Int
-		:param position: Location on screen to place source, either pixel coordinates or location string (ie. "center", "top_left")
-		:type position: String, Iterable
-		:param context: ``NOT IMPLEMENTED`` A destination surface or display object for images built gradually.
-
-		:raise TypeError:
+		Args:
+			source (:obj:`NumpySurface`|:obj:`Drawbject`|:obj:`numpy.array`|
+				:obj:`Pillow.Image`): Image data to be buffered.
+			registration (int): An integer from 1 to 9 indicating which location on the
+				surface will be aligned to the location value (see manual for more info).
+			location(tuple(int,int)): A tuple of x,y pixel coordinates indicating where to
+				draw the object to.
+			position(iter|str): (depricated) Location to draw object, in form of either
+				an iterable of pixel coordiantes or a location string (e.g "center").
+			flip_x (bool): If True, flips the x-axis of the passed object before drawing.
+			context: (not implemented) A destination surface or display object for images
+				built gradually.
+		
+		Raises:
+			TypeError: If the 'source' object passed is not one of the accepted types.
 		"""
 
 		if position:
@@ -155,9 +164,13 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 
 def clear(color=None):
 		"""
-		Clears current display and display buffer with supplied color or else P.default_fill_color.
+		Clears both current display and display buffer with a given color. If no color
+		is specified, the value of P.default_fill_colour is used.
 
-		:param color:
+		Args:
+			color(iter, optional): An iterable of integers representing the RGB or RGBA
+				color value to be used to fill the display and display buffer (e.g.
+				color=(0,0,0) to fill both with black).
 		"""
 
 		if color is None: color = P.default_fill_color
@@ -255,10 +268,15 @@ def draw_fixation(location=BL_CENTER, size=None, stroke=None, color=None, fill_c
 
 def fill(color=None, context=None):
 	"""
-	Clears display buffer to a single color.
+	Fills the display buffer with a single RGB or RGBA color. If no color is specified,
+	the value of P.default_fill_colour is used.
 
-	:param color:
-	:param context:
+	Args:
+		color(iter, optional): An iterable of integers representing the RGB or RGBA
+				color value to be used to fill the display buffer (e.g. color=(0,0,0)
+				to fill the buffer with black).
+		context: (Not implemented) The id of the display context to fill.
+
 	"""
 
 	# todo: consider adding sdl2's "area" argument, to fill a subset of the surface
@@ -277,10 +295,25 @@ def fill(color=None, context=None):
 
 def flip(window=None):
 	"""
-	Transfers content of draw buffer to current passed SDL2 window object or window attribute of current
-	 :mod:`~klibs.KLExperiment` instance.
+	Displays the contents of the display buffer on the screen. Because the screen is only
+	redrawn at certain intervals (every 16.7 ms for a typical 60 Hz LCD), this function
+	will not return until the next redraw event occurs. 
+	
+	When in development mode, this function will print a warning in the console if the 
+	screen takes longer than a single refresh to redraw. If this occurs often, it might
+	indicate an issue with your graphics driver or display computer and suggests that
+	you shouldn't rely on that setup for timing-sensitive experiments.
 
-	:raises: ValueError
+	For more information on how drawing works in KLibs, please refer to the documentation
+	page explaining the graphics system.
+
+	Args:
+		window (sdl2.window, optional): The SDL2 window to flip. Should only be specified
+			manually if called outside of a KLibs expriment runtime.
+	
+	Raises:
+		ValueError: If called outside of an experiment runtime and no window is specified.
+
 	"""
 	from klibs.KLEnvironment import exp, el
 	global tracker_dot
@@ -315,6 +348,16 @@ def flip(window=None):
 
 
 def rgb_to_rgba(rgb):
+	"""Converts a 3-element RGB iterable to a 4-element RGBA tuple. If a 4-element RGBA
+	iterable is passed it is coerced to a tuple and returned, making the function safe
+	for use when the input might be either an RGB or RGBA value.
+
+	Args:
+		rgb(iter): A 3 or 4 element RGB(A) iterable to convert.
+	
+	Returns:
+		Tuple[r, g, b, a]: A 4-element RGBA tuple.
+	"""
 	return tuple(rgb) if len(rgb) == 4 else tuple([rgb[0], rgb[1], rgb[2], 255])
 
 

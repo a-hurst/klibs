@@ -64,6 +64,56 @@ colors = load_source("*", join(P.klibs_dir, "color_wheel_color_list.py")).colors
 
 
 class Drawbject(object):
+	"""An abstract class that serves as the foundation for all KLDraw shapes. All Drawbjects
+	are drawn on an internal surface using the aggdraw drawing library, which can then be drawn
+	to the display buffer using blit() and displayed on the screen using flip(). For more
+	infomration on drawing in KLibs, please refer to the guide in the documentation.
+
+	Args:
+		width (int): The width of the shape in pixels.
+		height (int): The height of the shape in pixels.
+		stroke (List[alignment, width, Tuple[color]]): The stroke of the shape, indicating
+			the alignment (inner, center, or outer), width, and color of the stroke.
+		fill (Tuple[color]): The fill color for the shape expressed as an iterable of integer 
+			values from 0 to 255 representing an RGB or RGBA color (e.g. (255,0,0,128)
+			for bright red with 50% transparency.)
+		rotation (int|float, optional): The degrees by which to rotate the Drawbject during
+			rendering. Defaults to 0.
+
+	Attributes:
+		stroke_color (None or Tuple[color]): The stroke color for the shape, expressed as an
+			iterable of integer values from 0 to 255 representing an RGB or RGBA color.
+			Defaults to 'None' if the shape has no stroke.
+		stroke_width (int): The stroke width for the in pixels. Defaults to '0' if the
+			shape has no stroke.
+		stroke_alignment (int): The stroke alignment for the shape (inner, center, or
+			outer). Defaults to '1' (STROKE_INNER) if the shape has no stroke.
+		fill_color (None or Tuple[color]): The fill color for the shape, expressed as an
+			iterable of integer values from 0 to 255 representing an RGB or RGBA color.
+			Defaults to 'None' if the shape has no fill.
+		opacity (int): The opacity of the shape, expressed as an integer from 0 (fully
+			transparent) to 255 (fully opaque).
+		object_width (int): The width of the shape in pixels.
+		object_height (int): The height of the shape in pixels.
+		surface_width (int): The width of the draw surface in pixels. At minimum two 
+			pixels wider than the object_width (if no stroke or stroke is inner aligned),
+			at maximum (2 + 2*stroke_width) pixels wider than object width (if stroke is
+			outer aligned).
+		surface_height (int): The height of the draw surface in pixels. At minimum two 
+			pixels wider than the object_height (if no stroke or stroke is inner aligned),
+			at maximum (2 + 2*stroke_height) pixels wider than object height (if stroke is
+			outer aligned).
+		surface (:obj:`aggdraw.Draw`): The aggdraw surface on which the shape is drawn. The
+			empty surface of size (surface_width, surface_height) is initialized when a
+			Drawbject is created.
+		rendered (None or :obj:`numpy.array`): The rendered surface containing the shape,
+			which is created using the render() method. If the Drawbject has not yet been
+			rendered, this attribute will be 'None'.
+		rotation (int): The rotation of the shape in degrees. Will be equal to 0 if no
+			rotation is set.
+
+	"""
+
 	transparent_brush = Brush((255, 0, 0), 0)
 
 	def __init__(self, width, height, stroke, fill, rotation=0):
@@ -71,12 +121,11 @@ class Drawbject(object):
 
 		self.__stroke = None
 		self.stroke_color = None
-		self.stroke_width = None
+		self.stroke_width = 0
 		self.stroke_alignment = STROKE_INNER
 		self.__fill = None
 		self.fill_color = None
 		self.opacity = None
-		self.stroke_width = 0
 		self.object_width = width
 		self.object_height = height
 		self.surface_width = None
@@ -116,6 +165,23 @@ class Drawbject(object):
 		self.surface.setantialias(True)
 
 	def render(self):
+		"""Renders the Drawbject to a numpy array so it can be drawn to the display buffer
+		using KLGraphics.blit(). This method is called implicitly when an unrendered
+		Drawbject is passed to blit(), so while rendering a Drawbject explicitly is not
+		required, it does make the blitting process faster and is recommended whenever
+		possible. 
+		
+		Once a Drawbject is rendered, a copy of the resulting array is saved within the
+		object under the 'rendered' attribute which will be used by blit() if present. 
+		Note that if you change any of the attributes of a Drawbject (e.g. stroke, fill,
+		rotation) after it has been rendered, you will need to call this method again
+		before those changes will take effect.
+		
+		Returns:
+			:obj:`numpy.array`: A numpy array with the dimensions (surface_height, 
+				surface_width) containing the pixels of the rendered Drawbject.
+
+		"""
 		from PIL.Image import BILINEAR
 		self.init_surface()
 		self.draw()
@@ -140,6 +206,16 @@ class Drawbject(object):
 
 	@property
 	def stroke(self):
+		"""None or :obj:`aggdraw.Pen`: An aggdraw Pen object set to the specified stroke width
+		and color, or None if the Drawbject has no stroke.
+
+		Raises:
+			ValueError: If an invalid stroke alignment value is passed to the stroke setter.
+				Valid values are 1 (STROKE_INNER), 2 (STROKE_CENTER), or 3 (STROKE_OUTER).
+				For the sake of clarity, it is recommended that you define stroke alignment
+				using the variable names provided in KLConstants (in brackets above).
+
+		"""
 		return self.__stroke
 
 	@stroke.setter
@@ -175,6 +251,10 @@ class Drawbject(object):
 
 	@property
 	def fill(self):
+		"""None or :obj:`aggdraw.Brush`: An aggdraw Brush object set to the specified fill
+		color, or None if the Drawbject has no fill.
+		
+		"""
 		return self.__fill
 
 	@fill.setter
@@ -200,11 +280,30 @@ class Drawbject(object):
 
 	@property
 	def dimensions(self):
+		"""List[int, int]: The height and width of the internal surface on which the shape
+		is drawn.
+
+		"""
 		return [self.surface_width, self.surface_height]
 
 
 class FixationCross(Drawbject):
+	"""Creates a Drawbject containing a fixation cross.
 
+	Args:
+		size (int): The height and width of the cross in pixels.
+		thickness (int): The thickness of the cross in pixels.
+		stroke (List[alignment, width, Tuple[color]], optional): The stroke of the cross,
+			indicating the alignment of the stroke (inner, center, or outer), the stroke
+			width, and the color of the stroke. Defaults to no stroke.
+		fill (Tuple[color], optional): The fill color for the cross in RGB or RGBA format.
+			Defaults to transparent fill.
+		auto_draw (bool): If True, draws the shape internally when created.
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified fixation cross.
+
+	"""
 	def __init__(self, size, thickness, stroke=None, fill=None, auto_draw=True):
 		if not stroke:  # ie. "fill" will actually be the stroke of two lines as against two intersecting rects
 			stroke = [thickness, fill]
@@ -229,6 +328,22 @@ class FixationCross(Drawbject):
 
 
 class Ellipse(Drawbject):
+	"""Creates a Drawbject containing an ellipse.
+
+	Args:
+		width (int): The width of the ellipse in pixels.
+		height (int, optional): The height of the ellipse in pixels. Defaults to width.
+		stroke (List[alignment, width, Tuple[color]], optional): The stroke of the ellipse,
+			indicating the alignment (inner, center, or outer), width, and color of the
+			stroke. Defaults to no stroke.
+		fill (Tuple[color], optional): The fill color for the ellipse in RGB or RGBA
+			format. Defaults to transparent fill.
+		auto_draw (bool): If True, internally draws the ellipse on initialization.
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified ellipse.
+
+	"""
 
 	def __init__(self, width, height=None, stroke=None, fill=None, auto_draw=True):
 		if not height:
@@ -250,6 +365,7 @@ class Ellipse(Drawbject):
 
 	@property
 	def width(self):
+		"""int: The width of the ellipse in pixels."""
 		return self.object_width
 
 	@width.setter
@@ -259,6 +375,7 @@ class Ellipse(Drawbject):
 
 	@property
 	def height(self):
+		"""int: The height of the ellipse in pixels."""
 		return self.object_height
 
 
@@ -269,6 +386,11 @@ class Ellipse(Drawbject):
 
 	@property
 	def diameter(self):
+		"""int or None: The diameter of the ellipse in pixels. If the height and width of
+		the ellipse are not the same (i.e. if it is an oval and not a circle), this will
+		return 'None'.
+
+		"""
 		if self.object_width == self.object_height:
 			return self.object_width
 		else:
@@ -283,6 +405,23 @@ class Ellipse(Drawbject):
 
 
 class Annulus(Drawbject):
+	"""Creates a Drawbject containing an annulus.
+
+	Args:
+		diameter (int): The diameter of the annulus in pixels.
+		ring_width (int): The width of the ring of the annulus in pixels.
+		stroke (List[alignment, width, Tuple[color]], optional): The stroke of the
+			annulus, indicating the alignment (inner, center, or outer), width, and
+			color of the stroke. Defaults to no stroke.
+		fill (Tuple[color], optional): The fill color for the annulus in RGB or RGBA
+			format. Defaults to transparent fill.
+		rotation (int, optional): 
+		auto_draw (bool): If True, internally draws the annulus on initialization.
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified annulus.
+
+	"""
 
 	def __init__(self, diameter, ring_width, stroke=None, fill=None, rotation=0, auto_draw=True):
 		super(Annulus, self).__init__(diameter + 2, diameter + 2, stroke, fill)
@@ -323,6 +462,22 @@ class Annulus(Drawbject):
 
 
 class Rectangle(Drawbject):
+	"""Creates a Drawbject containing a rectangle.
+
+	Args:
+		width (int): The width of the rectangle in pixels.
+		height (int, optional): The height of the rectangle in pixels. Defaults to width.
+		stroke (List[alignment, width, Tuple[color]], optional): The stroke of the
+			rectangle, indicating the alignment (inner, center, or outer), width, and
+			color of the stroke. Defaults to no stroke.
+		fill (Tuple[color], optional): The fill color for the rectangle in RGB or RGBA
+			format. Defaults to transparent fill.
+		auto_draw (bool): If True, internally draws the rectangle on initialization.
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified rectangle.
+
+	"""
 
 	def __init__(self, width, height=None, stroke=None, fill=None, auto_draw=True):
 		if not height:
@@ -352,7 +507,19 @@ class Rectangle(Drawbject):
 
 
 class Asterisk(Drawbject):
+	"""Creates a Drawbject containing a six-spoke asterisk.
 
+	Args:
+		size (int): The height and width of the asterisk in pixels.
+		color (Tuple[color]): The color of the asterisk, expressed as an iterable of
+			integer values from 0 to 255 representing an RGB or RGBA color.
+		stroke (int, optional): The thickness of the asterisk in pixels. Defaults to '1'
+			if no value is given.
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified asterisk.
+
+	"""
 	def __init__(self, size, color, stroke=1):
 		super(Asterisk, self).__init__(size, size, (stroke, color), fill=None)
 		self.size = size
@@ -376,7 +543,19 @@ class Asterisk(Drawbject):
 
 
 class Asterisk2(Drawbject):
+	"""Creates a Drawbject containing an eight-spoke asterisk.
 
+	Args:
+		size (int): The height and width of the asterisk in pixels.
+		color (Tuple[color]): The color of the asterisk, expressed as an iterable of
+			integer values from 0 to 255 representing an RGB or RGBA color.
+		stroke (int, optional): The thickness of the asterisk in pixels. Defaults to '1'
+			if no value is given.
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified asterisk.
+
+	"""
 	def __init__(self, size, color, stroke=1):
 		super(Asterisk2, self).__init__(size, size, (stroke, color), fill=None)
 		self.size = size
@@ -400,6 +579,26 @@ class Asterisk2(Drawbject):
 
 
 class Line(Drawbject):
+	"""Creates a Drawbject containing a line.
+
+	Args:
+		length (int): The length of the line in pixels.
+		color (Tuple[color]): The color of the line, expressed as an iterable of
+			integer values from 0 to 255 representing an RGB or RGBA color.
+		thickness (int): The thickness of the line in pixels.
+		rotation (int, optional): The degrees by which the line should be rotated. Defaults
+			to 0 (vertical).
+		pts(List[Tuple[x1,y1],Tuple[x2,y2]], optional): A pair of x,y pixel coordinates
+			indicating where the line should be drawn between. Note that this still creates
+			a surface just large enough to contain the line, so you will still need to blit
+			your line in the proper location if you want to draw a line between two
+			specific points on the screen.
+		auto_draw (bool): If True, internally draws the line on initialization.
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified line.
+
+	"""
 
 	def __init__(self, length, color, thickness, rotation=0, pts=None, auto_draw=True):
 		self.rotation = rotation
@@ -442,7 +641,23 @@ class Line(Drawbject):
 
 
 class Triangle(Drawbject):
+	"""Creates a Drawbject containing an isoceles or equilateral triangle.
 
+	Args:
+		base (int): The width of the base of the triangle in pixels.
+		height (int): The height of the triangle in pixels.
+		rotation (float|int, optional): The degrees by which to rotate the triangle when
+			rendering. Defaults to 0 (no rotation).
+		stroke (List[alignment, width, Tuple[color]], optional): The stroke of the
+			triangle, indicating the alignment (inner, center, or outer), width, and
+			color of the stroke. Defaults to no stroke.
+		fill (Tuple[color], optional): The fill color for the triangle in RGB or RGBA format.
+			Defaults to transparent fill.
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified triangle.
+
+	"""
 	def __init__(self, base, height, rotation=0, stroke=None, fill=None):
 		self.base = base
 		self.height = height
@@ -458,6 +673,30 @@ class Triangle(Drawbject):
 		return "Triangle"
 
 class Arrow(Drawbject):
+	"""Creates a Drawbject containing an arrow.
+
+	Note that research on arrows as spatial cues suggests that arrows are followed 
+	reflexively to an extent, so if you are looking to use an arrow in your experiment
+	as a truly endogenous cue you may want to consider a more neutral cue stimulus instead
+	(e.g. squares and diamonds).
+
+	Args:
+		tail_w (int): The width of the tail of the arrow in pixels.
+		tail_h (int): The height of the tail of the arrow in pixels.
+		head_w (int): The width of the head of the arrow in pixels.
+		head_h (int): The height of the head of the arrow in pixels.
+		rotation (int, optional): The degrees by which to rotate the arrow when
+			rendered. Defaults to 0 (no rotation).
+		stroke (List[alignment, width, Tuple[color]], optional): The stroke of the
+			arrow, indicating the alignment (inner, center, or outer), width, and
+			color of the stroke. Defaults to no stroke.
+		fill (Tuple[color], optional): The fill color for the arrow in RGB or RGBA format.
+			Defaults to transparent fill.
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified arrow.
+
+	"""
 	def __init__(self, tail_w, tail_h, head_w, head_h, rotation=0, stroke=None, fill=None):
 		self.tail_w = tail_w
 		self.tail_h = tail_h
@@ -488,8 +727,26 @@ class Arrow(Drawbject):
 			return "Arrow"
 
 class ColorWheel(Drawbject):
+	"""Creates a Drawbject containing a color wheel. By default, the color wheel
+	is constant-luminance.
 
-	def __init__(self, diameter, thickness=None,  rotation=0, auto_draw=True):
+	Manually specifying a color list for the color wheel is not yet supported, but
+	is planned for a future release (e.g. specify an RGB wheel in place of a LAB one).
+
+	Args:
+		diameter (int): The diameter of the color wheel in pixels.
+		thickness (int, optional): The width of the ring of the color wheel in pixels.
+			Defaults to one quarter of the diameter if not specified.
+		rotation (int, optional): The degrees by which to rotate the color wheel when
+			rendered. Defaults to 0 (no rotation).
+		auto_draw (bool): If True, internally draws the color wheel on initialization.
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified color wheel.
+		
+	"""
+
+	def __init__(self, diameter, thickness=None, rotation=0, auto_draw=True):
 		# self.stroke_pad = int(diameter * 0.01)
 		super(ColorWheel, self).__init__(diameter, diameter, stroke=None, fill=None)
 		self.palette = colors

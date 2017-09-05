@@ -194,7 +194,7 @@ def deg_to_px(deg, even=False):
 		px = ceil((deg * P.ppd) / 2.0) * 2
 	else:
 		px = deg * P.ppd
-	return int(px)  # todo: error checking?
+	return int(px)	# todo: error checking?
 
 
 def equiv(comparator, canonical):
@@ -228,7 +228,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 			file_name_str = "p{0}_{1}_incomplete.txt"
 			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + TF_DATA
 		else:
-			file_path = P.data_path
+			file_path = P.data_dir
 	if file_type == EDF_FILE:
 		file_extension = EDF_EXT
 		file_path = P.edf_dir
@@ -236,7 +236,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 		file_name = file_name_str.format(participant_id, project_name_abbrev, file_extension)
 		return [file_name, os.path.join(file_path, file_name)]
 
-	file_name = file_name_str.format(participant_id, date, file_extension)  # second format arg = date sliced from date-time
+	file_name = file_name_str.format(participant_id, date, file_extension)	# second format arg = date sliced from date-time
 	if os.path.isfile(os.path.join(file_path, file_name)):
 		unique_file = False
 		append = 1
@@ -342,6 +342,17 @@ def linear_intersection(line_1, line_2):
 
 
 def line_segment_len(a, b):
+	"""Determines the distance between two points on a 2D plane (e.g. the distance
+	between two pairs of x,y pixel coordinates).
+
+	Args:
+		a (iter(x, y)): An iterable containing a single pair of x,y coordinates.
+		b (iter(x, y)): An iterable containing a single pair of x,y coordinates.
+
+	Returns:
+		The distance between points a and b.
+
+	"""
 	dy = b[1] - a[1]
 	dx = b[0] - a[0]
 	return math.sqrt(dy**2 + dx**2)
@@ -381,6 +392,20 @@ def mean(values, as_int=False):
 
 
 def mouse_pos(pump_event_queue=True, position=None):
+	"""Returns the current coordinates of the mouse cursor, or alternatively
+	warps the position of the cursor to a specific location on the screen.
+
+	Args:
+		pump_event_queue (bool): Pumps the SDL2 event queue. See documentation
+			for pump() for more information.
+		position (None or iter(int,int)): The x,y pixel coordinates to warp
+			the cursor to if desired.
+
+	Returns:
+		The x,y coordinates of the cursor as integer values in a list. If position
+		is not None, this will be the coordinates the cursor was warped to.
+
+	"""
 	if pump_event_queue:
 		SDL_PumpEvents()
 	if not position:
@@ -405,6 +430,16 @@ def now(format_time=False, format_template=DATETIME_STAMP):
 
 
 def peak(v1, v2):
+	"""Returns the greater of two values.
+
+	Args:
+		v1 (numeric): The first value to be compared.
+		v2 (numeric): The second value to be compared.
+
+	Returns:
+		The greater of the two values. If both values are equal, v2 is returned.
+
+	"""
 	if v1 > v2:
 		return v1
 	else:
@@ -424,8 +459,30 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False):
 
 
 def pump(return_events=False):
+
+	"""Pumps the SDL2 event queue and appends its contents to the EventManager log.
+	 The SDL2 event queue contains SDL_Event objects representing keypresses, mouse
+	 movements, mouse clicks, and other input events that have occured since last
+	 check.
+
+	 Pumping the SDL2 event queue clears its contents, so be careful of calling it
+	 (or functions that call it implicitly) multiple times in the same loop, as it
+	 may result in unexpected problems watching for input (e.g if you have two
+	 functions checking for mouse clicks within two different boundaries and both
+	 call pump(), the second one will only return True if a click within that boundary
+	 occurred within the sub-millisecond interval between the first and second functions.)
+	 To avoid these problems, you can manually fetch the queue once per loop and pass its
+	 contents to each of the functions in the loop inspecting user input.
+
+	Args:
+		return_events (bool): If true, returns the contents of the SDL2 event queue.
+
+	Returns:
+		A list of SDL_Event objects, if return_events=True. Otherwise, the return 
+		value is None.
+
+	"""
 	from klibs.KLEnvironment import evm
-	# try:
 	while not evm.clock_sync_queue.empty():
 		event = evm.clock_sync_queue.get()
 		# put event into the SDL event queue
@@ -439,7 +496,7 @@ def pump(return_events=False):
 
 		if success == 0: raise RuntimeError(SDL_GetError())
 	# except AttributeError:
-	# 	pass  # for when called before evm initialized
+	#	pass  # for when called before evm initialized
 	SDL_PumpEvents()
 
 	# If we are using TryLink, check the SDL event queue after every pump and append any
@@ -470,27 +527,27 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap
 	**Config Keys**
 
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| **Key**           |     **Description**                                                                               |
+	| **Key**			|	  **Description**																				|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| prepend           |      [coming]                                                                                     |
+	| prepend			|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| afterFirst        |      [coming]                                                                                     |
+	| afterFirst		|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| beforeLast        |      [coming]                                                                                     |
+	| beforeLast		|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| eachN             |      [coming]                                                                                     |
+	| eachN				|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| whitespace        | Whitespace to place between elements. Should be a positive integer, but can be a string if the    |
-	|                   | number is smaller than three and greater than zero. May also be the string None or False, but     |
-	|                   | you should probably just not set it if that's what you want.                                      |
+	| whitespace		| Whitespace to place between elements. Should be a positive integer, but can be a string if the	|
+	|					| number is smaller than three and greater than zero. May also be the string None or False, but		|
+	|					| you should probably just not set it if that's what you want.										|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| append            |      [coming]                                                                                     |
+	| append			|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimiter         |      [coming]                                                                                     |
+	| delimiter			|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimitBehavior   |      [coming]                                                                                     |
+	| delimitBehavior	|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimitBehaviour  |      [coming]                                                                                     |
+	| delimitBehaviour	|	   [coming]																						|
 	+-------------------+---------------------------------------------------------------------------------------------------+
 
 
@@ -557,13 +614,13 @@ def pt_to_px(pt_size):
 		raise TypeError("Argument 'pt_size' must be an integer.")
 	if 512 < pt_size < 2:
 		raise ValueError("Argument 'pt_size' must be between 2 and 512.")
-	# dpi = 96  # CRT default
+	# dpi = 96	# CRT default
 
 	return int(math.floor(1.0 / 72 * P.ppi * pt_size))
 
 
-def px_to_deg(length):  # length = px
-	return int(length / P.ppd)
+def px_to_deg(length):	# length = px
+	return float(length / P.ppd)
 
 
 def show_mouse_cursor():
@@ -591,6 +648,48 @@ def safe_flag_string(flags, prefix=None, uc=True):
 
 	return eval(flag_string)
 
+def scale(coords, canvas_size, target_size=None, scale=True, center=True):
+	'''
+	A function to scale and/or center layout pixel coordinates from a given resolution to a 
+	smaller or larger resolution, respecting aspect ratio. For example, if an animation was
+	written based on the pixel coordinates of a 1920x1080 display and you wanted to be able 
+	to test the project out on a laptop with a resolution of 1280x800, this function will 
+	scale the animation coordinates down to suit the smaller display. In addition, on a larger
+	display you might not want to scale pixel coordinates up, but you might want to center the 
+	layout on your screen instead of having it up in the top-left corner. 
+	
+	This function should only be used when expressing your layout in degrees of visual angle 
+	is impossible or impractical.
+
+	:param coords: A tuple of x,y coordinates to transform.
+	:param canvas_size: A tuple giving the resolution of the screen the animation was written for.
+	:param target_size: A tuple giving the pixel dimensions of the intended output (default: P.screen_x_y)
+	:param scale: If True, the input coordinates will be scaled to target_size.
+	:param center: If True, the input coordinate will be adjusted so that the animation is centered on the screen.
+
+	:return: A tuple containing the translated x
+	'''
+	x,y = coords
+	if tuple(canvas_size) == P.screen_x_y:
+		return coords
+	if not target_size:
+		target_size = P.screen_x_y if scale else canvas_size
+	if scale:
+		canvas_size = [float(i) for i in canvas_size]
+		target_size = [float(i) for i in target_size]
+		canvas_ratio = canvas_size[0]/canvas_size[1]
+		target_ratio = target_size[0]/target_size[1]
+		if target_ratio > canvas_ratio:
+			target_size[0] = target_size[1]*canvas_ratio
+		elif target_ratio < canvas_ratio:
+			target_size[1] = target_size[0]/canvas_ratio
+		x = int( (x/canvas_size[0])*target_size[0] )
+		y = int( (y/canvas_size[1])*target_size[1] )
+	
+	if center:
+		x = x + int(P.screen_x/2 - (target_size[0]/2))
+		y = y + int(P.screen_y/2 - (target_size[1]/2))
+	return (x,y)
 
 def sdl_key_code_to_str(sdl_keysym):
 	key_name = SDL_GetKeyName(sdl_keysym).replace("Keypad ", "")
@@ -653,9 +752,9 @@ def unicode_to_str(content):
 		elif iterable(content):
 			#  manage dicts first
 			try:
-				converted = {}  # converted output for this level of the data
+				converted = {}	# converted output for this level of the data
 				for k in content:
-					v = content[k]  # ensure the keys are ascii strings
+					v = content[k]	# ensure the keys are ascii strings
 					if type(k) is unicode:
 						k = unicode_to_str(k)
 					if type(v) is unicode:

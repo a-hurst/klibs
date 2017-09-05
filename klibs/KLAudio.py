@@ -6,7 +6,7 @@ import math
 with warnings.catch_warnings():
 	warnings.simplefilter("ignore")
 	import sdl2.ext
-	from sdl2.sdlmixer import Mix_LoadWAV, Mix_PlayChannel, Mix_Playing, Mix_VolumeChunk
+	from sdl2.sdlmixer import Mix_LoadWAV, Mix_PlayChannel, Mix_Playing, Mix_HaltChannel, Mix_VolumeChunk
 	warnings.simplefilter("default")
 
 
@@ -101,6 +101,11 @@ class AudioClip(object):
 					return False
 
 			return False
+		
+		def stop(self):
+			if self.playing:
+				Mix_HaltChannel(self.channel)
+				self.__playing = False
 
 		def volume_up(self, steps=1):
 			"""

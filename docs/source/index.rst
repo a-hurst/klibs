@@ -10,7 +10,7 @@ Welcome to KLIBS's documentation!
 *Note: Only the API section of the documentation has currently been written. Tutorials and guides are coming.... eventually...*
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    
    guides
    api

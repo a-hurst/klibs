@@ -458,6 +458,7 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		self.origin = None
 		self.x_offset = 0
 		self.y_offset = 0
+		self.min_samples = 2
 		self.render_real_time = False
 		self.first_sample_time = None  # start time begins when landing on origin; first sample collected on departure
 
@@ -490,16 +491,13 @@ class DrawResponse(ResponseType, BoundaryInspector):
 		if self.within_boundary(self.stop_boundary, mp):
 			if self.stop_eligible and not self.stopped:
 				self.stopped = True
-				try:
-					self.responses.append([self.points, self.points[-1][2] - self.points[0][2]])
-				except IndexError:
-					raise TrialException("Too few points.")
+				self.responses.append([self.points, self.points[-1][2] - self.points[0][2]])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
 		# don't allow checking for stopped condition until started and outside of start boundary
-		self.stop_eligible = not self.within_boundary(self.start_boundary, mp) and self.started
-		if self.stop_eligible:
+		self.drawing = not self.within_boundary(self.start_boundary, mp) and self.started
+		if self.drawing:
 			try:
 				timestamp = self.evm.trial_time - self.first_sample_time
 			except TypeError:
@@ -515,6 +513,8 @@ class DrawResponse(ResponseType, BoundaryInspector):
 					self.points.append(tuple(p))
 			except IndexError:
 				self.points.append(tuple(p))
+
+		self.stop_eligible = self.drawing and len(self.points)>=self.min_samples
 
 	def reset(self):
 		self.responses = []

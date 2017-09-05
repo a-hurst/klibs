@@ -109,7 +109,7 @@
         {
             "title": "age",
             "database_field": "age",
-            "query": "What is  your age?",
+            "query": "What is your age?",
             "accepted": null,
             "allow_null": false,
             "format": {

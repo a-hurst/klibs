@@ -8,10 +8,13 @@ from klibs.KLUtilities import pump
 
 def any_key(allow_mouse_click=True):
 		"""
-		Used for quickly allowing a user to acknowledge something on screen. Not to be used for response collection (see
-		:mod:`~klibs.KLResponseCollectors`).
+		A function that waits until any keyboard (or mouse, if enabled) input is received 
+		before returning. Intended for use in situations when you want to require input before 
+		progressing through the experiment (e.g. "To start the next block, press any key..."). 
+		Not to be used for response collection (see :mod:`~klibs.KLResponseCollectors`).
 
-		:return Boolean:
+		:param boolean allow_mouse_click: Whether to accept a mouse click as pause-ending event.
+		:return boolean:
 		"""
 		any_key_pressed = False
 		while not any_key_pressed:
@@ -25,6 +28,15 @@ def any_key(allow_mouse_click=True):
 		return True
 
 def konami_code(callback=None):
+	"""
+	An implementation of the classic Konami code. Waits 10 seconds for the keys to be pressed
+	in the right sequence before returning. Useful for adding hidden debug menus and other 
+	things you really don't want participants activating by mistake.
+
+	:param callback: The function to be run upon successful input of the Konami code.
+	:type callback: None or function
+	:return boolean: True if sequence was correctly entered within 10 sec, otherwise False.
+	"""
 	start = time()
 	sequence = []
 	konami_sequence = [SDLK_UP, SDLK_DOWN, SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_LEFT, SDLK_RIGHT, SDLK_b, SDLK_a]
@@ -51,11 +63,20 @@ def ui_request(key_press=None, execute=True, queue=None):
 		"""
 		``extension_planned``
 
-		Inspects a keypress for interface commands like "quit", "pause", etc.. Primarily used by
-		:func:`~klibs.KLExperiment.Experiment.over_watch`; Currently only "quit" is implemented.
+		Inspects input for interface commands (e.g. "quit"). If no specific event queue or
+		keypress event(s) are passed to the function, the current contents of the SDL2 event
+		queue are fetched and processed. 
+		
+		This function is called implicitly by many other klibs functions, but it should be
+		called manually during loops when the experiment is unresponsive to user input.
+		Currently only "quit" is implemented, but "pause" and "calibrate eye tracker" functions
+		are planned.
 
-		:param key_press:
-		:param execute:
+		:param key_press: A keysym or list of keysyms to check for interface commands.
+		:type keypress: None or SDL_Keysym or list[SDL_Keysym]
+		:param boolean execute: Whether to execute a command or just return the command type.
+		:param queue: A list of SDL Events to inspect for interface command keypresses.
+		:type queue: None or list[SDL_Event]
 		:return:
 		"""
 

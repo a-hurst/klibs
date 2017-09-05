@@ -439,9 +439,7 @@ class Database(EnvAgent):
 		if not table in self.table_schemas:
 			raise ValueError("Table '{0}' not found in current database".format(table))
 		# dunno why, but this does NOT work if the format statement isn't used in place of a proper SQL var
-		# return self.query("SELECT max(?) from `{0}` WHERE `participant_id`=?".format(table), q_vars=['id'])[0][0]
-		# return self.query("SELECT max({0}) from `{1}` WHERE `participant_id`={2}".format('id', table, P.participant_id))[0][0]
-		return self.query("SELECT `id` from `{0}` LIMIT 1".format(table))
+		return self.query("SELECT max({0}) from `{1}` WHERE `participant_id`={2}".format('id', table, P.participant_id))[0][0]
 
 	def log(self, field, value, instance=None, set_to_current=True):
 		# convert boolean strings/boolean literals to uppercase boolean strings for R

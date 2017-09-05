@@ -6,7 +6,6 @@ from abc import abstractmethod
 from os import mkdir
 from os.path import join
 from shutil import copyfile, copytree
-# from time import time
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
@@ -24,10 +23,6 @@ from klibs.KLCommunication import message, query, collect_demographics
 # from klibs.KLCommunication import  message
 # import klibs.eyelink as el
 # import klibs.database  as db
-
-# todo: a) make display_refresh a standard method of an experiment object, and then b) add a default line that times it
-# and warns the experimenter if more than 16.666ms are elapsing between calls
-
 
 
 class Experiment(EnvAgent):

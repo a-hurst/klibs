@@ -2,7 +2,7 @@
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import abc
-from sdl2 import SDL_MOUSEBUTTONDOWN
+from sdl2 import SDL_MOUSEBUTTONDOWN, SDL_GetTicks
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EyeLinkError
 from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_GAZE_POS, EL_SACCADE_END,\
@@ -229,10 +229,8 @@ class TryLink(EnvAgent, BoundaryInspector):
 		return False
 
 	def now(self, unit=TK_MS):
-		if unit == TK_S:
-			return self.evm.trial_time if self.evm.start_time else self.evm.timestamp
-		else:
-			return self.evm.trial_time_ms if self.evm.start_time else self.evm.timestamp * 1000
+		time = float(SDL_GetTicks())
+		return time if unit == TK_MS else time * 0.001
 
 	def saccade_to_boundary(self, label, valid_events=None, event_queue=None,
 							report=None, inspect=None, return_queue=False):
@@ -387,18 +385,10 @@ class MouseEvent(EnvAgent):
 				raise EyeLinkError("Only EL_SACCADE_END and EL_FIXATION_EVENT types have been implemented yet.")
 
 		else:
-			self.__sample__ = mouse_pos()
-			self.__start_pos__ = None
+			self.__sample__     = mouse_pos()
+			self.__time__       = float(SDL_GetTicks())
+			self.__start_pos__  = None
 			self.__start_time__ = None
-
-			try:
-				if not self.evm.start_time:
-					self.__time__ = self.evm.timestamp*1000
-				else:
-					self.__time__ = self.evm.trial_time_ms
-			except AttributeError:
-				import time
-				self.__time__ = time.time()
 
 	def getType(self):
 		return self.__type__

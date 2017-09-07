@@ -27,6 +27,43 @@ def any_key(allow_mouse_click=True):
 
 		return True
 
+def key_pressed(keycode=None, queue=None):
+
+	"""
+	Checks an event queue to see if a given key has been pressed. If no keycode is specified,
+	the function will return True if any key has been pressed. If an event queue is not
+	manually specified, :func:`~klibs.KLUtilities.pump` will be called and the returned event
+	queue will be used.
+
+	Args:
+		keycode (:obj:`sdl2.SDL_Keycode`, optional): The SDL keycode corresponding to the key
+			to check. 
+		queue (:obj:`list` of :obj:`sdl2.SDL_Event`, optional): A list of SDL_Events to check
+			for valid keypress events.
+
+	Returns:
+		bool: True if key has been pressed, False otherwise.
+
+	Raises:
+		ValueError: If the keycode is anything other than an SDL_Keycode integer or None.
+
+	"""
+
+	if type(keycode).__name__ not in ['int', 'NoneType']:
+		raise ValueError('keycode must be an SDL Keycode (int) or a NoneType') 
+	
+	pressed = False
+	if not queue:
+		queue = pump(True)
+	for e in queue:
+		if e.type == SDL_KEYDOWN:
+			ui_request(e.key.keysym)
+			if not keycode or e.key.keysym.sym == keycode:
+				pressed = True
+				break
+
+	return pressed
+
 def konami_code(callback=None):
 	"""
 	An implementation of the classic Konami code. Waits 10 seconds for the keys to be pressed

@@ -75,7 +75,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 	def clear_queue(self):
 		self.mouse_event_queue = []
 
-	def drift_correct(self, location=None, boundary=None,  el_draw_fixation=EL_TRUE, samples=EL_TRUE, fill_color=None, target_img=None):
+	def drift_correct(self, location=None, boundary=None, el_draw_fixation=EL_TRUE, samples=EL_TRUE, fill_color=None, target_img=None):
 		"""
 
 		:param location:
@@ -94,9 +94,10 @@ class TryLink(EnvAgent, BoundaryInspector):
 		while True:
 			event_queue = pump(True)
 			ui_request(queue=event_queue)
-			fill(P.default_drift_correct_fill_color if not fill_color else fill_color)
-			blit(drift_correct_target() if target_img is None else target_img, 5, location)
-			flip()
+			if el_draw_fixation == EL_TRUE:
+					fill(P.default_drift_correct_fill_color if not fill_color else fill_color)
+					blit(drift_correct_target() if target_img is None else target_img, 5, location)
+					flip()
 			for e in event_queue:
 				if e.type == SDL_MOUSEBUTTONDOWN and super(TryLink, self).within_boundary(boundary, [e.button.x, e.button.y]):
 					hide_mouse_cursor()

@@ -53,7 +53,7 @@ def key_pressed(keycode=None, queue=None):
 		raise ValueError('keycode must be an SDL Keycode (int) or a NoneType') 
 	
 	pressed = False
-	if not queue:
+	if queue == None:
 		queue = pump(True)
 	for e in queue:
 		if e.type == SDL_KEYDOWN:

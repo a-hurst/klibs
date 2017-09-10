@@ -2,36 +2,48 @@
 
 from setuptools import setup, find_packages
 from os import remove, close, path
-import sys
 import subprocess as sub
 import shutil
 
-copy_git = True
-if "--no-git-copy" in sys.argv:
-    copy_git = False
-    sys.argv.remove("--no-git-copy")
+# Get the git hash for the current KLibs commit
+cmd = 'git rev-parse --verify HEAD'.split(' ')
+commit = sub.check_output(cmd).rstrip('\n')
+with open('klibs/resources/current_commit.txt', 'w+') as f:
+	f.write(commit)
+	
+# Remove old lib folder if present
+old_lib = '/usr/local/lib/klibs'
+if path.isdir(old_lib):
+	try:
+		shutil.rmtree(old_lib)
+	except:
+		try:
+			remove(old_lib)
+		except:
+			print "/nUnable to remove old lib folder at {0}. You can remove it manually " \
+				  "using 'sudo rm -rf {0}'\n".format(old_lib)
+	
 
 install_packages = ['klibs']
 
 #TODO: Figure out some sane minimum version for the dependencies.
-#TODO: Figure out a more elegant solution to installing the lib directory
-#TODO: Come up with a consistent version number strategy across KLibs.
 
 setup(
 	name='KLIBs',
-	version='0.1a',
+	version='0.6.0',
 	description='A framework for building psychological experiments in Python',
 	author='Jonathan Mulle & Austin Hurst',
 	author_email='this.impetus@gmail.com',
 	url='http://github.com/jmwmulle/klibs',
 	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeLink'],
+	include_package_data=True,
 	scripts=['bin/klibs'],
 	python_requires='>=2.7, <3',
 	install_requires=[
 		'numpy', 
 		'pysdl2',
 		'Pillow',
-		'aggdraw>=1.2',
+		'aggdraw>1.1.99',
 		'PyOpenGL',
 		'PyAudio'
 	],
@@ -41,23 +53,5 @@ setup(
 
 )
 
-
-# dirty hack until time is made to do this bit right via the installer
-
-try:
-	shutil.rmtree("/usr/local/lib/klibs")
-except:
-	try:
-		os.remove("/usr/local/lib/klibs")
-	except:
-		pass
-shutil.copytree("lib/klibs", "/usr/local/lib/klibs")
-
-
-p = sub.Popen(['git', 'rev-parse', 'HEAD'], stdout=sub.PIPE,stderr=sub.PIPE)
-commit = p.communicate()[0][:-1]
-open("/usr/local/lib/klibs/current_commit.txt", "w+").write(commit)
-
-if copy_git:
-	print "Copying git to \"/usr/local/lib/klibs/klibs_git\". This may take a minute or two..."
-	shutil.copytree(path.dirname(path.realpath(__file__)), "/usr/local/lib/klibs/klibs_git", True)
+# Remove current_commit.txt after install to avoid messing with git
+remove('klibs/resources/current_commit.txt')

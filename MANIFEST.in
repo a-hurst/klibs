@@ -1,0 +1,2 @@
+graft klibs/resources
+recursive-exclude klibs/resources *.pyc

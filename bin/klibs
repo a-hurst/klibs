@@ -13,11 +13,12 @@ import sys
 
 from random import choice
 from hashlib import sha1
+from pkg_resources import resource_filename, resource_string
 from klibs.KLExceptions import DatabaseException
 from klibs.KLUtilities import hide_mouse_cursor
 from klibs.KLUtilities import colored_stdout as cso
 pylink_install_required = False
-klibs_version = "0.9.1.4"
+klibs_version = "0.6.0"
 
 #  todo: add in Ross's april fools idea
 
@@ -75,7 +76,7 @@ def create(name, path):
 				"Let's try that again--you got this champ...</green_d>".format(choice(one_name_peeps)))
 			return create(name, path)
 
-	source_path = "/usr/local/lib/klibs/template"
+	source_path = resource_filename('klibs', 'resources/template')
 	project_path = join(path, name)
 
 	correct = False
@@ -137,7 +138,7 @@ def create(name, path):
 
 	# replace generic file names with project-specific names
 	template_files = [("schema.sql", ["ExpAssets", "Config"]),
-					  ("factors.csv", ["ExpAssets", "Config"]),
+					  ("independent_variables.py", ["ExpAssets", "Config"]),
 					  ("messaging.csv", ["ExpAssets", "Config"]),
 					  ("params.py", ["ExpAssets", "Config"]),
 					  ("user_queries.json", ["ExpAssets", "Config"]),
@@ -316,7 +317,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		P.collect_demographics = False
 
 	# get actual current klibs commit & compare value currently in KLParams
-	P.klibs_commit = open("/usr/local/lib/klibs/current_commit.txt").read()
+	P.klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
 	# if P.klibs_commit != Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE).communicate()[0][:-1]:
 	# 	pass # todo: check if current commit matches experiment.py and warn user if not
 

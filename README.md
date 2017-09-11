@@ -1,4 +1,4 @@
-##![KLibs logo](https://github.com/a-hurst/klibs/raw/austin_bugfixes/klibs/resources/splash.png)
+## ![KLibs logo](https://github.com/a-hurst/klibs/raw/austin_bugfixes/klibs/resources/splash.png)
 
 KLibs is a simple-but-powerful object oriented framework for building experiments in cognitive psychology, written in the Python language. 
 
@@ -22,7 +22,7 @@ You will also need the pip Python package manager to install klibs on your syste
 
 Klibs requires Python 2.7 to run, and has not yet been updated to support Python 3.x.
 
-##Installation
+## Installation
 
 After all the dependencies have been installed, you can then install klibs by running
 

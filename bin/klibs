@@ -10,14 +10,16 @@ import traceback
 import imp
 import time
 import sys
+import pip
 
 from random import choice
 from hashlib import sha1
+from pkg_resources import resource_filename, resource_string
 from klibs.KLExceptions import DatabaseException
 from klibs.KLUtilities import hide_mouse_cursor
 from klibs.KLUtilities import colored_stdout as cso
 pylink_install_required = False
-klibs_version = "0.9.1.4"
+klibs_version = "0.6.0"
 
 #  todo: add in Ross's april fools idea
 
@@ -75,7 +77,7 @@ def create(name, path):
 				"Let's try that again--you got this champ...</green_d>".format(choice(one_name_peeps)))
 			return create(name, path)
 
-	source_path = "/usr/local/lib/klibs/template"
+	source_path = resource_filename('klibs', 'resources/template')
 	project_path = join(path, name)
 
 	correct = False
@@ -137,7 +139,7 @@ def create(name, path):
 
 	# replace generic file names with project-specific names
 	template_files = [("schema.sql", ["ExpAssets", "Config"]),
-					  ("factors.csv", ["ExpAssets", "Config"]),
+					  ("independent_variables.py", ["ExpAssets", "Config"]),
 					  ("messaging.csv", ["ExpAssets", "Config"]),
 					  ("params.py", ["ExpAssets", "Config"]),
 					  ("user_queries.json", ["ExpAssets", "Config"]),
@@ -167,44 +169,31 @@ def create(name, path):
 	cso("<green_d>\nProject successfully created at:</green_d> '<blue>{0}</blue>'".format(project_path))
 
 
-def update():
-	"""
-	So this generally works, but with a number of provisions, not the least of which being that the user has to have permissions
-	to execute git at /usr/local
-	 Generally, this just needs to be a lot more robust.
-	 You're using Popen() because it lets you get stdout, whereas subprocess.call() only provides a returncode
-	"""
-	# todo: look for older versions of klibs from before KLDraw was a submodule and remove it else KLDraw won't import properly
-	# cso("Update isn't currently supported. It's coming in a later update of KLIBs. For now, you can do this manually simply by cloning the git repository (https://www.github.com/jmwmulle/klibs) and re-installing.")
-	# return
-	from klibs import P
-	commit = None
-	try:
-		p = Popen(['git', '-C', '/usr/local/lib/klibs/klibs_git', 'pull'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-		output, err = p.communicate()
-		if len(err):
-			raise IOError(err)
-		if len(output):
-			cso(output)
-			p = Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE)
-			commit = p.communicate()[0][:-1]
-	except IOError as e:
-		print e
-		exit()
-
-	if commit != P.klibs_commit:
+def update(branch='default'):
+	#TODO: This should really be able to compare the version/commit/origin of the current KLibs
+	#install and the one about to be installed to make sure you can't unintentionally overwrite
+	#a newer local version or install from a different branch.
+	git_repo_short = 'github.com/a-hurst'
+	git_repo = 'https://{0}/klibs.git'.format(git_repo_short)
+	if branch != 'default':
+		git_repo += "@{0}".format(branch)
+	
+	update_cmd = 'install -U git+{0}#egg=klibs'.format(git_repo)
+	update_prompt = cso("\n<green_d>Updating will replace the current install of KLibs with" \
+	" the most recent commit of the </green_d><purple>{0}</purple><green_d> branch of " \
+	"</green_d><purple>'{1}'</purple><green_d>. Are you sure you want to continue?" \
+	" (Y/N): </green_d>".format(branch,git_repo_short), False)
+	if raw_input(update_prompt).lower() == "y":
+		print " "
+		cso("<green_d>Updating klibs to latest commit from {0}...</green_d>".format(git_repo_short))
 		try:
-			os.chdir("/usr/local/lib/klibs/klibs_git/")
-			p = Popen(['sudo', 'python', 'setup.py', 'install'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-			output, err = p.communicate()
-			if len(err):
-				raise IOError(err)
-			if len(output):
-				cso(output)
-		except IOError as e:
-			print e
+			pip.main(update_cmd.split(' '))
+		except OSError:
 			cso("<red>Root permissions required to reinstall klibs.</red>")
 			exit()
+	else:
+		print " "
+		exit()
 
 
 def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose):
@@ -314,11 +303,8 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	if development_mode:
 		P.development_mode = True
 		P.collect_demographics = False
-
-	# get actual current klibs commit & compare value currently in KLParams
-	P.klibs_commit = open("/usr/local/lib/klibs/current_commit.txt").read()
-	# if P.klibs_commit != Popen(['git', 'rev-parse', 'HEAD'], stdout=PIPE, stderr=PIPE).communicate()[0][:-1]:
-	# 	pass # todo: check if current commit matches experiment.py and warn user if not
+	P.klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
+	#TODO: check if current commit matches experiment.py and warn user if not
 
 	# create runtime environment
 	env.evm = EventManager()
@@ -447,6 +433,7 @@ create_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
 create_parser.set_defaults(func=create)
 
 update_parser = subparsers.add_parser('update')
+update_parser.add_argument('branch', type=str)
 update_parser.set_defaults(func=update)
 
 rebuild_parser = subparsers.add_parser('db-rebuild')

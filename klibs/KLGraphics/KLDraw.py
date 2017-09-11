@@ -14,6 +14,7 @@ from klibs import P
 from klibs.KLUtilities import point_pos, midpoint
 
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
+from klibs.KLGraphics.colorspaces import const_lum
 
 
 ######################################################################
@@ -60,7 +61,7 @@ def drift_correct_target():
 
 	return aggdraw_to_numpy_surface(draw_context)
 
-colors = load_source("*", join(P.klibs_dir, "color_wheel_color_list.py")).colors
+#colors = load_source("*", join(P.klibs_dir, "colorspaces.py")).colors
 
 
 class Drawbject(object):
@@ -749,11 +750,12 @@ class ColorWheel(Drawbject):
 	def __init__(self, diameter, thickness=None, rotation=0, auto_draw=True):
 		# self.stroke_pad = int(diameter * 0.01)
 		super(ColorWheel, self).__init__(diameter, diameter, stroke=None, fill=None)
-		self.palette = colors
+		self.palette = const_lum # eventually make argument
 		self.rotation = rotation
 		self.diameter = diameter
 		self.radius = self.diameter // 2
 		self.thickness = 0.25 * diameter if not thickness else thickness
+		self.opacity = 255
 
 		if auto_draw:
 			self.draw()
@@ -761,7 +763,7 @@ class ColorWheel(Drawbject):
 	def draw(self, as_numpy_surface=True):
 		rotation = self.rotation
 		for i in range(0, 360):
-			brush = Brush(colors[i])
+			brush = Brush(self.palette[i])
 			center = self.surface_width // 2
 			r = self.radius - 2
 			vertices = [center, center]

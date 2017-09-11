@@ -10,13 +10,13 @@ from random import seed
 from datetime import datetime
 from os import makedirs
 from os.path import exists, join
+from pkg_resources import resource_filename
 
 from klibs.KLConstants import *
 
 klibs_commit = None  # populated at runtime
 
 #  project structure; default paths & filenames
-klibs_dir = klibs_dir = "/usr/local/lib/klibs"
 global project_name
 global asset_dir
 global resources_dir
@@ -61,7 +61,7 @@ exp = None
 exp_font_dir = "ExpAssets/Resources/font"
 sys_font_dir = "/Library/Fonts"
 user_font_dir = "~/Library/Fonts"
-klibs_font_dir = join(klibs_dir, "font")
+klibs_font_dir = resource_filename('klibs', 'resources/font')
 font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
 
 
@@ -288,7 +288,7 @@ def setup(project_name_str):
 	exp_font_dir = join(resources_dir, "font")
 	image_dir = join(resources_dir, "image")
 	config_dir = join(asset_dir, "Config")
-	logo_file_path = join(klibs_dir, "splash.png")
+	logo_file_path = resource_filename('klibs', 'resources/splash.png')
 
 	for path in [exp_font_dir, image_dir]:
 		if not exists(path):

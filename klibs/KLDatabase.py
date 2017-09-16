@@ -13,6 +13,7 @@ from klibs.KLConstants import DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, TAB, ID, 
 	DATA_EXT
 from klibs.KLUtilities import bool_to_int, boolean_to_logical, full_trace, type_str, snake_to_camel, iterable, unicode_to_str
 from klibs.KLUtilities import colored_stdout as cso
+#TODO: replace all manual usage of colour output with cso
 
 class EntryTemplate(object):
 	null_field = "DELETE_THIS_FIELD"
@@ -276,11 +277,7 @@ class Database(EnvAgent):
 				if field[0] not in [ID, P.id_field_name]:
 					t_cols.append(field[0])
 
-		p_count = 0
 		for p in participant_ids:
-			# p_count += 1
-			# if p_count > 10:
-			# 	break
 			wc_count = 0
 			q_wildcards = []
 			q_vars = []
@@ -304,9 +301,9 @@ class Database(EnvAgent):
 			for trial in self.query(q, q_vars=tuple([p[0]])):
 				row_str = TAB.join(str(col) for col in trial)
 				if p[0] == -1: row_str = TAB.join([P.default_demo_participant_str, row_str])
-				p_data.append(row_str) if multi_file else data.append(row_str)
-			if multi_file: data.append([p[0], p_data])
-		return data if multi_file else [data]
+				p_data.append(row_str)
+			data.append([p[0], p_data])
+		return data
 
 	def current(self, instance=None):
 		if instance is False:
@@ -329,7 +326,8 @@ class Database(EnvAgent):
 
 	def export(self, multi_file=True, join_tables=None):
 
-		# todo: make sure p_id increments sequentially, ie. skips demo_user
+		#TODO: make sure p_id increments sequentially, ie. skips demo_user
+		#TODO: make option for exporting non-devmode/complete participants only
 		try:
 			join_tables = join_tables[0].split(",")
 		except IndexError:
@@ -337,29 +335,35 @@ class Database(EnvAgent):
 		column_names = self.build_column_header(multi_file, join_tables)
 		data = self.collect_export_data(multi_file, join_tables)
 
-		for data_set in data:
-			p_id = data_set[0]
-			if p_id == -1:
-				pass
-			else:
-				header = self.export_header(p_id)
-				if multi_file:
-					incomplete = multi_file and len(data_set[1]) != P.trials_per_block * P.blocks_per_experiment
-				else:
-					incomplete = False
-				file_strings = self.p_filename_str(p_id, multi_file, True) if incomplete else self.p_filename_str(p_id, multi_file)
-				if isfile(file_strings[1]):
-					duplicate_count = 1
-					while isfile(join(file_strings[1])):
-						file_strings = self.p_filename_str(p_id, multi_file, incomplete, duplicate_count)
-						duplicate_count += 1
-				data_file = open(join(file_strings[1]), "w+")
-				data_file.write("\n".join([header, column_names, "\n".join(data_set[1])]))
-				data_file.close()
-				print "\033[92m\t- Participant {0} successfully exported.\033[0m".format(p_id)
+		if multi_file:
+			for data_set in data:
+				p_id = data_set[0]
+				if p_id != -1:
+					header = self.export_header(p_id)
+					incomplete = len(data_set[1]) != P.trials_per_block * P.blocks_per_experiment
+					file_path = self.filepath_str(p_id, multi_file, incomplete)
+					data_file = open(file_path, "w+")
+					data_file.write("\n".join([header, column_names, "\n".join(data_set[1])]))
+					data_file.close()
+					print "\033[92m\t- Participant {0} successfully exported.\033[0m".format(p_id)
+		else:
+			combined_data = []
+			p_count = 0
+			for data_set in data:
+				if data_set[0] != -1:
+					p_count += 1
+					combined_data += data_set[1]
+			header = self.export_header()
+			file_path = self.filepath_str(multi_file=False)
+			data_file = open(file_path, "w+")
+			data_file.write("\n".join([header, column_names, "\n".join(combined_data)]))
+			data_file.close()
+			print "\033[92m\t- Data for {0} participants successfully exported.\033[0m".format(p_count)
+		print '' # newline between export info and next prompt for aesthetics' sake
 
 	def export_header(self, user_id=None):
-		# todo: make sure the block_per_experiment line reflects new trial factory block insertion logic
+		#TODO: make header info reflect info when participant was run, instead of just current settings which
+		# is somewhat misleading
 		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export--probably this should be added to the participant table at run time
 		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", P.klibs_version], ["Display Diagonal Inches", P.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*P.screen_x_y)], ["Random Seed", random_seed]]
 		klibs_vars   = ["KLIBS INFO", ["KLIBs Commit", P.klibs_commit]]
@@ -455,17 +459,24 @@ class Database(EnvAgent):
 		if set_to_current:
 			self.current(instance)
 
-	def p_filename_str(self, participant_id, multi_file=False, incomplete=False, duplicate_count=None):
-			if multi_file:
-		 		created = str(self.query("SELECT `created` FROM `participants` WHERE `id` = ?", q_vars=[1], fetch_all=False).fetchone()[0][:10])
-			fname = "p{0}.{1}".format(str(participant_id), created) if multi_file else "{0}_all_trials".format(P.project_name)
-			if duplicate_count: fname += "_{0}".format(duplicate_count)
-			if incomplete: fname += "_incomplete"
-			fname += DATA_EXT
-			if incomplete:
-				return [fname, join(P.incomplete_data_path, fname)]
+	def filepath_str(self, participant_id=None, multi_file=False, incomplete=False):
+		if multi_file:
+			created = str(self.query("SELECT `created` FROM `participants` WHERE `id` = ?", q_vars=[1], fetch_all=False).fetchone()[0][:10])
+		basename = "p{0}.{1}".format(str(participant_id), created) if multi_file else "{0}_all_trials".format(P.project_name)
+		duplicate_count = 0
+		while True:
+			# Generate suffix and see if file already exists with that name. If it does, keep incremeting
+			# the numeric part of the suffix until it doesn't.
+			suffix = DATA_EXT
+			if incomplete: suffix = "_incomplete" + suffix
+			if duplicate_count: suffix = "_{0}".format(duplicate_count) + suffix
+			fname = basename + suffix
+			filepath = join(P.incomplete_data_path if incomplete else P.data_dir, fname)
+			if isfile(filepath):
+				duplicate_count += 1
 			else:
-				return [fname, join(P.data_dir, fname)]
+				break
+		return filepath
 
 	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
 		if q_vars:

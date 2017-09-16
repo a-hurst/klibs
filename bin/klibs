@@ -359,7 +359,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		force_quit()
 
 
-def export(path, multi_file=True, join_tables=None):
+def export(path, combined=False, join_tables=None):
 	from klibs import P
 	from klibs.KLDatabase import Database
 
@@ -375,7 +375,7 @@ def export(path, multi_file=True, join_tables=None):
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
-
+	multi_file = combined != True
 	Database(project_name).export(multi_file, join_tables)
 
 
@@ -467,8 +467,8 @@ run_parser.set_defaults(func=run)
 export_parser = subparsers.add_parser('export')
 export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
 						   help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
-export_parser.add_argument('-mf', '--multi_file', action="store_false",
-						   help='Export participants as a single file or multiple files. Default is multi-file. ')
+export_parser.add_argument('-c', '--combined', action="store_true",
+						   help='Export data to a single file instead of individual files for each participant. Default is individual files.')
 export_parser.add_argument('-j', '--join_tables', default=[], nargs="*", type=str,
 						   help="Additional tables to be joined to the data output. Only 'participant' and 'data' tables are exported by default.")
 export_parser.set_defaults(func=export)

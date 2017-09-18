@@ -1,26 +1,25 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
+
+import imp
 import sdl2
 
 try:
-	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode
-	from pylink.tracker import Sample, EndSaccadeEvent, EndFixationEvent, StartFixationEvent, StartSaccadeEvent
+	imp.find_module('pylink')
 	PYLINK_AVAILABLE = True
 except ImportError:
 	print "\t* Warning: Pylink library not found; eye tracking will not be available."
 	PYLINK_AVAILABLE = False
 
 try:
-	import pyaudio
-	import wave
-	from array import array
+	imp.find_module('pyaudio')
 	PYAUDIO_AVAILABLE = True
 except ImportError:
-	PYAUDIO_AVAILABLE = False
 	print "\t* Warning: Pyaudio library not found; audio recording, audio responses and audio sampling unavailable."
+	PYAUDIO_AVAILABLE = False
 
 try:
-	from u3 import *
+	imp.find_module('u3')
 	LABJACK_AVAILABLE = True
 except ImportError:
 	LABJACK_AVAILABLE = False
@@ -28,7 +27,8 @@ except ImportError:
 try:
 	import os # To test for presence of API key environment variable
 	import socket # To test internet connect to slack.com
-	from slacker import Slacker
+
+	imp.find_module('slacker')
 	socket.create_connection(("www.slack.com", 80))
 	os.environ['SLACK_API_KEY']
 	SLACK_STATUS = "available"
@@ -180,8 +180,8 @@ TEXT_PX = "PX"
 TEXT_MULTIPLE = "*"
 TEXT_PT = "PT"
 DELIM_WRAP = "wrap"
-DELIM_NOT_LAST ="not_last"
-DELIM_NOT_FIRST ="not_first"
+DELIM_NOT_LAST = "not_last"
+DELIM_NOT_FIRST = "not_first"
 
 # Utilities Constants
 ENTERING = 1

@@ -77,7 +77,9 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 		"""
 
 		if position:
+			#TODO: Purge this from within klibs once and for all
 			location = position  # fixing stupid argument name, preserving backwards compatibility
+			
 		if isinstance(source, NpS):
 			height = source.height
 			width = source.width
@@ -86,6 +88,11 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 			else:
 				content = source.rendered
 
+		elif isinstance(source, Image.Image):
+			height = source.size[1]
+			width = source.size[0]
+			content = source.tostring("raw", "RGBA", 0, -1)
+
 		elif issubclass(type(source), Drawbject):
 			height = source.surface_height
 			width = source.surface_width
@@ -93,14 +100,18 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 				content = source.render()
 			else:
 				content = source.rendered
+
 		elif type(source) is np.ndarray:
 			height = source.shape[0]
 			width = source.shape[1]
 			content = source
+
 		elif type(source) is str and isfile(source):
 			return blit(NpS(source), registration, location, position)
+
 		else:
 			raise TypeError("Argument 'source' must be np.ndarray, klibs.KLNumpySurface.NumpySurface, or inherit from klibs.KLDraw.Drawbect.")
+		
 		if any([not flip_x and P.blit_flip_x, flip_x]):
 			content = np.fliplr(content)
 

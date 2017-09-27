@@ -7,8 +7,8 @@ from klibs import PYLINK_AVAILABLE
 
 if PYLINK_AVAILABLE:
 
-	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode, EyeLinkCustomDisplay, KeyInput, \
-		DC_TARG_BEEP, CAL_TARG_BEEP, CAL_ERR_BEEP, DC_ERR_BEEP, ENTER_KEY, ESC_KEY
+	from pylink import (EyeLinkCustomDisplay, KeyInput, DC_TARG_BEEP, CAL_TARG_BEEP,
+		CAL_ERR_BEEP, DC_ERR_BEEP, ENTER_KEY, ESC_KEY)
 
 	from sdl2 import SDL_KEYDOWN, SDLK_ESCAPE, SDLK_RETURN, SDLK_c, SDLK_v
 	from numpy import asarray
@@ -21,19 +21,14 @@ if PYLINK_AVAILABLE:
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import fill, flip, blit, aggdraw_to_array
 	from klibs.KLGraphics.KLDraw import drift_correct_target
-	from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 	from klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
 
 	class ELCustomDisplay(EyeLinkCustomDisplay, EnvAgent):
 
-		window = None
-		size = [None, None]
-
 		def __init__(self):
 			EnvAgent.__init__(self)
-			self.size = self.exp.window.size
+			self.size = (0,0)
 			self.last_flip = None
-			self.fill_color = [255, 0, 0]
 			if sys.byteorder == 'little':
 				self.byteorder = 1
 			else:
@@ -54,11 +49,10 @@ if PYLINK_AVAILABLE:
 				self.__target_beep__error__ = None
 
 		def setup_cal_display(self):
-			self.window = self.exp.window
 			self.clear_cal_display()
 
 		def exit_cal_display(self):
-			pass
+			self.clear_cal_display()
 
 		def record_abort_hide(self):
 			pass
@@ -66,18 +60,18 @@ if PYLINK_AVAILABLE:
 		def clear_cal_display(self):
 			fill()
 			flip()
+			fill()
 
 		def erase_cal_target(self):
 			self.clear_cal_display()
 
-		def draw_cal_target(self, x, y=None, pump_events=True, flip_screen=True):
+		def draw_cal_target(self, x, y=None, pump_events=True):
 			fill()
 			if pump_events: pump()
 			if y is None:
 				y = x[1]
 				x = x[0]
-			blit(drift_correct_target(), 5, [int(x), int(y)])
-			# if flip_screen: flip()
+			blit(drift_correct_target(), 5, (int(x), int(y))
 			flip()
 
 		def play_beep(self, clip):
@@ -118,7 +112,8 @@ if PYLINK_AVAILABLE:
 									location=(0.05 * P.screen_x, 0.05 * P.screen_y))
 
 		def setup_image_display(self, width, height):
-			self.img_size = (width, height)
+			self.size = (width, height)
+			self.clear_cal_display()
 
 		def image_title(self, text):
 			pass
@@ -130,26 +125,24 @@ if PYLINK_AVAILABLE:
 					buff[i] = len(self.pal) - 1
 				self.imagebuffer.append(self.pal[buff[i] & 0x000000FF])
 				i += 1
-			try:
+			if width == totlines:
 				fill()
 				img = frombytes('RGBX', (width, totlines), self.imagebuffer.tostring()).convert('RGBA')
-				blit(NpS(asarray(img)), position=P.screen_c, registration=5)
+				blit(img, registration=5, location=P.screen_c)
 				flip()
 				self.imagebuffer = array.array('I')
-			except:
-				pass
-			return
 
 		def draw_lozenge(self, x, y, width, height, colorindex):
 			pass
 
 		def draw_line(self, x1, y1, x2, y2, colorindex):
+			# maybe use opengl quads instead for simplicity?
 			try:
 				print "Draw Line: {0}".format(x1, x2, y1, y2, colorindex)
 				line = Draw("RGBA", [x2 - x1, y2 - y1])
 				p = Pen((255, 255, 255), 2)
 				line.line((0, 0, x2, y2), p)
-				blit(aggdraw_to_array(line), position=P.screen_c, registration=5)
+				blit(aggdraw_to_array(line), registration=5, location=P.screen_c)
 			except:
 				pass
 

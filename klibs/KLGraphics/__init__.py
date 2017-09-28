@@ -16,7 +16,6 @@ from os.path import isfile
 from klibs import P
 from klibs.KLUtilities import absolute_position, build_registrations, pump, hide_mouse_cursor, deg_to_px
 from klibs.KLConstants import *
-from KLDraw import Drawbject, FixationCross, Circle
 from KLNumpySurface import NumpySurface as NpS
 
 # populated on first call to flip() if needed
@@ -75,6 +74,7 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 		Raises:
 			TypeError: If the 'source' object passed is not one of the accepted types.
 		"""
+		from KLDraw import Drawbject
 
 		if position:
 			location = position  # fixing stupid argument name, preserving backwards compatibility
@@ -259,6 +259,8 @@ def draw_fixation(location=BL_CENTER, size=None, stroke=None, color=None, fill_c
 		:param flip: Toggles automatic flipping of display buffer, see :func:`~klibs.KLExperiment.Experiment.flip``.
 		"""
 
+		from KLDraw import FixationCross
+
 		if not size: size = deg_to_px(P.fixation_size)
 		if not stroke: stroke = size // 5
 		cross = FixationCross(size, stroke, color, fill_color).draw()
@@ -316,6 +318,7 @@ def flip(window=None):
 
 	"""
 	from klibs.KLEnvironment import exp, el
+	from KLDraw import Circle
 	global tracker_dot
 
 	if P.development_mode and P.el_track_gaze and P.eye_tracking and P.in_trial:

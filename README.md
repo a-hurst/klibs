@@ -17,7 +17,7 @@ brew install sdl2 sdl2_ttf sdl2_mixer portaudio
 Under Debian/Ubuntu linux, the key dependencies can be installed using apt-get:
 
 ```
-sudo apt-get install git libsdl2-2.0-0 libsdl2-ttf-2.0-0 libsdl2-mixer-2.0-0 portaudio19-dev
+sudo apt-get install git python-pip libsdl2-2.0-0 libsdl2-ttf-2.0-0 libsdl2-mixer-2.0-0 portaudio19-dev
 ```
 
 You will also need the pip Python package manager to install KLibs on your system. If running 'pip --version' on your system results in a "command not found" message, you can install it by running ```sudo easy_install pip```.
@@ -29,7 +29,7 @@ KLibs requires Python 2.7 to run, and has not yet been updated to support Python
 After all the prerequisite libraries have been installed, you can run the following command to install KLibs and all its Python dependencies:
 
 ```
-pip install https://github.com/a-hurst/klibs.git --process-dependency-links
+pip install git+https://github.com/a-hurst/klibs.git --process-dependency-links
 ```
 
 Note that if you are using the default system-installed version of Python on macOS, you will need to preface the `pip install` command with `sudo -H` for the command to work.

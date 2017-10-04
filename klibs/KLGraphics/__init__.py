@@ -89,9 +89,10 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 				content = source.rendered
 
 		elif isinstance(source, Image.Image):
+			# fixme: this renders upside down and mirrored for some reason?
 			height = source.size[1]
 			width = source.size[0]
-			content = source.tostring("raw", "RGBA", 0, -1)
+			content = source.tobytes("raw", "RGBA", 0, -1)
 
 		elif issubclass(type(source), Drawbject):
 			height = source.surface_height

@@ -18,9 +18,16 @@ if PYLINK_AVAILABLE:
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import fill, flip, blit
 	from klibs.KLGraphics.KLDraw import drift_correct_target
+	from klibs.KLCommunication import message
 	from klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
 
 	class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
+
+		#TODO: add scaling support for images
+		#TODO: fix choppiness/lack of shape update on full EL1000 image
+		#TODO: fix get_mouse_state
+		#TODO: reduce delay between keypress and image update (w/ threshold)
+		#TODO: adjust text sizing to better fit image (too large right now)
 
 		def __init__(self):
 			EnvAgent.__init__(self)
@@ -124,7 +131,7 @@ if PYLINK_AVAILABLE:
 					try:
 						key = self.pylink_keycodes[keysym.sym]
 					except KeyError:
-						key = pylink.JUNK_KEY
+						key = keysym.sym
 					# don't allow escape to control tracker unless calibrating
 					if key == pylink.ESC_KEY and not self.el.in_setup():  
 						key = pylink.JUNK_KEY
@@ -134,7 +141,8 @@ if PYLINK_AVAILABLE:
 		def get_mouse_state(self):
 			#fixme: function expects second return value to be state of mouseclick,
 			# need to figure out how to get this with pysdl2 for this to work properly.
-			return (mouse_pos(), 0)
+			x, y = mouse_pos(False)
+			return ((int(x), int(y)), 0)
 
 		def alert_printf(self, message):
 			message(message, color=(255, 0, 0, 255),
@@ -168,14 +176,15 @@ if PYLINK_AVAILABLE:
 			and then rendered to the middle of the screen. After rendering, the image
 			buffer is cleared.
 			'''
-
+			if len(self.imagebuffer) > (width*totlines):
+				self.imagebuffer = []
 			self.imagebuffer += buff
 			if int(line) == int(totlines):
 				# Render complete camera image and resize to self.size
-				self.img = Image.new("P", (width, totlines), 0)
-				self.img.putpalette(self.palette)
-				self.img.putdata(self.imagebuffer)
-				self.img.convert('RGBA').resize(self.size)
+				img = Image.new("P", (width, totlines), 0)
+				img.putpalette(self.palette)
+				img.putdata(self.imagebuffer)
+				self.img = img.convert('RGBA').resize(self.size)
 				# Set up aggdraw to draw crosshair/bounds/etc. on image surface
 				self.drawer = Draw(self.img)
 				self.drawer.setantialias(True)
@@ -194,8 +203,8 @@ if PYLINK_AVAILABLE:
 
 		def draw_lozenge(self, x, y, width, height, colorindex):
 			lozenge_pen = Pen(self.pylink_colors[colorindex], 3, 255)
-			self.drawer.ellipse((x, y, width, height), pen=lozenge_pen)
+			self.drawer.ellipse((x, y, width, height), lozenge_pen)
 
 		def draw_line(self, x1, y1, x2, y2, colorindex):
 			line_pen = Pen(self.pylink_colors[colorindex], 3, 255)
-			self.drawer.line((x1, y1, x2, y2), pen=line_pen)
+			self.drawer.line((x1, y1, x2, y2), line_pen)

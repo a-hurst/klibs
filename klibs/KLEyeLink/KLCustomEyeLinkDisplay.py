@@ -18,16 +18,16 @@ if PYLINK_AVAILABLE:
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import fill, flip, blit
 	from klibs.KLGraphics.KLDraw import drift_correct_target
-	from klibs.KLCommunication import message
+	#from klibs.KLCommunication import message  # Too slow to use here yet
 	from klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
 
 	class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 
-		#TODO: add scaling support for images
-		#TODO: fix choppiness/lack of shape update on full EL1000 image
-		#TODO: fix get_mouse_state
-		#TODO: reduce delay between keypress and image update (w/ threshold)
-		#TODO: adjust text sizing to better fit image (too large right now)
+		#TODO: add scaling support for images without ruining performance (OpenGL scale?)
+		#TODO: fix lack of shape update on full EL1000 image
+		#TODO: test fix for get_mouse_state
+		#TODO: reimplement text rendering so it's fast enough to not cause major hangs
+		#TODO: reimplement draw_lozenge so it matches their weird specifications
 
 		def __init__(self):
 			EnvAgent.__init__(self)
@@ -139,24 +139,34 @@ if PYLINK_AVAILABLE:
 			return keys
 
 		def get_mouse_state(self):
-			#fixme: function expects second return value to be state of mouseclick,
-			# need to figure out how to get this with pysdl2 for this to work properly.
-			x, y = mouse_pos(False)
-			return ((int(x), int(y)), 0)
+			x, y, b = mouse_pos(pump_event_queue=False, return_button_state=True)
+			if b != 1: # Register left clicks only
+				b = 0
+			return ((int(x), int(y)), b)
 
 		def alert_printf(self, message):
-			message(message, color=(255, 0, 0, 255),
-									location=(0.05 * P.screen_x, 0.05 * P.screen_y))
+			# Commented out until message() is fast enough to not cause problems
+			# or better way of rendering text here is devised.
+			#
+			#message(message, color=(255, 0, 0, 255),
+			#						location=(0.05 * P.screen_x, 0.05 * P.screen_y))
+			print "EyeLink Alert: {0}".format(message)
 
 		def setup_image_display(self, width, height):
+			'''Sets camera image to the provided size, returns 1 on success.'''
 			self.size = (width, height)
 			self.clear_cal_display()
+			return 1
 
 		def exit_image_display(self):
 			self.clear_cal_display()
 
 		def image_title(self, text):
-			self.title = message(text, blit_txt=False)
+			# Commented out until message() is fast enough to not cause problems
+			# or better way of rendering text here is devised.
+			#
+			#self.title = message(text, blit_txt=False)
+			pass
 
 		def set_image_palette(self, r, g, b):
 			'''
@@ -193,10 +203,10 @@ if PYLINK_AVAILABLE:
 				# Draw complete image to screen
 				fill()
 				blit(asarray(self.img), 5, P.screen_c)
-				if self.title:
-					loc_x = (P.screen_c[0] - self.size[0]/2)
-					loc_y = (P.screen_c[1] + self.size[1]/2 + 20)
-					blit(self.title, 7, (loc_x, loc_y))
+				#if self.title:
+				#	loc_x = (P.screen_c[0] - self.size[0]/2)
+				#	loc_y = (P.screen_c[1] + self.size[1]/2 + 20)
+				#	blit(self.title, 7, (loc_x, loc_y))
 				flip()
 				# Clear image buffer
 				self.imagebuffer = []

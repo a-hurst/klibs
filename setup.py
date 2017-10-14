@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from setuptools import setup, find_packages
+from setuptools import setup
 from os import remove, close, path
 import subprocess as sub
 import shutil
@@ -34,7 +34,7 @@ setup(
 	description='A framework for building psychological experiments in Python',
 	author='Jonathan Mulle & Austin Hurst',
 	author_email='this.impetus@gmail.com',
-	url='http://github.com/jmwmulle/klibs',
+	url='http://github.com/a-hurst/klibs',
 	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeLink'],
 	include_package_data=True,
 	scripts=['bin/klibs'],

@@ -5,7 +5,6 @@ import os
 from os.path import join
 from os import makedirs
 import shutil
-from subprocess import Popen, PIPE
 import traceback
 import imp
 import time
@@ -18,17 +17,18 @@ from pkg_resources import resource_filename, resource_string
 from klibs.KLExceptions import DatabaseException
 from klibs.KLUtilities import hide_mouse_cursor
 from klibs.KLUtilities import colored_stdout as cso
-pylink_install_required = False
+
 klibs_version = "0.6.0"
 
 #  todo: add in Ross's april fools idea
 
 def print_warning(exc_type, exc_value, exc_traceback):
-	cso("\n<red>*** Fatal Error: Unable to load klibs ***</red>")
-	cso("\nStack Trace (if you don't understand this, skip forward to 'What To Do If KLIBs Wasn't Found'")
+	cso("\n<red>*** Fatal Error: Unable to load KLibs ***</red>")
+	cso("\nStack Trace (if you don't understand this, skip forward to 'What To Do If KLibs Wasn't Found'")
 	cso(traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout))
 	time.sleep(0.3)
-	cso("\n<teal>What To Do If KLIBS Wasn't Found: \nIf the klibs python module couldn't be located; repair the path to the module or reinstall it.</teal>")
+	# this should probably be rewritten/updated a bit more
+	cso("\n<teal>What To Do If KLIBS Wasn't Found: \nIf the KLibs python module couldn't be located; repair the path to the module or reinstall it.</teal>")
 	cso("Perhaps you're thinking \"then what's talking to me right now?!\". Don't worry, neither you nor I have gone mad.")
 	cso("Rather, when you typed 'klibs <name> <path>' you executed a setup script to create a new empty project.")
 	cso("This script is invoked using the word 'klibs' as a convenience but it is *not* a part of the klibs python module")
@@ -36,9 +36,7 @@ def print_warning(exc_type, exc_value, exc_traceback):
 	cso("reachable by PYTHONPATH. If you don't know what this means try simply reinstalling. If that doesn't work,")
 	cso("then you probably need assistance. Go find a nerd!\n")
 	cso("\t<blue>More Information:</blue>   http://kleinlab.psychology.dal.ca/klibs/documentation")
-	cso("\t<blue>Download Installer:</blue> http://kleinlab.psychology.dal.ca/klibs/installer.zip")
-	cso("\t<blue>Repository:</blue>        https://github.com/jmwmulle/klibs\n")
-	cso("\n... if the links don't work it's because Jon likely only wrote this; try: this.impetus@gmail.com!\n")
+	cso("\t<blue>Repository:</blue>         https://github.com/a-hurst/klibs\n")
 
 
 def full_trace():
@@ -178,7 +176,7 @@ def update(branch='default'):
 	if branch != 'default':
 		git_repo += "@{0}".format(branch)
 	
-	update_cmd = 'install -U git+{0}#egg=klibs'.format(git_repo)
+	update_cmd = 'install -U git+{0}#egg=klibs --no-deps'.format(git_repo)
 	update_prompt = cso("\n<green_d>Updating will replace the current install of KLibs with" \
 	" the most recent commit of the </green_d><purple>{0}</purple><green_d> branch of " \
 	"</green_d><purple>'{1}'</purple><green_d>. Are you sure you want to continue?" \
@@ -405,20 +403,25 @@ def rebuild_db(path):
 
 
 def hard_reset(path):
-	# todo: rewrite this entire thing, it's a hot mess now and no longer applies to the currnet klibs dir structre
 	from klibs.KLUtilities import iterable
-	#todo: require confirmation
-	for d in ['Data', 'EDF', '.versions', ('Local', 'logs')]:
-		if iterable(d):
-			d = join(*d)
-		try:
-			shutil.rmtree(join(path, "ExpAssets", d))
-		except OSError:
-			pass
-	os.makedirs(join(path, "ExpAssets", "Data", "incomplete"))
-	os.makedirs(join(path, "ExpAssets", "EDF", "incomplete"))
-	os.mkdir(join(path, "ExpAssets", ".versions"))
-	rebuild_db(path)
+	reset_prompt = cso("\n<red>Warning: doing a hard reset will delete all collected data", \
+	" all logs, all copies of experiment.py and Config files in the .versions folder" \
+	" that previous participants were run with, and reset the project's database." \
+	" Are you sure you want to continue?</red> (Y/N): " \
+	if raw_input(reset_prompt).lower() == "y":
+		for d in ['Data', 'EDF', '.versions', ('Local', 'logs')]:
+			if iterable(d):
+				d = join(*d)
+			try:
+				shutil.rmtree(join(path, "ExpAssets", d))
+			except OSError:
+				pass
+		os.makedirs(join(path, "ExpAssets", "Data", "incomplete"))
+		os.makedirs(join(path, "ExpAssets", "EDF", "incomplete"))
+		os.mkdir(join(path, "ExpAssets", "Local", "logs"))
+		os.mkdir(join(path, "ExpAssets", ".versions"))
+		rebuild_db(path)
+	print " "
 
 
 parser = argparse.ArgumentParser()

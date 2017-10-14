@@ -1,8 +1,5 @@
-.idea
-.idea/*
-.vscode
-.vscode/*
-.DS_Store
+**/*.pyc
+**/.*
+!.gitignore
 build
 build/*
-**/*.pyc

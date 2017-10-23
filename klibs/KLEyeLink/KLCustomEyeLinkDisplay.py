@@ -1,48 +1,80 @@
 # -*- coding: utf-8 -*-
-__author__ = 'j. mulle, this.impetus@gmail.com'
+__author__ = 'j. mulle & austin hurst'
 
-import array
-import sys
 from klibs import PYLINK_AVAILABLE
 
 if PYLINK_AVAILABLE:
 
-	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode, EyeLinkCustomDisplay, KeyInput, \
-		DC_TARG_BEEP, CAL_TARG_BEEP, CAL_ERR_BEEP, DC_ERR_BEEP, ENTER_KEY, ESC_KEY
+	import pylink
+	import sdl2
 
-	from sdl2 import SDL_KEYDOWN, SDLK_ESCAPE, SDLK_RETURN, SDLK_c, SDLK_v
 	from numpy import asarray
-	from aggdraw import Draw, Pen
-	from PIL.Image import frombytes
-
+	from PIL import Image
+	from aggdraw import Draw, Brush, Pen
+	
 	from klibs.KLEnvironment import EnvAgent
 	from klibs import P
 	from klibs.KLUtilities import pump, mouse_pos
 	from klibs.KLUserInterface import ui_request
-	from klibs.KLGraphics import fill, flip, blit, aggdraw_to_array
+	from klibs.KLGraphics import fill, flip, blit
 	from klibs.KLGraphics.KLDraw import drift_correct_target
-	from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
+	#from klibs.KLCommunication import message  # Too slow to use here yet
 	from klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
 
-	class ELCustomDisplay(EyeLinkCustomDisplay, EnvAgent):
+	class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 
-		window = None
-		size = [None, None]
+		#TODO: add scaling support for images without ruining performance (OpenGL scale?)
+		#TODO: fix lack of shape update on full EL1000 image
+		#TODO: test fix for get_mouse_state
+		#TODO: reimplement text rendering so it's fast enough to not cause major hangs
+		#TODO: reimplement draw_lozenge so it matches their weird specifications
 
 		def __init__(self):
 			EnvAgent.__init__(self)
-			self.size = self.exp.window.size
-			self.last_flip = None
-			self.fill_color = [255, 0, 0]
-			if sys.byteorder == 'little':
-				self.byteorder = 1
-			else:
-				self.byteorder = 0
-			self.imagebuffer = array.array('I')
-			self.pal = None
-			self.__img__ = None
+			self.size = (0,0)
+			self.imagebuffer = []
+			self.palette = []
+			self.img = None # PIL.Image
+			self.drawer = None # aggdraw Draw with self.img as context
+			self.title = None
 
-			EyeLinkCustomDisplay.__init__(self)
+			self.dc_target = drift_correct_target()
+
+			pylink.EyeLinkCustomDisplay.__init__(self)
+
+			# Define dict mapping sdl2 keycodes to pylink keycodes
+			self.pylink_keycodes = dict([
+				(sdl2.SDLK_F1, pylink.F1_KEY),
+				(sdl2.SDLK_F2, pylink.F2_KEY),
+				(sdl2.SDLK_F3, pylink.F3_KEY),
+				(sdl2.SDLK_F4, pylink.F4_KEY),
+				(sdl2.SDLK_F5, pylink.F5_KEY),
+				(sdl2.SDLK_F6, pylink.F6_KEY),
+				(sdl2.SDLK_F7, pylink.F7_KEY),
+				(sdl2.SDLK_F8, pylink.F8_KEY),
+				(sdl2.SDLK_F9, pylink.F9_KEY),
+				(sdl2.SDLK_F10, pylink.F10_KEY),
+				(sdl2.SDLK_PAGEUP, pylink.PAGE_UP),
+				(sdl2.SDLK_PAGEDOWN, pylink.PAGE_DOWN),
+				(sdl2.SDLK_UP, pylink.CURS_UP),
+				(sdl2.SDLK_DOWN, pylink.CURS_DOWN),
+				(sdl2.SDLK_LEFT, pylink.CURS_LEFT),
+				(sdl2.SDLK_RIGHT, pylink.CURS_RIGHT),
+				(sdl2.SDLK_RETURN, pylink.ENTER_KEY),
+				(sdl2.SDLK_ESCAPE, pylink.ESC_KEY),
+				(sdl2.SDLK_BACKSPACE, ord('\b')),
+				(sdl2.SDLK_TAB, ord('\t'))
+			])
+
+			# Define dict mapping pylink colour constants to RGB colours
+			self.pylink_colors = [
+				(0, 0, 0), 			# 0 = placeholder (transparent)
+				(255, 255, 255),	# 1 = pylink.CR_HAIR_COLOR (white)        
+				(255, 255, 255),	# 2 = pylink.PUPIL_HAIR_COLOR (white)
+				(0, 255, 0),		# 3 = pylink.PUPIL_BOX_COLOR (green)
+				(255, 0, 0),		# 4 = pylink.SEARCH_LIMIT_BOX_COLOR (red)
+				(255, 0, 0)			# 5 = pylink.MOUSE_CURSOR_COLOR (red)
+			]
 
 			try:
 				self.__target_beep__ = AudioClip("target_beep.wav")
@@ -53,38 +85,37 @@ if PYLINK_AVAILABLE:
 				self.__target_beep__done__ = None
 				self.__target_beep__error__ = None
 
-		def setup_cal_display(self):
-			self.window = self.exp.window
-			self.clear_cal_display()
-
-		def exit_cal_display(self):
-			pass
-
 		def record_abort_hide(self):
 			pass
 
 		def clear_cal_display(self):
 			fill()
 			flip()
+			fill()
 
-		def erase_cal_target(self):
+		def setup_cal_display(self):
 			self.clear_cal_display()
 
-		def draw_cal_target(self, x, y=None, pump_events=True, flip_screen=True):
+		def exit_cal_display(self):
+			self.clear_cal_display()
+
+		def draw_cal_target(self, x, y=None, pump_events=True):
 			fill()
 			if pump_events: pump()
 			if y is None:
 				y = x[1]
 				x = x[0]
-			blit(drift_correct_target(), 5, [int(x), int(y)])
-			# if flip_screen: flip()
+			blit(self.dc_target, 5, (int(x), int(y)))
 			flip()
+
+		def erase_cal_target(self):
+			self.clear_cal_display()
 
 		def play_beep(self, clip):
 			try:
-				if clip == DC_TARG_BEEP or clip == CAL_TARG_BEEP:
+				if clip in [pylink.DC_TARG_BEEP, pylink.CAL_TARG_BEEP]:
 					self.__target_beep__.play()
-				elif clip == CAL_ERR_BEEP or clip == DC_ERR_BEEP:
+				elif clip in [pylink.CAL_ERR_BEEP, pylink.DC_ERR_BEEP]:
 					self.__target_beep__error__.play()
 				else:
 					self.__target_beep__done__.play()
@@ -92,80 +123,98 @@ if PYLINK_AVAILABLE:
 				pass
 
 		def get_input_key(self):
+			keys = []
 			for event in pump(True):
-				if event.type == SDL_KEYDOWN:
+				if event.type == sdl2.SDL_KEYDOWN:
 					keysym = event.key.keysym
-					keysym.sym = ENTER_KEY if keysym.sym == SDLK_RETURN else keysym.sym
-					request = ui_request(keysym)
-					if keysym.sym == SDLK_ESCAPE:  # don't allow escape to control tracker unless calibrating
-						if self.el.in_setup():
-							return [KeyInput(ESC_KEY, 0)]
-						else:
-							return 0
-					if request:
-						if request == SDLK_c and not self.el.in_setup():
-							return [KeyInput(SDLK_ESCAPE, 0)]
-					return [KeyInput(keysym.sym, keysym.mod)]
+					ui_request(keysym)
+					try:
+						key = self.pylink_keycodes[keysym.sym]
+					except KeyError:
+						key = keysym.sym
+					# don't allow escape to control tracker unless calibrating
+					if key == pylink.ESC_KEY and not self.el.in_setup():  
+						key = pylink.JUNK_KEY
+					keys.append(pylink.KeyInput(key, keysym.mod))
+			return keys
 
 		def get_mouse_state(self):
-			return mouse_pos()
+			x, y, b = mouse_pos(pump_event_queue=False, return_button_state=True)
+			if b != 1: # Register left clicks only
+				b = 0
+			return ((int(x), int(y)), b)
+
+		def alert_printf(self, message):
+			# Commented out until message() is fast enough to not cause problems
+			# or better way of rendering text here is devised.
+			#
+			#message(message, color=(255, 0, 0, 255),
+			#						location=(0.05 * P.screen_x, 0.05 * P.screen_y))
+			print "EyeLink Alert: {0}".format(message)
+
+		def setup_image_display(self, width, height):
+			'''Sets camera image to the provided size, returns 1 on success.'''
+			self.size = (width, height)
+			self.clear_cal_display()
+			return 1
 
 		def exit_image_display(self):
 			self.clear_cal_display()
 
-		def alert_printf(self, message):
-			message(message, color=(255, 0, 0, 0),
-									location=(0.05 * P.screen_x, 0.05 * P.screen_y))
-
-		def setup_image_display(self, width, height):
-			self.img_size = (width, height)
-
 		def image_title(self, text):
+			# Commented out until message() is fast enough to not cause problems
+			# or better way of rendering text here is devised.
+			#
+			#self.title = message(text, blit_txt=False)
 			pass
-
-		def draw_image_line(self, width, line, totlines, buff):
-			i = 0
-			while i < width:
-				if buff[i] >= len(self.pal):
-					buff[i] = len(self.pal) - 1
-				self.imagebuffer.append(self.pal[buff[i] & 0x000000FF])
-				i += 1
-			try:
-				fill()
-				img = frombytes('RGBX', (width, totlines), self.imagebuffer.tostring()).convert('RGBA')
-				blit(NpS(asarray(img)), position=P.screen_c, registration=5)
-				flip()
-				self.imagebuffer = array.array('I')
-			except:
-				pass
-			return
-
-		def draw_lozenge(self, x, y, width, height, colorindex):
-			pass
-
-		def draw_line(self, x1, y1, x2, y2, colorindex):
-			try:
-				print "Draw Line: {0}".format(x1, x2, y1, y2, colorindex)
-				line = Draw("RGBA", [x2 - x1, y2 - y1])
-				p = Pen((255, 255, 255), 2)
-				line.line((0, 0, x2, y2), p)
-				blit(aggdraw_to_array(line), position=P.screen_c, registration=5)
-			except:
-				pass
 
 		def set_image_palette(self, r, g, b):
-			self.imagebuffer = array.array('I')
-			sz = len(r)
-			i = 0
-			self.pal = []
-			while i < sz:
-				rf = int(b[i])
-				gf = int(g[i])
-				bf = int(r[i])
-				if self.byteorder:
-					self.pal.append((rf << 16) | (gf << 8) | (bf))
-				else:
-					self.pal.append((bf << 24) | (gf << 16) | (rf << 8)) #for mac
-				i += 1
+			'''
+			Sets the palette to use for the camera image and clears the image buffer.
+			Converts r,g,b (lists containing the RGB palette) to a list of colours
+			([R,G,B,R,G,B,...]) that can be used by PIL.Image.
+			'''
+			self.imagebuffer = []
+			self.palette = list(sum(zip(r,g,b), ()))
 
+		def draw_image_line(self, width, line, totlines, buff):
+			'''
+			Reads in the buffer from the EyeLink camera image line by line and writes it
+			into a buffer of size (width * totlines). Once the last line of the image
+			has been read into the buffer, the image buffer is placed in a PIL.Image
+			with the palette set by set_image_palette, converted to RGBA, resized,
+			and then rendered to the middle of the screen. After rendering, the image
+			buffer is cleared.
+			'''
+			if len(self.imagebuffer) > (width*totlines):
+				self.imagebuffer = []
+			self.imagebuffer += buff
+			if int(line) == int(totlines):
+				# Render complete camera image and resize to self.size
+				img = Image.new("P", (width, totlines), 0)
+				img.putpalette(self.palette)
+				img.putdata(self.imagebuffer)
+				self.img = img.convert('RGBA').resize(self.size)
+				# Set up aggdraw to draw crosshair/bounds/etc. on image surface
+				self.drawer = Draw(self.img)
+				self.drawer.setantialias(True)
+				self.draw_cross_hair()
+				self.drawer.flush()
+				# Draw complete image to screen
+				fill()
+				blit(asarray(self.img), 5, P.screen_c)
+				#if self.title:
+				#	loc_x = (P.screen_c[0] - self.size[0]/2)
+				#	loc_y = (P.screen_c[1] + self.size[1]/2 + 20)
+				#	blit(self.title, 7, (loc_x, loc_y))
+				flip()
+				# Clear image buffer
+				self.imagebuffer = []
 
+		def draw_lozenge(self, x, y, width, height, colorindex):
+			lozenge_pen = Pen(self.pylink_colors[colorindex], 3, 255)
+			self.drawer.ellipse((x, y, width, height), lozenge_pen)
+
+		def draw_line(self, x1, y1, x2, y2, colorindex):
+			line_pen = Pen(self.pylink_colors[colorindex], 3, 255)
+			self.drawer.line((x1, y1, x2, y2), line_pen)

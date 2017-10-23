@@ -407,7 +407,7 @@ def hard_reset(path):
 	reset_prompt = cso("\n<red>Warning: doing a hard reset will delete all collected data", \
 	" all logs, all copies of experiment.py and Config files in the .versions folder" \
 	" that previous participants were run with, and reset the project's database." \
-	" Are you sure you want to continue?</red> (Y/N): " \
+	" Are you sure you want to continue?</red> (Y/N): ")
 	if raw_input(reset_prompt).lower() == "y":
 		for d in ['Data', 'EDF', '.versions', ('Local', 'logs')]:
 			if iterable(d):

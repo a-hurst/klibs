@@ -427,7 +427,14 @@ class Database(EnvAgent):
 			self.cursor.execute(data.insert_query())
 			if clear_current and self.current().name == data.name: self.current(False)
 		except AttributeError:
-			self.cursor.execute(self.query_str_from_raw_data(table, data))
+			try:
+				self.cursor.execute(self.query_str_from_raw_data(table, data))
+			except Exception as e:
+				# when insert() is directly used to add data to a table in the db, and that table
+				# doesn't exist, KLibs crashes hard with an IOError: Broken Pipe. Need to add proper
+				# and informative error handling for this.
+				print "Error: unable to write data to database."
+				raise e
 		except sqlite3.OperationalError:
 			print full_trace()
 			print "\n\n"

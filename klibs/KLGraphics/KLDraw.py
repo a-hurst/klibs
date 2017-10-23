@@ -193,8 +193,8 @@ class Drawbject(object):
 		surface_array = asarray(self.canvas.rotate(self.rotation, Image.BILINEAR, False))
 		if self.opacity < 255: # Apply opacity (if not fully opaque) to whole Drawbject
 			surface_array.setflags(write=1) # make RGBA values writeable
-			for x in range(self.surface.size[0]):
-				for y in range(self.surface.size[1]):
+			for x in range(surface_array.shape[0]):
+				for y in range(surface_array.shape[1]):
 					surface_array[x][y][3] = int(surface_array[x][y][3] * self.opacity/255)
 
 		self.rendered = surface_array

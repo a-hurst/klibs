@@ -18,15 +18,13 @@ if PYLINK_AVAILABLE:
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import fill, flip, blit
 	from klibs.KLGraphics.KLDraw import drift_correct_target
-	#from klibs.KLCommunication import message  # Too slow to use here yet
+	from klibs.KLCommunication import message  # Too slow to use here yet
 	from klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
 
 	class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 
 		#TODO: add scaling support for images without ruining performance (OpenGL scale?)
-		#TODO: fix lack of shape update on full EL1000 image
 		#TODO: test fix for get_mouse_state
-		#TODO: reimplement text rendering so it's fast enough to not cause major hangs
 		#TODO: reimplement draw_lozenge so it matches their weird specifications
 
 		def __init__(self):
@@ -162,11 +160,8 @@ if PYLINK_AVAILABLE:
 			self.clear_cal_display()
 
 		def image_title(self, text):
-			# Commented out until message() is fast enough to not cause problems
-			# or better way of rendering text here is devised.
-			#
-			#self.title = message(text, blit_txt=False)
-			pass
+			#TODO: add text style w/ font size that fits image
+			self.title = message(text, blit_txt=False)
 
 		def set_image_palette(self, r, g, b):
 			'''
@@ -203,10 +198,10 @@ if PYLINK_AVAILABLE:
 				# Draw complete image to screen
 				fill()
 				blit(asarray(self.img), 5, P.screen_c)
-				#if self.title:
-				#	loc_x = (P.screen_c[0] - self.size[0]/2)
-				#	loc_y = (P.screen_c[1] + self.size[1]/2 + 20)
-				#	blit(self.title, 7, (loc_x, loc_y))
+				if self.title:
+					loc_x = (P.screen_c[0])
+					loc_y = (P.screen_c[1] + self.size[1]/2 + 20)
+					blit(self.title, 8, (loc_x, loc_y))
 				flip()
 				# Clear image buffer
 				self.imagebuffer = []

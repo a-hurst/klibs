@@ -167,35 +167,49 @@ def init_messaging():
 			block_break_messages.append(r_msg)
 
 
-def message(text, style=None, location=None, registration=None, blit_txt=True, flip_screen=False, clear_screen=False, wrap_width=None):
-	"""
-	Generates formatted text, and optionally renders it to the display.
+def message(text, style=None, location=None, registration=None, blit_txt=True,
+			flip_screen=False, clear_screen=False, align="left", wrap_width=None):
+	"""Renders a string of text using a given TextStyle, and optionally draws it to the display.
 
-	.. warning:: While this method supports the arguments listed, only :class:`~klibs.KLTextManager.TextStyle`
-	should now be used.
+	Args:
+		text (str): The string of text to be rendered.
+		style (str, optional): The name of the :class:`~klibs.KLTextManager.TextStyle` to be used.
+			If none provided, defaults to the 'default' TextStyle.
+		blit_txt (bool, optional): If True, the rendered text is drawn to the display buffer at
+			the location and registration specfied using :func:`~klibs.KLGraphics.blit`.
+			Defaults to True.
+		registration (int, optional): An integer from 1 to 9 indicating which location on the
+			surface will be aligned to the location value (see manual for more info). Only
+			required if blit_txt is True.
+		location(tuple(int,int), optional): A tuple of x,y pixel coordinates indicating where to
+			draw the object to. Only required if blit_txt is True.
+		flip_screen (bool, optional): If True, :func:`~klibs.KLGraphics.flip` is called immediately
+			after blitting and the text is displayed on the screen. Only has an effect if blit_txt
+			is True. Defaults to False.
+		clear_screen (bool, optional): If True, the background of the display buffer will be filled
+			with the default fill colour before the text is blitted. Only has an effect if blit_txt
+			is True. Defaults to False.
+		align (str, optional): The justification of the text, must be one of "left", "center", or
+			"right". This only has an effect if there are multiple lines (denoted by "\n") in the
+			passed string of text. Defaults to "left" if not specified.
+		wrap_width (int, optional): The maximum width of the message before text will wrap around
+			to the next line (not currently implemented).
 
-
-	:param text: Text to be displayed.
-	:type text: String
-	:param style: Name of :class:`~klibs.KLTextManager.TextStyle` to be used.
-	:type style: String
-	:param location: X-Y coordinates where the message should be placed. Default is screen center.
-	:type location: Iterable of Integers or `Location Constant`
-	:param registration: Location about message surface perimeter to be placed at supplied location. Default is
-	center.
-	:type registration: Integer
-	:param wrap_width: Maximum width (px) of text line before breaking.
-	:type wrap_width: Integer
-	:param blit_txt: Toggles whether message surface is automatically :func:`~klibs.KLExperiment.Experiment
-	.blit` to
-	the display buffer.
-	:type blit_txt: Boolean
-	:param flip_screen: Toggles whether :func:`~klibs.KLExperiment.Experiment.flip` is automatically called after
-	blit.
-	:type flip_screen: Boolean
-	:return: NumpySurface or Boolean
+	Returns:
+		:obj:`~klibs.KLGraphics.KLNumpySurface.NumpySurface`: A NumpySurface object that can be 
+			drawn to the screen using :func:`~klibs.KLGraphics.blit`, or None if blit_txt is True.
 	
+	Raises:
+		ValueError: If blit_txt is true and location is not a valid pair of x/y coordinates.
+
 	"""
+
+	#TODO: 	make sure there won't be any catastrophic issues with this first, but rearrange 'align'
+	#		and 'width' so they follow 'text' and 'style'. Also, consider whether using different
+	#		method entirely for blitting/flipping messages since it kind of makes this a mess.
+
+	#TODO:	consider whether a separate 'textbox' method (with justification/width/formatting)
+	#		would be appropriate, or if having it all rolled into message() is best.
 
 	from klibs.KLEnvironment import txtm
 
@@ -208,35 +222,33 @@ def message(text, style=None, location=None, registration=None, blit_txt=True, f
 			pass
 	# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
 
-	# process blit registration
-	if location == "center" and registration is None:  # an exception case for perfect centering
-		registration = BL_CENTER
-	if registration is None:
-		registration = BL_TOP_LEFT
-
-	# process location, infer if need be; failure here is considered fatal
-	if not location:
-		x_offset = (P.screen_x - P.screen_x) // 2 + style.font_size
-		y_offset = (P.screen_y - P.screen_y) // 2 + style.font_size
-		location = (x_offset, y_offset)
-	else:
-		try:
-			iter(location)
-		except AttributeError:
-			try:
-				location = absolute_position(location, P.screen_x_y)
-			except ValueError:
-				raise ValueError("Argument 'location' must be a location constant or iterable x,y coordinate pair")
-
-	message_surface = txtm.render(text, style)
-	if not blit_txt:
+	message_surface = txtm.render(text, style, align)
+	if blit_txt == False:
 		return message_surface
 	else:
-		if clear_screen:
-			fill(clear_screen if iterable(clear_screen) else P.default_fill_color)
-		blit(message_surface, registration, location)
-	if flip_screen:
-		flip()
+		if location == "center" and registration is None:  # an exception case for perfect centering
+			registration = BL_CENTER
+		if registration is None:
+			registration = BL_TOP_LEFT
+
+		# process location, infer if need be; failure here is considered fatal
+		if not location:
+			x_offset = (P.screen_x - P.screen_x) // 2 + style.font_size
+			y_offset = (P.screen_y - P.screen_y) // 2 + style.font_size
+			location = (x_offset, y_offset)
+		else:
+			try:
+				iter(location)
+			except AttributeError:
+				try:
+					location = absolute_position(location, P.screen_x_y)
+				except ValueError:
+					raise ValueError("Argument 'location' must be a location constant or iterable x,y coordinate pair")
+			if clear_screen:
+				fill(clear_screen if iterable(clear_screen) else P.default_fill_color)
+			blit(message_surface, registration, location)
+			if flip_screen:
+				flip()
 
 
 def query(query_ob, anonymous=False):

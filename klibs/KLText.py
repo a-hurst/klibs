@@ -1,5 +1,6 @@
 __author____ = 'jono'
-from sdl2.sdlttf import TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderText_Blended, TTF_RenderUTF8_Solid
+from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderText_Blended,
+	TTF_RenderUTF8_Solid, TTF_SizeText)
 from sdl2.ext import PixelView
 from sdl2 import SDL_Color
 from math import floor
@@ -144,24 +145,38 @@ class TextManager(object):
 		arr = np.copy(np.ndarray(shape, np.uint8, buffer=pxbuf))
 		return arr
 
-	def __wrap__(self, text, style, width=None):
+	def __wrap__(self, text, style, rendering_font, align, width=None):
 		lines = text.split("\n")
 		if width:
 			pass  # TODO: test various lengths until you get a size that works, then re-populate lines
+		else:
+			surface_width = 1
+			w, h = ctypes.c_int(0), ctypes.c_int(0)
+			for line in lines:
+				if len(line):
+					TTF_SizeText(rendering_font, line, ctypes.byref(w), ctypes.byref(h))
+					if w.value > surface_width:
+						surface_width = w.value
+
 		net_line_height = style.font_size + style.line_height
-		output = NpS(width=1, height=(len(lines) * net_line_height))
+		output = NpS(width=surface_width, height=(len(lines) * net_line_height))
 		for line in lines:
 			if len(line):
-				l_surf = self.render(line, style, True)
+				l_surf = self.render(line, style, from_wrap=True)
 			else:
-				l_surf = NpS(width=1, height=net_line_height)
-			if l_surf.width > output.width:
-				output.resize((l_surf.width, output.height))
-			l_surf_pos = (0, lines.index(line) * net_line_height)
-			output.blit(l_surf, position=l_surf_pos)
+				continue
+			if align == "left":
+				l_surf_pos = (0, lines.index(line) * net_line_height)
+				output.blit(l_surf, position=l_surf_pos)
+			elif align == "center":
+				l_surf_pos = (surface_width/2, lines.index(line) * net_line_height)
+				output.blit(l_surf, position=l_surf_pos, registration=8)
+			elif align == "right":
+				l_surf_pos = (surface_width, lines.index(line) * net_line_height)
+				output.blit(l_surf, position=l_surf_pos, registration=9)
 		return output
 
-	def render(self, text, style="default", max_width=None, from_wrap=False):
+	def render(self, text, style="default", align="left", max_width=None, from_wrap=False):
 		"""
 
 		:param text:
@@ -170,17 +185,20 @@ class TextManager(object):
 		:type style: :class:`~klibs.KLText.TextStyle`
 		:return:
 		"""
-		text = str(text)
 		#  The following vars are an intermediary stage in converting TextManager to the use of style objects
 		if not isinstance(style, TextStyle):
 			style = self.styles[style]
 
+		text = str(text)
+		rendering_font = TTF_OpenFont(self.fonts[style.font_label], style.font_size)
+
 		if len(text.split("\n")) > 1:
-			return self.__wrap__(text, style)
+			if align not in ["left", "center", "right"]:
+				raise ValueError("Text alignment must be one of 'left', 'center', or 'right'.")
+			return self.__wrap__(text, style, rendering_font, align)
 
 		if len(text) == 0:
 			text = " "
-		rendering_font = TTF_OpenFont(self.fonts[style.font_label], style.font_size)
 		if style.anti_aliased:
 			rendered_text = TTF_RenderText_Blended(rendering_font, text, SDL_Color(*style.color)).contents
 			surface_array = self.__SDLSurface_to_ndarray(rendered_text)

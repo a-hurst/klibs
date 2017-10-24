@@ -2,7 +2,7 @@ __author__ = 'jono'
 
 import abc
 from aggdraw import Brush, Draw, Pen, Symbol
-from PIL.Image import frombytes
+from PIL import Image
 from imp import load_source
 from bisect import bisect
 from os.path import join
@@ -13,7 +13,7 @@ from klibs.KLConstants import STROKE_CENTER, STROKE_INNER, STROKE_OUTER, KLD_LIN
 from klibs import P
 from klibs.KLUtilities import point_pos, midpoint
 
-from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
+from klibs.KLGraphics import rgb_to_rgba
 from klibs.KLGraphics.colorspaces import const_lum
 
 
@@ -104,9 +104,11 @@ class Drawbject(object):
 			pixels wider than the object_height (if no stroke or stroke is inner aligned),
 			at maximum (2 + 2*stroke_height) pixels wider than object height (if stroke is
 			outer aligned).
-		surface (:obj:`aggdraw.Draw`): The aggdraw surface on which the shape is drawn. The
-			empty surface of size (surface_width, surface_height) is initialized when a
-			Drawbject is created.
+		surface (:obj:`aggdraw.Draw`): The aggdraw context on which the shape is drawn.
+			When a shape is drawn to the surface, it is immediately applied to the canvas.
+		canvas (:obj:`PIL.Image.Image`): The Image object that contains the shape of the
+			Drawbject before opacity has been applied. Initialized upon creation with a
+			size of (surface_width x surface_height).
 		rendered (None or :obj:`numpy.array`): The rendered surface containing the shape,
 			which is created using the render() method. If the Drawbject has not yet been
 			rendered, this attribute will be 'None'.
@@ -132,6 +134,7 @@ class Drawbject(object):
 		self.surface_width = None
 		self.surface_height = None
 		self.surface = None
+		self.canvas = None
 		self.rendered = None
 		self.rotation = rotation
 		try:
@@ -162,7 +165,8 @@ class Drawbject(object):
 			else:
 				self.surface_width = width + 2
 				self.surface_height = height + 2
-		self.surface = Draw("RGBA", [self.surface_width, self.surface_height], (0, 0, 0, 0))
+		self.canvas = Image.new("RGBA", [self.surface_width, self.surface_height], (0, 0, 0, 0))
+		self.surface = Draw(self.canvas)
 		self.surface.setantialias(True)
 
 	def render(self):
@@ -183,22 +187,17 @@ class Drawbject(object):
 				surface_width) containing the pixels of the rendered Drawbject.
 
 		"""
-		from PIL.Image import BILINEAR
 		self.init_surface()
 		self.draw()
-		try: # old aggdraw uses tostring()
-			surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tostring()).rotate(self.rotation, BILINEAR, False)
-		except AttributeError: # new aggdraw uses tobytes()
-			surface_bytes = frombytes(self.surface.mode, self.surface.size, self.surface.tobytes()).rotate(self.rotation, BILINEAR, False)
-		surface_array = asarray(surface_bytes)
 
+		surface_array = asarray(self.canvas.rotate(self.rotation, Image.BILINEAR, False))
 		if self.opacity < 255: # Apply opacity (if not fully opaque) to whole Drawbject
 			surface_array.setflags(write=1) # make RGBA values writeable
-			for x in range(self.surface.size[0]):
-				for y in range(self.surface.size[1]):
+			for x in range(surface_array.shape[0]):
+				for y in range(surface_array.shape[1]):
 					surface_array[x][y][3] = int(surface_array[x][y][3] * self.opacity/255)
 
-		self.rendered = NpS(surface_array).render()
+		self.rendered = surface_array
 		return self.rendered
 
 	@abc.abstractproperty
@@ -321,7 +320,8 @@ class FixationCross(Drawbject):
 			str_h1 = self.surface_height // 2 - self.stroke_width // 2
 			str_h2 = self.surface_height // 2 + self.stroke_width // 2
 			self.surface.rectangle([1, str_h1, self.surface_width - 1, str_h2])
-		return self
+		self.surface.flush()
+		return self.canvas
 
 	@property
 	def __name__(self):
@@ -358,7 +358,8 @@ class Ellipse(Drawbject):
 		x_2 = self.surface_width - ((self.stroke_width // 2) + 1)
 		y_2 = self.surface_height - ((self.stroke_width // 2) + 1)
 		self.surface.ellipse([xy_1, xy_1, x_2, y_2], self.stroke, self.fill)
-		return self
+		self.surface.flush()
+		return self.canvas
 
 	@property
 	def __name__(self):
@@ -454,8 +455,8 @@ class Annulus(Drawbject):
 		xy_2 = self.surface_width - (2 + self.ring_width//2)
 		path_pen = Pen(tuple(self.fill_color), self.ring_inner_width)
 		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
-
-		return self
+		self.surface.flush()
+		return self.canvas
 
 	@property
 	def __name__(self):
@@ -499,8 +500,8 @@ class Rectangle(Drawbject):
 				self.surface.rectangle((xy1, xy1, x2, y2), self.stroke)
 		else:
 			self.surface.rectangle((1, 1, self.surface_width - 1, self.surface_height - 1), self.fill)
-
-		return self
+		self.surface.flush()
+		return self.canvas
 
 	@property
 	def __name__(self):
@@ -535,8 +536,8 @@ class Asterisk(Drawbject):
 		self.surface.line((l1[0], l1[1], l1[2],l1[3]), self.stroke)
 		self.surface.line((l2[0], l2[1], l2[2],l2[3]), self.stroke)
 		self.surface.line((l3[0], l3[1], l3[2],l3[3]), self.stroke)
-
-		return self.surface
+		self.surface.flush()
+		return self.canvas
 
 	@property
 	def __name__(self):
@@ -571,8 +572,8 @@ class Asterisk2(Drawbject):
 		self.surface.line((l2[0], l2[1], l2[2],l2[3]), self.stroke)
 		self.surface.line((l3[0], l3[1], l3[2],l3[3]), self.stroke)
 		self.surface.line((l4[0], l4[1], l4[2],l4[3]), self.stroke)
-
-		return self.surface
+		self.surface.flush()
+		return self.canvas
 
 	@property
 	def __name__(self):
@@ -637,8 +638,8 @@ class Line(Drawbject):
 		x2 = self.p2[0] + (self.margin[1] + 1)
 		y2 = self.p2[1] + (self.margin[0] + 1)
 		self.surface.line((x1, y2, x2, y1), self.stroke)
-
-		return self.surface
+		self.surface.flush()
+		return self.canvas
 
 
 class Triangle(Drawbject):
@@ -668,6 +669,8 @@ class Triangle(Drawbject):
 
 	def draw(self, as_numpy_surface=False):
 		self.surface.polygon((1, 1, self.base // 2 + 1, self.height + 1, self.base + 1, 1), self.stroke, self.fill)
+		self.surface.flush()
+		return self.canvas
 
 	@property
 	def __name__(self):
@@ -722,6 +725,8 @@ class Arrow(Drawbject):
 		pts += [self.tail_w + 1, (surf_cy + self.tail_h // 2) + 1]
 		pts += [1, (surf_cy +  self.tail_h // 2) + 1]
 		self.surface.polygon(pts, self.stroke, self.fill)
+		self.surface.flush()
+		return self.canvas
 
 		@property
 		def __name__(self):
@@ -731,13 +736,13 @@ class ColorWheel(Drawbject):
 	"""Creates a Drawbject containing a color wheel. By default, the color wheel
 	is constant-luminance.
 
-	Manually specifying a color list for the color wheel is not yet supported, but
-	is planned for a future release (e.g. specify an RGB wheel in place of a LAB one).
-
 	Args:
 		diameter (int): The diameter of the color wheel in pixels.
 		thickness (int, optional): The width of the ring of the color wheel in pixels.
 			Defaults to one quarter of the diameter if not specified.
+		colorspace (:obj:`list`, optional): The list of colours to render the colour
+			wheel with, in the form of RGB or RGBA tuples. Defaults to a CIELUV
+			constant-luminance colour wheel if not specified.
 		rotation (int, optional): The degrees by which to rotate the color wheel when
 			rendered. Defaults to 0 (no rotation).
 		auto_draw (bool): If True, internally draws the color wheel on initialization.
@@ -747,14 +752,13 @@ class ColorWheel(Drawbject):
 		
 	"""
 
-	def __init__(self, diameter, thickness=None, rotation=0, auto_draw=True):
-		# self.stroke_pad = int(diameter * 0.01)
+	def __init__(self, diameter, thickness=None, colorspace=const_lum, rotation=0, auto_draw=True):
 		super(ColorWheel, self).__init__(diameter, diameter, stroke=None, fill=None)
-		self.palette = const_lum # eventually make argument
+		self.palette = colorspace
 		self.rotation = rotation
 		self.diameter = diameter
 		self.radius = self.diameter // 2
-		self.thickness = 0.25 * diameter if not thickness else thickness
+		self.thickness = 0.20 * diameter if not thickness else thickness
 		self.opacity = 255
 
 		if auto_draw:
@@ -762,10 +766,10 @@ class ColorWheel(Drawbject):
 
 	def draw(self, as_numpy_surface=True):
 		rotation = self.rotation
-		for i in range(0, 360):
-			brush = Brush(self.palette[i])
+		for i in range(0, len(self.palette)):
+			brush = Brush(rgb_to_rgba(self.palette[i]))
 			center = self.surface_width // 2
-			r = self.radius - 2
+			r = self.radius + 1
 			vertices = [center, center]
 			for i in range(0, 4):
 				r_shift = -0.25 if i < 2 else 1.25
@@ -773,12 +777,20 @@ class ColorWheel(Drawbject):
 				func = cos if i % 2 else sin
 				vertices.append(int(round(r + func(radians(r_shift) + radians(90)) * r)))
 			self.surface.polygon(vertices, brush)
-			rotation += 1
+			rotation += 360.0 / len(self.palette)
+		self.surface.flush()
 
-		inner_xy1 = self.thickness // 2
-		inner_xy2 = self.surface_width - self.thickness // 2
-		self.surface.ellipse((inner_xy1, inner_xy1, inner_xy2, inner_xy2), Brush((0,0,0,255)))
-		return self
+		# Create annulus mask and apply it to colour disc
+		mask = Image.new('L', (self.surface_width, self.surface_height), 0)
+		d = Draw(mask)
+		xy_1 = 2 + self.thickness//2
+		xy_2 = self.surface_width - (2 + self.thickness//2)
+		path_pen = Pen(255, self.thickness)
+		d.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
+		d.flush()
+		self.canvas.putalpha(mask)
+
+		return self.canvas
 
 	def color_from_angle(self, angle, rotation=None):
 		# allows function access with arbitrary rotation, such as is needed by ColorSelectionResponseCollector
@@ -886,6 +898,7 @@ class FreeDraw(Drawbject):
 			b = Brush((0,0,0))
 			self.surface.ellipse([x1,y1,x2,y2], b)
 			print "CHUNK! {0}".format([x1,y1,x2,y2])
+		self.surface.flush()
 
 	def draw(self, with_points=False):
 		self.surface.rectangle([0,0,self.object_width, self.object_height], Brush((245, 245, 245)))
@@ -908,8 +921,8 @@ class FreeDraw(Drawbject):
 			path_str += " {0},{1}z".format(*self.close_at)
 		p = Symbol(path_str)
 		self.surface.symbol((0,0), p, self.stroke)
-
-		return self
+		self.surface.flush()
+		return self.canvas
 
 	def __validate_ends(self, sequence, origin):
 		if not origin:
@@ -955,9 +968,10 @@ class Bezier(Drawbject):
 			path_str = self.path_str_2
 		sym = Symbol(path_str.format(*data))
 		self.surface.path((0,0), sym, self.stroke, self.fill)
+		self.surface.flush()
 		print self.fill_color
 		print self.fill
-		return self
+		return self.canvas
 
 
 	# # The following functions [bezier_curve() and pascal_row()]were written by the StackOverflow user @unutbu (#notypo)

@@ -1,26 +1,25 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
+
+import imp
 import sdl2
 
 try:
-	from pylink import EyeLink, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode
-	from pylink.tracker import Sample, EndSaccadeEvent, EndFixationEvent, StartFixationEvent, StartSaccadeEvent
+	imp.find_module('pylink')
 	PYLINK_AVAILABLE = True
 except ImportError:
 	print "\t* Warning: Pylink library not found; eye tracking will not be available."
 	PYLINK_AVAILABLE = False
 
 try:
-	import pyaudio
-	import wave
-	from array import array
+	imp.find_module('pyaudio')
 	PYAUDIO_AVAILABLE = True
 except ImportError:
-	PYAUDIO_AVAILABLE = False
 	print "\t* Warning: Pyaudio library not found; audio recording, audio responses and audio sampling unavailable."
+	PYAUDIO_AVAILABLE = False
 
 try:
-	from u3 import *
+	imp.find_module('u3')
 	LABJACK_AVAILABLE = True
 except ImportError:
 	LABJACK_AVAILABLE = False
@@ -28,7 +27,8 @@ except ImportError:
 try:
 	import os # To test for presence of API key environment variable
 	import socket # To test internet connect to slack.com
-	from slacker import Slacker
+
+	imp.find_module('slacker')
 	socket.create_connection(("www.slack.com", 80))
 	os.environ['SLACK_API_KEY']
 	SLACK_STATUS = "available"
@@ -119,7 +119,7 @@ ANS_VALID = "answer valid"
 ANS_INVALID = "answer invalid"
 ANS_EMPTY = "empty answer"
 
-# EyeSome definitions for visually clean interaction with the EyeLink C++ libraries
+# Some definitions for visually clean interaction with the EyeLink C++ libraries
 EL_LEFT_EYE = 0
 EL_RIGHT_EYE = 1
 EL_BOTH_EYES = 2
@@ -130,6 +130,11 @@ PARALLEL_AVAILABLE = False
 MAX_DRIFT_DEG = 3
 INIT_SAC_DIST = 3  # Min. distance (degrees) before eye movement == initiating saccade for response direction
 EL_TEMP_FILE = "temp_participant{0}".format(EDF)
+
+# Constants corresponding to pylink's getTrackerVersion() return values
+EYELINK_I = 1
+EYELINK_II = 2
+EYELINK_1000 = 3
 
 EL_GAZE_START = "gaze_start"
 EL_GAZE_END = "gaze_end"
@@ -180,8 +185,8 @@ TEXT_PX = "PX"
 TEXT_MULTIPLE = "*"
 TEXT_PT = "PT"
 DELIM_WRAP = "wrap"
-DELIM_NOT_LAST ="not_last"
-DELIM_NOT_FIRST ="not_first"
+DELIM_NOT_LAST = "not_last"
+DELIM_NOT_FIRST = "not_first"
 
 # Utilities Constants
 ENTERING = 1

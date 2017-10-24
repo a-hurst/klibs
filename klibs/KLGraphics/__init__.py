@@ -16,7 +16,6 @@ from os.path import isfile
 from klibs import P
 from klibs.KLUtilities import absolute_position, build_registrations, pump, hide_mouse_cursor, deg_to_px
 from klibs.KLConstants import *
-from KLDraw import Drawbject, FixationCross, Circle
 from KLNumpySurface import NumpySurface as NpS
 
 # populated on first call to flip() if needed
@@ -75,9 +74,12 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 		Raises:
 			TypeError: If the 'source' object passed is not one of the accepted types.
 		"""
+		from KLDraw import Drawbject
 
 		if position:
+			#TODO: Purge this from within klibs once and for all
 			location = position  # fixing stupid argument name, preserving backwards compatibility
+			
 		if isinstance(source, NpS):
 			height = source.height
 			width = source.width
@@ -86,6 +88,13 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 			else:
 				content = source.rendered
 
+		elif isinstance(source, Image.Image):
+			# is this a good idea? will be slower in most cases than using np.asarray() on Image
+			# and rendering that, since you don't need to re-render every time.
+			height = source.size[1]
+			width = source.size[0]
+			content = source.tobytes("raw", "RGBA", 0, 1)
+
 		elif issubclass(type(source), Drawbject):
 			height = source.surface_height
 			width = source.surface_width
@@ -93,14 +102,18 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 				content = source.render()
 			else:
 				content = source.rendered
+
 		elif type(source) is np.ndarray:
 			height = source.shape[0]
 			width = source.shape[1]
 			content = source
+
 		elif type(source) is str and isfile(source):
 			return blit(NpS(source), registration, location, position)
+
 		else:
 			raise TypeError("Argument 'source' must be np.ndarray, klibs.KLNumpySurface.NumpySurface, or inherit from klibs.KLDraw.Drawbect.")
+		
 		if any([not flip_x and P.blit_flip_x, flip_x]):
 			content = np.fliplr(content)
 
@@ -259,6 +272,8 @@ def draw_fixation(location=BL_CENTER, size=None, stroke=None, color=None, fill_c
 		:param flip: Toggles automatic flipping of display buffer, see :func:`~klibs.KLExperiment.Experiment.flip``.
 		"""
 
+		from KLDraw import FixationCross
+
 		if not size: size = deg_to_px(P.fixation_size)
 		if not stroke: stroke = size // 5
 		cross = FixationCross(size, stroke, color, fill_color).draw()
@@ -316,6 +331,7 @@ def flip(window=None):
 
 	"""
 	from klibs.KLEnvironment import exp, el
+	from KLDraw import Circle
 	global tracker_dot
 
 	if P.development_mode and P.el_track_gaze and P.eye_tracking and P.in_trial:

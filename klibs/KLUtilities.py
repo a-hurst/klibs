@@ -12,8 +12,10 @@ import traceback
 
 import multiprocessing as mp
 from sys import exc_info
-from sdl2 import SDL_Event, SDL_PeepEvents, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents, SDL_GetError, \
-	SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_MOUSEMOTION, SDL_GETEVENT, SDL_DISABLE, SDL_ENABLE, KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS
+from sdl2 import (SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents,
+	SDL_GetError, SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_MOUSEMOTION, SDL_DISABLE, SDL_ENABLE,
+	SDL_BUTTON, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
+	KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS)
 from sdl2.ext import get_events
 from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
 from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
@@ -21,9 +23,10 @@ from subprocess import Popen, PIPE
 
 from math import sin, cos, radians, pi, atan2, degrees, ceil
 
-from klibs.KLConstants import BL_RIGHT, BL_LEFT, BL_BOTTOM_RIGHT, BL_BOTTOM, BL_BOTTOM_LEFT, BL_TOP, \
-	BL_CENTER, BL_TOP_LEFT, BL_TOP_RIGHT, PARTICIPANT_FILE, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS, TF_DATA,\
-	EDF_EXT, EDF_FILE, DATETIME_STAMP, DATA_EXT, MOD_KEYS, DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP, TK_S, TK_MS
+from klibs.KLConstants import (BL_RIGHT, BL_LEFT, BL_TOP, BL_BOTTOM, BL_TOP_RIGHT, BL_TOP_LEFT,
+	BL_BOTTOM_RIGHT, BL_BOTTOM_LEFT, BL_CENTER, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS,
+	TF_DATA, DATA_EXT, EDF_EXT, EDF_FILE, PARTICIPANT_FILE, DATETIME_STAMP, MOD_KEYS, 
+	DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP, TK_S, TK_MS)
 from klibs import P
 from klibs import env
 
@@ -391,27 +394,40 @@ def mean(values, as_int=False):
 	return mean_val if not as_int else int(mean_val)
 
 
-def mouse_pos(pump_event_queue=True, position=None):
-	"""Returns the current coordinates of the mouse cursor, or alternatively
-	warps the position of the cursor to a specific location on the screen.
+def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
+	"""Returns the current coordinates of the mouse cursor, or alternatively warps the
+	position of the cursor to a specific location on the screen.
 
 	Args:
-		pump_event_queue (bool): Pumps the SDL2 event queue. See documentation
-			for pump() for more information.
-		position (None or iter(int,int)): The x,y pixel coordinates to warp
-			the cursor to if desired.
+		pump_event_queue (bool, optional): Pumps the SDL2 event queue. See documentation
+			for pump() for more information. Defaults to True.
+		position (None or iter(int,int), optional): The x,y pixel coordinates to warp
+			the cursor to if desired. Defaults to None.
+		return_button_state (bool, optional): If True, return the mouse button currently
+			being pressed (if any) in addition to the current cursor coordinates. Defaults
+			to False.
 
 	Returns:
-		The x,y coordinates of the cursor as integer values in a list. If position
-		is not None, this will be the coordinates the cursor was warped to.
+		A 2-element Tuple containing the x,y coordinates of the cursor as integer values.
+		If position is not None, this will be the coordinates the cursor was warped to.
+		If return_button_state is True, the function returns a 3-element Tuple containing
+		the x,y coordinates of the cursor and the mouse button state (left pressed = 1,
+		right pressed = 2, middle pressed = 3, none pressed = 0).
 
 	"""
 	if pump_event_queue:
 		SDL_PumpEvents()
 	if not position:
 		x, y = ctypes.c_int(0), ctypes.c_int(0)
-		SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
-		return [x.value, y.value]
+		button_state = SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
+		if return_button_state:
+			if (button_state & SDL_BUTTON(SDL_BUTTON_LEFT)): pressed = 1
+			elif (button_state & SDL_BUTTON(SDL_BUTTON_RIGHT)): pressed = 2
+			elif (button_state & SDL_BUTTON(SDL_BUTTON_MIDDLE)): pressed = 3
+			else: pressed = 0
+			return (x.value, y.value, pressed)
+		else:
+			return (x.value, y.value)
 	else:
 		SDL_WarpMouseGlobal(*position)
 		return position

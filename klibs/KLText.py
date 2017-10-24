@@ -1,11 +1,12 @@
 __author____ = 'jono'
-from numpy import asarray, zeros, concatenate
-from PIL import ImageFont
-from sdl2.sdlttf import TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderText_Blended, TTF_RenderUTF8_Solid
+from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderText_Blended,
+	TTF_RenderUTF8_Solid, TTF_SizeText)
 from sdl2.ext import PixelView
 from sdl2 import SDL_Color
 from math import floor
 from os.path import isfile, join
+import numpy as np
+import ctypes
 
 from klibs import P
 from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
@@ -126,37 +127,56 @@ class TextManager(object):
 			key = str(num) + 'pt'
 			self.font_sizes[key] = int(floor(1.0 / 72 * P.ppi * num))
 
-	def __compile_font__(self, font, font_size):
-		# process font_size argument or assign a default
-		try:
-			font_size = self.font_sizes[font_size]
-		except KeyError:
-			if type(font_size) is not int:
-				raise TypeError("Argument 'font_size' must be a string (ie. '18pt') or int describing pixel height.")
-
-		return ImageFont.truetype(self.fonts[font], font_size)
-
 	def add_style(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None, anti_alias=True):
 		self.styles[label] = TextStyle(label, font_size, color, bg_color, line_height, font_label, anti_alias)
 
-	def __wrap__(self, text, style, width=None):
+	def __SDLSurface_to_ndarray(self, surface):
+		'''Converts an SDL_Surface object from sdl_ttf into a numpy array. Largely based on the
+		   code for the pixels3d() function from sdl2.ext, but that prints a warning every time
+		   it's used and rotates/mirrors the texture for some reason.
+		'''
+		bpp = surface.format.contents.BytesPerPixel
+		strides = (surface.pitch, bpp, 1)
+		srcsize = surface.h * surface.pitch
+		shape = surface.h, surface.w, bpp
+		pxbuf = ctypes.cast(surface.pixels, ctypes.POINTER(ctypes.c_ubyte * srcsize)).contents
+		# Since it's not guaranteed that the SDL_surface will remain in memory,
+		# we copy the array from that buffer to a new one for safety.
+		arr = np.copy(np.ndarray(shape, np.uint8, buffer=pxbuf))
+		return arr
+
+	def __wrap__(self, text, style, rendering_font, align, width=None):
 		lines = text.split("\n")
 		if width:
 			pass  # TODO: test various lengths until you get a size that works, then re-populate lines
+		else:
+			surface_width = 1
+			w, h = ctypes.c_int(0), ctypes.c_int(0)
+			for line in lines:
+				if len(line):
+					TTF_SizeText(rendering_font, line, ctypes.byref(w), ctypes.byref(h))
+					if w.value > surface_width:
+						surface_width = w.value
+
 		net_line_height = style.font_size + style.line_height
-		output = NpS(width=1, height=(len(lines) * net_line_height))
+		output = NpS(width=surface_width, height=(len(lines) * net_line_height))
 		for line in lines:
 			if len(line):
-				l_surf = self.render(line, style, True)
+				l_surf = self.render(line, style, from_wrap=True)
 			else:
-				l_surf = NpS(width=1, height=net_line_height)
-			if l_surf.width > output.width:
-				output.resize((l_surf.width, output.height))
-			l_surf_pos = (0, lines.index(line) * net_line_height)
-			output.blit(l_surf, position=l_surf_pos)
+				continue
+			if align == "left":
+				l_surf_pos = (0, lines.index(line) * net_line_height)
+				output.blit(l_surf, position=l_surf_pos)
+			elif align == "center":
+				l_surf_pos = (surface_width/2, lines.index(line) * net_line_height)
+				output.blit(l_surf, position=l_surf_pos, registration=8)
+			elif align == "right":
+				l_surf_pos = (surface_width, lines.index(line) * net_line_height)
+				output.blit(l_surf, position=l_surf_pos, registration=9)
 		return output
 
-	def render(self, text, style="default", max_width=None, from_wrap=False):
+	def render(self, text, style="default", align="left", max_width=None, from_wrap=False):
 		"""
 
 		:param text:
@@ -165,25 +185,27 @@ class TextManager(object):
 		:type style: :class:`~klibs.KLText.TextStyle`
 		:return:
 		"""
-		text = str(text)
 		#  The following vars are an intermediary stage in converting TextManager to the use of style objects
 		if not isinstance(style, TextStyle):
 			style = self.styles[style]
 
+		text = str(text)
+		rendering_font = TTF_OpenFont(self.fonts[style.font_label], style.font_size)
+
 		if len(text.split("\n")) > 1:
-			return self.__wrap__(text, style)
+			if align not in ["left", "center", "right"]:
+				raise ValueError("Text alignment must be one of 'left', 'center', or 'right'.")
+			return self.__wrap__(text, style, rendering_font, align)
 
 		if len(text) == 0:
 			text = " "
-		rendering_font = TTF_OpenFont(self.fonts[style.font_label], style.font_size)
 		if style.anti_aliased:
 			rendered_text = TTF_RenderText_Blended(rendering_font, text, SDL_Color(*style.color)).contents
-			px = asarray(PixelView(rendered_text))
-			surface_array = argb32_to_rgba(px)
+			surface_array = self.__SDLSurface_to_ndarray(rendered_text)
 		else:
 			rendered_text = TTF_RenderUTF8_Solid(rendering_font, text, SDL_Color(*style.color)).contents
-			surface_array = asarray(PixelView(rendered_text))
-			# surface_array = zeros((px.shape[0], px.shape[1], 4));
+			surface_array = np.asarray(PixelView(rendered_text))
+			# surface_array = np.zeros((px.shape[0], px.shape[1], 4));
 			# surface_array[...] = px * 255
 		if not from_wrap:
 			surface =  NpS(surface_array)
@@ -192,7 +214,7 @@ class TextManager(object):
 			#surface = surface_array
 			#return surface if surface.shape[1] < P.screen_x else self.__wrap__(text, style, P.screen_x - 20)
 		TTF_CloseFont(rendering_font)
-		return surface if surface.width < P.screen_x else self.__wrap__(text, style, P.screen_x - 20)
+		return surface #if surface.width < P.screen_x else self.__wrap__(text, style, P.screen_x - 20)
 
 	def add_font(self, font_name, font_extension="ttf", font_file_basename=None):
 		"""

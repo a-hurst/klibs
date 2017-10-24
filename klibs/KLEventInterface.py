@@ -217,7 +217,7 @@ class EventManager(EnvAgent):
 			if update_onset:
 				if unit == TK_S: onset *= 1000
 				self.queued_tickets[label].onset = onset
-			if update_data: self.queud_tickets[label].data = data
+			if update_data: self.queued_tickets[label].data = data
 		else:
 			raise EventError("Event '{0}' has already been issued.".format(label))
 

@@ -22,7 +22,6 @@ from klibs import PYAUDIO_AVAILABLE
 
 if PYAUDIO_AVAILABLE:
 	import pyaudio
-	import wave
 	from array import array
 
 

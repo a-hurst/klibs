@@ -1,5 +1,6 @@
-**/.DS_STORE
-.git_ignore
+**/*.pyc
+**/.*
+!.gitignore
 ExpAssets/*.db
 ExpAssets/*.db.backup
 ExpAssets/Data/**
@@ -7,6 +8,3 @@ ExpAssets/EDF/**
 ExpAssets/.versions/**
 ExpAssets/Local
 ExpAssets/Local/**
-**/*.pyc
-**/.idea/**
-**/.vscode/**

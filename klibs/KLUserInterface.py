@@ -155,7 +155,6 @@ def ui_request(key_press=None, execute=True, queue=None):
 						# todo: error handling here
 						if execute:
 							from klibs.KLEnvironment import el
-							# if Params.eye_tracking and Params.eye_tracker_available:
 							return el.calibrate()
 						else:
 							return [True, "el_calibrate"]

@@ -13,6 +13,7 @@ if PYLINK_AVAILABLE:
 	from aggdraw import Draw, Brush, Pen
 	
 	from klibs.KLEnvironment import EnvAgent
+	from klibs.KLConstants import EYELINK_1000
 	from klibs import P
 	from klibs.KLUtilities import pump, mouse_pos
 	from klibs.KLUserInterface import ui_request
@@ -39,6 +40,15 @@ if PYLINK_AVAILABLE:
 			self.dc_target = drift_correct_target()
 
 			pylink.EyeLinkCustomDisplay.__init__(self)
+
+			# If using an EyeLink 1000 or newer, these commands need to be sent
+			# to the tracker for everything to work correctly
+			if self.el.version >= EYELINK_1000:
+				self.tracker.sendCommand("enable_search_limits=YES")
+				self.tracker.sendCommand("track_search_limits=YES")
+				self.tracker.sendCommand("autothreshold_click=YES")
+				self.tracker.sendCommand("autothreshold_repeat=YES")
+				self.tracker.sendCommand("enable_camera_position_detect=YES")
 
 			# Define dict mapping sdl2 keycodes to pylink keycodes
 			self.pylink_keycodes = dict([

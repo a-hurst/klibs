@@ -42,6 +42,7 @@ if PYLINK_AVAILABLE:
 		gaze_dot = None
 		experiment = None
 		custom_display = None
+		version = None
 		dc_width = None  # ie. drift-correct width
 		edf_filename = None
 		unresolved_exceptions = 0
@@ -331,15 +332,14 @@ if PYLINK_AVAILABLE:
 			except Exception as e:
 				print e
 				raise e
-			# if self.custom_display is None:
-			# 	openGraphics(P.screen_x_y)
-			# else:
+
+			self.version = self.getTrackerVersion()
 			openGraphicsEx(self.custom_display)	
 
 			self.edf_filename = exp_file_name(EDF_FILE)
 			flushGetkeyQueue()
 			self.setOfflineMode()
-			self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(P.screen_x, P.screen_y))
+			self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(P.screen_x-1, P.screen_y-1))
 			self.setLinkEventFilter("FIXATION,SACCADE,BLINK,LEFT,RIGHT")
 			self.setLinkEventData("GAZE, GAZERES, AREA, VELOCITY") # Need to specify manually for start events to work right
 			self.openDataFile(self.edf_filename[0])

@@ -119,7 +119,7 @@ ANS_VALID = "answer valid"
 ANS_INVALID = "answer invalid"
 ANS_EMPTY = "empty answer"
 
-# EyeSome definitions for visually clean interaction with the EyeLink C++ libraries
+# Some definitions for visually clean interaction with the EyeLink C++ libraries
 EL_LEFT_EYE = 0
 EL_RIGHT_EYE = 1
 EL_BOTH_EYES = 2
@@ -130,6 +130,11 @@ PARALLEL_AVAILABLE = False
 MAX_DRIFT_DEG = 3
 INIT_SAC_DIST = 3  # Min. distance (degrees) before eye movement == initiating saccade for response direction
 EL_TEMP_FILE = "temp_participant{0}".format(EDF)
+
+# Constants corresponding to pylink's getTrackerVersion() return values
+EYELINK_I = 1
+EYELINK_II = 2
+EYELINK_1000 = 3
 
 EL_GAZE_START = "gaze_start"
 EL_GAZE_END = "gaze_end"

@@ -15,11 +15,11 @@ if PYLINK_AVAILABLE:
 	from klibs.KLEnvironment import EnvAgent
 	from klibs.KLConstants import EYELINK_1000
 	from klibs import P
-	from klibs.KLUtilities import pump, mouse_pos
+	from klibs.KLUtilities import pump, mouse_pos, clip
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import fill, flip, blit
 	from klibs.KLGraphics.KLDraw import drift_correct_target
-	from klibs.KLCommunication import message  # Too slow to use here yet
+	from klibs.KLCommunication import message
 	from klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
 
 	class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
@@ -35,6 +35,7 @@ if PYLINK_AVAILABLE:
 			self.drawer = None # aggdraw Draw with self.img as context
 			self.title = None
 
+			self.txtm.add_style("el_setup", 22, P.default_color, font_label="Frutiger")
 			self.dc_target = drift_correct_target()
 
 			pylink.EyeLinkCustomDisplay.__init__(self)
@@ -148,20 +149,14 @@ if PYLINK_AVAILABLE:
 			x, y, b = mouse_pos(pump_event_queue=False, return_button_state=True)
 			x = int(x) - (P.screen_c[0] - self.size[0]/2)
 			y = int(y) - (P.screen_c[1] - self.size[1]/2)
-			if x > self.size[0]:
-				x = self.size[0]
-			if y > self.size[1]:
-				y = self.size[1]
-			if b != 1: # Register left clicks only
+			# Restrict mouse coords to within bounds of camera image
+			x = clip(x, minimum=0, maximum=self.size[0])
+			y = clip(y, minimum=0, maximum=self.size[1])
+			if b != 1: # Register left clicks only 
 				b = 0
 			return ((x, y), b)
 
 		def alert_printf(self, message):
-			# Commented out until message() is fast enough to not cause problems
-			# or better way of rendering text here is devised.
-			#
-			#message(message, color=(255, 0, 0, 255),
-			#						location=(0.05 * P.screen_x, 0.05 * P.screen_y))
 			print "EyeLink Alert: {0}".format(message)
 
 		def setup_image_display(self, width, height):
@@ -174,8 +169,7 @@ if PYLINK_AVAILABLE:
 			self.clear_cal_display()
 
 		def image_title(self, text):
-			#TODO: add text style w/ font size that fits image
-			self.title = message(text, blit_txt=False)
+			self.title = message(text, "el_setup", blit_txt=False)
 
 		def set_image_palette(self, r, g, b):
 			'''
@@ -213,9 +207,9 @@ if PYLINK_AVAILABLE:
 				fill()
 				blit(asarray(self.img), 5, P.screen_c)
 				if self.title:
-					loc_x = (P.screen_c[0])
+					loc_x = (P.screen_c[0] - self.size[0]/2)
 					loc_y = (P.screen_c[1] + self.size[1]/2 + 20)
-					blit(self.title, 8, (loc_x, loc_y))
+					blit(self.title, 7, (loc_x, loc_y))
 				flip()
 				# Clear image buffer
 				self.imagebuffer = []
@@ -224,26 +218,26 @@ if PYLINK_AVAILABLE:
 			lozenge_pen = Pen(self.pylink_colors[colorindex], 3, 255)
 			if width > height:
                 gap = width - height
-                middle = width/2
-                arc_l = (x, y, x+height, y+height)
-                arc_r = (x+width-height, y, x+width, y+height)
-                line_t = (middle-gap/2, y, middle+gap/2, y)
-                line_b = (middle-gap/2, y+height, middle+gap/2, y+height)
-                self.drawer.arc(arc_l, 90, 270, lozenge_pen)
-                self.drawer.arc(arc_r, -90, 90, lozenge_pen)
-                self.drawer.line(line_t, lozenge_pen)
-                self.drawer.line(line_b, lozenge_pen)
+                middle = width/2.0
+                arc_left = (x, y, x+height, y+height)
+                arc_right = (x+gap, y, x+width, y+height)
+                line_top = (middle-gap/2.0, y, middle+gap/2.0, y)
+                line_bottom = (middle-gap/2.0, y+height, middle+gap/2.0, y+height)
+                self.drawer.arc(arc_left, 90, 270, lozenge_pen)
+                self.drawer.arc(arc_right, -90, 90, lozenge_pen)
+                self.drawer.line(line_top, lozenge_pen)
+                self.drawer.line(line_bottom, lozenge_pen)
             elif height > width:
                 gap = height - width
-                middle = height/2
-                arc_t = (size[0], size[1], size[2], size[1]+width)
-                arc_b = (size[0], size[3]-width, size[2], size[3])
-                line_l = (x, middle-gap/2, x, middle+gap/2)
-                line_r = (x+width, middle-gap/2, x+width, middle+gap/2)
-                self.drawer.arc(arc_t, 0, 180, lozenge_pen)
-                self.drawer.arc(arc_b, 180, 360, lozenge_pen)
-                self.drawer.line(line_l, lozenge_pen)
-                self.drawer.line(line_r, lozenge_pen)
+                middle = height/2.0
+                arc_top = (x, y, x+width, y+width)
+                arc_bottom = (x, y+gap, x+width, y+height)
+                line_left = (x, middle-gap/2.0, x, middle+gap/2.0)
+                line_right = (x+width, middle-gap/2.0, x+width, middle+gap/2.0)
+                self.drawer.arc(arc_top, 0, 180, lozenge_pen)
+                self.drawer.arc(arc_bottom, 180, 360, lozenge_pen)
+                self.drawer.line(line_left, lozenge_pen)
+                self.drawer.line(line_right, lozenge_pen)
             else:
                 self.drawer.ellipse((x, y, x+width, y+height), lozenge_pen)
 

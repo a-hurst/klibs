@@ -163,6 +163,26 @@ def chunk(items, chunk_size):
 	for i in range(0, len(items), chunk_size):
 		yield items[i:i+chunk_size]
 
+def clip(value, minimum, maximum):
+	"""Restricts a numeric value to within given range.
+
+	Args:
+		value (numeric): The numeric value to be clipped.
+		minimum (numeric): The lower bound of the allowable range.
+		maximum (numeric): The upper bound of the allowable range.
+
+	Returns:
+		value, if value is between minimum and maximum, maximum, if value is greater than maximum,
+		or minimum, if value is less than minimum.
+	
+	"""
+	if value > maximum:
+		value = maximum
+	elif value < minimum:
+		value = minimum
+	return value
+
+
 
 def colored_stdout(string, print_string=True, args=[]):
 	string = string.format(*args)

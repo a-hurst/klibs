@@ -1,5 +1,5 @@
-__author__ = 'jono'
-from klibs.KLIndependentVariable import IndependentVariableSet, IndependentVariable
+__author__ = "EXPERIMENTER_NAME"
+from klibs.KLIndependentVariable import IndependentVariableSet
 """
 *** SAMPLE CONFIGURATION - REMOVE AFTER FINISHING REAL CONFIG ***
 
@@ -8,14 +8,14 @@ will use, like so:
 
 >> PROJECT_NAME_ind_vars = IndependentVariableSet()
 
-Then we create empty IndependentVariable objects. At this point we're not providing any values, just a name and a data
+Then we create empty variables within this set. At this point we're not providing any values, just a name and a data
 type that will tell klibs that this variable exists and what pythonic data type it should expect that variable's values
 to hold. In this example we create four variables, one for each type.
 
->> PROJECT_NAME_ind_vars.add_variable(IndependentVariable("color", str))
->> PROJECT_NAME_ind_vars.add_variable(IndependentVariable("size", float))
->> PROJECT_NAME_ind_vars.add_variable(IndependentVariable("active", bool))
->> PROJECT_NAME_ind_vars.add_variable(IndependentVariable("count", int))
+>> PROJECT_NAME_ind_vars.add_variable("color", str)
+>> PROJECT_NAME_ind_vars.add_variable("size", float)
+>> PROJECT_NAME_ind_vars.add_variable("active", bool)
+>> PROJECT_NAME_ind_vars.add_variable("count", int)
 
 Finally, we add values to each variable. This can be done one at a time, as in the colors example below:
 

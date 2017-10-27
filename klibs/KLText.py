@@ -305,20 +305,3 @@ class TextManager(object):
 		"""
 		if type(color) is list:
 			self.__default_bg_color__ = color
-
-# def render(self, text, font_path, font_size=12, color=(0, 0, 0, 255), bg_color=(0, 0, 0, 0)):
-# 	rendering_font = ImageFont.truetype(font_path, font_size)
-# 	glyph_bitmap = rendering_font.getmask(text, mode="L")  # L = antialiasing mode
-# 	bitmap_1d = numpy.asarray(glyph_bitmap)
-# 	bitmap_2d = numpy.reshape(bitmap_1d, (glyph_bitmap.size[1], glyph_bitmap.size[0]), order='C')
-# 	nonzero_2d_bitmap = bitmap_2d[bitmap_2d > 0]
-# 	rendered_text = numpy.zeros((glyph_bitmap.size[1], glyph_bitmap.size[0], 4))
-# 	rendered_text[:, :, 0][bitmap_2d > 0] = color[0] * nonzero_2d_bitmap //  255
-# 	rendered_text[:, :, 1][bitmap_2d > 0] = color[1] * nonzero_2d_bitmap //  255
-# 	rendered_text[:, :, 2][bitmap_2d > 0] = color[2] * nonzero_2d_bitmap //  255
-# 	rendered_text[:, :, 3][bitmap_2d > 0] = color[3] * nonzero_2d_bitmap //  255
-# 	rendered_text[:, :, 0][bitmap_2d == 0] = bg_color[0]
-# 	rendered_text[:, :, 1][bitmap_2d == 0] = bg_color[1]
-# 	rendered_text[:, :, 2][bitmap_2d == 0] = bg_color[2]
-# 	rendered_text[:, :, 3][bitmap_2d == 0] = bg_color[3]
-# 	return rendered_text.astype(numpy.uint8)

@@ -1,6 +1,12 @@
 # Define the color lists for different colour spaces, in order to avoid extra dependencies and 
 # performance costs. May switch to just requiring colormath in future.
-
+rgb = []
+for i in range(0, 256):
+	rgb.append((255-i, i ,0, 255))
+for i in range(1, 256):
+	rgb.append((0, 255-i, 0+i, 255))
+for i in range(1, 255):
+	rgb.append((0+i, 0, 255-i, 255))
 
 const_lum = [(211, 63, 106, 255), (210, 64, 104, 255), (210, 65, 101, 255), (209, 66, 99, 255), 
 		     (209, 67, 96, 255), (208, 68, 94, 255), (208, 69, 91, 255), (207, 70, 89, 255), 

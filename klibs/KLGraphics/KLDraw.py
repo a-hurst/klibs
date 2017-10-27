@@ -339,7 +339,7 @@ class Ellipse(Drawbject):
 			stroke. Defaults to no stroke.
 		fill (Tuple[color], optional): The fill color for the ellipse in RGB or RGBA
 			format. Defaults to transparent fill.
-		auto_draw (bool): If True, internally draws the ellipse on initialization.
+		auto_draw (bool, optional): If True, internally draws the ellipse on initialization.	
 
 	Returns:
 		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified ellipse.
@@ -764,7 +764,7 @@ class ColorWheel(Drawbject):
 		if auto_draw:
 			self.draw()
 
-	def draw(self, as_numpy_surface=True):
+	def draw(self, as_numpy_surface=False):
 		rotation = self.rotation
 		for i in range(0, len(self.palette)):
 			brush = Brush(rgb_to_rgba(self.palette[i]))
@@ -773,9 +773,9 @@ class ColorWheel(Drawbject):
 			vertices = [center, center]
 			for i in range(0, 4):
 				r_shift = -0.25 if i < 2 else 1.25
-				r_shift += rotation
+				r_shift -= rotation
 				func = cos if i % 2 else sin
-				vertices.append(int(round(r + func(radians(r_shift) + radians(90)) * r)))
+				vertices.append(r + r * func(radians(r_shift+180)))
 			self.surface.polygon(vertices, brush)
 			rotation += 360.0 / len(self.palette)
 		self.surface.flush()
@@ -796,42 +796,25 @@ class ColorWheel(Drawbject):
 		# allows function access with arbitrary rotation, such as is needed by ColorSelectionResponseCollector
 		if not rotation:
 			rotation = self.rotation
-		# return self.palette[int(angle - rotation + 360 if angle < rotation else angle - rotation)]
-		adj_angle = int(angle - rotation + 360 if angle < rotation else angle - rotation)
-		print "Adjusted vals: {0}".format([angle, rotation, adj_angle])
-		thick = adj_angle // 60 % 2 and 1 - (adj_angle % 60) / 60 or (adj_angle % 60) / 60
-		colors = [[60, 1, thick, 0], # [...to_angle, red, green, blue],
-				  [120, thick, 1, 0],
-				  [180, 0, 1, thick],
-				  [240, 0, thick, 1],
-				  [360, thick, 0, 1],
-				  [float('inf'), 1, 0, thick]]
-		return tuple(int(c * 255) for c in colors[bisect([x[0] for x in colors], adj_angle)][1:])
+		
+		degrees_per_colour = 360.0/len(self.palette)
+		adj_angle = (angle - rotation) % 360
+		i = int(adj_angle/degrees_per_colour)
+		color = self.palette[i]
+		return color
 
 	def angle_from_color(self, color, rotation=None):
-		return self.palette.index(rgb_to_rgba(color))
 		# allows function access with arbitrary rotation, such as is needed by ColorSelectionResponseCollector
-		if not rotation: rotation = self.rotation
-		color = [i / 255.0 for i in color]
+		if not rotation:
+			rotation = self.rotation
 
-		if color[0] == 1:
-			if color[2] == 0:
-				angle = color[1] * 60
-			else:
-				angle = 300 + (1 - color[2]) * 60
-		elif color[1] == 1:
-			if color[2] == 0:
-				angle = 60 + (1 - color[0]) * 60
-			else:
-				angle = 120 + color[2] * 60
-		else:
-			if color[0] == 0:
-				angle = 180 + (1 - color[1]) * 60
-			else:
-				angle = 240 + color[0] * 60
-		angle -= rotation
-		return 360 + angle if angle < 0 else angle
-		# return angle + 360 if angle < rotation else angle
+		try:
+			i = self.palette.index(rgb_to_rgba(color))
+		except ValueError:
+			raise ValueError("The color {0} does not exist in the color wheel palette.".format(rgb_to_rgba(color)))
+		degrees_per_colour = 360.0/len(self.palette)
+		angle = ((i+0.5) * degrees_per_colour + rotation) % 360
+		return angle
 
 	@property
 	def __name__(self):

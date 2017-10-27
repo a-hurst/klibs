@@ -25,8 +25,6 @@ if PYLINK_AVAILABLE:
 	class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 
 		#TODO: add scaling support for images without ruining performance (OpenGL scale?)
-		#TODO: test fix for get_mouse_state
-		#TODO: reimplement draw_lozenge so it matches their weird specifications
 
 		def __init__(self):
 			EnvAgent.__init__(self)
@@ -148,9 +146,15 @@ if PYLINK_AVAILABLE:
 
 		def get_mouse_state(self):
 			x, y, b = mouse_pos(pump_event_queue=False, return_button_state=True)
+			x = int(x) - (P.screen_c[0] - self.size[0]/2)
+			y = int(y) - (P.screen_c[1] - self.size[1]/2)
+			if x > self.size[0]:
+				x = self.size[0]
+			if y > self.size[1]:
+				y = self.size[1]
 			if b != 1: # Register left clicks only
 				b = 0
-			return ((int(x), int(y)), b)
+			return ((x, y), b)
 
 		def alert_printf(self, message):
 			# Commented out until message() is fast enough to not cause problems
@@ -218,7 +222,30 @@ if PYLINK_AVAILABLE:
 
 		def draw_lozenge(self, x, y, width, height, colorindex):
 			lozenge_pen = Pen(self.pylink_colors[colorindex], 3, 255)
-			self.drawer.ellipse((x, y, width, height), lozenge_pen)
+			if width > height:
+                gap = width - height
+                middle = width/2
+                arc_l = (x, y, x+height, y+height)
+                arc_r = (x+width-height, y, x+width, y+height)
+                line_t = (middle-gap/2, y, middle+gap/2, y)
+                line_b = (middle-gap/2, y+height, middle+gap/2, y+height)
+                self.drawer.arc(arc_l, 90, 270, lozenge_pen)
+                self.drawer.arc(arc_r, -90, 90, lozenge_pen)
+                self.drawer.line(line_t, lozenge_pen)
+                self.drawer.line(line_b, lozenge_pen)
+            elif height > width:
+                gap = height - width
+                middle = height/2
+                arc_t = (size[0], size[1], size[2], size[1]+width)
+                arc_b = (size[0], size[3]-width, size[2], size[3])
+                line_l = (x, middle-gap/2, x, middle+gap/2)
+                line_r = (x+width, middle-gap/2, x+width, middle+gap/2)
+                self.drawer.arc(arc_t, 0, 180, lozenge_pen)
+                self.drawer.arc(arc_b, 180, 360, lozenge_pen)
+                self.drawer.line(line_l, lozenge_pen)
+                self.drawer.line(line_r, lozenge_pen)
+            else:
+                self.drawer.ellipse((x, y, x+width, y+height), lozenge_pen)
 
 		def draw_line(self, x1, y1, x2, y2, colorindex):
 			line_pen = Pen(self.pylink_colors[colorindex], 3, 255)

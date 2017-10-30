@@ -222,7 +222,7 @@ if PYLINK_AVAILABLE:
 				middle = x+width/2.0
 				arc_left = (x, y, x+height, y+height)
 				arc_right = (x+gap, y, x+width, y+height)
-				line_top = (floor(middle-gap/2.0)), y, ceil(middle+gap/2.0, y))
+				line_top = (floor(middle-gap/2.0), y, ceil(middle+gap/2.0), y)
 				line_bottom = (floor(middle-gap/2.0), y+height, ceil(middle+gap/2.0), y+height)
 				self.drawer.arc(arc_left, 90, 270, lozenge_pen)
 				self.drawer.arc(arc_right, -90, 90, lozenge_pen)

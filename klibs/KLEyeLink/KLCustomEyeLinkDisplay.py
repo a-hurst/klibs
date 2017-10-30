@@ -11,6 +11,7 @@ if PYLINK_AVAILABLE:
 	from numpy import asarray
 	from PIL import Image
 	from aggdraw import Draw, Brush, Pen
+	from math import ceil, floor
 	
 	from klibs.KLEnvironment import EnvAgent
 	from klibs.KLConstants import EYELINK_1000
@@ -35,7 +36,7 @@ if PYLINK_AVAILABLE:
 			self.drawer = None # aggdraw Draw with self.img as context
 			self.title = None
 
-			self.txtm.add_style("el_setup", 22, P.default_color, font_label="Frutiger")
+			self.txtm.add_style("el_setup", 24, P.default_color, font_label="Frutiger")
 			self.dc_target = drift_correct_target()
 
 			pylink.EyeLinkCustomDisplay.__init__(self)
@@ -197,7 +198,7 @@ if PYLINK_AVAILABLE:
 				img = Image.new("P", (width, totlines), 0)
 				img.putpalette(self.palette)
 				img.putdata(self.imagebuffer)
-				self.img = img.convert('RGBA').resize(self.size)
+				self.img = img.convert('RGBA').resize(self.size, Image.BILINEAR)
 				# Set up aggdraw to draw crosshair/bounds/etc. on image surface
 				self.drawer = Draw(self.img)
 				self.drawer.setantialias(True)
@@ -207,9 +208,9 @@ if PYLINK_AVAILABLE:
 				fill()
 				blit(asarray(self.img), 5, P.screen_c)
 				if self.title:
-					loc_x = (P.screen_c[0] - self.size[0]/2)
+					loc_x = (P.screen_c[0])
 					loc_y = (P.screen_c[1] + self.size[1]/2 + 20)
-					blit(self.title, 7, (loc_x, loc_y))
+					blit(self.title, 8, (loc_x, loc_y))
 				flip()
 				# Clear image buffer
 				self.imagebuffer = []
@@ -217,29 +218,29 @@ if PYLINK_AVAILABLE:
 		def draw_lozenge(self, x, y, width, height, colorindex):
 			lozenge_pen = Pen(self.pylink_colors[colorindex], 3, 255)
 			if width > height:
-                gap = width - height
-                middle = width/2.0
-                arc_left = (x, y, x+height, y+height)
-                arc_right = (x+gap, y, x+width, y+height)
-                line_top = (middle-gap/2.0, y, middle+gap/2.0, y)
-                line_bottom = (middle-gap/2.0, y+height, middle+gap/2.0, y+height)
-                self.drawer.arc(arc_left, 90, 270, lozenge_pen)
-                self.drawer.arc(arc_right, -90, 90, lozenge_pen)
-                self.drawer.line(line_top, lozenge_pen)
-                self.drawer.line(line_bottom, lozenge_pen)
-            elif height > width:
-                gap = height - width
-                middle = height/2.0
-                arc_top = (x, y, x+width, y+width)
-                arc_bottom = (x, y+gap, x+width, y+height)
-                line_left = (x, middle-gap/2.0, x, middle+gap/2.0)
-                line_right = (x+width, middle-gap/2.0, x+width, middle+gap/2.0)
-                self.drawer.arc(arc_top, 0, 180, lozenge_pen)
-                self.drawer.arc(arc_bottom, 180, 360, lozenge_pen)
-                self.drawer.line(line_left, lozenge_pen)
-                self.drawer.line(line_right, lozenge_pen)
-            else:
-                self.drawer.ellipse((x, y, x+width, y+height), lozenge_pen)
+				gap = width - height
+				middle = x+width/2.0
+				arc_left = (x, y, x+height, y+height)
+				arc_right = (x+gap, y, x+width, y+height)
+				line_top = (floor(middle-gap/2.0)), y, ceil(middle+gap/2.0, y))
+				line_bottom = (floor(middle-gap/2.0), y+height, ceil(middle+gap/2.0), y+height)
+				self.drawer.arc(arc_left, 90, 270, lozenge_pen)
+				self.drawer.arc(arc_right, -90, 90, lozenge_pen)
+				self.drawer.line(line_top, lozenge_pen)
+				self.drawer.line(line_bottom, lozenge_pen)
+			elif height > width:
+				gap = height - width
+				middle = y+height/2.0
+				arc_top = (x, y, x+width, y+width)
+				arc_bottom = (x, y+gap, x+width, y+height)
+				line_left = (x, floor(middle-gap/2.0), x, ceil(middle+gap/2.0))
+				line_right = (x+width, floor(middle-gap/2.0), x+width, ceil(middle+gap/2.0))
+				self.drawer.arc(arc_top, 0, 180, lozenge_pen)
+				self.drawer.arc(arc_bottom, 180, 360, lozenge_pen)
+				self.drawer.line(line_left, lozenge_pen)
+				self.drawer.line(line_right, lozenge_pen)
+			else:
+				self.drawer.ellipse((x, y, x+width, y+height), lozenge_pen)
 
 		def draw_line(self, x1, y1, x2, y2, colorindex):
 			line_pen = Pen(self.pylink_colors[colorindex], 3, 255)

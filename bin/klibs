@@ -86,9 +86,10 @@ def create(name, path):
 		def get_response():
 			confirm_parser = argparse.ArgumentParser()
 			confirm_parser.add_argument('confirmed',  type=str, choices=['y', 'n', 'q'])
-			confirm_args = confirm_parser.parse_args([raw_input(cso("<green_d>Is this correct? Answer with</green_d> <purple>Y</purple>" \
-																	"<green_d>es,</green_d> <purple>N</purple><green_d>o or</green_d> " \
-																	"<purple>Q</purple><green_d>uit.</green_d>", False))[0].lower()])
+			query = cso("<green_d>Is this correct? Answer with</green_d> <purple>Y</purple>" \
+						"<green_d>es,</green_d> <purple>N</purple><green_d>o or</green_d> " \
+						"<purple>Q</purple><green_d>uit.</green_d>", False))
+			confirm_args = confirm_parser.parse_args([raw_input(query)[0].lower()])
 			return confirm_args.confirmed
 		response = get_response()
 		if response == "n":
@@ -265,9 +266,10 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 				cso("<red>Some expected or required directories for this project appear to be missing.</red>")
 			next_action = argparse.ArgumentParser()
 			next_action.add_argument('action',  type=str, choices=['c', 'r'])
-			action = next_action.parse_args([raw_input(cso("<green_d>You can</green_d> <purple>(c)</purple><green_d>reate them" \
-													   " automatically or view a <purple>(r)</purple><green_d>eport on the" \
-													   " missing directories.</green_d>", False)).lower()[0]])
+			query = cso("<green_d>You can</green_d> <purple>(c)</purple><green_d>reate them" \
+						" automatically or view a <purple>(r)</purple><green_d>eport on the" \
+						" missing directories.</green_d>", False)
+			action = next_action.parse_args([raw_input(query).lower()[0]])
 			if action.action == "r":
 				cso("<green_d>The following expected directories were not found:</green_d>")
 				for md in missing_dirs:
@@ -424,63 +426,94 @@ def hard_reset(path):
 	print " "
 
 
-parser = argparse.ArgumentParser()
-subparsers = parser.add_subparsers(title='subcommands',
-								   description='Valid arguments: create, update, run, export, hard-reset, db-rebuild',
-								   help='additional help')
+# the part of the script that gets run when klibs is invoked from cli
+if __name__ == '__main__': 
 
-create_parser = subparsers.add_parser('create')
-create_parser.add_argument('name', type=str)
-create_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-						   help='Path where new project should be created; if empty, project will attempt to be created in current working directory.')
-create_parser.set_defaults(func=create)
+	sys.dont_write_bytecode = True # suppress creation of useless .pyc files
 
-update_parser = subparsers.add_parser('update')
-update_parser.add_argument('branch', type=str)
-update_parser.set_defaults(func=update)
+	parser = argparse.ArgumentParser()
+	subparsers = parser.add_subparsers(
+		title='subcommands',
+		description='Valid arguments: create, update, run, export, hard-reset, db-rebuild',
+		help='additional help'
+	)
 
-rebuild_parser = subparsers.add_parser('db-rebuild')
-rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-							help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
-rebuild_parser.set_defaults(func=rebuild_db)
+	create_parser = subparsers.add_parser('create')
+	create_parser.add_argument('name', type=str)
+	create_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+		help=("Path where new project should be created; if empty, project will attempt "
+		"to be created in current working directory.")
+	)
+	create_parser.set_defaults(func=create)
 
-rebuild_parser = subparsers.add_parser('hard-reset')
-rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-							help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
-rebuild_parser.set_defaults(func=hard_reset)
+	update_parser = subparsers.add_parser('update')
+	update_parser.add_argument('branch', type=str)
+	update_parser.set_defaults(func=update)
 
-run_parser = subparsers.add_parser('run')
-run_parser.add_argument('screen_size', type=int,
-						help='The diagonal size of the screen in inches on which the experiment is being run. This is used to calculate degrees of visual angle.')
-run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-						help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
-run_parser.add_argument('-rs', '--random_seed', type=int,
-						help="Providing a random seed will allow an experiment to continue from it's previously completed state.")
-run_parser.add_argument('-d', '--development_mode', action="store_true",
-						help="Development mode turns off demographics collection and turns on several debugging features.")
-run_parser.add_argument('-ELx', '--no_eyelink', action="store_false",
-						help="Signals the absence of a connected eyelink unit. Does nothing for non-eyetracking experiments.")
-run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true",
-						help="Debug log will be blit to translucent panel on screen in real time.")
-# todo: verbose mode should accept a value, and then logging should be incrementally verbose
-run_parser.add_argument('-v', '--verbose', action="store_true",
-						help="EventsInterface will syndicate EyeLink, log & LabJack messages to terminal.")
-run_parser.set_defaults(func=run)
+	rebuild_parser = subparsers.add_parser('db-rebuild')
+	rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+		help=("Path to directory containing the KLIBs project. "
+		"Parent folder must be the project name.")
+	)
+	rebuild_parser.set_defaults(func=rebuild_db)
 
-export_parser = subparsers.add_parser('export')
-export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-						   help='Path to directory containing the KLIBs project. Parent folder must be the project name.')
-export_parser.add_argument('-c', '--combined', action="store_true",
-						   help='Export data to a single file instead of individual files for each participant. Default is individual files.')
-export_parser.add_argument('-j', '--join_tables', default=[], nargs="*", type=str,
-						   help="Additional tables to be joined to the data output. Only 'participant' and 'data' tables are exported by default.")
-export_parser.set_defaults(func=export)
+	rebuild_parser = subparsers.add_parser('hard-reset')
+	rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+		help=("Path to directory containing the KLIBs project. "
+		"Parent folder must be the project name.")
+	)
+	rebuild_parser.set_defaults(func=hard_reset)
 
-args = vars(parser.parse_args())
+	run_parser = subparsers.add_parser('run')
+	run_parser.add_argument('screen_size', type=int,
+		help=("The diagonal size of the screen in inches on which the experiment is being run. "
+		"This is used to calculate degrees of visual angle.")
+	)
+	run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+		help=("Path to directory containing the KLIBs project. "
+		"Parent folder must be the project name.")
+	)
+	run_parser.add_argument('-rs', '--random_seed', type=int,
+		help=("Providing a random seed will allow an experiment to continue from its "
+		"previously completed state.")
+	)
+	run_parser.add_argument('-d', '--development_mode', action="store_true",
+		help=("Development mode turns off demographics collection and turns on several "
+		"debugging features.")
+	)
+	run_parser.add_argument('-ELx', '--no_eyelink', action="store_false",
+		help=("Signals the absence of a connected EyeLink unit. "
+		"Does nothing for non-eyetracking experiments.")
+	)
+	run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true",
+		help="Debug log will be blit to translucent panel on screen in real time."
+	)
+	# todo: verbose mode should accept a value, and then logging should be incrementally verbose
+	run_parser.add_argument('-v', '--verbose', action="store_true",
+		help="EventsInterface will syndicate EyeLink, LabJack & log messages to terminal."
+	)
+	run_parser.set_defaults(func=run)
+
+	export_parser = subparsers.add_parser('export')
+	export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+		help=("Path to directory containing the KLIBs project. "
+		"Parent folder must be the project name.")
+	)
+	export_parser.add_argument('-c', '--combined', action="store_true",
+		help=("Export data to a single file instead of individual files for each participant. "
+		"Default is individual files.")
+	)
+	export_parser.add_argument('-j', '--join_tables', default=[], nargs="*", type=str,
+		help=("Additional tables to be joined to the data output. "
+		"Only 'participant' and 'data' tables are exported by default.")
+	)
+	export_parser.set_defaults(func=export)
+
+	args = vars(parser.parse_args())
 
 
-arg_dict = {}
-for key in args:
-	if key != "func": arg_dict[key] = args[key]
+	arg_dict = {}
+	for key in args:
+		if key != "func": arg_dict[key] = args[key]
 
-args["func"](**arg_dict)
+	args["func"](**arg_dict)

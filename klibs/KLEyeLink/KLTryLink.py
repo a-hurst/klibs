@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
-import abc
-from sdl2 import SDL_MOUSEBUTTONDOWN, SDL_GetTicks
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EyeLinkError
-from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_GAZE_POS, EL_SACCADE_END,\
-	EL_SACCADE_START, EL_FIXATION_END, EL_ALL_EVENTS, EL_TIME_START, TK_S, TK_MS
+from klibs.KLConstants import (CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE,
+	EL_GAZE_POS, EL_SACCADE_END, EL_SACCADE_START, EL_FIXATION_END, EL_ALL_EVENTS, EL_TIME_START,
+	TK_S, TK_MS)
 from klibs import P
-from klibs.KLUtilities import angle_between, iterable, mouse_pos, show_mouse_cursor, hide_mouse_cursor, pump
+from klibs.KLUtilities import (angle_between, iterable, mouse_pos, show_mouse_cursor,
+	hide_mouse_cursor, pump)
 from klibs.KLBoundary import BoundaryInspector
 from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLUserInterface import ui_request
+
+from sdl2 import SDL_MOUSEBUTTONDOWN, SDL_GetTicks
 from math import atan2, radians
+import abc
 
 
 class TryLink(EnvAgent, BoundaryInspector):
@@ -154,6 +157,11 @@ class TryLink(EnvAgent, BoundaryInspector):
 		fixations or saccades. After iterating over all events in the mouse_event_queue, all events that have been
 		part of a fixation or saccade are removed from the queue.
 		"""
+
+		#TODO: since some event types can be enabled/disabled manually on the eyelink, make
+		#common interface for both EyeLinkExt and TryLink whereby events can be enabled/disabled
+		#in params. (?)
+
 		queue = []
 		samples = True if EL_GAZE_POS in include or (not len(include) and EL_GAZE_POS not in exclude) else False
 		events = True if include != [EL_GAZE_POS] and exclude != EL_ALL_EVENTS else False

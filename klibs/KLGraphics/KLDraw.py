@@ -805,6 +805,7 @@ class ColorWheel(Drawbject):
 
 	def angle_from_color(self, color, rotation=None):
 		# allows function access with arbitrary rotation, such as is needed by ColorSelectionResponseCollector
+		#TODO: return true middle when two or more adjacent colours are the same
 		if not rotation:
 			rotation = self.rotation
 

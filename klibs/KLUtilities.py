@@ -13,8 +13,8 @@ import traceback
 import multiprocessing as mp
 from sys import exc_info
 from sdl2 import (SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents,
-	SDL_GetError, SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_MOUSEMOTION, SDL_DISABLE, SDL_ENABLE,
-	SDL_BUTTON, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
+	SDL_GetError, SDL_GetTicks, SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_MOUSEMOTION, 
+	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
 	KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS)
 from sdl2.ext import get_events
 from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
@@ -255,7 +255,9 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 	if file_type == EDF_FILE:
 		file_extension = EDF_EXT
 		file_path = P.edf_dir
-		project_name_abbrev = P.project_name[0:len(str(participant_id)) + 2]
+		# EDFs require DOS-style short file names so we need to make sure name <= 8 chars
+		max_name_chars = 8 - (len(str(participant_id)) + 2)
+		project_name_abbrev = P.project_name[:max_name_chars-1]
 		file_name = file_name_str.format(participant_id, project_name_abbrev, file_extension)
 		return [file_name, os.path.join(file_path, file_name)]
 

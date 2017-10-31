@@ -44,11 +44,11 @@ if PYLINK_AVAILABLE:
 			# If using an EyeLink 1000 or newer, these commands need to be sent
 			# to the tracker for everything to work correctly
 			if self.el.version >= EYELINK_1000:
-				self.tracker.sendCommand("enable_search_limits=YES")
-				self.tracker.sendCommand("track_search_limits=YES")
-				self.tracker.sendCommand("autothreshold_click=YES")
-				self.tracker.sendCommand("autothreshold_repeat=YES")
-				self.tracker.sendCommand("enable_camera_position_detect=YES")
+				self.el.sendCommand("enable_search_limits=YES")
+				self.el.sendCommand("track_search_limits=YES")
+				self.el.sendCommand("autothreshold_click=YES")
+				self.el.sendCommand("autothreshold_repeat=YES")
+				self.el.sendCommand("enable_camera_position_detect=YES")
 
 			# Define dict mapping sdl2 keycodes to pylink keycodes
 			self.pylink_keycodes = dict([

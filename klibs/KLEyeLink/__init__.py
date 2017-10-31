@@ -6,7 +6,6 @@ from klibs import P
 
 if PYLINK_AVAILABLE and P.eye_tracker_available:
 	from KLEyeLinkExt import EyeLinkExt
-	from KLCustomEyeLinkDisplay import ELCustomDisplay
 	if P.development_mode:
 		print "Using PyLink"
 else:

@@ -88,7 +88,7 @@ def create(name, path):
 			confirm_parser.add_argument('confirmed',  type=str, choices=['y', 'n', 'q'])
 			query = cso("<green_d>Is this correct? Answer with</green_d> <purple>Y</purple>" \
 						"<green_d>es,</green_d> <purple>N</purple><green_d>o or</green_d> " \
-						"<purple>Q</purple><green_d>uit.</green_d>", False))
+						"<purple>Q</purple><green_d>uit.</green_d>", False)
 			confirm_args = confirm_parser.parse_args([raw_input(query)[0].lower()])
 			return confirm_args.confirmed
 		response = get_response()
@@ -447,7 +447,7 @@ if __name__ == '__main__':
 	create_parser.set_defaults(func=create)
 
 	update_parser = subparsers.add_parser('update')
-	update_parser.add_argument('branch', type=str)
+	update_parser.add_argument('branch', nargs="?", type=str)
 	update_parser.set_defaults(func=update)
 
 	rebuild_parser = subparsers.add_parser('db-rebuild')

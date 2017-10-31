@@ -55,7 +55,7 @@ class MyProject(klibs.Experiment):
 		pass
 ```
 
-All the subjections, such as `setup`, `block`, `trial_prep`, and `clean_up` all have their own purposes. We will break these down in detail later. Once you run an experiment for the first time, a second file called experiment.py__c__ will be created alongside experiment.py. This because KLibs will __c__ompile your experiment.py file each time it runs to optimize your experiment's performance. *explain that pyc files cannot be edited and that you should ignore this file for the most part. Also, does the pyc even get run, ever?*
+All the subsections, such as `setup`, `block`, `trial_prep`, and `clean_up` all have their own purposes. We will break these down in detail later.
 
 ### ExpAssets
 

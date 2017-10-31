@@ -1,4 +1,4 @@
-## ![KLibs logo](https://github.com/a-hurst/klibs/raw/austin_bugfixes/klibs/resources/splash.png)
+## ![KLibs logo](https://github.com/a-hurst/klibs/raw/testing/klibs/resources/splash.png)
 
 KLibs is a simple-but-powerful object oriented framework for building experiments in cognitive psychology, written in the Python language. 
 

@@ -9,6 +9,7 @@ from klibs.KLUtilities import smart_sleep
 from klibs.KLGraphics import flip, blit
 from klibs.KLUserInterface import ui_request
 
+
 class Animation(EnvAgent):
 	draw_time = None
 	frame_interval = None

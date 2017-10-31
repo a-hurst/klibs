@@ -5,19 +5,19 @@ import abc
 from klibs import PYLINK_AVAILABLE
 
 if PYLINK_AVAILABLE:
-	from pylink import EyeLink, openGraphics, openGraphicsEx, flushGetkeyQueue, beginRealTimeMode, EyeLinkCustomDisplay, KeyInput, \
-						DC_TARG_BEEP, CAL_TARG_BEEP, CAL_ERR_BEEP, DC_ERR_BEEP, ENTER_KEY, ESC_KEY, endRealTimeMode, pumpDelay
-
-	from pylink.tracker import Sample, EndSaccadeEvent, EndFixationEvent, StartFixationEvent, StartSaccadeEvent
+	from pylink import (EyeLink, openGraphicsEx, flushGetkeyQueue, pumpDelay,
+		beginRealTimeMode, endRealTimeMode)
 
 	from klibs.KLExceptions import *
 	from klibs.KLEnvironment import EnvAgent
-	from klibs.KLConstants import CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE, EL_FALSE, EL_GAZE_POS, \
-		EL_SACCADE_END, EL_SACCADE_START, EL_FIXATION_END, EL_FIXATION_START, EL_FIXATION_ALL, EL_ALL_EVENTS, EL_RIGHT_EYE, \
-		EL_LEFT_EYE, EDF_FILE, EL_GAZE_START, EL_GAZE_END, EL_TIME_START, EL_TIME_END, EL_BLINK_START, EL_BLINK_END, EL_BOTH_EYES, \
-		TK_S, TK_MS, EL_AVG_GAZE
+	from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
+		EL_SACCADE_START, EL_SACCADE_END, EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_ALL,
+		EL_BLINK_START, EL_BLINK_END, EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_AVG_GAZE,
+		EL_TIME_START, EL_TIME_END, EL_MOCK_EVENT, EL_ALL_EVENTS, EL_TRUE, EL_FALSE, EDF_FILE,
+		TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 	from klibs import P
-	from klibs.KLUtilities import full_trace, iterable, show_mouse_cursor, hide_mouse_cursor, mouse_pos, now, exp_file_name
+	from klibs.KLUtilities import (full_trace, iterable, hide_mouse_cursor, mouse_pos, now,
+		exp_file_name)
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import blit, fill, flip, clear
 	from klibs.KLGraphics.KLDraw import Rectangle, Circle, drift_correct_target

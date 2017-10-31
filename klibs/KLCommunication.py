@@ -1,11 +1,22 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
-from copy import copy
-from sdl2 import SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_RETURN, SDLK_KP_ENTER, SDLK_ESCAPE
-from hashlib import sha1
 from sqlite3 import IntegrityError
+from hashlib import sha1
+from copy import copy
 from time import time
+
+from sdl2 import (SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_RETURN,
+	SDLK_KP_ENTER, SDLK_ESCAPE)
+
+from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, DELIM_NOT_LAST, DELIM_NOT_FIRST,
+	QUERY_ACTION_UPPERCASE, QUERY_ACTION_HASH)
+import klibs.KLParams as P
+from klibs.KLUtilities import (absolute_position, pretty_join, sdl_key_code_to_str, now, pump,
+	flush, iterable)
+from klibs.KLGraphics import blit, clear, fill, flip
+from klibs.KLUserInterface import ui_request, any_key
+
 from klibs import SLACK_STATUS
 if SLACK_STATUS == "available":
 	import os
@@ -13,12 +24,6 @@ if SLACK_STATUS == "available":
 	from slacker import Error as SlackerError
 	from threading import Thread
 
-from klibs.KLConstants import AUTO_POS,BL_CENTER, BL_TOP, BL_TOP_LEFT, BL_TOP_RIGHT, BL_LEFT, BL_RIGHT, BL_BOTTOM, \
-	BL_BOTTOM_LEFT, BL_BOTTOM_RIGHT, ALL, QUERY_ACTION_HASH, DELIM_NOT_LAST, DELIM_NOT_FIRST, QUERY_ACTION_UPPERCASE
-from klibs.KLGraphics import blit, clear, fill, flip
-import klibs.KLParams as P
-from klibs.KLUtilities import absolute_position, now, pretty_join, sdl_key_code_to_str, pump, flush, iterable
-from klibs.KLUserInterface import ui_request, any_key
 
 global user_queries
 global block_break_messages

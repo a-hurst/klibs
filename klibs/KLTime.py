@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
-
 from time import time
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import TK_S, TK_MS
+
 
 class CountDown(object):
 	duration = 0

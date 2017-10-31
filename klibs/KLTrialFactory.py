@@ -9,10 +9,11 @@ from os.path import exists, join
 from os import makedirs
 import numpy as np
 
+from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import TF_TRIAL_COUNT, TF_TRIAL_COUNT_UC, TF_STIM_FILE, TF_FACTOR
 from klibs import P
 from klibs.KLIndependentVariable import IndependentVariableSet
-from klibs.KLEnvironment import EnvAgent
+
 
 class BlockIterator(object):
 	def __init__(self, blocks):

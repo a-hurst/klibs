@@ -1,10 +1,14 @@
 __author__ = 'jono'
-from sdl2 import SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, SDLK_q, SDLK_p, SDLK_c,SDLK_UP, SDLK_DOWN, SDLK_LEFT, \
-	SDLK_RIGHT, SDLK_b, SDLK_a
+
 from time import time
+
+from sdl2 import (SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, SDLK_UP, SDLK_DOWN,
+	SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
+
 from klibs.KLConstants import MOD_KEYS, UI_METHOD_KEYSYMS
 from klibs import P
 from klibs.KLUtilities import pump
+
 
 def any_key(allow_mouse_click=True):
 		"""

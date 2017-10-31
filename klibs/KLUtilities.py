@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 __author__ = 'jono'
 
 import math
@@ -9,9 +8,11 @@ import time
 import datetime
 import re
 import traceback
-
 import multiprocessing as mp
 from sys import exc_info
+from subprocess import Popen, PIPE
+from math import sin, cos, radians, pi, atan2, degrees, ceil
+
 from sdl2 import (SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents,
 	SDL_GetError, SDL_GetTicks, SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_MOUSEMOTION, 
 	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
@@ -19,9 +20,6 @@ from sdl2 import (SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL
 from sdl2.ext import get_events
 from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
 from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
-from subprocess import Popen, PIPE
-
-from math import sin, cos, radians, pi, atan2, degrees, ceil
 
 from klibs.KLConstants import (BL_RIGHT, BL_LEFT, BL_TOP, BL_BOTTOM, BL_TOP_RIGHT, BL_TOP_LEFT,
 	BL_BOTTOM_RIGHT, BL_BOTTOM_LEFT, BL_CENTER, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS,
@@ -29,6 +27,7 @@ from klibs.KLConstants import (BL_RIGHT, BL_LEFT, BL_TOP, BL_BOTTOM, BL_TOP_RIGH
 	DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP, TK_S, TK_MS)
 from klibs import P
 from klibs import env
+
 
 def absolute_position(position, destination):
 	height = None

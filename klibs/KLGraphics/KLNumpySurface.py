@@ -1,3 +1,5 @@
+__author__ = 'jono'
+
 from copy import copy
 
 import numpy as np

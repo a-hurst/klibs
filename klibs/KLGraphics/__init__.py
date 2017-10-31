@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
-import warnings
-import numpy as np
-from time import time
 
+import warnings
+from time import time
+from math import sqrt, atan, degrees
+from os.path import isfile
+
+import numpy as np
 with warnings.catch_warnings():
 	warnings.simplefilter("ignore")
 	import sdl2
@@ -11,12 +14,11 @@ with warnings.catch_warnings():
 	import OpenGL.GL as gl
 	warnings.simplefilter("default")
 
-from math import sqrt, atan, degrees
-from os.path import isfile
 from klibs import P
 from klibs.KLUtilities import absolute_position, build_registrations, pump, hide_mouse_cursor, deg_to_px
 from klibs.KLConstants import *
 from KLNumpySurface import NumpySurface as NpS
+
 
 # populated on first call to flip() if needed
 global tracker_dot

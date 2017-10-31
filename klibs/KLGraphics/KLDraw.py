@@ -1,21 +1,20 @@
 __author__ = 'jono'
 
 import abc
-from aggdraw import Brush, Draw, Pen, Symbol
-from PIL import Image
 from imp import load_source
 from bisect import bisect
 from os.path import join
-from numpy import asarray
 from math import cos, sin, radians
+
+from aggdraw import Brush, Draw, Pen, Symbol
+from PIL import Image
+from numpy import asarray
 
 from klibs.KLConstants import STROKE_CENTER, STROKE_INNER, STROKE_OUTER, KLD_LINE, KLD_MOVE, KLD_ARC, KLD_PATH
 from klibs import P
 from klibs.KLUtilities import point_pos, midpoint
-
 from klibs.KLGraphics import rgb_to_rgba
 from klibs.KLGraphics.colorspaces import const_lum
-
 
 ######################################################################
 #

@@ -4,20 +4,22 @@ import abc
 import aggdraw
 from sdl2 import SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDLK_c, SDLK_v
 
-from klibs.KLExceptions import TrialException
-from  klibs.KLNamedObject import *
 from klibs.KLEnvironment import EnvAgent, evm
-from klibs.KLConstants import RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, RC_FIXATION, RC_MOUSEDOWN, RC_MOUSEUP, \
-	RC_SACCADE, NO_RESPONSE, EL_SACCADE_START, EL_SACCADE_END, STROKE_INNER, MAX_WAIT, TIMEOUT, TK_S, TK_MS
+from klibs.KLExceptions import TrialException
+from klibs.KLNamedObject import *
+from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, RC_FIXATION, 
+	RC_MOUSEDOWN, RC_MOUSEUP, RC_SACCADE, NO_RESPONSE, EL_SACCADE_START, EL_SACCADE_END,
+	MAX_WAIT, TIMEOUT, TK_S, TK_MS, STROKE_INNER)
 from klibs import P
-from klibs.KLUtilities import pump, full_trace, angle_between, hide_mouse_cursor, show_mouse_cursor, mouse_pos, \
-	iterable, flush
+from klibs.KLUtilities import (pump, flush, hide_mouse_cursor, show_mouse_cursor, mouse_pos,
+	full_trace, iterable, angle_between)
 from klibs.KLUserInterface import ui_request
 from klibs.KLBoundary import BoundaryInspector
 from klibs.KLGraphics import NpS, fill, flip, blit
 from klibs.KLGraphics import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import ColorWheel
 from klibs.KLAudio import AudioStream
+
 
 class ResponseType(NamedObject, EnvAgent):
 	__timed_out__ = False

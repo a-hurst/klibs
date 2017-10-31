@@ -1,29 +1,28 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
+
 import warnings
 import math
 
 with warnings.catch_warnings():
 	warnings.simplefilter("ignore")
 	import sdl2.ext
-	from sdl2.sdlmixer import Mix_LoadWAV, Mix_PlayChannel, Mix_Playing, Mix_HaltChannel, Mix_VolumeChunk
+	from sdl2.sdlmixer import (Mix_LoadWAV, Mix_PlayChannel, Mix_Playing, Mix_HaltChannel, 
+		Mix_VolumeChunk)
 	warnings.simplefilter("default")
 
-
-from klibs.KLConstants import AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_AUTO_THRESHOLD, AR_RATE, AR_THRESHOLD, AUDIO_ON, \
-	AUDIO_OFF
-import klibs.KLParams as P
+from klibs.KLConstants import (AUDIO_ON, AUDIO_OFF, AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_RATE,
+	AR_THRESHOLD, AR_AUTO_THRESHOLD)
+from klibs import P
 from klibs.KLUtilities import pump, flush
 from klibs.KLUserInterface import ui_request
 from klibs.KLGraphics.KLDraw import Circle
 from klibs.KLGraphics import fill, blit, flip
 
 from klibs import PYAUDIO_AVAILABLE
-
 if PYAUDIO_AVAILABLE:
 	import pyaudio
 	from array import array
-
 
 
 if P.audio_initialized is False:
@@ -298,12 +297,3 @@ class AudioStream(object):
 		self.kill_stream()
 
 		return local_peak
-
-
-
-
-
-
-
-
-

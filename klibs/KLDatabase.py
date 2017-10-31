@@ -7,13 +7,15 @@ from os.path import exists, join, isfile
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import DatabaseException
+from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_DELIM_STR,
+	SQL_NUMERIC, SQL_INT, SQL_FLOAT, SQL_BIN, SQL_STR, SQL_KEY, SQL_REAL, SQL_NULL, 
+	PY_NUM, PY_INT, PY_FLOAT, PY_BIN, PY_STR, QUERY_SEL, TAB, ID, DATA_EXT)
 from klibs import P
-from klibs.KLConstants import DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, TAB, ID, SQL_NULL, SQL_COL_DELIM_STR, PY_FLOAT, \
-	PY_NUM, PY_BIN, PY_INT, PY_STR, SQL_INT, SQL_FLOAT, SQL_STR, SQL_NUMERIC, SQL_KEY, SQL_REAL, SQL_BIN, QUERY_SEL, \
-	DATA_EXT
-from klibs.KLUtilities import bool_to_int, boolean_to_logical, full_trace, type_str, snake_to_camel, iterable, unicode_to_str
+from klibs.KLUtilities import (full_trace, type_str, iterable, bool_to_int, boolean_to_logical,
+	snake_to_camel, unicode_to_str)
 from klibs.KLUtilities import colored_stdout as cso
 #TODO: replace all manual usage of colour output with cso
+
 
 class EntryTemplate(object):
 	null_field = "DELETE_THIS_FIELD"

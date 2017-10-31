@@ -3,6 +3,7 @@ __author__ = 'jono'
 from klibs.KLNamedObject import NamedInventory, NamedObject
 from klibs.KLUtilities import iterable
 
+
 class VariableValue(NamedObject):
 
 	def __init__(self, name, distribution=1):

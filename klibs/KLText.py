@@ -1,20 +1,22 @@
 __author____ = 'jono'
+
+from os.path import isfile, join
+from math import floor
+import ctypes
+
 from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderText_Blended,
 	TTF_RenderUTF8_Solid, TTF_SizeText)
 from sdl2.ext import PixelView
 from sdl2 import SDL_Color
-from math import floor
-from os.path import isfile, join
 import numpy as np
-import ctypes
 
-from klibs import P
 from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
+from klibs import P
 from klibs.KLUtilities import pt_to_px
 from klibs.KLGraphics import NpS, rgb_to_rgba, argb32_to_rgba
 
-class TextStyle(object):
 
+class TextStyle(object):
 
 	#todo: render_size(str, width)
 	def __init__(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None, anti_alias=True):

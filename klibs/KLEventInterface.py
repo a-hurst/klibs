@@ -3,17 +3,17 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import os
 import csv
-from time import time, sleep
 import abc
+from time import time, sleep
 import multiprocessing as mp
 from os import kill
 from signal import SIGKILL
 
+from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EventError
 from klibs.KLNamedObject import *
-from klibs.KLEnvironment import EnvAgent
-from klibs.KLConstants import TK_S, TK_MS, TBL_EVENTS, EVI_CONSTANTS, EVI_DEREGISTER_EVENT, EVI_CLOCK_RESET, \
-	EVI_TRIAL_START, EVI_TRIAL_STOP, EVI_SEND_TIME, EVI_EXP_END, EVI_CONSTANTS
+from klibs.KLConstants import (TK_S, TK_MS, TBL_EVENTS, EVI_CONSTANTS, EVI_DEREGISTER_EVENT,
+	EVI_SEND_TIME, EVI_CLOCK_RESET, EVI_TRIAL_START, EVI_TRIAL_STOP, EVI_EXP_END)
 from klibs import P
 from klibs.KLUtilities import pump, threaded
 from klibs.KLUserInterface import ui_request

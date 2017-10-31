@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
-from sdl2 import SDL_Quit
 from abc import abstractmethod
 from os import mkdir
 from os.path import join
 from shutil import copyfile, copytree
+from sdl2 import SDL_Quit
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
-from klibs.KLUtilities import full_trace, pump, now, list_dimensions, force_quit, show_mouse_cursor, hide_mouse_cursor
+from klibs.KLUtilities import (full_trace, pump, now, list_dimensions, force_quit,
+	show_mouse_cursor, hide_mouse_cursor)
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear #, display_init
 from klibs.KLDatabase import Database
@@ -19,10 +20,6 @@ from klibs.KLUserInterface import any_key
 from klibs.KLAudio import AudioManager
 # from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLCommunication import message, query, collect_demographics
-
-# from klibs.KLCommunication import  message
-# import klibs.eyelink as el
-# import klibs.database  as db
 
 
 class Experiment(EnvAgent):

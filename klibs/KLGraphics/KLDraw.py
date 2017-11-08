@@ -164,6 +164,7 @@ class Drawbject(object):
 			else:
 				self.surface_width = width + 2
 				self.surface_height = height + 2
+		self.rendered = None # Clear any existing rendered texture
 		self.canvas = Image.new("RGBA", [self.surface_width, self.surface_height], (0, 0, 0, 0))
 		self.surface = Draw(self.canvas)
 		self.surface.setantialias(True)
@@ -189,7 +190,10 @@ class Drawbject(object):
 		self.init_surface()
 		self.draw()
 
-		surface_array = asarray(self.canvas.rotate(self.rotation, Image.BILINEAR, False))
+		if self.__name__ in ["Annulus", "ColorWheel"]:
+			surface_array = asarray(self.canvas)
+		else:
+			surface_array = asarray(self.canvas.rotate(self.rotation, Image.BILINEAR, False))
 		if self.opacity < 255: # Apply opacity (if not fully opaque) to whole Drawbject
 			surface_array.setflags(write=1) # make RGBA values writeable
 			for x in range(surface_array.shape[0]):
@@ -461,6 +465,10 @@ class Annulus(Drawbject):
 	def __name__(self):
 		return "Annulus"
 
+	@property
+	def thickness(self): # because ColorWheelResponse expects it
+		return self.ring_width
+
 
 class Rectangle(Drawbject):
 	"""Creates a Drawbject containing a rectangle.
@@ -602,7 +610,6 @@ class Line(Drawbject):
 	"""
 
 	def __init__(self, length, color, thickness, rotation=0, pts=None, auto_draw=True):
-		self.rotation = rotation
 		if pts:
 			self.p1, self.p2 = pts
 		else:

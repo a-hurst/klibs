@@ -354,13 +354,13 @@ class AnnulusBoundary(Boundary):
 	__name__ = "KLAnnulusBoundary"
 	__shape__ = ANNULUS_BOUNDARY
 
-	def __init__(self, label, center, inner_radius, span=None):
+	def __init__(self, label, center, radius, thickness):
 		"""
 
 		:param label:
 		:param center:
-		:param inner_radius:
-		:param span:
+		:param radius:
+		:param thickness:
 		"""
 		super(AnnulusBoundary, self).__init__(label)
 		self.__r_inner__ = None
@@ -368,7 +368,7 @@ class AnnulusBoundary(Boundary):
 		self.__span_range__ = None
 		self.__span__ = None
 		self.__center__ = None
-		self.bounds = [center, inner_radius, span]
+		self.bounds = [center, radius, thickness]
 
 	@property
 	def bounds(self):
@@ -397,9 +397,9 @@ class AnnulusBoundary(Boundary):
 			raise ValueError("Argument 'radius' must be a positive number.")
 
 		self.__center__ = boundary_data[0]
-		self.__r_inner__ = boundary_data[1]
-		self.__span__ = boundary_data[2]
-		self.__r_outer__ = self.__r_inner__ + self.__span__
+		self.__r_outer__ = int(boundary_data[1])
+		self.__span__ = int(boundary_data[2])
+		self.__r_inner__ = self.__r_outer__ - self.__span__
 		self.__span_range__ = range(self.__r_inner__, self.__r_outer__)
 
 	@property

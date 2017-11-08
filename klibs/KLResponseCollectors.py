@@ -14,10 +14,10 @@ from klibs import P
 from klibs.KLUtilities import (pump, flush, hide_mouse_cursor, show_mouse_cursor, mouse_pos,
 	full_trace, iterable, angle_between)
 from klibs.KLUserInterface import ui_request
-from klibs.KLBoundary import BoundaryInspector
+from klibs.KLBoundary import BoundaryInspector, AnnulusBoundary
 from klibs.KLGraphics import NpS, fill, flip, blit
 from klibs.KLGraphics import aggdraw_to_array
-from klibs.KLGraphics.KLDraw import ColorWheel
+from klibs.KLGraphics.KLDraw import Annulus, ColorWheel, Drawbject
 from klibs.KLAudio import AudioStream
 
 
@@ -41,15 +41,12 @@ class ResponseType(NamedObject, EnvAgent):
 	def max_collected(self):
 		return self.response_count == self.max_response_count
 
-	def collect(self, event_queue, mouse_click_boundaries):
+	def collect(self, event_queue):
 		if not self.max_collected():
 			try:
-				self.collect_response(event_queue, mouse_click_boundaries)
-			except TypeError:
 				self.collect_response(event_queue)
-				# try:
-				# except TypeError:
-				# 	self.collect_response()
+			except TypeError:
+				self.collect_response()
 		return self.max_collected() and self.interrupts
 
 	def reset(self):
@@ -357,83 +354,137 @@ class FixationResponse(ResponseType):
 		super(FixationResponse, self).__init__(rc_start_time, RC_FIXATION)
 
 
-class ColorSelectionResponse(ResponseType, BoundaryInspector):
-	__target__ = None
-	__x_offset__ = None
-	__y_offset__ = None
-	__rotation__ = 0
-	__target_location__ = (0,0)
-	__target_registration__ = 7
-	require_alpha = True
+class ColorSelectionResponse(ResponseType):
+	__wheel__ = None
+	__bounds__ = None
+	__probe__ = None
+	target_loc = None
 	angle_response = True
 	color_response = False
-	click_boundary = None
 
 	def __init__(self, rc_start_time):
-		ResponseType.__init__(self, rc_start_time, RC_COLORSELECT)
-		BoundaryInspector.__init__(self)
-		# self.__name__ = RC_COLORSELECT  # done manually due to inheritance conflicts
+		super(ColorSelectionResponse, self).__init__(rc_start_time, RC_COLORSELECT)
 
 	def collect_response(self, event_queue):
-		# todo: add some logic for excluding certain colors (ie. the background color)
+		if self.__wheel__ == None:
+			raise ValueError("No target ColorWheel or Annulus specified")
+		elif isinstance(self.__wheel__, Annulus) and self.color_response:
+			raise ValueError("Cannot collect color responses with an Annulus target.")
+		if not self.angle_response and not self.color_response:
+			raise ValueError("At least one of 'angle_response' and 'color_response' must be True.")
+
 		for e in event_queue:
 			if e.type == SDL_MOUSEBUTTONUP:
 				pos = [e.button.x, e.button.y]
-				if not self.within_boundary("color ring", pos):
+				if not self.__bounds__.within(pos):
 					continue
-				response = angle_between(P.screen_c, pos, self.__target__.rotation)
+				response_angle = angle_between(pos, P.screen_c, 90, clockwise=True)
+				if self.__wheel__.__name__ == "ColorWheel":
+					target_color = self.__probe__.fill_color
+					target_angle = self.__wheel__.angle_from_color(target_color)
+				else:
+					target_angle = angle_between(self.target_loc, P.screen_c, 90, clockwise=True)
+				diff = target_angle - response_angle
+				angle_err = diff-360 if diff > 180 else diff+360 if diff < -180 else diff
+				if self.color_response:
+					color = self.__wheel__.color_from_angle(response_angle)
+					response = (angle_err, color) if self.angle_response else color
+				else:
+					response = angle_err
+
 				if len(self.responses) < self.min_response_count:
-					self.responses.append([response, (self.evm.trial_time_ms - self.__rc_start_time__[0])])
+					rt = self.evm.trial_time_ms - self.__rc_start_time__[0]
+					self.responses.append([response, rt])
 					if self.interrupts:
 						return self.responses if self.max_response_count > 1 else self.responses[0]
+	
+	def set_target(self, target):
+		'''Sets the colour probe Drawbject or target location for listener, which is used to
+		calculate the angular error between target and response during response collection. When
+		the wheel for the listener is a Colour Wheel, a colour probe must be provided. When the
+		wheel is an Annulus, a location in the form of (x, y) pixel coordinates must be provided.
+		
+		Note that colour probes are pass-by-refrence, meaning that you can change the fill colour
+		of the probe after setting it as the target and the response collector will use whatever
+		fill colour the probe has at collection time.
 
-	def set_target(self, surface, location=(0,0), registration=7):
-		self.__target__ = surface
-		self.__target_location__ = location
-		self.__target_registration__ = registration
+		Args:
+			target (:obj:`Drawbject`|tuple(int,int)): A coloured shape (e.g. ellipse, asterisk)
+				if using a ColorWheel for the wheel, or a tuple of (x,y) pixel coordinates
+				indicating the location that the target will appear if using an Annulus for the
+				wheel.
 
-		if isinstance(surface, ColorWheel):
-			self.rotation = surface.rotation
+		Raises:
+			ValueError: if the probe object is not a :obj:`Drawbject` or tuple.
 
-		try:
-			surface.prerender()
-		except AttributeError:
-			surface = NpS(surface)
+		'''
+		if isinstance(target, Drawbject):
+			self.__probe__ = target
+		elif hasattr(target, '__iter__'):
+			if 0 <= target[0] <= P.screen_x and 0 <= target[1] <= P.screen_y:
+				self.target_loc = target
+			else:
+				raise ValueError("Target location must be within the range of the screen.")
+		else:
+			raise ValueError("Target must either be a Drawbject or a tuple of (x,y) coordinates.")
 
-		if registration in [8, 5, 2]:
-			surf_offset_x = surface.width // 2
+
+	def set_wheel(self, wheel, location=None, registration=None):
+		'''Sets the ColorWheel or Annulus object to use for response collection.
+
+		Args:
+			target (:obj:`ColorWheel`|:obj:`Annulus`): The ColorWheel or Annulus Drawbject to be
+				used with the RC_COLORSELECT response collector.
+			location (tuple(int, int), optional): The pixel coordinates that the target wheel will
+				be blitted to during the response collection loop. Defaults to the center of the
+				screen if not specified.
+			registration (int, optional): The registration value between 1 and 9 that the target
+				wheel will be blitted with during the response collection loop. Defaults to 5
+				(center of surface) if not specified.
+
+		Raises:
+			ValueError: if the target object is not an :obj:`Annulus` or :obj:`ColorWheel`.
+
+		'''
+		if isinstance(wheel, (Annulus, ColorWheel)):
+			self.__wheel__ = wheel
+		else:
+			raise ValueError("Target object must be either an Annulus or ColorWheel Drawbject.")
+		# If no location or reg given, assume it's in the exact middle of the screen
+		if not location:
+			location = P.screen_c
+		if not registration:
+			registration = 5
+
+		# Generate response boundary given registration, location and object size
+		if registration in [7, 4, 1]:
+			x_offset = wheel.surface_width // 2
 		elif registration in [9, 6, 3]:
-			surf_offset_x = surface.width
+			x_offset = -wheel.surface_width // 2
 		else:
-			surf_offset_x = 0
-		self.__x_offset__ = location[0] + surf_offset_x
-		if registration in [4, 5, 6]:
-			surf_offset_y = surface.height // 2
+			x_offset = 0
+
+		if registration in [7, 8, 9]:
+			y_offset = wheel.surface_width // 2
 		elif registration in [1, 2, 3]:
-			surf_offset_y = surface.height
+			y_offset = -wheel.surface_width // 2
 		else:
-			surf_offset_y = 0
-		self.__y_offset__ = location[1] + surf_offset_y
+			y_offset = 0
+		
+		center = (location[0]+x_offset, location[1]+y_offset)
+		self.__bounds__ = AnnulusBoundary("wheel_rc", center, wheel.radius, wheel.thickness)
 
 	@property
-	def target(self):
-		return self.__target__
-
-	@property
-	def target_location(self):
-		return self.__target_location__
-
-	@property
-	def target_registration(self):
-		return self.__target_registration__
+	def wheel(self):
+		return self.__wheel__
 
 	@property
 	def rotation(self):
-		return self.__rotation__
+		return self.__wheel__.rotation
 
 	@rotation.setter
 	def rotation(self, angle):
-		self.__rotation__ = angle
+		self.__wheel__.rotation = angle
 
 
 class DrawResponse(ResponseType, BoundaryInspector):
@@ -549,49 +600,49 @@ class DrawResponse(ResponseType, BoundaryInspector):
 	def active(self):
 		return self.started and not self.stopped
 
+
 class ResponseCollector(EnvAgent):
 	__max_wait = None
 	__null_response_value__ = None
 	__min_response_count__ = None
 	__max_response_count__ = None
 	__interrupt__ = None
-	__uses__ = None
-	rc_start_time = [None] # in list so it can be passed by reference to ResponseListener classes
-	callbacks = {}
-	listeners = None
 	response_window = None
 	end_collection_event = None
-	responses = {}
-	post_flip_tk_label = None
 	terminate_after = 10  # seconds
 
-	def __init__(self, display_callback=None, response_window=MAX_WAIT, null_response=NO_RESPONSE, response_count=[0,1],\
-				 flip=False):
+	def __init__(self, display_callback=None, response_window=MAX_WAIT, null_response=NO_RESPONSE,
+				 response_count=[0,1], flip=False):
+
 		super(ResponseCollector, self).__init__()
 		self.__response_window__ = response_window
 		self.__null_response_value__ = null_response
 		self.__min_response_count__ = response_count[0]
 		self.__max_response_count__ = response_count[1]
-		self.__rc_index__ = {RC_AUDIO		:AudioResponse,
-						 	 RC_KEYPRESS	:KeyPressResponse,
-						 	 RC_MOUSEUP		:MouseDownResponse,
-						 	 RC_MOUSEDOWN	:MouseUpResponse,
-						 	 RC_FIXATION	:FixationResponse,
-						 	 RC_SACCADE		:SaccadeResponse,
-						 	 RC_COLORSELECT	:ColorSelectionResponse,
-						 	 RC_DRAW		:DrawResponse
-					 		}
-		self.__uses__ 	  = {RC_AUDIO		:False,
-					  	   	 RC_KEYPRESS	:False,
-					  	   	 RC_MOUSEUP		:False,
-					  	   	 RC_MOUSEDOWN	:False,
-					  	   	 RC_FIXATION	:False,
-					  	   	 RC_SACCADE		:False,
-					  	   	 RC_COLORSELECT	:False,
-					  	   	 RC_DRAW		:False
-					  	   	}
+		self.__rc_index__ = {
+			RC_AUDIO		:AudioResponse,
+			RC_KEYPRESS		:KeyPressResponse,
+			RC_MOUSEUP		:MouseDownResponse,
+			RC_MOUSEDOWN	:MouseUpResponse,
+			RC_FIXATION		:FixationResponse,
+			RC_SACCADE		:SaccadeResponse,
+			RC_COLORSELECT	:ColorSelectionResponse,
+			RC_DRAW			:DrawResponse
+		}
+		self.__uses__ = {
+			RC_AUDIO		:False,
+			RC_KEYPRESS		:False,
+			RC_MOUSEUP		:False,
+			RC_MOUSEDOWN	:False,
+			RC_FIXATION		:False,
+			RC_SACCADE		:False,
+			RC_COLORSELECT	:False,
+			RC_DRAW			:False
+		}
+		self.rc_start_time = [None] # in list so it can be passed by reference to ResponseListeners
 		self.response_countdown = None
 		self.responses = {RC_AUDIO:[], RC_KEYPRESS:[]}
+		self.callbacks = {} 
 		self.display_callback = display_callback
 		self.has_display_callback = False
 		self.flip = flip
@@ -653,11 +704,9 @@ class ResponseCollector(EnvAgent):
 			count += self.listeners[l].response_count
 		return count
 
-	def collect(self, mouseclick_boundaries=None):
+	def collect(self):
 		"""
 		The collection loop runs all supplied callbacks in sequence and collects responses from in-use listeners.
-
-		:param mouseclick_boundaries:
 		:raise RuntimeError:
 		"""
 		if len(self.enabled()) == 0:
@@ -695,7 +744,7 @@ class ResponseCollector(EnvAgent):
 			self.rc_start_time[0] = self.evm.trial_time_ms # the only element in list, which is used for mutability only
 
 		# the actual response collection loop
-		self.__collect__(mouseclick_boundaries)
+		self.__collect__()
 
 		# before return callback
 		try:
@@ -716,7 +765,7 @@ class ResponseCollector(EnvAgent):
 		self.response_countdown = None
 		self.rc_start_time[0] = None # Reset before next trial
 
-	def __collect__(self, mouseclick_boundaries):
+	def __collect__(self):
 		first_loop = True
 		while True:
 			if not self.end_collection_event:
@@ -745,7 +794,7 @@ class ResponseCollector(EnvAgent):
 			if self.rc_start_time[0]: # Only start collecting once a start time value has been set
 				interrupt = False
 				for l in self.using():
-					interrupt = self.listeners[l].collect(e_queue, mouseclick_boundaries)
+					interrupt = self.listeners[l].collect(e_queue)
 				if interrupt:
 					break
 
@@ -767,10 +816,15 @@ class ResponseCollector(EnvAgent):
 		hide_mouse_cursor()
 
 	def reset(self):
-		for l in self.listeners:
-			self.listeners[l.name].reset()
+		# Clear all listeners and set all use flags to False
+		# (is this really the best way to do this? Or should rc objects persist across experiment?)
+		self.listeners = NamedInventory()
+		for k in self.__uses__.keys():
+			self.__uses__[k] = False
+		#for l in self.listeners:
+		#	self.listeners[l.name].reset()
 
-	def disable(self, listener):
+	def disable(self, listener): # is this needed anymore?
 		self.__uses__[listener] = False
 
 	def enable(self, listener):

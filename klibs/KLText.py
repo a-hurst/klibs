@@ -13,7 +13,7 @@ import numpy as np
 from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
 from klibs import P
 from klibs.KLUtilities import pt_to_px
-from klibs.KLGraphics import NpS, rgb_to_rgba, argb32_to_rgba
+from klibs.KLGraphics import NpS, rgb_to_rgba
 
 
 class TextStyle(object):

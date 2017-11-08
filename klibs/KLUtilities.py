@@ -14,7 +14,8 @@ from subprocess import Popen, PIPE
 from math import sin, cos, radians, pi, atan2, degrees, ceil
 
 from sdl2 import (SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents,
-	SDL_GetError, SDL_GetTicks, SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_MOUSEMOTION, 
+	SDL_PeepEvents, SDL_GetError, SDL_GetTicks,
+	SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_GETEVENT, SDL_MOUSEMOTION, 
 	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
 	KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS)
 from sdl2.ext import get_events

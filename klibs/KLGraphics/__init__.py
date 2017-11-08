@@ -40,19 +40,6 @@ def aggdraw_to_array(draw_obj):
 	return np.asarray(draw_context_bytes)
 
 
-def argb32_to_rgba(np_array):
-		"""Converts an integer value to a Color, assuming the integer
-		represents a 32-bit RGBBA value.
-		"""
-		out =  np.zeros((np_array.shape[0], np_array.shape[1], 4))
-		out[...,3] = ((np_array & 0xFF000000) >> 24)
-		out[...,0] = ((np_array & 0x00FF0000) >> 16)
-		out[...,1] = ((np_array & 0x0000FF00) >> 8)
-		out[...,2] = ((np_array & 0x000000FF))
-
-		return out
-
-
 def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 		"""
 		Draws passed content to the display buffer. All content that is not in already

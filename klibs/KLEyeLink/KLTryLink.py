@@ -98,7 +98,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 			event_queue = pump(True)
 			ui_request(queue=event_queue)
 			if el_draw_fixation == EL_TRUE:
-					fill(P.default_drift_correct_fill_color if not fill_color else fill_color)
+					fill(P.default_fill_color if not fill_color else fill_color)
 					blit(drift_correct_target() if target_img is None else target_img, 5, location)
 					flip()
 			for e in event_queue:

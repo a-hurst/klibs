@@ -165,7 +165,7 @@ if PYLINK_AVAILABLE:
 
 			try:
 				if el_draw_fixation == EL_TRUE:
-					fill(P.default_drift_correct_fill_color if not fill_color else fill_color)
+					fill(P.default_fill_color if not fill_color else fill_color)
 					blit(drift_correct_target() if target_img is None else target_img, 5, location)
 					flip()
 				self.doDriftCorrect(location[0], location[1], el_draw_fixation, samples)

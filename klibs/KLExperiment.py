@@ -267,11 +267,11 @@ class Experiment(EnvAgent):
 		if P.verbose_mode:
 			full_trace()
 
-		try:
-			if not self.evm.events_dumped:
-				self.evm.dump_events()
-		except:
-			pass
+		#try:
+		#	if not self.evm.events_dumped:
+		#		self.evm.dump_events()
+		#except:
+		#	pass
 
 		try:
 			try:

@@ -300,7 +300,6 @@ class EventManager(EnvAgent):
 		"""
 		for cache in self.trial_events.dump().values():
 			for e in cache:
-				print e
 				try:
 					self.db.insert(cache[e].dump(), TBL_EVENTS, False)
 				except RuntimeError:

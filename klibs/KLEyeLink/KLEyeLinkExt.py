@@ -220,7 +220,7 @@ if PYLINK_AVAILABLE:
 				if not len(event_queue):
 					return False
 			for e in event_queue:
-				if e.getType() not in valid_events: # if passed queue, skip events with types not in valid_events
+				if e == None or e.getType() not in valid_events: # if passed queue, skip events with types not in valid_events
 					continue
 				if not inspect: # if inspect not given, default to start for start events and average for others
 					if e.getType() == EL_FIXATION_START:
@@ -306,7 +306,7 @@ if PYLINK_AVAILABLE:
 				if not len(event_queue):
 					return False
 			for e in event_queue:
-				if e.getType() != EL_SACCADE_END:
+				if e == None or e.getType() != EL_SACCADE_END:
 					continue
 				timestamp = self.__within_boundary__(label, e, report, EL_GAZE_END)
 				if timestamp:
@@ -330,7 +330,7 @@ if PYLINK_AVAILABLE:
 				if not len(event_queue):
 					return False
 			for e in event_queue:
-				if e.getType() != EL_SACCADE_END:
+				if e == None or e.getType() != EL_SACCADE_END:
 					continue
 				timestamp = self.__exited_boundary__(label, e, report)
 				if timestamp:
@@ -459,7 +459,7 @@ if PYLINK_AVAILABLE:
 					event_queue = self.get_event_queue(valid_events)
 			timestamp = None
 			for e in event_queue:
-				if e.getType() not in valid_events:
+				if e == None or e.getType() not in valid_events:
 					continue
 				timestamp = self.__within_boundary__(label, e, report, inspect)
 				if not timestamp:

@@ -215,15 +215,12 @@ class RectangleBoundary(Boundary):
 		super(RectangleBoundary, self).__init__(label)
 		self.__p1 = None
 		self.__p2 = None
-		self.__x_range = None
-		self.__y_range = None
 		self.bounds = [p1, p2]
 		self.__center = midpoint(*self.bounds)
 
 	@property
 	def bounds(self):
 		"""
-
 
 		:return:
 		"""
@@ -236,15 +233,12 @@ class RectangleBoundary(Boundary):
 				iter(i)
 			self.__p1 = boundary_data[0]
 			self.__p2 = boundary_data[1]
-			self.__x_range = range(self.__p1[0], self.__p2[0])
-			self.__y_range = range(self.__p1[1], self.__p2[1])
 		except (AttributeError, IndexError):
 			raise TypeError("Intialization of RectangleBoundary expects 2-item sequence of x,y pairs.")
 
 	@property
 	def p1(self):
 		"""
-
 
 		:return:
 		"""
@@ -254,7 +248,6 @@ class RectangleBoundary(Boundary):
 	@property
 	def p2(self):
 		"""
-
 
 		:return:
 		"""
@@ -268,9 +261,7 @@ class RectangleBoundary(Boundary):
 		"""
 		if not iterable(reference):
 			raise TypeError("within() expects a 2-item sequence; either an x,y pair, or amplitude, angle pair.")
-		# if all(type(i) is int for i in reference):
-		# 	reference = point_pos(self.__center, reference[0], reference[1])
-		return reference[0] in self.__x_range and reference[1] in self.__y_range
+		return self.__p1[0] <= reference[0] <= self.__p2[0] and self.__p1[1] <= reference[1] <= self.__p2[1]
 
 
 

@@ -227,7 +227,7 @@ def message(text, style=None, location=None, registration=None, blit_txt=True,
 			pass
 	# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
 
-	message_surface = txtm.render(text, style, align)
+	message_surface = txtm.render(text, style, align, wrap_width)
 	if blit_txt == False:
 		return message_surface
 	else:

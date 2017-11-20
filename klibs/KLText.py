@@ -3,6 +3,7 @@ __author____ = 'jono'
 from os.path import isfile, join
 from math import floor
 import ctypes
+from ctypes import byref
 
 from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderText_Blended,
 	TTF_RenderUTF8_Solid, TTF_SizeText)
@@ -71,14 +72,14 @@ class TextStyle(object):
 		if self.__line_height_units__ == TEXT_PX:
 			return self.__line_height__
 		elif self.__line_height_units__ == TEXT_MULTIPLE:
-			return self.__line_height__ * self.font_size
+			return int(self.__line_height__ * self.font_size)
 		else:
 			return  pt_to_px(self.__line_height__)
 
 	@line_height.setter
 	def line_height(self, line_height_val):
 		try:
-			self.__line_height__ = int(line_height_val)
+			self.__line_height__ = line_height_val
 			self.__line_height_units__ = TEXT_MULTIPLE
 		except ValueError:
 			self.__line_height__ = int(line_height_val[:-2])
@@ -150,13 +151,35 @@ class TextManager(object):
 	def __wrap__(self, text, style, rendering_font, align, width=None):
 		lines = text.split("\n")
 		if width:
-			pass  # TODO: test various lengths until you get a size that works, then re-populate lines
+			surface_width = width
+			wrapped_lines = []
+			w, segment_w, h = ctypes.c_int(0), ctypes.c_int(0), ctypes.c_int(0)
+			for line in lines:
+				if len(line):
+					# Get width of rendered string in pixels. If wider than surface, get character
+					# position in string at position nearest cutoff, move backwards until space
+					# character is encountered, and then trim string up to this point, adding it
+					# to wrapped_lines.
+					TTF_SizeText(rendering_font, line, byref(w), byref(h))
+					while w.value > surface_width:
+						pos = int(surface_width/float(w.value) * len(line))
+						segment = line[:pos].rstrip()
+						TTF_SizeText(rendering_font, segment, byref(segment_w), byref(h))
+						while line[pos] != ' ' or segment_w.value > surface_width:
+							pos = pos - 1
+							segment = line[:pos].rstrip()
+							TTF_SizeText(rendering_font, segment, byref(segment_w), byref(h))
+						wrapped_lines.append(segment)
+						line = line[pos:].lstrip()
+						TTF_SizeText(rendering_font, line, byref(w), byref(h))
+				wrapped_lines.append(line)
+			lines = wrapped_lines
 		else:
 			surface_width = 1
 			w, h = ctypes.c_int(0), ctypes.c_int(0)
 			for line in lines:
 				if len(line):
-					TTF_SizeText(rendering_font, line, ctypes.byref(w), ctypes.byref(h))
+					TTF_SizeText(rendering_font, line, byref(w), byref(h))
 					if w.value > surface_width:
 						surface_width = w.value
 
@@ -164,7 +187,7 @@ class TextManager(object):
 		output = NpS(width=surface_width, height=(len(lines) * net_line_height))
 		for line in lines:
 			if len(line):
-				l_surf = self.render(line, style, from_wrap=True)
+				l_surf = self.render(line, style)
 			else:
 				continue
 			if align == "left":
@@ -178,7 +201,7 @@ class TextManager(object):
 				output.blit(l_surf, position=l_surf_pos, registration=9)
 		return output
 
-	def render(self, text, style="default", align="left", max_width=None, from_wrap=False):
+	def render(self, text, style="default", align="left", max_width=None):
 		"""
 
 		:param text:
@@ -193,11 +216,17 @@ class TextManager(object):
 
 		text = str(text)
 		rendering_font = TTF_OpenFont(self.fonts[style.font_label], style.font_size)
+		if max_width != None:
+			w, h = ctypes.c_int(0), ctypes.c_int(0)
+			TTF_SizeText(rendering_font, text, ctypes.byref(w), ctypes.byref(h))
+			needs_wrap = w.value > max_width
+		else:
+			needs_wrap = False
 
-		if len(text.split("\n")) > 1:
+		if len(text.split("\n")) > 1 or needs_wrap:
 			if align not in ["left", "center", "right"]:
 				raise ValueError("Text alignment must be one of 'left', 'center', or 'right'.")
-			return self.__wrap__(text, style, rendering_font, align)
+			return self.__wrap__(text, style, rendering_font, align, max_width)
 
 		if len(text) == 0:
 			text = " "
@@ -209,14 +238,9 @@ class TextManager(object):
 			surface_array = np.asarray(PixelView(rendered_text))
 			# surface_array = np.zeros((px.shape[0], px.shape[1], 4));
 			# surface_array[...] = px * 255
-		if not from_wrap:
-			surface =  NpS(surface_array)
-		else:
-			surface =  NpS(surface_array)
-			#surface = surface_array
-			#return surface if surface.shape[1] < P.screen_x else self.__wrap__(text, style, P.screen_x - 20)
+		surface =  NpS(surface_array)
 		TTF_CloseFont(rendering_font)
-		return surface #if surface.width < P.screen_x else self.__wrap__(text, style, P.screen_x - 20)
+		return surface
 
 	def add_font(self, font_name, font_extension="ttf", font_file_basename=None):
 		"""

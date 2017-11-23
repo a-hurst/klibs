@@ -229,7 +229,7 @@ class Database(EnvAgent):
 		for field in (P.default_participant_fields if multi_file else P.default_participant_fields_sf):
 			column_names.append(field[1]) if iterable(field) else column_names.append(field)
 		column_names = [snake_to_camel(col) for col in column_names]
-		for t in ['trials'] + join_tables:
+		for t in [P.primary_table] + join_tables:
 			for field in self.table_schemas[t]:
 				if field[0][-2:] != "id": column_names.append(field[0])
 		return  TAB.join(column_names)
@@ -274,7 +274,7 @@ class Database(EnvAgent):
 
 		#  random_seed has to be added to every participant row when exporting to multi-file
 		p_cols = [f for f in default_fields]
-		for t in ['trials'] + join_tables:
+		for t in [P.primary_table] + join_tables:
 			for field in self.table_schemas[t]:
 				if field[0] not in [ID, P.id_field_name]:
 					t_cols.append(field[0])
@@ -293,11 +293,11 @@ class Database(EnvAgent):
 					q_vars += c
 					q_wildcards.append("`{"+str(wc_count)+"}` AS `{"+ str(wc_count + 1)+"}`")
 					wc_count += 2
-			q = "SELECT " + ",".join(q_wildcards) + " FROM `trials` "
+			q = "SELECT " + ",".join(q_wildcards) + " FROM `{0}` ".format(P.primary_table)
 			for t in ['participants'] + join_tables if p[0] != -1 else join_tables:
 				key = 'id' if t == 'participants' else 'participant_id'
-				q += " JOIN {0} ON `trials`.`participant_id` = `{0}`.`{1}` ".format(t, key)
-			q += " WHERE `trials`.`participant_id` = ?"
+				q += " JOIN {0} ON `{1}`.`participant_id` = `{0}`.`{2}` ".format(t, P.primary_table, key)
+			q += " WHERE `{0}`.`participant_id` = ?".format(P.primary_table)
 			q = q.format(*q_vars)
 			p_data = []
 			for trial in self.query(q, q_vars=tuple([p[0]])):
@@ -326,10 +326,12 @@ class Database(EnvAgent):
 	def exists(self, table, column, value):
 		return len(self.query("SELECT * FROM `?` WHERE `?` = ?", QUERY_SEL, q_vars=[table, column, value])) > 0
 
-	def export(self, multi_file=True, join_tables=None):
+	def export(self, table=None, multi_file=True, join_tables=None):
 
 		#TODO: make sure p_id increments sequentially, ie. skips demo_user
 		#TODO: make option for exporting non-devmode/complete participants only
+		if table != None:
+			P.primary_table = table
 		try:
 			join_tables = join_tables[0].split(",")
 		except IndexError:

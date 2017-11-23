@@ -10,11 +10,11 @@ from random import seed
 from datetime import datetime
 from os import makedirs
 from os.path import exists, join
-from pkg_resources import resource_filename
+from pkg_resources import resource_filename, resource_string
 
 from klibs.KLConstants import *
 
-klibs_commit = None  # populated at runtime
+klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
 
 #  project structure; default paths & filenames
 global project_name
@@ -160,6 +160,7 @@ pre_render_block_messages = False
 
 # database
 data_columns = None
+primary_table = 'trials'
 default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]
 default_participant_fields_sf = [["userhash", "participant"], "random_seed", "sex", "age", "handedness"]
 default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
@@ -212,14 +213,7 @@ def init_project():
 	global logs_dir
 	global initialized
 
-	key_maps = {"*": KeyMap("*", [], [], []),
-				"drift_correct": KeyMap("drift_correct", ["spacebar"], [sdl2.SDLK_SPACE], ["spacebar"]),
-				"eyelink": KeyMap("eyelink",
-								   ["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"],
-								   [sdl2.SDLK_a, sdl2.SDLK_c, sdl2.SDLK_v, sdl2.SDLK_o, sdl2.SDLK_RETURN,
-									sdl2.SDLK_SPACE, sdl2.SDLK_UP, sdl2.SDLK_DOWN, sdl2.SDLK_LEFT,
-									sdl2.SDLK_RIGHT],
-								   ["a", "c", "v", "o", "return", "spacebar", "up", "down", "left", "right"])}
+	key_maps = {"*": KeyMap("*", [], [], [])}
 	key_maps["*"].any_key = True
 
 

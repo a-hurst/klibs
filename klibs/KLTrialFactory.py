@@ -174,7 +174,6 @@ class TrialFactory(object):
 					except (AttributeError, TypeError):
 						pass
 			except (IOError, RuntimeError):
-				print "getting here"
 				for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
 					try:
 						self.exp_factors = v.to_list()

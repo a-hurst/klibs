@@ -30,7 +30,7 @@ install_packages = ['klibs']
 
 setup(
 	name='KLIBs',
-	version='0.6.0',
+	version='0.6.5',
 	description='A framework for building psychological experiments in Python',
 	author='Jonathan Mulle & Austin Hurst',
 	author_email='this.impetus@gmail.com',
@@ -40,10 +40,10 @@ setup(
 	scripts=['bin/klibs'],
 	python_requires='>=2.7, <3',
 	install_requires=[
-		'numpy', 
-		'pysdl2',
-		'Pillow',
-		'aggdraw>1.1.99',
+		'numpy>=1.8.0rc1', 
+		'pysdl2>=0.9.0',
+		'Pillow>=3.0.0',
+		'aggdraw>1.2.0',
 		'PyOpenGL',
 		'PyAudio'
 	],

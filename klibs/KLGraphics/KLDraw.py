@@ -758,8 +758,10 @@ class ColorWheel(Drawbject):
 		
 	"""
 
-	def __init__(self, diameter, thickness=None, colorspace=const_lum, rotation=0, auto_draw=True):
+	def __init__(self, diameter, thickness=None, colorspace=None, rotation=0, auto_draw=True):
 		super(ColorWheel, self).__init__(diameter, diameter, stroke=None, fill=None)
+		if colorspace == None:
+			colorspace = const_lum
 		self.palette = colorspace
 		self.rotation = rotation
 		self.diameter = diameter

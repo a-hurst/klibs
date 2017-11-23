@@ -565,27 +565,27 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap
 	**Config Keys**
 
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| **Key**			|	  **Description**																				|
+	| **Key**           |     **Description**                                                                               |
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| prepend			|	   [coming]																						|
+	| prepend           |      [coming]                                                                                     |
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| afterFirst		|	   [coming]																						|
+	| afterFirst        |      [coming]                                                                                     |
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| beforeLast		|	   [coming]																						|
+	| beforeLast        |      [coming]                                                                                     |
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| eachN				|	   [coming]																						|
+	| eachN             |      [coming]                                                                                     |
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| whitespace		| Whitespace to place between elements. Should be a positive integer, but can be a string if the	|
-	|					| number is smaller than three and greater than zero. May also be the string None or False, but		|
-	|					| you should probably just not set it if that's what you want.										|
+	| whitespace        | Whitespace to place between elements. Should be a positive integer, but can be a string if the    |
+	|                   | number is smaller than three and greater than zero. May also be the string None or False, but     |
+	|                   | you should probably just not set it if that's what you want.                                      |
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| append			|	   [coming]																						|
+	| append            |      [coming]                                                                                     |
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimiter			|	   [coming]																						|
+	| delimiter         |      [coming]                                                                                     |
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimitBehavior	|	   [coming]																						|
+	| delimitBehavior   |      [coming]                                                                                     |
 	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimitBehaviour	|	   [coming]																						|
+	| delimitBehaviour  |      [coming]                                                                                     |
 	+-------------------+---------------------------------------------------------------------------------------------------+
 
 

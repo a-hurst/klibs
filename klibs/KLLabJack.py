@@ -38,7 +38,7 @@ class LabJack(object):
 
 		for i in range(0, len(labels)):
 			try:
-				self.messges[labels[i]] = values[i]
+				self.messages[labels[i]] = values[i]
 			except IndexError:
 				raise IndexError("Number of labels and values must be equal.")
 
@@ -47,7 +47,3 @@ class LabJack(object):
 
 	def read(self, state):
 		self.labjack.getFeedback(u3.PortStateRead([state, 0, 0]))
-
-
-
-

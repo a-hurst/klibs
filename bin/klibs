@@ -15,10 +15,7 @@ from random import choice
 from hashlib import sha1
 from pkg_resources import resource_filename, resource_string
 from klibs.KLExceptions import DatabaseException
-from klibs.KLUtilities import hide_mouse_cursor
 from klibs.KLUtilities import colored_stdout as cso
-
-klibs_version = "0.6.0"
 
 #  todo: add in Ross's april fools idea
 
@@ -303,13 +300,12 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	if development_mode:
 		P.development_mode = True
 		P.collect_demographics = False
-	P.klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
 	#TODO: check if current commit matches experiment.py and warn user if not
 
 	# create runtime environment
 	env.evm = EventManager()
 	if P.eye_tracking:
-		if no_eyelink is False:  #
+		if no_eyelink is True:
 			PYLINK_AVAILABLE = False
 			P.eye_tracker_available = False
 		reload(KLEyeLink)
@@ -359,7 +355,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		force_quit()
 
 
-def export(path, combined=False, join_tables=None):
+def export(path, table=None, combined=False, join_tables=None):
 	from klibs import P
 	from klibs.KLDatabase import Database
 
@@ -376,7 +372,7 @@ def export(path, combined=False, join_tables=None):
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
 	multi_file = combined != True
-	Database(project_name).export(multi_file, join_tables)
+	Database(project_name).export(table, multi_file, join_tables)
 
 
 def rebuild_db(path):
@@ -481,7 +477,7 @@ if __name__ == '__main__':
 		help=("Development mode turns off demographics collection and turns on several "
 		"debugging features.")
 	)
-	run_parser.add_argument('-ELx', '--no_eyelink', action="store_false",
+	run_parser.add_argument('-ELx', '--no_eyelink', action="store_true",
 		help=("Signals the absence of a connected EyeLink unit. "
 		"Does nothing for non-eyetracking experiments.")
 	)
@@ -498,6 +494,10 @@ if __name__ == '__main__':
 	export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
 		help=("Path to directory containing the KLIBs project. "
 		"Parent folder must be the project name.")
+	)
+	export_parser.add_argument('-t', '--table', nargs="?", type=str,
+		help=("Specify the primary table to join with the participants table during export. "
+		"Defaults to the 'trials' table unless otherwise specified.")
 	)
 	export_parser.add_argument('-c', '--combined', action="store_true",
 		help=("Export data to a single file instead of individual files for each participant. "

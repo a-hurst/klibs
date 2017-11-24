@@ -20,7 +20,7 @@ if PYLINK_AVAILABLE:
 		exp_file_name)
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import blit, fill, flip, clear
-	from klibs.KLGraphics.KLDraw import Rectangle, Circle, drift_correct_target
+	from klibs.KLGraphics.KLDraw import Rectangle, drift_correct_target
 	from klibs.KLBoundary import BoundaryInspector
 	from KLCustomEyeLinkDisplay import ELCustomDisplay
 
@@ -376,7 +376,6 @@ if PYLINK_AVAILABLE:
 		def setup(self):
 			self.dc_width = P.screen_y // 60
 			self.add_boundary("drift_correct", [P.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
-			self.gaze_dot = Circle(5, [1, (255, 255, 255, 255)], (0, 0, 0, 125)).render()
 			try:
 				self.custom_display = ELCustomDisplay()
 			except Exception as e:
@@ -531,7 +530,7 @@ if PYLINK_AVAILABLE:
 			width = boundary[1][1] - boundary[0][1]
 			height = boundary[1][0] - boundary[0][0]
 			blit(Rectangle(width, height, [3, [255, 255, 255, 255]]).render(),
-				 position=(boundary[0][0] - 3, boundary[0][1] - 3), registration=7)
+				 location=(boundary[0][0] - 3, boundary[0][1] - 3), registration=7)
 
 
 		def remove_gaze_boundary(self, name):

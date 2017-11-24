@@ -116,7 +116,7 @@ class NumpySurface(object):
 		self.__background_offset__ = None
 		self.__background_mask__ = None
 		self.__background_unmask__ = None
-		self.__bg_mask_position__ = None
+		self.__bg_mask_location__ = None
 		self.__height__ = None
 		self.__width__ = None
 		self.__bg_color__ = None
@@ -205,14 +205,14 @@ class NumpySurface(object):
 		new_px = px.reshape((px_count,4))
 		print new_px.shape
 
-	def blit(self, source, layer=NS_FOREGROUND, registration=7, position=(0, 0), behavior=None):
+	def blit(self, source, layer=NS_FOREGROUND, registration=7, location=(0, 0), behavior=None):
 		# todo: implement layer logic here
 		"""
 
 		:param source:
 		:param layer:
 		:param registration:
-		:param position:
+		:param location:
 		:raise ValueError:
 		"""
 		try:
@@ -229,24 +229,24 @@ class NumpySurface(object):
 		source_width = source.shape[1]
 
 		# convert english location strings to x,y coordinates of destination surface
-		if type(position) is str:
-			position = absolute_position(position, self)
+		if type(location) is str:
+			location = absolute_position(location, self)
 
 		registration = build_registrations(source_height, source_width)[registration]
-		position = (int(position[0] + registration[0]), int(position[1] + registration[1]))
+		location = (int(location[0] + registration[0]), int(location[1] + registration[1]))
 
 		# don't attempt the blit if source can't fit
 		if behavior is None:
 			if source_height > self.height or source_width > self.width:
 				e_msg = "Source ({0} x {1}) is larger than destination ({2} x {3})".format(source_width, source_height, self.width, self.height)
 				raise ValueError(e_msg)
-			elif source_height + position[1] > self.height or source_width + position[0] > self.width:
-				raise ValueError("Source cannot be blit to position; destination bounds exceeded.")
-		x1 = position[0]
-		x2 = position[0] + int(source_width)
-		y1 = position[1]
-		y2 = position[1] + int(source_height)
-		# print "Position: {0}: ".format(position)
+			elif source_height + location[1] > self.height or source_width + location[0] > self.width:
+				raise ValueError("Source cannot be blit to location; destination bounds exceeded.")
+		x1 = location[0]
+		x2 = location[0] + int(source_width)
+		y1 = location[1]
+		y2 = location[1] + int(source_height)
+		# print "Position: {0}: ".format(location)
 		# print "Blit Coords: {0}: ".format([y1,y2,x1,x2])
 
 		self.__ensure_writeable__(layer)
@@ -315,13 +315,13 @@ class NumpySurface(object):
 		self.__update_shape__()
 		return self
 
-	def layer_from_file(self, image, layer=NS_FOREGROUND, position=None):
+	def layer_from_file(self, image, layer=NS_FOREGROUND, location=None):
 		# todo: better error handling; check if the file has a valid image extension, make sure path is a valid type
 		"""
 
 		:param image:
 		:param layer:
-		:param position:
+		:param location:
 		:return: :raise TypeError:
 		"""
 		image_content = add_alpha_channel(np.array(Image.open(image)))
@@ -336,17 +336,17 @@ class NumpySurface(object):
 		self.__update_shape__()  # only needed if resize not called; __update_shape called at the end of resize
 		return self
 
-	def position_in_layer_bounds(self, position, layer=None):
+	def location_in_layer_bounds(self, location, layer=None):
 		"""
 
-		:param position:
+		:param location:
 		:param layer:
 		:return: :raise ValueError:
 		"""
 		layer = NS_FOREGROUND if type(layer) is None else layer
 		target = self.__fetch_layer__(layer)
 		try:
-			position_iter = iter(position)
+			location_iter = iter(location)
 			if layer == NS_FOREGROUND:
 				target = self.foreground
 			elif layer == NS_BACKGROUND:
@@ -354,9 +354,9 @@ class NumpySurface(object):
 			else:
 				raise TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
 		except:
-			raise ValueError("Argument 'position' must be an iterable representation of  x, y coordinates.")
+			raise ValueError("Argument 'location' must be an iterable representation of  x, y coordinates.")
 
-		return position[0] < target.shape[1] and position[1] < target.shape[0]
+		return location[0] < target.shape[1] and location[1] < target.shape[0]
 
 	def region_in_layer_bounds(self, region, offset=0, layer=NS_FOREGROUND):
 		"""
@@ -384,7 +384,7 @@ class NumpySurface(object):
 			raise TypeError("Argument 'region' must be either a numpy.ndarray or a klibs.NumpySurface object.")
 		in_bounds = True
 		for coord in bounding_coords:
-			in_bounds = self.position_in_layer_bounds(coord)
+			in_bounds = self.location_in_layer_bounds(coord)
 
 		return in_bounds
 
@@ -395,7 +395,7 @@ class NumpySurface(object):
 		:param layer:
 		:return:
 		"""
-		if self.position_in_layer_bounds(location, layer):
+		if self.location_in_layer_bounds(location, layer):
 			return self.__fetch_layer__(layer)[location[1]][location[0]]
 		else:
 			return False
@@ -403,11 +403,11 @@ class NumpySurface(object):
 	def has_content(self):
 		return False if self.foreground is None and self.background is None else True
 
-	def mask(self, mask, position=[0,0], grey_scale=False, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
+	def mask(self, mask, location=[0,0], grey_scale=False, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
 		"""
 
 		:param mask:
-		:param position:
+		:param location:
 		:param grey_scale:
 		:param layer:
 		:param auto_truncate:
@@ -427,63 +427,63 @@ class NumpySurface(object):
 			self.__ensure_writeable__(NS_FOREGROUND)
 			if auto_truncate:
 				try:
-					iter(position)
-					position = [position[0], position[1]]
+					iter(location)
+					location = [location[0], location[1]]
 				except AttributeError:
-					print "Argument 'position' must be iterable set of polar coordinates."
+					print "Argument 'location' must be iterable set of polar coordinates."
 				new_pos = [0, 0]
 				mask_x1 = 0
 				mask_x2 = 0
 				mask_y1 = 0
 				mask_y2 = 0
-				# make sure position isn't impossible (ie. not off right-hand or bottom edge)
-				if position[0] >= 0:
-					if (mask.shape[0] + position[1]) > self.foreground.shape[0]:
-						mask_x1 = self.foreground.shape[0] - position[1]
+				# make sure location isn't impossible (ie. not off right-hand or bottom edge)
+				if location[0] >= 0:
+					if (mask.shape[0] + location[1]) > self.foreground.shape[0]:
+						mask_x1 = self.foreground.shape[0] - location[1]
 					else:
 						mask_x1 = 0
-					if mask.shape[1] + position[0] > self.foreground.shape[1]:
-						mask_x2 = self.foreground.shape[1] - position[0]
+					if mask.shape[1] + location[0] > self.foreground.shape[1]:
+						mask_x2 = self.foreground.shape[1] - location[0]
 					else:
-						mask_x2 = mask.shape[1] + position[0]
-					new_pos[0] = position[0]
+						mask_x2 = mask.shape[1] + location[0]
+					new_pos[0] = location[0]
 				else:
-					mask_x1 = abs(position[0])
-					if abs(position[0]) + mask.shape[1] > self.foreground.shape[1]:
-						mask_x2 = self.foreground.shape[1] + abs(position[0])
+					mask_x1 = abs(location[0])
+					if abs(location[0]) + mask.shape[1] > self.foreground.shape[1]:
+						mask_x2 = self.foreground.shape[1] + abs(location[0])
 					else:
-						mask_x2 = self.foreground.shape[1] - (abs(position[0]) + mask.shape[1])
+						mask_x2 = self.foreground.shape[1] - (abs(location[0]) + mask.shape[1])
 					new_pos[0] = 0
 
 
-				if position[1] >= 0:
-					mask_y1 = position[1]
-					if mask.shape[0] + position[1] > self.foreground.shape[0]:
-						mask_y2 = self.foreground.shape[0] - position[1]
+				if location[1] >= 0:
+					mask_y1 = location[1]
+					if mask.shape[0] + location[1] > self.foreground.shape[0]:
+						mask_y2 = self.foreground.shape[0] - location[1]
 					else:
-						mask_y2 = mask.shape[0] + position[1]
-					new_pos[1] = position[1]
+						mask_y2 = mask.shape[0] + location[1]
+					new_pos[1] = location[1]
 				else:
-					mask_y1 = abs(position[1])
-					if abs(position[1]) + mask.shape[0] > self.foreground.shape[0]:
-						mask_y2 = self.foreground.shape[0] + abs(position[1])
+					mask_y1 = abs(location[1])
+					if abs(location[1]) + mask.shape[0] > self.foreground.shape[0]:
+						mask_y2 = self.foreground.shape[0] + abs(location[1])
 					else:
-						mask_y2 = self.foreground.shape[0] - (abs(position[1]) + mask.shape[0])
+						mask_y2 = self.foreground.shape[0] - (abs(location[1]) + mask.shape[0])
 					new_pos[1] = 0
 
 				mask = mask[mask_y1: mask_y2, mask_x1: mask_x2]
-				position = new_pos
+				location = new_pos
 
-			elif self.region_in_layer_bounds(mask, position, NS_FOREGROUND):
-				self.__fg_mask_pos__ = position
+			elif self.region_in_layer_bounds(mask, location, NS_FOREGROUND):
+				self.__fg_mask_pos__ = location
 			else:
-				raise ValueError("Mask falls outside of layer bounds; reduce size or reposition.")
+				raise ValueError("Mask falls outside of layer bounds; reduce size or relocation.")
 
 			alpha_map = np.ones(mask.shape[:-1]) * 255 - mask[..., 3]
-			fg_x1 = position[0]
-			fg_x2 = alpha_map.shape[1] + position[0]
-			fg_y1 = position[1]
-			fg_y2 = alpha_map.shape[0] + position[1]
+			fg_x1 = location[0]
+			fg_x2 = alpha_map.shape[1] + location[0]
+			fg_y1 = location[1]
+			fg_y2 = alpha_map.shape[0] + location[1]
 			pump()
 			flat_map = alpha_map.flatten()
 			flat_fg = self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3].flatten()

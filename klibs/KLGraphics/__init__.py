@@ -243,33 +243,6 @@ def display_init(diagonal_in):
 		return window
 
 
-def draw_fixation(location=BL_CENTER, size=None, stroke=None, color=None, fill_color=None, flip=False):
-		"""
-		Creates and renders a FixationCross (see :mod:`~klibs.KLDraw` inside an optional background circle at provided or
-		default location.
-
-		:param location: X-Y Location of drift correct target; if not provided, defaults to screen center.
-		:type location: Interable of Integers or `Relative Location Constant`
-		:param size: Width and height in pixels of fixation cross.
-		:type size: Integer
-		:param stroke: Width in pixels of the fixation cross's horizontal & vertical bars.
-		:type stroke: Integer
-		:param color: Color of fixation cross as rgb or rgba values (ie. (255, 0, 0) or (255, 0, 0, 125).
-		:type color: Iterable of Integers
-		:param fill_color: Color of background circle as iterable rgb or rgba values; default is None.
-		:type color: Iterable of Integers
-		:param flip: Toggles automatic flipping of display buffer, see :func:`~klibs.KLExperiment.Experiment.flip``.
-		"""
-
-		from KLDraw import FixationCross
-
-		if not size: size = deg_to_px(P.fixation_size)
-		if not stroke: stroke = size // 5
-		cross = FixationCross(size, stroke, color, fill_color).draw()
-		blit(cross, 5, absolute_position(location))
-		if flip: flip()
-
-
 def fill(color=None, context=None):
 	"""
 	Fills the display buffer with a single RGB or RGBA color. If no color is specified,
@@ -320,14 +293,14 @@ def flip(window=None):
 
 	"""
 	from klibs.KLEnvironment import exp, el
-	from KLDraw import Circle
+	from KLDraw import Ellipse
 	global tracker_dot
 
 	if P.development_mode and P.el_track_gaze and P.eye_tracking and P.in_trial:
 		try:
 			tracker_dot
 		except NameError:
-			tracker_dot = Circle(8, stroke=[2, (255,255,255)], fill=(255,0,0)).render()
+			tracker_dot = Ellipse(8, stroke=[2, (255,255,255)], fill=(255,0,0)).render()
 		try:
 			blit(tracker_dot, 5, el.gaze())
 		except RuntimeError:
@@ -364,5 +337,3 @@ def rgb_to_rgba(rgb):
 		Tuple[r, g, b, a]: A 4-element RGBA tuple.
 	"""
 	return tuple(rgb) if len(rgb) == 4 else tuple([rgb[0], rgb[1], rgb[2], 255])
-
-

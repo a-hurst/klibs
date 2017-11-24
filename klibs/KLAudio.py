@@ -16,7 +16,7 @@ from klibs.KLConstants import (AUDIO_ON, AUDIO_OFF, AR_CHUNK_READ_SIZE, AR_CHUNK
 from klibs import P
 from klibs.KLUtilities import pump, flush
 from klibs.KLUserInterface import ui_request
-from klibs.KLGraphics.KLDraw import Circle
+from klibs.KLGraphics.KLDraw import Ellipse
 from klibs.KLGraphics import fill, blit, flip
 
 from klibs import PYAUDIO_AVAILABLE
@@ -287,9 +287,9 @@ class AudioStream(object):
 			if sample_circle < 5:
 				sample_circle = 5
 			if message:
-				blit(message, position=[25,25], registration=7)
-			blit(Circle(peak_circle, fill=[255, 145, 0]), position=P.screen_c, registration=5)
-			blit(Circle(sample_circle, fill=[84, 60, 182]), position=P.screen_c, registration=5)
+				blit(message, location=[25,25], registration=7)
+			blit(Ellipse(peak_circle, fill=[255, 145, 0]), location=P.screen_c, registration=5)
+			blit(Ellipse(sample_circle, fill=[84, 60, 182]), location=P.screen_c, registration=5)
 			flip()
 			if not first_flip_rest:
 				sample_period.start_clock()

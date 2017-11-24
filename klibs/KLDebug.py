@@ -55,9 +55,9 @@ class Debugger(object):
 						panel_w = content.width + 10
 					except AttributeError:
 						panel_w = content.shape[1] + 10
-					panel_position = (0,Params.screen_y)
+					panel_location = (0,Params.screen_y)
 					panel_registration = 1
-					content_position = (5,5)
+					content_location = (5,5)
 					content_registration = 7
 				if self.display_location == "RIGHT":
 					panel_h = Params.screen_y
@@ -65,18 +65,18 @@ class Debugger(object):
 						panel_w = content.width + 10
 					except AttributeError:
 						panel_w = content.shape[1] + 10
-					panel_position = (Params.screen_x - panel_w, Params.screen_y)
+					panel_location = (Params.screen_x - panel_w, Params.screen_y)
 					panel_registration = 1
-					content_position = (Params.screen_x - 5, 5)
+					content_location = (Params.screen_x - 5, 5)
 					content_registration = 9
 				if self.display_location == "BOTTOM":
 					panel_h = content.shape[0]
 					panel_w = Params.screen_x
-					content_position = (Params.screen_c[0], Params.screen_y)
+					content_location = (Params.screen_c[0], Params.screen_y)
 					content_registration = 2
 				panel = Rectangle(panel_w, panel_h, fill=[0,0,0,125]).render()
-				self.experiment.blit(panel, position=panel_position, registration=panel_registration)
-				self.experiment.blit(content, position=content_position, registration=content_registration)
+				self.experiment.blit(panel, location=panel_location, registration=panel_registration)
+				self.experiment.blit(content, location=content_location, registration=content_registration)
 
 
 

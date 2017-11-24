@@ -29,7 +29,7 @@ The Bezier class creates a curved line object (how does it work?)
 
 The Ellipse class creates an oval object with a specified width, height, stroke, and fill. If height is not specified, it defaults to the same value as width and creates a circle.
 
-`self.oval = kld.Circle(self, width, height=None, stroke=None, fill=None, auto_draw=True)`
+`self.oval = kld.Ellipse(self, width, height=None, stroke=None, fill=None, auto_draw=True)`
 ### Line
 
 The Line class creates a straight line object of a specified length, colour, thickness, and rotation.

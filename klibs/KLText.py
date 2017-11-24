@@ -192,13 +192,13 @@ class TextManager(object):
 				continue
 			if align == "left":
 				l_surf_pos = (0, lines.index(line) * net_line_height)
-				output.blit(l_surf, position=l_surf_pos)
+				output.blit(l_surf, location=l_surf_pos)
 			elif align == "center":
 				l_surf_pos = (surface_width/2, lines.index(line) * net_line_height)
-				output.blit(l_surf, position=l_surf_pos, registration=8)
+				output.blit(l_surf, location=l_surf_pos, registration=8)
 			elif align == "right":
 				l_surf_pos = (surface_width, lines.index(line) * net_line_height)
-				output.blit(l_surf, position=l_surf_pos, registration=9)
+				output.blit(l_surf, location=l_surf_pos, registration=9)
 		return output
 
 	def render(self, text, style="default", align="left", max_width=None):

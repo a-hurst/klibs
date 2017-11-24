@@ -11,7 +11,7 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
-from klibs.KLUtilities import (full_trace, pump, now, list_dimensions, force_quit,
+from klibs.KLUtilities import (full_trace, pump, flush, now, list_dimensions, force_quit,
 	show_mouse_cursor, hide_mouse_cursor)
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear #, display_init
@@ -155,13 +155,7 @@ class Experiment(EnvAgent):
 		return self.database.insert()
 
 	def before_flip(self):
-		if P.eye_tracking and P.eye_tracker_available:
-			try:
-				if self.el.draw_gaze:
-					blit(self.el.gaze_dot, 5, self.el.gaze())
-			except AttributeError:
-				pass
-
+		pass
 		# KLDebug in very early stages and not ready for UnitTest branch of klibs; below code may return later
 		# if P.development_mode and not P.dm_suppress_debug_pane:
 		# 	try:
@@ -361,6 +355,7 @@ class Experiment(EnvAgent):
 		return
 
 	def show_logo(self):
+		flush()
 		fill()
 		blit(P.logo_file_path, 5, P.screen_c)
 		flip()

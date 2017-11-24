@@ -443,7 +443,7 @@ if __name__ == '__main__':
 	create_parser.set_defaults(func=create)
 
 	update_parser = subparsers.add_parser('update')
-	update_parser.add_argument('branch', nargs="?", type=str)
+	update_parser.add_argument('branch', default='default', nargs="?", type=str)
 	update_parser.set_defaults(func=update)
 
 	rebuild_parser = subparsers.add_parser('db-rebuild')

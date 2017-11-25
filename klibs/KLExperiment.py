@@ -14,11 +14,10 @@ from klibs.KLKeyMap import KeyMap
 from klibs.KLUtilities import (full_trace, pump, flush, now, list_dimensions, force_quit,
 	show_mouse_cursor, hide_mouse_cursor)
 from klibs.KLTrialFactory import TrialFactory
-from klibs.KLGraphics import flip, blit, fill, clear #, display_init
+from klibs.KLGraphics import flip, blit, fill, clear
 from klibs.KLDatabase import Database
 from klibs.KLUserInterface import any_key
 from klibs.KLAudio import AudioManager
-# from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLCommunication import message, query, collect_demographics
 
 
@@ -27,25 +26,12 @@ class Experiment(EnvAgent):
 	Initializes a KLExperiment Object
 	:param project_name: Project title, used in creating filenames and instance variables.
 	:type project_name: String
-	:param asset_path: Path to assets directory if assets directory is not in default location.
-	:type asset_path: String
-	:param export: ``DEPRECATED`` Provides instructions to export current data instead of running the experiment as normal
-	:type export: Boolean or List of Booleans
-	:raise EnvironmentError:
 	"""
 
-	__completion_message__ = "Thanks for participating; please have the researcher return to the room."
 	initialized = False
 	window = None
 	paused = False
-
-	# runtime KLIBS modules  
-	eyelink = None        # KLEyeLink instance
-	database = None       # KLDatabase instance
-	trial_factory = None  # KLTrialFactory instance
-	text_manager = None   # KLTextManager instance
-	block_break_message = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
-	block_break_messages = []
+	
 	blocks = None
 
 	def __init__(self, project_name):
@@ -53,14 +39,13 @@ class Experiment(EnvAgent):
 		Initializes a KLExperiment Object
 		:param project_name: Project title, used in creating filenames and instance variables.
 		:type project_name: String
-		:raise EnvironmentError:
 		"""
 		super(Experiment, self).__init__()
 
 		# initialize audio management for the experiment
 		self.audio = AudioManager()
 
-		self.database = Database()
+		self.database = self.db # use database from evm
 
 		self.trial_factory = TrialFactory(self)
 		if P.manual_trial_generation is False:
@@ -322,12 +307,6 @@ class Experiment(EnvAgent):
 		if not self.initialized:
 			self.quit()
 
-		# if P.collect_demographics:
-		# 	if not P.demographics_collected:
-		# 		collect_demographics()
-		# elif not P.demographics_collected:  # ie. anonymously, for dev. mode or when P.collect_demographics = False
-		# 	collect_demographics(True)
-
 		if not P.development_mode:
 			version_dir = join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))
 			mkdir(version_dir)
@@ -341,7 +320,6 @@ class Experiment(EnvAgent):
 			except AttributeError:
 				self.el.setup()
 
-		# self.blocks = self.trial_factory.export_trials()
 		self.setup()
 		try:
 			self.__execute_experiment__(*args, **kwargs)
@@ -350,10 +328,6 @@ class Experiment(EnvAgent):
 
 		self.quit()
 
-	@abstractmethod
-	def clean_up(self):
-		return
-
 	def show_logo(self):
 		flush()
 		fill()
@@ -361,9 +335,14 @@ class Experiment(EnvAgent):
 		flip()
 		any_key()
 
-	@abstractmethod
-	def display_refresh(self):
-		pass
+
+	## Define abstract methods to be overridden in experiment.py ##
+	#TODO: Add in-line documentation for most of these
+
+	if P.multi_session_project:
+		@abstractmethod
+		def init_session(self, id_str):
+			pass
 
 	@abstractmethod
 	def setup(self):
@@ -374,22 +353,21 @@ class Experiment(EnvAgent):
 		pass
 
 	@abstractmethod
-	def trial(self):
+	def setup_response_collector(self):
 		pass
-
+	
 	@abstractmethod
 	def trial_prep(self):
 		pass
 
 	@abstractmethod
-	def trial_clean_up(self):
+	def trial(self):
 		pass
 
 	@abstractmethod
-	def setup_response_collector(self):
+	def trial_clean_up(self):
 		pass
-
-	if P.multi_session_project:
-		@abstractmethod
-		def init_session(self, id_str):
-			pass
+	
+	@abstractmethod
+	def clean_up(self):
+		pass

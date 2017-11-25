@@ -68,6 +68,7 @@ font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
 # default strings for communicating with participant
 no_answer_string = None
 invalid_answer_string = None
+block_break_message = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
 
 initialized = False
 audio_initialized = False

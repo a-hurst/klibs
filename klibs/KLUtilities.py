@@ -247,7 +247,7 @@ def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, a
 	if file_type == PARTICIPANT_FILE:
 		file_extension = TF_DATA
 		if incomplete:
-			file_path = P.incomplete_data_path
+			file_path = P.incomplete_data_dir
 			file_name_str = "p{0}_{1}_incomplete.txt"
 			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + TF_DATA
 		else:

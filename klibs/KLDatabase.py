@@ -189,9 +189,6 @@ class Database(EnvAgent):
 				if exists(P.schema_file_path):
 					self.__deploy_schema__(P.schema_file_path)
 					return True
-				elif exists(P.schema_file_path_legacy):
-					self.__deploy_schema__(P.schema_file_path_legacy)
-					return True
 				else:
 					raise RuntimeError("Database exists but no tables were found and no table schema were provided.")
 		except (sqlite3.OperationalError, IOError):
@@ -492,7 +489,7 @@ class Database(EnvAgent):
 			if incomplete: suffix = "_incomplete" + suffix
 			if duplicate_count: suffix = "_{0}".format(duplicate_count) + suffix
 			fname = basename + suffix
-			filepath = join(P.incomplete_data_path if incomplete else P.data_dir, fname)
+			filepath = join(P.incomplete_data_dir if incomplete else P.data_dir, fname)
 			if isfile(filepath):
 				duplicate_count += 1
 			else:

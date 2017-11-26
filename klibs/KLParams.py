@@ -14,40 +14,44 @@ from pkg_resources import resource_filename, resource_string
 
 from klibs.KLConstants import *
 
-klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
 
 #  project structure; default paths & filenames
 global project_name
 global asset_dir
-global resources_dir
-global image_dir
 global config_dir
-global database_filename
-global log_filename
-global log_file_path
-global database_path
-global database_backup_path
+global data_dir
+global incomplete_data_dir
 global edf_dir
 global incomplete_edf_dir
-global schema_file_path
-global schema_filename
-global user_queries_file_path
-global user_queries_filename
-global data_dir
-global incomplete_data_path
+global image_dir
+global local_dir
+global resources_dir
+global versions_dir
+
+global database_filename
+global database_path
+global database_backup_path
+global events_filename
+global events_file_path
 global ind_vars_filename
 global ind_vars_file_path
 global ind_vars_file_local_path
+global log_filename
+global log_file_path
 global params_file_path
 global params_local_file_path
-global events_file_path
-global versions_dir
+global schema_filename
+global schema_file_path
+global user_queries_filename
+global user_queries_file_path
+
 global initialized
 global random_seed
 global anonymous_username
 global logo_file_path
 global key_maps
-global local_dir
+
+klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
 code_dir = "ExpAssets/Resources/code"  # hard-coded because it's required *before* the Experiment class is instantiated
 
 #########################################
@@ -188,30 +192,32 @@ def init_project():
 	global project_name
 	global asset_dir
 	global config_dir
-	global database_filename
-	global log_filename
-	global log_file_path
-	global database_path
-	global database_backup_path
+	global data_dir
+	global incomplete_data_dir
 	global edf_dir
 	global incomplete_edf_dir
-	global schema_file_path
-	global schema_file_path_legacy
-	global user_queries_file_path
-	global user_queries_filename
-	global schema_filename
-	global data_dir
-	global incomplete_data_path
+	global local_dir
+	global logs_dir
+	global versions_dir
+	
+	global database_filename
+	global database_path
+	global database_backup_path
+	global events_filename
+	global events_file_path
 	global ind_vars_filename
 	global ind_vars_file_path
 	global ind_vars_file_local_path
-	global config_file_path_legacy
+	global log_filename
+	global log_file_path
+	global params_filename
 	global params_file_path
 	global params_local_file_path
-	global events_file_path
-	global versions_dir
-	global local_dir
-	global logs_dir
+	global schema_filename
+	global schema_file_path
+	global user_queries_filename
+	global user_queries_file_path
+
 	global initialized
 
 	key_maps = {"*": KeyMap("*", [], [], [])}
@@ -234,21 +240,19 @@ def init_project():
 	incomplete_edf_dir = join(data_dir, "incomplete")
 	log_file_path = join(asset_dir, log_filename)
 	schema_file_path = join(config_dir, schema_filename)
-	schema_file_path_legacy = join(asset_dir, schema_filename)
 	user_queries_file_path = join(config_dir, user_queries_filename)
 	database_path = join(asset_dir, database_filename)
 	database_backup_path = database_path + BACK_EXT
-	incomplete_data_path = join(data_dir, "incomplete")
+	incomplete_data_dir = join(data_dir, "incomplete")
 	ind_vars_file_path = join(config_dir, ind_vars_filename)
 	ind_vars_file_local_path = join(local_dir, ind_vars_filename)
-	config_file_path_legacy = join(asset_dir, ind_vars_filename)
 	params_file_path = join(config_dir, params_filename)
 	params_local_file_path = join(local_dir, params_filename)
 	events_file_path = join(config_dir, events_filename)
 	versions_dir = join(asset_dir, ".versions")
 	logs_dir = join(local_dir, "logs")
 
-	for path in [local_dir, logs_dir, versions_dir, edf_dir, data_dir, incomplete_data_path, incomplete_edf_dir]:
+	for path in [local_dir, logs_dir, versions_dir, edf_dir, data_dir, incomplete_data_dir, incomplete_edf_dir]:
 		if not exists(path):
 			try:
 				makedirs(path)

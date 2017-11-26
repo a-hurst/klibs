@@ -359,8 +359,11 @@ class ColorSelectionResponse(ResponseType):
 	__bounds__ = None
 	__probe__ = None
 	target_loc = None
+	warp_cursor = True
 	angle_response = True
 	color_response = False
+
+	__first_loop__ = True
 
 	def __init__(self, rc_start_time):
 		super(ColorSelectionResponse, self).__init__(rc_start_time, RC_COLORSELECT)
@@ -372,6 +375,11 @@ class ColorSelectionResponse(ResponseType):
 			raise ValueError("Cannot collect color responses with an Annulus target.")
 		if not self.angle_response and not self.color_response:
 			raise ValueError("At least one of 'angle_response' and 'color_response' must be True.")
+
+		# If first loop of RC and warp_cursor enabled, warp cursor to middle of wheel
+		if self.warp_cursor and self.__first_loop__:
+			mouse_pos(position=self.__bounds__.center)
+			self.__first_loop__ = False
 
 		for e in event_queue:
 			if e.type == SDL_MOUSEBUTTONUP:

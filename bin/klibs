@@ -1,55 +1,35 @@
 #!/usr/bin/env python
 
-import argparse
 import os
-from os.path import join
-from os import makedirs
-import shutil
-import traceback
-import imp
-import time
 import sys
-import pip
+import imp
+import argparse
+import traceback
 
-from random import choice
-from hashlib import sha1
-from pkg_resources import resource_filename, resource_string
-from klibs.KLExceptions import DatabaseException
-from klibs.KLUtilities import colored_stdout as cso
+try:
+	imp.find_module('klibs')
+except ImportError:
+	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m")
+	print("The 'klibs' Python module could not be found! Please reinstall KLibs.\n")
 
-#  todo: add in Ross's april fools idea
+try:
+	from klibs.KLExceptions import DatabaseException
+	from klibs.KLUtilities import colored_stdout as cso
+except:
+	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m\n\nStack Trace:")
+	exc_type, exc_value, exc_traceback = sys.exc_info()
+	print(traceback.print_exception(exc_type, exc_value, exc_traceback, limit=5, file=sys.stdout))
 
-def print_warning(exc_type, exc_value, exc_traceback):
-	cso("\n<red>*** Fatal Error: Unable to load KLibs ***</red>")
-	cso("\nStack Trace (if you don't understand this, skip forward to 'What To Do If KLibs Wasn't Found'")
-	cso(traceback.print_exception(exc_type, exc_value, exc_traceback,limit=5, file=sys.stdout))
-	time.sleep(0.3)
-	# this should probably be rewritten/updated a bit more
-	cso("\n<teal>What To Do If KLIBS Wasn't Found: \nIf the KLibs python module couldn't be located; repair the path to the module or reinstall it.</teal>")
-	cso("Perhaps you're thinking \"then what's talking to me right now?!\". Don't worry, neither you nor I have gone mad.")
-	cso("Rather, when you typed 'klibs <name> <path>' you executed a setup script to create a new empty project.")
-	cso("This script is invoked using the word 'klibs' as a convenience but it is *not* a part of the klibs python module")
-	cso("required to execute a klibs project. This script is found at /usr/local/bin/klibs, whereas klibs must be")
-	cso("reachable by PYTHONPATH. If you don't know what this means try simply reinstalling. If that doesn't work,")
-	cso("then you probably need assistance. Go find a nerd!\n")
-	cso("\t<blue>More Information:</blue>   http://kleinlab.psychology.dal.ca/klibs/documentation")
-	cso("\t<blue>Repository:</blue>         https://github.com/a-hurst/klibs\n")
-
-
-def full_trace():
-	exception_list = traceback.format_stack()
-	exception_list = exception_list[:-2]
-	exception_list.extend(traceback.format_tb(sys.exc_info()[2]))
-	exception_list.extend(traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]))
-
-	exception_str = "Traceback (most recent call last):\n"
-	exception_str += "".join(exception_list)
-
-	# Removing the last \n
-	return exception_str[:-1]
 
 
 def create(name, path):
+	import time
+	import shutil
+	from random import choice
+	from os.path import join
+	from hashlib import sha1
+	from pkg_resources import resource_filename
+
 	split_test = os.path.split(name)
 	if len(split_test[0]):
 		path, name = split_test
@@ -63,7 +43,8 @@ def create(name, path):
 		try:
 			auth_parse = argparse.ArgumentParser()
 			auth_parse.add_argument('name', type=str, nargs=2)
-			auth_args = auth_parse.parse_args(raw_input(cso("\n<green_d>Provide your first and last name: </green_d>", False)).split())
+			name = raw_input(cso("\n<green_d>Provide your first and last name: </green_d>", False))
+			auth_args = auth_parse.parse_args(name.split())
 			if len(auth_args.name) == 2:  # todo: add a check to ensure names are only letters
 				author_ok = True
 		except SystemExit:
@@ -115,13 +96,13 @@ def create(name, path):
 	def build_directory_structure(dir_map, parents=[]):
 		if dir_map is None:
 			return
-		parent_path = os.path.join(*parents) if len(parents) else ""
+		parent_path = join(*parents) if len(parents) else ""
 
 		for d in dir_map:
 			dir_full_path = join(tmp_path, parent_path, d)
 			subdirs = dir_map[d]
 			try:
-				makedirs(dir_full_path)
+				os.makedirs(dir_full_path)
 			except OSError as e:
 				cso("failed")
 				cso(dir_map, parents)
@@ -165,35 +146,7 @@ def create(name, path):
 	cso("<green_d>\nProject successfully created at:</green_d> '<blue>{0}</blue>'".format(project_path))
 
 
-def update(branch='default'):
-	#TODO: This should really be able to compare the version/commit/origin of the current KLibs
-	#install and the one about to be installed to make sure you can't unintentionally overwrite
-	#a newer local version or install from a different branch.
-	git_repo_short = 'github.com/a-hurst'
-	git_repo = 'https://{0}/klibs.git'.format(git_repo_short)
-	if branch != 'default':
-		git_repo += "@{0}".format(branch)
-	
-	update_cmd = 'install -U git+{0}#egg=klibs --no-deps'.format(git_repo)
-	update_prompt = cso("\n<green_d>Updating will replace the current install of KLibs with" \
-	" the most recent commit of the </green_d><purple>{0}</purple><green_d> branch of " \
-	"</green_d><purple>'{1}'</purple><green_d>. Are you sure you want to continue?" \
-	" (Y/N): </green_d>".format(branch,git_repo_short), False)
-	if raw_input(update_prompt).lower() == "y":
-		print " "
-		cso("<green_d>Updating klibs to latest commit from {0}...</green_d>".format(git_repo_short))
-		try:
-			pip.main(update_cmd.split(' '))
-		except OSError:
-			cso("<red>Root permissions required to reinstall klibs.</red>")
-			exit()
-	else:
-		print " "
-		exit()
-
-
 def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose):
-	from logging import INFO, DEBUG, WARNING, ERROR, CRITICAL
 	from klibs import  P
 	from klibs.KLGraphics import display_init
 	from klibs import KLEyeLink
@@ -205,7 +158,6 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	from klibs.KLText import TextManager
 	from klibs.KLResponseCollectors import ResponseCollector
 	from klibs.KLCommunication import init_messaging, collect_demographics
-	import logging as lg
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
 
@@ -237,14 +189,14 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		parent_path = os.path.join(*parents) if len(parents) else ""
 
 		for d in dir_map:
-			dir_full_path = join(path, parent_path, d)
+			dir_full_path = os.path.join(path, parent_path, d)
 			subdirs = dir_map[d]
 			if not os.path.exists(dir_full_path):
 				if not create_missing:
 					missing_dirs.append(dir_full_path)
 				else:
 					try:
-						makedirs(dir_full_path)
+						os.makedirs(dir_full_path)
 					except OSError as e:
 						cso("failed")
 						cso(dir_map, parents)
@@ -275,8 +227,12 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 			elif action.action == "c":
 				ensure_directory_structure(dir_structure, create_missing=True)
 		get_response()
+
 	# set initial param values for project's context
 	P.setup(project_name)
+
+	# Add ExpAssets/Resources/code to pythonpath for easy importing
+	sys.path.append(P.code_dir)
 
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
@@ -399,9 +355,11 @@ def rebuild_db(path):
 # def rename(path): todo: write this, it's irritatingly complex but also super necessary
 
 
-
 def hard_reset(path):
+	import shutil
+	from os.path import join
 	from klibs.KLUtilities import iterable
+
 	reset_prompt = cso("\n<red>Warning: doing a hard reset will delete all collected data", \
 	" all logs, all copies of experiment.py and Config files in the .versions folder" \
 	" that previous participants were run with, and reset the project's database." \
@@ -420,6 +378,34 @@ def hard_reset(path):
 		os.mkdir(join(path, "ExpAssets", ".versions"))
 		rebuild_db(path)
 	print " "
+
+
+def update(branch='default'):
+	import pip
+	#TODO: This should really be able to compare the version/commit/origin of the current KLibs
+	#install and the one about to be installed to make sure you can't unintentionally overwrite
+	#a newer local version or install from a different branch.
+	git_repo_short = 'github.com/a-hurst'
+	git_repo = 'https://{0}/klibs.git'.format(git_repo_short)
+	if branch != 'default':
+		git_repo += "@{0}".format(branch)
+	
+	update_cmd = 'install -U git+{0}#egg=klibs --no-deps'.format(git_repo)
+	update_prompt = cso("\n<green_d>Updating will replace the current install of KLibs with" \
+	" the most recent commit of the </green_d><purple>{0}</purple><green_d> branch of " \
+	"</green_d><purple>'{1}'</purple><green_d>. Are you sure you want to continue?" \
+	" (Y/N): </green_d>".format(branch,git_repo_short), False)
+	if raw_input(update_prompt).lower() == "y":
+		print " "
+		cso("<green_d>Updating klibs to latest commit from {0}...</green_d>".format(git_repo_short))
+		try:
+			pip.main(update_cmd.split(' '))
+		except OSError:
+			cso("<red>Root permissions required to reinstall klibs.</red>")
+			exit()
+	else:
+		print " "
+		exit()
 
 
 # the part of the script that gets run when klibs is invoked from cli

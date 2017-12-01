@@ -244,7 +244,7 @@ class Experiment(EnvAgent):
 		should be used to exit an experiment.
 		"""
 		if P.verbose_mode:
-			full_trace()
+			print full_trace()
 
 		#try:
 		#	if not self.evm.events_dumped:

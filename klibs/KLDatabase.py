@@ -501,9 +501,7 @@ class Database(EnvAgent):
 			result = self.cursor.execute(query, tuple(q_vars))
 		else:
 			result = self.cursor.execute(query)
-		# try:
-		# except:
-		# 		full_trace()
+
 		if query_type != QUERY_SEL: self.db.commit()
 		if return_result:
 			if fetch_all:

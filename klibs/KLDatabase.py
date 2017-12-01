@@ -368,7 +368,7 @@ class Database(EnvAgent):
 		# is somewhat misleading (add runtime_info table)
 		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export--probably this should be added to the participant table at run time
 		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", P.klibs_version], ["Display Diagonal Inches", P.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*P.screen_x_y)], ["Random Seed", random_seed]]
-		klibs_vars   = ["KLIBS INFO"]
+		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", P.klibs_commit]]
 		eyelink_vars = ["EYELINK SETTINGS",
 						["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
 						["Saccadic Acceleration Threshold", P.saccadic_acceleration_threshold],
@@ -376,22 +376,6 @@ class Database(EnvAgent):
 		exp_vars 	 = ["EXPERIMENT SETTINGS",
 						["Trials Per Block", P.trials_per_block],
 						["Blocks Per Experiment", P.blocks_per_experiment]]
-
-		try:
-			if user_id:  # if building a header for a single participant, include the random seed
-				q1 = "SELECT `klibs_commit` from `participants` WHERE `participants`.`id` = ?"
-				q2 = "SELECT `random_seed` from `participants` WHERE `participants`.`id` = ?"
-				klibs_vars.append(["KLibs Commit", self.query(q1, q_vars=[user_id])[0][0]])
-				klibs_vars.append(["Random Seed", self.query(q2, q_vars=[user_id])[0][0]])
-			else:
-				# for combined header, KLibs commit is 'various' if it differs b/w participants
-				commits = self.query("SELECT `klibs_commit` from `participants`")
-				commits = [item for sublist in commits for list in sublist] # flatten list
-				commit = commits[0] if len(set(commits)) == 1 else "Various"
-				klibs_vars.append(["KLibs Commit", commit])
-
-		except sqlite3.OperationalError:
-			pass  # older klibs databases won't have this column
 		
 		header = ""
 		header_info = [klibs_vars, exp_vars]

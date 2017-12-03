@@ -85,8 +85,8 @@ class Experiment(EnvAgent):
 					clear()
 				self.rc.reset()
 		self.clean_up()
-		self.database.db.commit()
-		self.database.db.close()
+		self.database.commit()
+		self.database.close()
 
 	def __trial__(self, trial, practice):
 		"""
@@ -254,7 +254,7 @@ class Experiment(EnvAgent):
 
 		try:
 			try:
-				self.database.db.commit()
+				self.database.commit()
 			except Exception as e:
 				if e.message == "Cannot operate on a closed database.":
 					pass
@@ -262,7 +262,7 @@ class Experiment(EnvAgent):
 					print "Commit() to self.database failed."
 					raise e
 			try:
-				self.database.db.close()
+				self.database.close()
 			except Exception as e:  # TODO: Determine exception tpye
 				print "Database.close() unsuccessful."
 				raise e

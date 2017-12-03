@@ -64,7 +64,7 @@ CREATE TABLE logs (
 
 CREATE TABLE trials (
 	id integer primary key autoincrement not null,
-	participant_id integer key not null,
+	participant_id integer not null references participants(id),
 	block_num integer not null,
 	trial_num integer not null
 );

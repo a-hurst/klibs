@@ -4,7 +4,8 @@ import shutil
 import sqlite3
 from itertools import chain
 from os import remove, rename
-from os.path import exists, join, isfile
+from os.path import join, isfile
+from argparse import ArgumentParser
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import DatabaseException
@@ -139,99 +140,45 @@ class EntryTemplate(object):
 # TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
 # TODO: look for required tables and columns explicitly and give informative error if absent (ie. participants, created)
 class Database(EnvAgent):
+
 	__default_table = None
-	__open_entries = {}
+	__open_entries = None
 	__current_entry = None
+
 	db = None
 	cursor = None
-	schema = None
-	db_backup_path = None
-	table_schemas = {}
-	experiment = None
-	data_columns = None
-	data_column_format = DB_COL_TITLE
+	table_schemas = None
 
-	def __init__(self, project_name=None):
+	def __init__(self, path):
 		super(EnvAgent, self).__init__()
-		self.__init_db__()
+		self.db = sqlite3.connect(path)
+		self.cursor = self.db.cursor()
+		self.__open_entries = {}
+		if len(self._tables()) == 0:
+			if isfile(P.schema_file_path):
+				self._deploy_schema(P.schema_file_path)
+			else:
+				raise RuntimeError("Database exists but no tables were found and no table schema were provided.")
 		self.build_table_schemas()
 
-	def __catch_db_not_found__(self):
-		from argparse import ArgumentParser
-		self.db = None
-		self.cursor = None
-		self.schema = None
-		cso("<green_d>No database file was present at '{0}'.</green_d>", args=[P.database_path])
-		err_string = cso("<green_d>You can</green_d> <purple>(c)</purple><green_d>reate it,</green_d><purple>(s)</purple><green_d>"
-			"upply a different path or</green_d> <purple>(q)</purple><green_d>uit.</green_d>", False)
-		db_action = ArgumentParser()
-		db_action.add_argument('action', type=str, choices=['c', 's', 'q'])
-		action = db_action.parse_args([raw_input(err_string).lower()[0]]).action
-
-		if action == DB_SUPPLY_PATH:
-			P.database_path = raw_input(cso("<green_d>Great. Where might it be?</green_d>", False))
-			self.__init_db__()
-		elif action == DB_CREATE:
-			f = open(P.database_path, "a").close()
-			self.__init_db__()
-		elif action == "q":
-			raise DatabaseException("Quitting.")
-		else:
-			raise DatabaseException("No valid response.")
-
-	def __init_db__(self):
-		try:
-			shutil.copy(P.database_path, P.database_backup_path)
-			self.db = sqlite3.connect(P.database_path)
-			self.cursor = self.db.cursor()
-			table_list = self.__tables__()
-			if len(table_list) == 0:
-				if exists(P.schema_file_path):
-					self.__deploy_schema__(P.schema_file_path)
-					return True
-				else:
-					raise RuntimeError("Database exists but no tables were found and no table schema were provided.")
-		except (sqlite3.OperationalError, IOError):
-			self.__catch_db_not_found__()
-
-	def __tables__(self):
+	def _tables(self):
 		# TODO: I changed tableCount to tableList and made it an attribute as it seems to be used in rebuild. Verify this.
 		self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 		self.table_list = self.cursor.fetchall()
 		return self.table_list
 
-	def __drop_tables__(self, table_list=None, kill_app=False):
+	def _drop_tables(self, table_list=None):
 		if table_list is None:
-			table_list = self.__tables__()
+			table_list = self._tables()
 		for n in table_list:
 			if str(n[0]) != "sqlite_sequence":
 				self.cursor.execute("DROP TABLE `{0}`".format(str(n[0])))
 		self.db.commit()
-		if kill_app:
-			self.db.close()
-			self.__restore__()
-			quit()
 
-	def __restore__(self):
-		# restores database file from the back-up of it
-		remove(P.database_path)
-		rename(P.database_backup_path, P.database_path)
-
-	def __deploy_schema__(self, schema):
+	def _deploy_schema(self, schema):
 		f = open(schema, 'rt')
 		self.cursor.executescript(f.read())
-		return True
-
-	def build_column_header(self, multi_file=True, join_tables=None):
-		column_names = []
-		for field in (P.default_participant_fields if multi_file else P.default_participant_fields_sf):
-			column_names.append(field[1]) if iterable(field) else column_names.append(field)
-		column_names = [snake_to_camel(col) for col in column_names]
-		for t in [P.primary_table] + join_tables:
-			for field in self.table_schemas[t]:
-				if field[0][-2:] != "id": column_names.append(field[0])
-		return  TAB.join(column_names)
-
+		
 	def build_table_schemas(self):
 		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
 		tables = {}
@@ -262,8 +209,281 @@ class Database(EnvAgent):
 		self.table_schemas = tables
 		return True
 
+	def current(self, instance=None):
+		if instance is False:
+			self.__current_entry = None
+			return
+		if instance is None:
+			return self.__current_entry
+		try:
+			self.__current_entry = instance
+			return self.__current_entry.name
+		except AttributeError:
+			self.__current_entry = self.__open_entries[instance]
+			return instance
+
+	def exists(self, table, column, value):
+		return len(self.query("SELECT * FROM `?` WHERE `?` = ?", QUERY_SEL, q_vars=[table, column, value])) > 0
+
+	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
+
+	def flush(self):
+		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
+		for tableTuple in self.cursor.fetchall():
+			table = str(tableTuple[0])  # str() necessary b/c tableTuple[0] is in unicode
+			if table == "sqlite_sequence":
+				pass
+			else:
+				self.cursor.execute("DELETE from `{0}`".format(table))
+				#self.cursor.execute("UPDATE sqlite_sequence SET (SELECT MAX(col) FROM {0}) WHERE name=`{0}`".format(table))
+		self.db.commit()
+
+	def init_entry(self, table_name, instance_name=None, set_current=True):
+		try:
+			if instance_name is None: instance_name = table_name
+			self.__open_entries[instance_name] = EntryTemplate(table_name, self.table_schemas[table_name], instance_name)
+			if set_current: self.current(self.__open_entries[instance_name])
+		except IndexError:
+			raise IndexError("Table {0} not found in the KLDatabase.table_schemas.".format(table_name))
+
+	def insert(self, data=None, table=None, clear_current=True):
+		if data is None:
+			try:
+				data = self.current()
+				if not table:
+					table = data.table_name
+			except RuntimeError:  # exception below is a more informative account of the current problem
+				raise RuntimeError("No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
+
+		try:
+			self.cursor.execute(data.insert_query())
+			if clear_current and self.current().name == data.name: self.current(False)
+		except AttributeError:
+			try:
+				self.cursor.execute(self.query_str_from_raw_data(data, table))
+			except Exception as e:
+				# when insert() is directly used to add data to a table in the db, and that table
+				# doesn't exist, KLibs crashes hard with an IOError: Broken Pipe. Need to add proper
+				# and informative error handling for this.
+				print "Error: unable to write data to database."
+				raise e
+		except sqlite3.OperationalError:
+			print full_trace()
+			print "\n\n"
+			print "Tried to match the following:\n\n{0}\n\nwith\n\n{1}".format(self.table_schemas[table], data.insert_query())
+			self.exp.quit()
+		self.db.commit()
+		return self.cursor.lastrowid
+
+	def is_unique(self, table, column, value):
+		return len(self.query("SELECT * FROM `?` WHERE `?` = ?", q_vars=[table, column, value])) == 0
+
+	def last_id_from(self, table):
+		if not table in self.table_schemas:
+			raise ValueError("Table '{0}' not found in current database".format(table))
+		# dunno why, but this does NOT work if the format statement isn't used in place of a proper SQL var
+		return self.query("SELECT max({0}) from `{1}` WHERE `participant_id`={2}".format('id', table, P.participant_id))[0][0]
+
+	def log(self, field, value, instance=None, set_to_current=True):
+		# convert boolean strings/boolean literals to uppercase boolean strings for R
+		if boolean_to_logical(value): value = boolean_to_logical(value)
+		try:
+			instance.log(field, value)
+		except AttributeError:
+			try:
+				self.__open_entries[instance].log(field, value)
+			except KeyError:
+				entry = self.current()
+				entry.log(field, value)
+		if set_to_current:
+			self.current(instance)
+
+	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
+		if q_vars:
+			result = self.cursor.execute(query, tuple(q_vars))
+		else:
+			result = self.cursor.execute(query)
+
+		if query_type != QUERY_SEL: self.db.commit()
+		if return_result:
+			if fetch_all:
+				return unicode_to_str(result.fetchall())
+			else:
+				return result
+		return True
+
+	def query_str_from_raw_data(self, data, table=None):
+		if table == None:
+			table = self.__default_table
+		try:
+			template = self.table_schemas[table]
+		except KeyError:
+			raise RuntimeError("Table not found; provide table reference or ensure KLDatabase.default_table is set.")
+		columns = []
+		values = []
+		if template[0][0] == 'id':
+			template = template[1:]
+		try:
+			for column in template:
+				column_index = template.index(column)
+				try:
+					data_value = data[column_index]
+				except KeyError:
+					data_value = data[column[0]]
+				if boolean_to_logical(data_value): data_value = boolean_to_logical(data_value)
+				if type_str(data_value) == column[1]['type']:
+					if column[1]['type'] in (PY_INT, PY_FLOAT):
+						data_value =  str(data_value)
+					else:
+						data_value = "'{0}'".format(data_value)
+				elif column[1]['type'] == PY_NUM and isinstance(data_value, (int, long, float, complex)):
+					data_value = str(data_value)
+				else:
+					error_data = [column[1]['type'], column[0], type_str(data_value), data_value]
+					raise TypeError("Expected '{0}' for column '{1}', got '{2}' ({3}).".format(*error_data))
+				values.append(data_value)
+				columns.append(column[0])
+			if column_index + 1 > len(data):
+				raise ValueError('Cannot map data to table: more data elements than columns.')
+		except IndexError:
+			raise AttributeError('Cannot map data to table: fewer data elements than columns.')
+		columns_str = ",".join(columns)
+		values_str = ",".join(values)
+		return "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
+			
+	def test_data(self, table):
+		# TODO: allow rules per column such as length
+		pass
+
+	def update(self, record_id=None, data=None, fields=None, table=None, clear_current=True):
+		if not data:
+			try:
+				data = self.current()
+			except RuntimeError:  # exception below is a more informative account of the current problem
+				raise RuntimeError(
+					"No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
+			if not table: table = data.table_name
+			if not record_id and not data.id:
+				raise RuntimeError("No record to update; no record_id provided or present in KLEntryTemplate instance.")
+		try:
+			self.cursor.execute(data.update_query(fields))
+			if clear_current and self.current().name == data.name: self.current(False)
+		except AttributeError:
+			self.cursor.execute(self.query_str_from_raw_data(data, table))
+		self.db.commit()
+		return self.cursor.lastrowid
+
+	@property
+	def default_table(self):
+		return self.__default_table
+
+	@default_table.setter
+	def default_table(self, name):  # todo: error handling
+		self.__default_table = name
+
+
+class DatabaseManager(EnvAgent):
+
+	__local = None
+	__master = None
+	__current = None
+	
+	def __init__(self):
+		super(EnvAgent, self).__init__()
+		self.__load_master__()
+		if P.multi_user:
+			print(P.database_local_path)
+			shutil.copy(P.database_path, P.database_local_path)
+			self.__local = Database(P.database_local_path)
+			self.__local.flush()
+			self.__current = self.__local
+		else:
+			self.__current = self.__master
+			
+	def __catch_db_not_found__(self, path):
+		cso("<green_d>No database file was present at '{0}'.</green_d>", args=[path])
+		err_string = cso(
+			"<green_d>You can</green_d> "
+			"<purple>(c)</purple><green_d>reate it,</green_d> "
+			"<purple>(s)</purple><green_d>upply a different path or</green_d> "
+			"<purple>(q)</purple><green_d>uit.</green_d>", print_string=False
+		)
+		db_action = ArgumentParser()
+		db_action.add_argument('action', type=str, choices=['c', 's', 'q'])
+		action = db_action.parse_args([raw_input(err_string).lower()[0]]).action
+
+		if action == DB_SUPPLY_PATH:
+			P.database_path = raw_input(cso("<green_d>Great. Where might it be?</green_d>", False))
+			self.__load_master__()
+		elif action == DB_CREATE:
+			open(P.database_path, "a").close()
+			self.__load_master__()
+		elif action == "q":
+			raise DatabaseException("Quitting.")
+		else:
+			raise DatabaseException("No valid response.")
+	
+	def __load_master__(self):
+		if isfile(P.database_path):
+			shutil.copy(P.database_path, P.database_backup_path)
+			self.__master = Database(P.database_path)
+		else:
+			self.__catch_db_not_found__()
+	
+	def __restore__(self):
+		# restores database file from the back-up of it
+		remove(P.database_path)
+		rename(P.database_backup_path, P.database_path)
+	
+	def write_local_to_master(self):
+		attach_q = 'ATTACH `{0}` AS master'.format(P.database_path)
+		self.__local.cursor.execute(attach_q)
+		self.copy_columns(table='participants', ignore=['id'])
+
+		master_p_id = self.__local.cursor.lastrowid
+		update_p_id = {'participant_id': master_p_id, 'user_id': master_p_id}
+		
+		for table in self.__local.table_schemas.keys():
+			if table == 'participants': continue
+			self.copy_columns(table, ignore=['id'], sub=update_p_id)
+		
+		self.__local.cursor.execute('DETACH DATABASE `master`')
+			
+	def copy_columns(self, table, ignore=[], sub={}):
+		colnames = []
+		for col in self.__local.table_schemas[table]:
+			colname = col[0]
+			if colname not in ignore:
+				colnames.append(colname)
+		columns = ", ".join(colnames)
+		
+		col_data = columns
+		for colname in sub.keys():
+			col_data.replace(colname, "`{0}`".format(sub[colname]))
+		
+		q = "INSERT INTO master.{0} ({1}) SELECT {2} FROM {0}".format(table, columns, col_data)
+		self.__local.cursor.execute(q)
+	
+	def build_column_header(self, multi_file=True, join_tables=None):
+		column_names = []
+		for field in (P.default_participant_fields if multi_file else P.default_participant_fields_sf):
+			column_names.append(field[1]) if iterable(field) else column_names.append(field)
+		column_names = [snake_to_camel(col) for col in column_names]
+		for t in [P.primary_table] + join_tables:
+			for field in self.__master.table_schemas[t]:
+				if field[0][-2:] != "id": column_names.append(field[0])
+		return TAB.join(column_names)
+	
+	def close(self):
+		self.__master.cursor.close()
+		self.__master.db.close()
+		if P.multi_user:
+			self.write_local_to_master()
+			self.__local.cursor.close()
+			self.__local.db.close()
+
 	def collect_export_data(self, multi_file=True,  join_tables=[]):
-		participant_ids = self.query("SELECT `id`, `{0}` FROM `participants`".format(P.unique_identifier))
+		participant_ids = self.__master.query("SELECT `id`, `{0}` FROM `participants`".format(P.unique_identifier))
 		participant_ids.insert(0, (-1,))  # for test data collected before anonymous_user added to collect_demographics()
 		default_fields = P.default_participant_fields if multi_file else P.default_participant_fields_sf
 
@@ -273,7 +493,7 @@ class Database(EnvAgent):
 		#  random_seed has to be added to every participant row when exporting to multi-file
 		p_cols = [f for f in default_fields]
 		for t in [P.primary_table] + join_tables:
-			for field in self.table_schemas[t]:
+			for field in self.__master.table_schemas[t]:
 				if field[0] not in [ID, P.id_field_name]:
 					t_cols.append(field[0])
 
@@ -298,34 +518,15 @@ class Database(EnvAgent):
 			q += " WHERE `{0}`.`participant_id` = ?".format(P.primary_table)
 			q = q.format(*q_vars)
 			p_data = []
-			for trial in self.query(q, q_vars=tuple([p[0]])):
+			for trial in self.__master.query(q, q_vars=tuple([p[0]])):
 				row_str = TAB.join(str(col) for col in trial)
 				if p[0] == -1: row_str = TAB.join([P.default_demo_participant_str, row_str])
 				p_data.append(row_str)
 			data.append([p[0], p_data])
 		return data
 
-	def current(self, instance=None):
-		if instance is False:
-			self.__current_entry = None
-			return
-		if instance is None:
-			return self.__current_entry
-		try:
-			self.__current_entry = instance
-			return self.__current_entry.name
-		except AttributeError:
-			self.__current_entry = self.__open_entries[instance]
-			return instance
-
-	def empty(self, table):
-		pass
-
-	def exists(self, table, column, value):
-		return len(self.query("SELECT * FROM `?` WHERE `?` = ?", QUERY_SEL, q_vars=[table, column, value])) > 0
 
 	def export(self, table=None, multi_file=True, join_tables=None):
-
 		#TODO: make sure p_id increments sequentially, ie. skips demo_user
 		#TODO: make option for exporting non-devmode/complete participants only
 		if table != None:
@@ -363,11 +564,10 @@ class Database(EnvAgent):
 			print "\033[92m\t- Data for {0} participants successfully exported.\033[0m".format(p_count)
 		print '' # newline between export info and next prompt for aesthetics' sake
 
+
 	def export_header(self, user_id=None):
 		#TODO: make header info reflect info when participant was run, instead of just current settings which
 		# is somewhat misleading (add runtime_info table)
-		# the display information below isn't available when export is called but SHOULD be accessible, somehow, for export--probably this should be added to the participant table at run time
-		# klibs_vars = [ "KLIBS Info", ["KLIBs Version", P.klibs_version], ["Display Diagonal Inches", P.screen_diagonal_in], ["Display Resolution", "{0} x {1}".format(*P.screen_x_y)], ["Random Seed", random_seed]]
 		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", P.klibs_commit]]
 		eyelink_vars = ["EYELINK SETTINGS",
 						["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
@@ -388,82 +588,12 @@ class Database(EnvAgent):
 			if info[0] != "EXPERIMENT SETTINGS": header += "#\n"
 
 		return header
-
-	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
-
-	def flush(self):
-		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
-		for tableTuple in self.cursor.fetchall():
-			table = str(tableTuple[0])  # str() necessary b/c tableTuple[0] is in unicode
-			if table == "sqlite_sequence":
-				pass
-			else:
-				self.cursor.execute("DELETE from `{0}`".format(table))
-		self.db.commit()
-
-	def init_entry(self, table_name, instance_name=None, set_current=True):
-		try:
-			if instance_name is None: instance_name = table_name
-			self.__open_entries[instance_name] = EntryTemplate(table_name, self.table_schemas[table_name], instance_name)
-			if set_current: self.current(self.__open_entries[instance_name])
-		except IndexError:
-			raise IndexError("Table {0} not found in the KLDatabase.table_schemas.".format(table_name))
-
-	def insert(self, data=None, table=None, clear_current=True):
-		if data is None:
-			try:
-				data = self.current()
-				if not table:
-					table = data.table_name
-			except RuntimeError:  # exception below is a more informative account of the current problem
-				raise RuntimeError("No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
-
-		try:
-			self.cursor.execute(data.insert_query())
-			if clear_current and self.current().name == data.name: self.current(False)
-		except AttributeError:
-			try:
-				self.cursor.execute(self.query_str_from_raw_data(table, data))
-			except Exception as e:
-				# when insert() is directly used to add data to a table in the db, and that table
-				# doesn't exist, KLibs crashes hard with an IOError: Broken Pipe. Need to add proper
-				# and informative error handling for this.
-				print "Error: unable to write data to database."
-				raise e
-		except sqlite3.OperationalError:
-			print full_trace()
-			print "\n\n"
-			print "Tried to match the following:\n\t{0}\nwith\n\t{1}".format(self.table_schemas[table], data.insert_query())
-			self.exp.quit()
-		self.db.commit()
-		return self.cursor.lastrowid
-
-	def is_unique(self, table, column, value):
-			return len(self.query("SELECT * FROM `?` WHERE `?` = ?", q_vars=[table, column, value])) == 0
-
-	def last_id_from(self, table):
-		if not table in self.table_schemas:
-			raise ValueError("Table '{0}' not found in current database".format(table))
-		# dunno why, but this does NOT work if the format statement isn't used in place of a proper SQL var
-		return self.query("SELECT max({0}) from `{1}` WHERE `participant_id`={2}".format('id', table, P.participant_id))[0][0]
-
-	def log(self, field, value, instance=None, set_to_current=True):
-		# convert boolean strings/boolean literals to uppercase boolean strings for R
-		if boolean_to_logical(value): value = boolean_to_logical(value)
-		try:
-			instance.log(field, value)
-		except AttributeError:
-			try:
-				self.__open_entries[instance].log(field, value)
-			except KeyError:
-				entry = self.current()
-				entry.log(field, value)
-		if set_to_current:
-			self.current(instance)
+		
 
 	def filepath_str(self, participant_id=None, multi_file=False, incomplete=False):
 		if multi_file:
-			created = str(self.query("SELECT `created` FROM `participants` WHERE `id` = ?", q_vars=[1], fetch_all=False).fetchone()[0][:10])
+			created_q = "SELECT `created` FROM `participants` WHERE `id` = ?"
+			created = str(self.__master.query(created_q, q_vars=[1], fetch_all=False).fetchone()[0][:10])
 		basename = "p{0}.{1}".format(str(participant_id), created) if multi_file else "{0}_all_trials".format(P.project_name)
 		duplicate_count = 0
 		while True:
@@ -480,111 +610,52 @@ class Database(EnvAgent):
 				break
 		return filepath
 
-	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
-		if q_vars:
-			result = self.cursor.execute(query, tuple(q_vars))
-		else:
-			result = self.cursor.execute(query)
-
-		if query_type != QUERY_SEL: self.db.commit()
-		if return_result:
-			if fetch_all:
-				return unicode_to_str(result.fetchall())
-			else:
-				return result
-		return True
-
-	def query_str_from_raw_data(self, table, data):
-		try:
-			template = self.table_schemas[table]
-		except KeyError:
-			try:
-				template = self.table_schemas[self.__default_table]
-			except:
-				raise RuntimeError("Table not found; provide table reference or ensure KLDatabase.__default_table is set.")
-		columns = []
-		values = []
-		if template[0][0] == 'id':
-			template = template[1:]
-		try:
-			for column in template:
-				column_index = template.index(column)
-				try:
-					data_value = data[column_index]
-				except KeyError:
-					data_value = data[column[0]]
-				if boolean_to_logical(data_value): data_value = boolean_to_logical(data_value)
-				if type_str(data_value) == column[1]['type']:
-					if column[1]['type'] in (PY_INT, PY_FLOAT):
-						data_value =  str(data_value)
-					else:
-						data_value = "'{0}'".format(data_value)
-				elif column[1]['type'] == PY_NUM and isinstance(data_value, (int, long, float, complex)):
-					data_value = str(data_value)
-				else:
-					error_data = [column[1]['type'], column[0], type_str(data_value), data_value]
-					raise TypeError("Expected '{0}' for column '{1}', got '{2}' ({3}).".format(*error_data))
-				values.append(data_value)
-				columns.append(column[0])
-			if column_index + 1 > len(data):
-				raise ValueError('Cannot map data to table: more data elements than columns.')
-		except IndexError:
-			raise AttributeError('Cannot map data to table: fewer data elements than columns.')
-		columns_str = ",".join(columns)
-		values_str = ",".join(values)
-		return "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
-
 	def rebuild(self):
-		#todo: make this optionally handle the backup database too
-		self.__drop_tables__()
+		if not isfile(P.schema_file_path):
+			print("Error: No SQL schema found at '{0}'. Please make sure there is a valid "
+				  "schema file at this location and try again.\n".format(P.schema_file_path))
+			return False
+
+		self.__master._drop_tables()
 		e = "Error: Database schema could not be deployed; there is a syntax error in the SQL file."
-		if self.schema is not None:
-			if self.__deploy_schema__(self.schema, False):
-				initialized = True
-			else:
-				self.__drop_tables__(self.table_list, True)
-				raise IOError(e)
-		elif P.schema_file_path is not None:
-			if self.__deploy_schema__(P.schema_file_path):
-				initialized = True
-			else:
-				self.__drop_tables__(self.table_list)
-				raise IOError(e)
-
-		if self.build_table_schemas():
-			self.__open_entries = {}
-			self.__current_entry = None
-			print  "Database successfully rebuilt; exiting program. Be sure to disable the call to Database.rebuild() before relaunching."
-		# try:
-		# except IndexError:
-		# 	return False
-
-	def test_data(self, table):
-		# TODO: allow rules per column such as length
-		pass
-
-	def update(self, record_id=None, data=None, fields=None, table=None, clear_current=True):
-		if not data:
-			try:
-				data = self.current()
-			except RuntimeError:  # exception below is a more informative account of the current problem
-				raise RuntimeError(
-					"No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
-			if not table: table = data.table_name
-			if not record_id and not data.id:
-				raise RuntimeError("No record to update; no record_id provided or present in KLEntryTemplate instance.")
 		try:
-			self.cursor.execute(data.update_query(fields))
-			if clear_current and self.current().name == data.name: self.current(False)
-		except AttributeError:
-			self.cursor.execute(self.query_str_from_raw_data(table, data))
-		self.db.commit()
-		return self.cursor.lastrowid
+			self.__master._deploy_schema(P.schema_file_path)
+			self.__master.build_table_schemas()
+			print "Database successfully rebuilt!\n"
+		except (sqlite3.ProgrammingError, ValueError):
+			self.__master._drop_tables(self.table_list)
+			self.__restore__()
+			raise IOError(e)
 
-	@property
-	def default_table(self):
-		return self.__default_table
+	## Convenience methods that all pass to corresponding method of current DB ##
 
-	@default_table.setter
-	def default_table(self, name):  # todo: error handling
-		self.__default_table = name
+	def commit(self):
+		self.__current.db.commit()
+
+	def current(self, *args, **kwargs):
+		return self.__current.current(*args, **kwargs)
+
+	def exists(self, *args, **kwargs):
+		return self.__current.exists(*args, **kwargs)
+	
+	def init_entry(self, *args, **kwargs):
+		return self.__current.init_entry(*args, **kwargs)
+	
+	def insert(self, *args, **kwargs):
+		return self.__current.insert(*args, **kwargs)
+	
+	def is_unique(self, *args, **kwargs):
+		return self.__current.is_unique(*args, **kwargs)
+	
+	def last_id_from(self, *args, **kwargs):
+		return self.__current.log(*args, **kwargs)
+
+	def log(self, *args, **kwargs):
+		return self.__current.log(*args, **kwargs)
+
+	def query(self, *args, **kwargs):
+		return self.__current.query(*args, **kwargs)
+
+	def update(self, *args, **kwargs):
+		return self.__current.update(*args, **kwargs)
+		

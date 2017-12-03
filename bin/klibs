@@ -150,7 +150,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	from klibs import  P
 	from klibs.KLGraphics import display_init
 	from klibs import KLEyeLink
-	from klibs.KLDatabase import Database
+	from klibs.KLDatabase import DatabaseManager
 	from klibs.KLUtilities import force_quit
 	from klibs import env
 	from klibs.KLEventInterface import EventManager
@@ -273,7 +273,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	env.txtm = TextManager()
 	env.tk = TimeKeeper()
 	try:
-		env.db = Database(project_name)
+		env.db = DatabaseManager()
 	except DatabaseException as e:
 		if e.message == "Quitting.":
 			env.evm.terminate()
@@ -313,7 +313,7 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 
 def export(path, table=None, combined=False, join_tables=None):
 	from klibs import P
-	from klibs.KLDatabase import Database
+	from klibs.KLDatabase import DatabaseManager
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
 
@@ -328,12 +328,12 @@ def export(path, table=None, combined=False, join_tables=None):
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
 	multi_file = combined != True
-	Database(project_name).export(table, multi_file, join_tables)
+	DatabaseManager().export(table, multi_file, join_tables)
 
 
 def rebuild_db(path):
 	from klibs import P
-	from klibs.KLDatabase import Database
+	from klibs.KLDatabase import DatabaseManager
 	from klibs.KLUtilities import force_quit
 
 	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
@@ -348,7 +348,7 @@ def rebuild_db(path):
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
-	Database(project_name).rebuild()
+	DatabaseManager().rebuild()
 	force_quit()
 
 

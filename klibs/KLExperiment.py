@@ -15,6 +15,8 @@ from klibs.KLUtilities import (full_trace, pump, flush, now, list_dimensions, fo
 	show_mouse_cursor, hide_mouse_cursor)
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear
+from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
+from klibs.KLGraphics import KLDraw as kld
 from klibs.KLDatabase import Database
 from klibs.KLUserInterface import any_key
 from klibs.KLAudio import AudioManager
@@ -140,7 +142,15 @@ class Experiment(EnvAgent):
 		return self.database.insert()
 
 	def before_flip(self):
-		pass
+		if P.development_mode and P.el_track_gaze and P.eye_tracking and P.in_trial:
+			try:
+				self.tracker_dot
+			except AttributeError:
+				self.tracker_dot = kld.Ellipse(8, stroke=[2, (255,255,255)], fill=(255,0,0)).render()
+			try:
+				blit(self.tracker_dot, 5, self.el.gaze())
+			except RuntimeError:
+				pass
 		# KLDebug in very early stages and not ready for UnitTest branch of klibs; below code may return later
 		# if P.development_mode and not P.dm_suppress_debug_pane:
 		# 	try:
@@ -331,7 +341,7 @@ class Experiment(EnvAgent):
 	def show_logo(self):
 		flush()
 		fill()
-		blit(P.logo_file_path, 5, P.screen_c)
+		blit(NpS(P.logo_file_path), 5, P.screen_c)
 		flip()
 		any_key()
 

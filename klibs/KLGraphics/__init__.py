@@ -4,15 +4,13 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 import warnings
 from time import time
 from math import sqrt, atan, degrees
-from os.path import isfile
 
 import numpy as np
+from PIL import Image
+import OpenGL.GL as gl
 with warnings.catch_warnings():
 	warnings.simplefilter("ignore")
 	import sdl2
-	from PIL import Image
-	import OpenGL.GL as gl
-	warnings.simplefilter("default")
 
 from klibs import P
 from klibs.KLUtilities import absolute_position, build_registrations, pump, hide_mouse_cursor, deg_to_px
@@ -20,15 +18,7 @@ from klibs.KLConstants import *
 from KLNumpySurface import NumpySurface as NpS
 
 
-# populated on first call to flip() if needed
-global tracker_dot
-
 def aggdraw_to_numpy_surface(draw_context):
-	"""
-
-	:param draw_context:
-	:return:
-	"""
 	return NpS(aggdraw_to_array(draw_context))
 
 
@@ -96,9 +86,6 @@ def blit(source, registration=7, location=(0,0), position=None, flip_x=False):
 			height = source.shape[0]
 			width = source.shape[1]
 			content = source
-
-		elif type(source) is str and isfile(source):
-			return blit(NpS(source), registration, location, position)
 
 		else:
 			raise TypeError("Argument 'source' must be np.ndarray, klibs.KLNumpySurface.NumpySurface, or inherit from klibs.KLDraw.Drawbect.")
@@ -293,21 +280,10 @@ def flip(window=None):
 
 	"""
 	from klibs.KLEnvironment import exp, el
-	from KLDraw import Ellipse
-	global tracker_dot
-
-	if P.development_mode and P.el_track_gaze and P.eye_tracking and P.in_trial:
-		try:
-			tracker_dot
-		except NameError:
-			tracker_dot = Ellipse(8, stroke=[2, (255,255,255)], fill=(255,0,0)).render()
-		try:
-			blit(tracker_dot, 5, el.gaze())
-		except RuntimeError:
-			pass
 
 	if exp:
 		exp.before_flip()
+
 	if not window:
 		try:
 			window = exp.window.window

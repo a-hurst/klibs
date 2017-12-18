@@ -13,11 +13,13 @@ from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, R
 from klibs import P
 from klibs.KLUtilities import (pump, flush, hide_mouse_cursor, show_mouse_cursor, mouse_pos,
 	full_trace, iterable, angle_between)
-from klibs.KLUserInterface import ui_request
+from klibs.KLTime import CountDown
+from klibs.KLUserInterface import ui_request, any_key, key_pressed
 from klibs.KLBoundary import BoundaryInspector, AnnulusBoundary
 from klibs.KLGraphics import NpS, fill, flip, blit
 from klibs.KLGraphics import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import Annulus, ColorWheel, Drawbject
+from klibs.KLCommunication import message
 from klibs.KLAudio import AudioStream
 
 
@@ -200,55 +202,50 @@ class AudioResponse(ResponseType):
 			self.calibrated = True
 			return
 		for i in range(0, 3):
-			message = "Provide a normal sample of your intended response."
-			peaks.append( self.stream.get_peak_during(3, message) )
+			msg = "Provide a normal sample of your intended response."
+			peaks.append( self.stream.get_peak_during(3, msg) )
 			if i < 2:
 				next_message = "Got it; {0} more samples to collect. Press any key to continue".format(2 - i)
 				fill()
-				# message(next_message, location=P.screen_c, registration=5)
+				message(next_message, location=P.screen_c, registration=5)
 				flip()
-				any_key_pressed = False
-				while not any_key_pressed:
-					for event in pump(True):
-						if event.type == SDL_KEYDOWN:
-							ui_request(event.key.keysym)
-							any_key_pressed = True
+				any_key()
 		self.stream.threshold = min(peaks)
 		self.validate()
 
 	def validate(self):
-		validate_counter = self.tk.countdown(5)
+		instruction = "Ok, threshold set! To ensure its validity, please provide one (and only one) more response."
 		fill()
-		validation_instruction = "Ok; threshold set. To ensure it's validity, please provide one (and only one) more response."
-		# message(validation_instruction, location=P.screen_c, registration=5)
+		message(instruction, location=P.screen_c, registration=5)
 		flip()
 		self.start()
+		validate_counter = CountDown(5)
 		while validate_counter.counting():
 			ui_request()
 			if self.stream.sample().peak >= self.stream.threshold:
 				validate_counter.finish()
 				self.threshold_valid = True
 		self.stop()
-		if self.threshold_valid:
-			validation_message = "Great, validation was successful. Press any key to continue."
-		else:
-			validation_message = "Validation wasn't successful. Type C to re-calibrate or V to try validation again."
-		fill()
-		# message(validation_message, location=P.screen_c, registration=5, flip=True)
 
+		if self.threshold_valid:
+			validation_msg = "Great, validation was successful. Press any key to continue."
+		else:
+			validation_msg = "Validation wasn't successful. Type C to re-calibrate or V to try validation again."
+		fill()
+		message(validation_msg, location=P.screen_c, registration=5)
+		flip()
 		response_collected = False
 		while not response_collected:
-			for event in pump(True):
-				if event.type == SDL_KEYDOWN:
-					ui_request(event.key.keysym)
-					if self.threshold_valid:
-						self.calibrated = True
-						return
-					else:
-						if event.key.keysym.sym == SDLK_c:
-							self.calibrate()
-						if event.key.keysym.sym == SDLK_v:
-							self.validate()
+			q = pump(True)
+			if self.threshold_valid:
+				if key_pressed(queue=q):
+					self.calibrated = True
+					return
+			else:
+				if key_pressed(SDLK_c, queue=q):
+					self.calibrate()
+				elif key_pressed(SDLK_v, queue=q):
+					self.validate()
 
 	def collect_response(self):
 		if not self.calibrated:

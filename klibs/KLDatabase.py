@@ -332,7 +332,7 @@ class Database(EnvAgent):
 			P.primary_table = table
 		try:
 			join_tables = join_tables[0].split(",")
-		except IndexError:
+		except TypeError:
 			join_tables = []
 		column_names = self.build_column_header(multi_file, join_tables)
 		data = self.collect_export_data(multi_file, join_tables)
@@ -347,7 +347,7 @@ class Database(EnvAgent):
 					data_file = open(file_path, "w+")
 					data_file.write("\n".join([header, column_names, "\n".join(data_set[1])]))
 					data_file.close()
-					print "\033[92m\t- Participant {0} successfully exported.\033[0m".format(p_id)
+					print("    - Participant {0} successfully exported.".format(p_id))
 		else:
 			combined_data = []
 			p_count = 0
@@ -360,7 +360,7 @@ class Database(EnvAgent):
 			data_file = open(file_path, "w+")
 			data_file.write("\n".join([header, column_names, "\n".join(combined_data)]))
 			data_file.close()
-			print "\033[92m\t- Data for {0} participants successfully exported.\033[0m".format(p_count)
+			print("    - Data for {0} participants successfully exported.".format(p_count))
 		print '' # newline between export info and next prompt for aesthetics' sake
 
 	def export_header(self, user_id=None):

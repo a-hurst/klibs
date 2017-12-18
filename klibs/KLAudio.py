@@ -3,6 +3,7 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import warnings
 import math
+from array import array
 
 with warnings.catch_warnings():
 	warnings.simplefilter("ignore")
@@ -19,10 +20,12 @@ from klibs.KLUserInterface import ui_request
 from klibs.KLGraphics.KLDraw import Ellipse
 from klibs.KLGraphics import fill, blit, flip
 
-from klibs import PYAUDIO_AVAILABLE
-if PYAUDIO_AVAILABLE:
+try:
 	import pyaudio
-	from array import array
+	PYAUDIO_AVAILABLE = True
+except ImportError:
+	print "\t* Warning: PyAudio library not found; audio input will not be available."
+	PYAUDIO_AVAILABLE = False
 
 
 if P.audio_initialized is False:

@@ -4,40 +4,6 @@ __author__ = 'jono'
 import imp
 import sdl2
 
-try:
-	imp.find_module('pylink')
-	PYLINK_AVAILABLE = True
-except ImportError:
-	print "\t* Warning: Pylink library not found; eye tracking will not be available."
-	PYLINK_AVAILABLE = False
-
-try:
-	imp.find_module('pyaudio')
-	PYAUDIO_AVAILABLE = True
-except ImportError:
-	print "\t* Warning: Pyaudio library not found; audio recording, audio responses and audio sampling unavailable."
-	PYAUDIO_AVAILABLE = False
-
-try:
-	imp.find_module('u3')
-	LABJACK_AVAILABLE = True
-except ImportError:
-	LABJACK_AVAILABLE = False
-
-try:
-	import os # To test for presence of API key environment variable
-	import socket # To test internet connect to slack.com
-
-	imp.find_module('slacker')
-	socket.create_connection(("www.slack.com", 80))
-	os.environ['SLACK_API_KEY']
-	SLACK_STATUS = "available"
-except ImportError: # if slacker library not installed
-	SLACK_STATUS = "slacker_missing"
-except socket.gaierror: # if slack.com not reachable
-	SLACK_STATUS = "no_connection"
-except KeyError: # if API key not defined in environment
-	SLACK_STATUS = "no_API_key"
 
 DB_EXT = ".db"
 EDF = "EDF"
@@ -215,9 +181,6 @@ AUDIO_OFF = 0
 # TimeKeeper Constants
 TK_MS = 1
 TK_S = 0
-
-# LabJack Constants
-LABJACK_AVAILABLE = True
 
 # ResponseCollector Constants
 RC_AUDIO = 'audio'

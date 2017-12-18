@@ -3,32 +3,41 @@
 ******************************************************************************************
 						NOTES ON HOW TO USE AND MODIFY THIS FILE
 ******************************************************************************************
-This file is used at the beginning of your project to create the database in 
-which trials and participants are stored.
 
-As the project develops, you may change the number of columns, add other tables,
-or change the names/datatypes of columns that already exist.
+This file is used at the beginning of your project to create the SQLite database in which
+all recorded experiment data is stored.
 
-That said,  You *really* do not need to be concerned about datatypes; in the end, everything will be a string when the data
-is output. The *only* reason to change the datatypes here are to ensure that the program will throw an error if, for
-example, a string is returned for something like reaction time. BUT, you should be catching this in your experiment.py
-file; if the error is caught here it means you've already been collecting the wrong information and it should have
-been caught much earlier.
+By default there are only two tables that KLibs writes data to: the 'participants' table,
+which stores demograpic and runtime information, and the 'trials' table, which is where
+the data recorded at the end of each trial is logged. You can also create your own tables
+in the database to record data for things that might happen more than once a trial
+(e.g eye movements) or only once a session (e.g. a questionnaire or quiz), or to log data
+for recycled trials that otherwise wouldn't get written to the 'trials' table.
 
-To do this, modify the document as needed, then, in your project. To rebuild the database with
-your changes just delete your database files, or just run:
 
-  cd PROJECT_PATH/PROJECT_NAME
+As your project develops, you may change the number of columns, add other tables, or
+change the names/datatypes of columns that already exist.
+
+To do this, modify this document as needed, then rebuild the project database by running:
+
   klibs db-rebuild
 
-and run the experiment, this will force klibs to rebuild your database.
+while within the root of your project folder.
 
 But be warned: THIS WILL DELETE ALL YOUR CURRENT DATA. The database will be completely 
-destroyed and rebuilt. If you wish to keep the data you currently have, be sure to first run:
+destroyed and rebuilt. If you wish to keep the data you currently have, run:
 
-  klibs export PROJECT_PATH/PROJECT_NAME
+  klibs export
 
-This will export the database in it's current state to text files found in PROJECT_PATH/ExpAssets/Data.
+while within the root of your project folder. This will export all participant and trial
+data in the database to text files found in PROJECT_NAME/ExpAssets/Data.
+
+
+Note that you *really* do not need to be concerned about datatypes when adding columns;
+in the end, everything will be a string when the data is exported. The *only* reason you
+would use a datatype other than 'text' would be to ensure that the program will throw an
+error if, for example, it tries to assign a string to a column you know is always going
+to be an integer.
 
 */
 

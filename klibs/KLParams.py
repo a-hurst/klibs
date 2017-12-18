@@ -262,7 +262,7 @@ def init_project():
 	initialized = True
 	return True
 
-def setup(project_name_str):
+def setup(project_name_str, manual_seed=None):
 	global project_name
 	global asset_dir
 	global random_seed
@@ -276,10 +276,9 @@ def setup(project_name_str):
 
 	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
 
-
 	#  seed the experiment with either a passed random_seed or else the current unix time
-	if not 'random_seed' in globals():  # if passed from CLI will be set by now
-		random_seed = time.time()
+
+	random_seed = manual_seed if manual_seed != None else time.time()
 	seed(random_seed)
 	project_name = project_name_str
 	asset_dir = "ExpAssets"

@@ -3,6 +3,7 @@
 import os
 import sys
 import imp
+import time
 import argparse
 import traceback
 
@@ -19,217 +20,209 @@ except:
 	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m\n\nStack Trace:")
 	exc_type, exc_value, exc_traceback = sys.exc_info()
 	print(traceback.print_exception(exc_type, exc_value, exc_traceback, limit=5, file=sys.stdout))
+	exit()
 
 
+# Utility Functions #
+
+def initialize_path(path):
+	path = os.path.normpath(path)
+	project_name = os.path.split(path)[-1]
+	os.chdir(path)
+	if not os.path.exists(os.path.join(path, 'experiment.py')):
+		err("no 'experiment.py' file was found in the specified directory.\n"
+			"Please make sure you are in a valid KLibs project folder and try again.")
+	return project_name
+
+def ensure_directory_structure(dir_map, root, parents=[], create_missing=False):
+	missing_dirs = []
+	if dir_map is None:
+		return missing_dirs
+	parent_path = os.path.join(*parents) if len(parents) else ""
+	for d in dir_map:
+		dir_full_path = os.path.join(root, parent_path, d)
+		subdirs = dir_map[d]
+		if not os.path.exists(dir_full_path):
+			if not create_missing:
+				missing_dirs.append(dir_full_path)
+			else:
+				try:
+					os.makedirs(dir_full_path)
+				except OSError as e:
+					cso("failed")
+					cso(dir_map, parents)
+					exit()
+		new_parents = [p for p in parents]
+		new_parents.append(d)
+		missing_dirs += ensure_directory_structure(subdirs, root, new_parents, create_missing)
+	return missing_dirs
+
+def err(err_string):
+	cso("<red>\nError: " + err_string + "</red>\n")
+	exit()
+
+
+# Actual CLI Functions #
 
 def create(name, path):
 	import time
 	import shutil
+	import re
 	from random import choice
-	from os.path import join
-	from hashlib import sha1
+	from os.path import join, normpath
+	from tempfile import mkdtemp
 	from pkg_resources import resource_filename
 
-	split_test = os.path.split(name)
-	if len(split_test[0]):
-		path, name = split_test
+	dir_structure = {
+		"ExpAssets": {
+			".versions": None,
+			"Config": None,
+			"Resources": {"code": None, "font": None, "image": None},
+			"Local": {"logs": None},
+			"Data": {"incomplete": None},
+			"EDF": {"incomplete": None} }
+	}
+	template_files = [
+		("schema.sql", ["ExpAssets", "Config"]),
+		("independent_variables.py", ["ExpAssets", "Config"]),
+		("messaging.csv", ["ExpAssets", "Config"]),
+		("params.py", ["ExpAssets", "Config"]),
+		("user_queries.json", ["ExpAssets", "Config"]),
+		("experiment.py", []),
+		(".gitignore", [])
+	]
 
-	# Adding author details and loop to confirm before execution, was in a rush,  will return later
-	# Basically got stick on feeding raw_input() into arg_parse, seems to take each letter as an argument
-	# Update #2:  moved on to using just raw_input() until help with how to do this turns up
-	# http://stackoverflow.com/questions/32659345/how-to-use-argparse-during-runtime-to-conditionally-get-further-input
-	author_ok = False
-	while not author_ok:
-		try:
-			auth_parse = argparse.ArgumentParser()
-			auth_parse.add_argument('name', type=str, nargs=2)
-			name = raw_input(cso("\n<green_d>Provide your first and last name: </green_d>", False))
-			auth_args = auth_parse.parse_args(name.split())
-			if len(auth_args.name) == 2:  # todo: add a check to ensure names are only letters
-				author_ok = True
-		except SystemExit:
-			one_name_peeps = ["Madonna", "Prince", "Cher", "Bono", "Sting"]
-			cso("<red>\nOk {0}, take it easy.</red> <green_d>First</green_d> <cyan>*and*</cyan> <green_d>last name. "\
-				"Let's try that again--you got this champ...</green_d>".format(choice(one_name_peeps)))
-			return create(name, path)
+	# Validate name (must be valid Python identifier)
+	valid_name = re.match(re.compile(r"^[^\d\W]\w*\Z"), name) != None
+	if not valid_name:
+		err("'{0}' is not a valid project name. Project names must not contain any spaces or "
+			"special characters apart from '_', and cannot start with a number.".format(name))
 
-	source_path = resource_filename('klibs', 'resources/template')
+	# Ensure destination folder 1) exists, 2) is a folder, and 3) is writeable by the current user.
+	if not os.path.exists(path):
+		err("The path '{0}' does not exist.\n\nPlease enter a path to a valid writeable folder and "
+			"try again.".format(path))
+	elif not os.path.isdir(path):
+		err("The path '{0}' does not point to a valid folder.\n\nPlease enter a different path and "
+			"try again.".format(path))
+	elif not os.access(path, os.W_OK | os.X_OK):
+		err("You do not have the permissions required to write to the folder '{0}'.\n\nPlease "
+			"enter a path to a folder you have write access to and try again.".format(path))
+
+	# Initialize project path and make sure it doesn't already exist
 	project_path = join(path, name)
+	if os.path.exists(project_path):
+		err("Folder named '{0}' already exists in the directory '{1}'.\n\nPlease remove it or give "
+			"your project a different name and try again.".format(name, path))
 
-	correct = False
-	while not correct:
-		cso("<blue>***</blue> <purple>Confirm Project Details</purple> <blue>***</blue>")
-		cso("<cyan>Project Author:</cyan> <blue>{0} {1}</blue>", args=[auth_args.name[0], auth_args.name[1]])
-		cso("<cyan>Project Path:</cyan> <blue>{0}</blue>", args=[project_path])
-		def get_response():
-			confirm_parser = argparse.ArgumentParser()
-			confirm_parser.add_argument('confirmed',  type=str, choices=['y', 'n', 'q'])
-			query = cso("<green_d>Is this correct? Answer with</green_d> <purple>Y</purple>" \
-						"<green_d>es,</green_d> <purple>N</purple><green_d>o or</green_d> " \
-						"<purple>Q</purple><green_d>uit.</green_d>", False)
-			confirm_args = confirm_parser.parse_args([raw_input(query)[0].lower()])
-			return confirm_args.confirmed
-		response = get_response()
-		if response == "n":
+	# Get author name for adding to project files
+	author = raw_input(cso("\n<green_d>Please provide your first and last name: </green_d>", False))
+	if len(author.split()) < 2:
+		one_name_peeps = ["Madonna", "Prince", "Cher", "Bono", "Sting"]
+		cso("<red>\nOk {0}, take it easy.</red> "
+			"<green_d>First</green_d> <cyan>*and*</cyan> <green_d>last name. "
+			"Let's try that again--you got this champ...</green_d>".format(choice(one_name_peeps)))
+		return create(name, path)
+	
+	# Verify author name and project path before creating it
+	cso("\n<green_d>***</green_d> <purple>Confirm Project Details</purple> <green_d>***</green_d>")
+	cso("<cyan>Project Author:</cyan> <blue>{0} {1}</blue>", args=author.split())
+	cso("<cyan>Project Path:</cyan> <blue>{0}</blue>\n", args=[project_path])
+	verified = False
+	while not verified:
+		query = cso(
+            "<green_d>Is this correct? Answer with</green_d> "
+            "<purple>Y</purple><green_d>es,</green_d> "
+			"<purple>N</purple><green_d>o, or</green_d> "
+			"<purple>Q</purple><green_d>uit: </green_d>", False
+        )
+		response = raw_input(query)[0].lower()
+		if response == "y":
+			verified = True
+		elif response == "n":
 			return create(name, path)
 		elif response == "q":
 			cso("\n<green_d>Fine. Be that way. But I think we both know you'll be back.</green_d>")
 			exit()
-		elif response == "y":
-			correct = True
 		else:
-			cso("<green_d>Pardon? I didn't catch that.</green_d>")
+			cso("\n<green_d>Pardon? I didn't catch that.</green_d>\n")
 
-	tmp_dir = "klibs_" + sha1(project_path + str(time.time())).hexdigest()
-	tmp_path = join("/","tmp", tmp_dir)
+	# Create temporary folder and assemble project template inside it
+	tmp_path = mkdtemp(prefix='klibs_')
+	tmp_dir = os.path.split(tmp_path)[1]
+	ensure_directory_structure(dir_structure, tmp_path, create_missing=True)
+	cso("  <cyan>...Project template folders successfully created.</cyan>")
 
-	# create project directories
-	dir_structure = {"ExpAssets": {
-						".versions": None,
-						"Config": None,
-						"Resources": {"code": None, "font": None,"image": None},
-						"Local": {"logs":None},
-						"Data": {"incomplete":None},
-						"EDF": {"incomplete": None} }
-					}
-
-	def build_directory_structure(dir_map, parents=[]):
-		if dir_map is None:
-			return
-		parent_path = join(*parents) if len(parents) else ""
-
-		for d in dir_map:
-			dir_full_path = join(tmp_path, parent_path, d)
-			subdirs = dir_map[d]
-			try:
-				os.makedirs(dir_full_path)
-			except OSError as e:
-				cso("failed")
-				cso(dir_map, parents)
-				exit()
-			new_parents = [p for p in parents]
-			new_parents.append(d)
-			build_directory_structure(subdirs, new_parents)
-
-	build_directory_structure(dir_structure)
-	cso("\t<cyan>...Project template files successfully created in temporary project directory.</cyan>")
-
-	# replace generic file names with project-specific names
-	template_files = [("schema.sql", ["ExpAssets", "Config"]),
-					  ("independent_variables.py", ["ExpAssets", "Config"]),
-					  ("messaging.csv", ["ExpAssets", "Config"]),
-					  ("params.py", ["ExpAssets", "Config"]),
-					  ("user_queries.json", ["ExpAssets", "Config"]),
-					  ("experiment.py", []),
-					  (".gitignore", [])]
-
-	for tf in template_files:
-		target_f_name = tf[0] if tf[0] in [".gitignore", "experiment.py"] else "{0}_{1}".format(name, tf[0])
+	source_path = resource_filename('klibs', 'resources/template')
+	for tf in template_files: # replace generic file names with project-specific names
+		filename = tf[0] if tf[0] in [".gitignore", "experiment.py"] else "{0}_{1}".format(name, tf[0])
 		template_f_path = join(source_path, tf[0] if tf[0] != ".gitignore" else "gitignore.txt")
-		try:
-			project_f_path = join(tmp_path, join(*tf[1]), target_f_name)
-		except TypeError:
-			project_f_path = join(tmp_path, target_f_name)
-		project_f_contents = open(template_f_path, "rt").read()
-		project_f_contents = project_f_contents.replace('PROJECT_NAME', name).replace('PROJECT_PATH', path)
-		project_f_contents = project_f_contents.replace('EXPERIMENTER_NAME', " ".join(auth_args.name))
-		project_f = open(project_f_path, "w+")
-		project_f.write(project_f_contents)
-		project_f.close()
-		try:
-			cso("\t<cyan>...'{0}' successfully created in temporary project directory.</cyan>".format(join(join(*tf[1]), target_f_name)))
-		except TypeError:
-			cso("\t<cyan>...'{0}' successfully created in temporary project directory</cyan>".format(target_f_name))
+		project_f_path = filename if len(tf[1]) == 0 else join(join(*tf[1]), filename)
+		with open(template_f_path, "rt") as temp, open(join(tmp_path, project_f_path), "w+") as out:
+			contents = temp.read()
+			contents = contents.replace('PROJECT_NAME', name)
+			contents = contents.replace('EXPERIMENTER_NAME', author)
+			out.write(contents)
+		cso("  <cyan>...'{0}' successfully created.</cyan>".format(project_f_path))
 
+	# Once successfully initialized, copy template to target directory
 	shutil.move(tmp_path, path)
 	os.rename(join(path, tmp_dir), join(path, name))
 	cso("<green_d>\nProject successfully created at:</green_d> '<blue>{0}</blue>'".format(project_path))
 
 
-def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug_pane, verbose):
-	from klibs import  P
+def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
+
+	cso("\n\n<green>*** Now loading KLIBS Environment ***</green>")
+	cso("<green_d>(Note: if a bunch of SDL errors were just reported, this was expected, "
+		"do not be alarmed!</green_d>")
+
+	from klibs import P
+	from klibs import env
+	from klibs.KLUtilities import force_quit
 	from klibs.KLGraphics import display_init
 	from klibs import KLEyeLink
 	from klibs.KLDatabase import Database
-	from klibs.KLUtilities import force_quit
-	from klibs import env
 	from klibs.KLEventInterface import EventManager
 	from klibs.KLTime import TimeKeeper
 	from klibs.KLText import TextManager
 	from klibs.KLResponseCollectors import ResponseCollector
 	from klibs.KLCommunication import init_messaging, collect_demographics
 
-	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
-
-	# get project name and set working directory to top of project
-	project_name = os.path.split(path)[-1]
-	os.chdir(path)
-	
-	# check if the project directory contains an experiment.py file. If it doesn't,
-	# it probably isn't the parent directory of a KLibs project and we should quit.
-	if not os.path.isfile('experiment.py'):
-		cso("\n<red>Error: no 'experiment.py' file was found in the project directory.\n" \
-			"Please make sure you are in a valid project folder and try 'klibs run' again.</red>\n")
-		exit()
+	# Sanitize and switch to path, exiting with error if not a KLibs project directory
+	project_name = initialize_path(path)
 
 	# create any missing project directories
-	dir_structure = {"ExpAssets": {
-						".versions": None,
-						"Config": None,
-						"Resources": {"code": None, "font": None, "image": None},
-						"Local": {"logs": None},
-						"Data": {"incomplete": None},
-						"EDF": {"incomplete": None}}
-					}
+	dir_structure = {
+		"ExpAssets": {
+			".versions": None,
+			"Config": None,
+			"Resources": {"code": None, "font": None, "image": None},
+			"Local": {"logs": None},
+			"Data": {"incomplete": None},
+			"EDF": {"incomplete": None}}
+	}
 
-	def ensure_directory_structure(dir_map, parents=[], create_missing=False):
-		missing_dirs = []
-		if dir_map is None:
-			return missing_dirs
-		parent_path = os.path.join(*parents) if len(parents) else ""
-
-		for d in dir_map:
-			dir_full_path = os.path.join(path, parent_path, d)
-			subdirs = dir_map[d]
-			if not os.path.exists(dir_full_path):
-				if not create_missing:
-					missing_dirs.append(dir_full_path)
-				else:
-					try:
-						os.makedirs(dir_full_path)
-					except OSError as e:
-						cso("failed")
-						cso(dir_map, parents)
-						exit()
-
-			new_parents = [p for p in parents]
-			new_parents.append(d)
-			missing_dirs += ensure_directory_structure(subdirs, new_parents, create_missing)
-		return missing_dirs
-
-	missing_dirs = ensure_directory_structure(dir_structure)
-
+	missing_dirs = ensure_directory_structure(dir_structure, path)
 	if len(missing_dirs):
-		def get_response(first_call=True):
-			if first_call:
-				cso("<red>Some expected or required directories for this project appear to be missing.</red>")
-			next_action = argparse.ArgumentParser()
-			next_action.add_argument('action',  type=str, choices=['c', 'r'])
-			query = cso("<green_d>You can</green_d> <purple>(c)</purple><green_d>reate them" \
-						" automatically or view a <purple>(r)</purple><green_d>eport on the" \
-						" missing directories.</green_d>", False)
-			action = next_action.parse_args([raw_input(query).lower()[0]])
-			if action.action == "r":
+		cso("<red>Some expected or required directories for this project appear to be missing.</red>")
+		while True:
+			query = cso(
+				"<green_d>You can</green_d> "
+				"<purple>(c)</purple><green_d>reate them automatically or view a "
+				"<purple>(r)</purple><green_d>eport on the missing directories.</green_d>", False
+			)
+			action = raw_input(query).lower()[0]
+			if action == "r":
 				cso("<green_d>The following expected directories were not found:</green_d>")
 				for md in missing_dirs:
-					cso("\t <purple>{0}</purple>".format(md))
-				return get_response(False)
-			elif action.action == "c":
-				ensure_directory_structure(dir_structure, create_missing=True)
-		get_response()
+					cso("\t<purple>{0}</purple>".format(md))
+			elif action == "c":
+				ensure_directory_structure(dir_structure, path, create_missing=True)
+				break
 
 	# set initial param values for project's context
-	P.setup(project_name)
+	P.setup(project_name, seed)
 
 	# Add ExpAssets/Resources/code to pythonpath for easy importing
 	sys.path.append(P.code_dir)
@@ -249,29 +242,27 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 
 	# set some basic global Params
 	P.verbose_mode = verbose
-	if not show_debug_pane:
-		P.dm_suppress_debug_pane = True
-	if random_seed:
-		P.random_seed = random_seed
-	if development_mode:
+	if dev_mode:
 		P.development_mode = True
 		P.collect_demographics = False
+	if not P.labjack_available:
+		P.labjacking = False
+	#if not show_debug_pane:
+	#	P.dm_suppress_debug_pane = True
 	#TODO: check if current commit matches experiment.py and warn user if not
 
 	# create runtime environment
 	env.evm = EventManager()
-	if P.eye_tracking:
-		if no_eyelink is True:
-			PYLINK_AVAILABLE = False
-			P.eye_tracker_available = False
-		reload(KLEyeLink)
-		env.el = KLEyeLink.EyeLinkExt()
-
-	if not P.labjack_available:
-		P.labjacking = False
-
+	env.evm.import_events()
 	env.txtm = TextManager()
 	env.tk = TimeKeeper()
+	env.rc = ResponseCollector()
+	if P.eye_tracking:
+		if no_eyelink is True:
+			P.eye_tracker_available = False
+			if KLEyeLink.PYLINK_AVAILABLE:
+				reload(KLEyeLink)
+		env.el = KLEyeLink.EyeLinkExt()
 	try:
 		env.db = Database(project_name)
 	except DatabaseException as e:
@@ -281,8 +272,8 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 		else:
 			cso("<red>Unable to load database.</red>")
 			force_quit()
-	env.evm.import_events()
-	env.rc = ResponseCollector()
+	
+
 	# finally, import the project's Experiment class and instantiate
 	try:
 		experiment_file = imp.load_source(path, "experiment.py")
@@ -291,7 +282,6 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 
 		# create a display context if everything's gone well so far
 		env.exp.window = display_init(screen_size)
-
 		env.exp.show_logo()
 
 		# create basic text styles and auto-render block-break messages if need configured to do so
@@ -306,20 +296,20 @@ def run(path, screen_size, random_seed, development_mode, no_eyelink, show_debug
 	except SystemExit:
 		pass
 	except Exception as e:
-		print "\n"
-		print "".join(traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]) + traceback.format_tb(sys.exc_info()[2]))
+		print("".join(["\n"] +
+			traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]) + 
+			traceback.format_tb(sys.exc_info()[2])
+		))
 		force_quit()
 
 
-def export(path, table=None, combined=False, join_tables=None):
+def export(path, table=None, combined=False, join=None):
 	from klibs import P
 	from klibs.KLDatabase import Database
 
-	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
-
-	# get project name and set working directory to top of project
-	project_name = os.path.split(path)[-1]
-	os.chdir(path)
+	# Sanitize and switch to path, exiting with error if not a KLibs project directory
+	project_name = initialize_path(path)
+	cso("\n<green>*** Exporting data from {0} ***</green>\n".format(project_name))
 
 	# set initial param values for project's context
 	P.setup(project_name)
@@ -328,19 +318,15 @@ def export(path, table=None, combined=False, join_tables=None):
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
 	multi_file = combined != True
-	Database(project_name).export(table, multi_file, join_tables)
+	Database().export(table, multi_file, join)
 
 
 def rebuild_db(path):
 	from klibs import P
 	from klibs.KLDatabase import Database
-	from klibs.KLUtilities import force_quit
 
-	if path[-1] == "/": path = path[:-1]  # strip trailing slash from provided path if needed
-
-	# get project name and set working directory to top of project
-	project_name = os.path.split(path)[-1]
-	os.chdir(path)
+	# Sanitize and switch to path, exiting with error if not a KLibs project directory
+	project_name = initialize_path(path)
 
 	# set initial param values for project's context
 	P.setup(project_name)
@@ -348,8 +334,7 @@ def rebuild_db(path):
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
-	Database(project_name).rebuild()
-	force_quit()
+	Database().rebuild()
 
 
 # def rename(path): todo: write this, it's irritatingly complex but also super necessary
@@ -360,10 +345,15 @@ def hard_reset(path):
 	from os.path import join
 	from klibs.KLUtilities import iterable
 
-	reset_prompt = cso("\n<red>Warning: doing a hard reset will delete all collected data", \
-	" all logs, all copies of experiment.py and Config files in the .versions folder" \
-	" that previous participants were run with, and reset the project's database." \
-	" Are you sure you want to continue?</red> (Y/N): ")
+	# Sanitize and switch to path, exiting with error if not a KLibs project directory
+	initialize_path(path)
+
+	reset_prompt = cso(
+		"\n<red>Warning: doing a hard reset will delete all collected data, "
+		"all logs, all copies of experiment.py and Config files in the .versions folder "
+		"that previous participants were run with, and reset the project's database. "
+		"Are you sure you want to continue?</red> (Y/N): ", False
+	)
 	if raw_input(reset_prompt).lower() == "y":
 		for d in ['Data', 'EDF', '.versions', ('Local', 'logs')]:
 			if iterable(d):
@@ -377,7 +367,7 @@ def hard_reset(path):
 		os.mkdir(join(path, "ExpAssets", "Local", "logs"))
 		os.mkdir(join(path, "ExpAssets", ".versions"))
 		rebuild_db(path)
-	print " "
+	print("")
 
 
 def update(branch='default'):
@@ -391,12 +381,14 @@ def update(branch='default'):
 		git_repo += "@{0}".format(branch)
 	
 	update_cmd = 'install -U git+{0}#egg=klibs --no-deps'.format(git_repo)
-	update_prompt = cso("\n<green_d>Updating will replace the current install of KLibs with" \
-	" the most recent commit of the </green_d><purple>{0}</purple><green_d> branch of " \
-	"</green_d><purple>'{1}'</purple><green_d>. Are you sure you want to continue?" \
-	" (Y/N): </green_d>".format(branch,git_repo_short), False)
+	update_prompt = cso(
+		"\n<green_d>Updating will replace the current install of KLibs with the most "
+		"recent commit of the </green_d><purple>{0}</purple><green_d> branch of "
+		"</green_d><purple>'{1}'</purple><green_d>. Are you sure you want to continue? "
+		"(Y/N): </green_d>".format(branch, git_repo_short), False
+	)
 	if raw_input(update_prompt).lower() == "y":
-		print " "
+		print("")
 		cso("<green_d>Updating klibs to latest commit from {0}...</green_d>".format(git_repo_short))
 		try:
 			pip.main(update_cmd.split(' '))
@@ -404,7 +396,7 @@ def update(branch='default'):
 			cso("<red>Root permissions required to reinstall klibs.</red>")
 			exit()
 	else:
-		print " "
+		print("")
 		exit()
 
 
@@ -413,53 +405,77 @@ if __name__ == '__main__':
 
 	sys.dont_write_bytecode = True # suppress creation of useless .pyc files
 
-	parser = argparse.ArgumentParser()
+	class CustomHelpFormatter(argparse.HelpFormatter):
+
+		def _format_action_invocation(self, action):
+			if not action.option_strings or action.nargs == 0:
+				return argparse.HelpFormatter._format_action_invocation(self, action)
+			default = action.dest.upper()
+			args_string = self._format_args(action, default)
+			return ', '.join(action.option_strings) + ' ' + args_string
+
+		def _format_args(self, action, default_metavar):
+			get_metavar = self._metavar_formatter(action, default_metavar)
+			if action.nargs is None:
+				result = '%s' % get_metavar(1)
+			elif action.nargs == '?':
+				result = '<%s>' % get_metavar(1)
+			elif action.nargs == '*':
+				result = '[%s,...]' % get_metavar(1)
+			elif action.nargs == '+':
+				result = '<%s,...>' % get_metavar(1)
+			elif action.nargs == 'A...':
+				result = '...'
+			elif action.nargs == '...':
+				result = '%s ...' % get_metavar(1)
+			else:
+				formats = ['%s' for _ in range(action.nargs)]
+				result = ' '.join(formats) % get_metavar(action.nargs)
+			return result
+
+	parser = argparse.ArgumentParser(
+	    description='The command-line interface for the KLibs framework.',
+        usage='klibs (create | run | export | update | db-rebuild | hard-reset) [-h]',
+		formatter_class=CustomHelpFormatter,
+        epilog="For help on how to use a specific command, try 'klibs (command) --help'."
+	)
 	subparsers = parser.add_subparsers(
-		title='subcommands',
-		description='Valid arguments: create, update, run, export, hard-reset, db-rebuild',
-		help='additional help'
+		title='commands', metavar='                                 ' # fixes indentation issue
 	)
 
-	create_parser = subparsers.add_parser('create')
-	create_parser.add_argument('name', type=str)
+	create_parser = subparsers.add_parser('create', 
+		help='Create a new project template',
+        usage='klibs create <name> [path] [--help]'
+    )
+	create_parser.add_argument('name', type=str,
+		help=("The name of the new project. This will be used for the folder name, the class name "
+		"in experiment.py, and the prefixes of various project files. "
+		"Must be a valid Python variable name.")
+	)
 	create_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-		help=("Path where new project should be created; if empty, project will attempt "
-		"to be created in current working directory.")
+		help=("The path where the new project should be created. "
+		"Defaults to current working directory if no path is manually specified.")
 	)
 	create_parser.set_defaults(func=create)
 
-	update_parser = subparsers.add_parser('update')
-	update_parser.add_argument('branch', default='default', nargs="?", type=str)
-	update_parser.set_defaults(func=update)
-
-	rebuild_parser = subparsers.add_parser('db-rebuild')
-	rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-		help=("Path to directory containing the KLIBs project. "
-		"Parent folder must be the project name.")
+	run_parser = subparsers.add_parser('run', formatter_class=CustomHelpFormatter,
+		help='Run a KLibs experiment',
+		usage='klibs run <screen_size> [path] [-d -ELx -s <seed> -v] [--help]'
 	)
-	rebuild_parser.set_defaults(func=rebuild_db)
-
-	rebuild_parser = subparsers.add_parser('hard-reset')
-	rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-		help=("Path to directory containing the KLIBs project. "
-		"Parent folder must be the project name.")
-	)
-	rebuild_parser.set_defaults(func=hard_reset)
-
-	run_parser = subparsers.add_parser('run')
 	run_parser.add_argument('screen_size', type=int,
 		help=("The diagonal size of the screen in inches on which the experiment is being run. "
-		"This is used to calculate degrees of visual angle.")
+		"This is used to calculate degrees of visual angle during experiment runtime.")
 	)
 	run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-		help=("Path to directory containing the KLIBs project. "
-		"Parent folder must be the project name.")
+		help=("Path to the directory containing the KLibs project. "
+		"Defaults to current working directory if no path is manually specified.")
 	)
-	run_parser.add_argument('-rs', '--random_seed', type=int,
-		help=("Providing a random seed will allow an experiment to continue from its "
-		"previously completed state.")
+	run_parser.add_argument('-s', '--seed', default=time.time(), type=float, nargs="?",
+		metavar="seed",
+		help=("The seed to use for random number generation during the KLibs runtime. "
+		"Defaults to current system time if not manually specified.")
 	)
-	run_parser.add_argument('-d', '--development_mode', action="store_true",
+	run_parser.add_argument('-d', '--dev_mode', action="store_true",
 		help=("Development mode turns off demographics collection and turns on several "
 		"debugging features.")
 	)
@@ -467,21 +483,24 @@ if __name__ == '__main__':
 		help=("Signals the absence of a connected EyeLink unit. "
 		"Does nothing for non-eyetracking experiments.")
 	)
-	run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true",
-		help="Debug log will be blit to translucent panel on screen in real time."
-	)
+	#run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true",
+	#	help="Debug log will be blit to translucent panel on screen in real time."
+	#)
 	# todo: verbose mode should accept a value, and then logging should be incrementally verbose
 	run_parser.add_argument('-v', '--verbose', action="store_true",
 		help="EventsInterface will syndicate EyeLink, LabJack & log messages to terminal."
 	)
 	run_parser.set_defaults(func=run)
 
-	export_parser = subparsers.add_parser('export')
-	export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-		help=("Path to directory containing the KLIBs project. "
-		"Parent folder must be the project name.")
+	export_parser = subparsers.add_parser('export', formatter_class=CustomHelpFormatter,
+		help='Export data to ExpAssets/Data/',
+		usage='klibs export [path] [-c] [-t <primary_table>] [-j <table1,...>] [--help]'
 	)
-	export_parser.add_argument('-t', '--table', nargs="?", type=str,
+	export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, metavar="path",
+		help=("Path to directory containing the KLibs project. "
+		"Defaults to current working directory if no path is manually specified.")
+	)
+	export_parser.add_argument('-t', '--table', nargs="?", type=str, metavar="table",
 		help=("Specify the primary table to join with the participants table during export. "
 		"Defaults to the 'trials' table unless otherwise specified.")
 	)
@@ -489,11 +508,41 @@ if __name__ == '__main__':
 		help=("Export data to a single file instead of individual files for each participant. "
 		"Default is individual files.")
 	)
-	export_parser.add_argument('-j', '--join_tables', default=[], nargs="*", type=str,
+	export_parser.add_argument('-j', '--join', nargs="+", type=str, metavar="t1",
 		help=("Additional tables to be joined to the data output. "
-		"Only 'participant' and 'data' tables are exported by default.")
+		"Only 'participant' and 'data' tables are joined by default.")
 	)
 	export_parser.set_defaults(func=export)
+
+	update_parser = subparsers.add_parser('update',
+		help='Update KLibs to the newest available version',
+		usage='klibs update [branch] [--help]'
+	)
+	update_parser.add_argument('branch', default='default', nargs="?", type=str,
+		help=("The branch of the KLibs GitHub repository from which to install the latest version. "
+		"The default branch is used if none is specified.")
+	)
+	update_parser.set_defaults(func=update)
+
+	rebuild_parser = subparsers.add_parser('db-rebuild',
+		help='Delete and rebuild the database',
+		usage='klibs db-rebuild [path] [--help]'
+	)
+	rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+		help=("Path to directory containing the KLibs project. "
+		"Parent folder must be the project name.")
+	)
+	rebuild_parser.set_defaults(func=rebuild_db)
+
+	reset_parser = subparsers.add_parser('hard-reset',
+		help='Delete all collected data',
+		usage='klibs hard-reset [path] [--help]'
+	)
+	reset_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
+		help=("Path to directory containing the KLibs project. "
+		"Parent folder must be the project name.")
+	)
+	reset_parser.set_defaults(func=hard_reset)
 
 	args = vars(parser.parse_args())
 

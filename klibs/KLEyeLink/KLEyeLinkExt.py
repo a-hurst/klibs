@@ -2,7 +2,7 @@
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import abc
-from klibs import PYLINK_AVAILABLE
+from klibs.KLEyeLink import PYLINK_AVAILABLE
 
 if PYLINK_AVAILABLE:
 	from pylink import (EyeLink, openGraphicsEx, flushGetkeyQueue, pumpDelay,

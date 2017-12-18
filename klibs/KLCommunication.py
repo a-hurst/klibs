@@ -17,14 +17,6 @@ from klibs.KLUtilities import (absolute_position, pretty_join, sdl_key_code_to_s
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
 
-from klibs import SLACK_STATUS
-if SLACK_STATUS == "available":
-	import os
-	from slacker import Slacker
-	from slacker import Error as SlackerError
-	from threading import Thread
-
-
 global user_queries
 global block_break_messages
 
@@ -146,17 +138,11 @@ def collect_demographics(anonymous=False):
 
 
 def init_messaging():
-	"""
-
-
-	:raise ValueError:
-	"""
-	from klibs.KLCommunication import message
 	from klibs.KLEnvironment import txtm, exp
-
 
 	global user_queries
 	global block_break_messages
+	global SLACK_STATUS
 
 	# try to create question objects (ie. JSON_Objects with expected keys) from demographics file
 	user_queries.import_queries()
@@ -170,6 +156,24 @@ def init_messaging():
 			msg = P.block_break_message.format(i, P.blocks_per_experiment)
 			r_msg = message(msg, blit=False)
 			block_break_messages.append(r_msg)
+	
+	# check if Slack messaging is set up properly, and import required packages if it is
+	try:
+		import os # To test for presence of API key environment variable
+		import socket # To test internet connect to slack.com
+		from slacker import Slacker
+		from slacker import Error as SlackerError
+		from threading import Thread
+
+		socket.create_connection(("www.slack.com", 80))
+		os.environ['SLACK_API_KEY']
+		SLACK_STATUS = "available"
+	except ImportError: # if slacker library not installed
+		SLACK_STATUS = "slacker_missing"
+	except socket.gaierror: # if slack.com not reachable
+		SLACK_STATUS = "no_connection"
+	except KeyError: # if API key not defined in environment
+		SLACK_STATUS = "no_API_key"
 
 
 def message(text, style=None, location=None, registration=None, blit_txt=True,

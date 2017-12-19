@@ -5,7 +5,7 @@ user's template of the params file, then autogenerate the template doc. AND the 
 """
 
 author = 'jono'
-import logging, time
+import logging, time, tempfile
 from random import seed
 from datetime import datetime
 from os import makedirs
@@ -30,6 +30,7 @@ global versions_dir
 
 global database_filename
 global database_path
+global database_local_path
 global database_backup_path
 global events_filename
 global events_file_path
@@ -90,6 +91,7 @@ unique_identifier = "userhash"
 collect_demographics = True
 demographics_collected = False
 manual_demographics_collection = False
+multi_user = False
 
 # eye tracking
 eye_tracking = False
@@ -202,6 +204,7 @@ def init_project():
 	
 	global database_filename
 	global database_path
+	global database_local_path
 	global database_backup_path
 	global events_filename
 	global events_file_path
@@ -242,6 +245,7 @@ def init_project():
 	schema_file_path = join(config_dir, schema_filename)
 	user_queries_file_path = join(config_dir, user_queries_filename)
 	database_path = join(asset_dir, database_filename)
+	database_local_path = join(tempfile.gettempdir(), database_filename)
 	database_backup_path = database_path + BACK_EXT
 	incomplete_data_dir = join(data_dir, "incomplete")
 	ind_vars_file_path = join(config_dir, ind_vars_filename)

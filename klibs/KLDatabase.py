@@ -622,7 +622,8 @@ class DatabaseManager(EnvAgent):
 		try:
 			self.__master._deploy_schema(P.schema_file_path)
 			self.__master.build_table_schemas()
-			print "Database successfully rebuilt!\n"
+			print("Database successfully rebuilt! Please make sure to update your experiment.py to "
+				  "reflect any changes you might have made to tables or column names.\n")
 		except (sqlite3.ProgrammingError, ValueError):
 			self.__master._drop_tables(self.table_list)
 			self.__restore__()

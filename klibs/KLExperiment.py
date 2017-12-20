@@ -30,7 +30,6 @@ class Experiment(EnvAgent):
 	:type project_name: String
 	"""
 
-	initialized = False
 	window = None
 	paused = False
 	
@@ -54,7 +53,6 @@ class Experiment(EnvAgent):
 			self.trial_factory.generate()
 		self.event_code_generator = None
 
-		self.initialized = True
 
 	def __execute_experiment__(self, *args, **kwargs):
 		"""
@@ -87,8 +85,6 @@ class Experiment(EnvAgent):
 					clear()
 				self.rc.reset()
 		self.clean_up()
-		self.database.commit()
-		self.database.close()
 
 	def __trial__(self, trial, practice):
 		"""
@@ -314,8 +310,6 @@ class Experiment(EnvAgent):
 		:param args:
 		:param kwargs:
 		"""
-		if not self.initialized:
-			self.quit()
 
 		if not P.development_mode:
 			version_dir = join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))
@@ -323,12 +317,8 @@ class Experiment(EnvAgent):
 			copyfile("experiment.py", join(version_dir, "experiment.py"))
 			copytree(P.config_dir, join(version_dir, "Config"))
 
-		if P.eye_tracking:
-			try:
-				if not P.manual_eyelink_setup:
-					self.el.setup()
-			except AttributeError:
-				self.el.setup()
+		if P.eye_tracking and not P.manual_eyelink_setup:
+			self.el.setup()
 
 		self.setup()
 		try:

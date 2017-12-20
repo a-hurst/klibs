@@ -607,20 +607,15 @@ class DrawResponse(ResponseType, BoundaryInspector):
 
 
 class ResponseCollector(EnvAgent):
-	__max_wait = None
 	__null_response_value__ = None
 	__min_response_count__ = None
 	__max_response_count__ = None
-	__interrupt__ = None
-	response_window = None
 	end_collection_event = None
-	terminate_after = 10  # seconds
 
-	def __init__(self, display_callback=None, response_window=MAX_WAIT, null_response=NO_RESPONSE,
-				 response_count=[0,1], flip=False):
+	def __init__(self, uses=[], display_callback=None, terminate_after=[10, TK_S], null_response=NO_RESPONSE,
+				 response_count=[0,1], flip_screen=False):
 
 		super(ResponseCollector, self).__init__()
-		self.__response_window__ = response_window
 		self.__null_response_value__ = null_response
 		self.__min_response_count__ = response_count[0]
 		self.__max_response_count__ = response_count[1]
@@ -645,19 +640,18 @@ class ResponseCollector(EnvAgent):
 			RC_DRAW			:False
 		}
 		self.rc_start_time = [None] # in list so it can be passed by reference to ResponseListeners
-		self.response_countdown = None
-		self.responses = {RC_AUDIO:[], RC_KEYPRESS:[]}
+		self.terminate_after = terminate_after
 		self.callbacks = {} 
 		self.display_callback = display_callback
 		self.has_display_callback = False
-		self.flip = flip
+		self.display_args = []
+		self.display_kwargs = {}
+		self.flip = flip_screen
 
 		# dict of listeners for iterating during collect()
 		self.listeners = NamedInventory()
-
-		# todo: require that an eyelink object be passed to the rc before these are initiated
-		# self.listeners[RC_SACCADE] = self.saccade_listener
-		# self.saccade_listener = SaccadeResponse(self)
+		if len(uses):
+			self.uses(uses)
 
 	def uses(self, listeners):
 		"""
@@ -767,7 +761,6 @@ class ResponseCollector(EnvAgent):
 				listener.responses.append([listener.null_response, TIMEOUT])
 		if self.using(RC_AUDIO):
 			self.audio_listener.stop()
-		self.response_countdown = None
 		self.rc_start_time[0] = None # Reset before next trial
 
 	def __collect__(self):
@@ -811,6 +804,9 @@ class ResponseCollector(EnvAgent):
 					self.display_callback(*self.display_args)
 				except KeyError:
 					pass
+			
+			if self.flip:
+				flip()
 
 			# If there is a display callback, response period start is immediately after flip of first loop
 			if first_loop:
@@ -874,13 +870,6 @@ class ResponseCollector(EnvAgent):
 		return self.__get_listener__(RC_DRAW)
 
 
-	@property
-	def response_window(self):
-		return self.__response_window__
-
-	@response_window.setter
-	def response_window(self, duration):
-		self.__response_window__ = duration
 
 	@property
 	def null_response_value(self):

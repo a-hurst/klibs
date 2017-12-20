@@ -230,11 +230,12 @@ class TextManager(object):
 
 		if len(text) == 0:
 			text = " "
+		bgra_color = [style.color[2], style.color[1], style.color[0], style.color[3]]
 		if style.anti_aliased:
-			rendered_text = TTF_RenderText_Blended(rendering_font, text, SDL_Color(*style.color)).contents
+			rendered_text = TTF_RenderText_Blended(rendering_font, text, SDL_Color(*bgra_color)).contents
 			surface_array = self.__SDLSurface_to_ndarray(rendered_text)
 		else:
-			rendered_text = TTF_RenderUTF8_Solid(rendering_font, text, SDL_Color(*style.color)).contents
+			rendered_text = TTF_RenderUTF8_Solid(rendering_font, text, SDL_Color(*bgra_color)).contents
 			surface_array = np.asarray(PixelView(rendered_text))
 			# surface_array = np.zeros((px.shape[0], px.shape[1], 4));
 			# surface_array[...] = px * 255

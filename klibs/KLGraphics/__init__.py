@@ -23,10 +23,7 @@ def aggdraw_to_numpy_surface(draw_context):
 
 
 def aggdraw_to_array(draw_obj):
-	try:
-		draw_context_bytes = Image.frombytes(draw_obj.mode, draw_obj.size, draw_obj.tostring())  # old aggdraw
-	except Exception:
-		draw_context_bytes = Image.frombytes(draw_obj.mode, draw_obj.size, draw_obj.tobytes()) # new aggdraw
+	draw_context_bytes = Image.frombytes(draw_obj.mode, draw_obj.size, draw_obj.tobytes())
 	return np.asarray(draw_context_bytes)
 
 

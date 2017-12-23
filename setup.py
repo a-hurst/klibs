@@ -26,11 +26,9 @@ if path.isdir(old_lib):
 
 install_packages = ['klibs']
 
-#TODO: Figure out some sane minimum version for the dependencies.
-
 setup(
-	name='KLIBs',
-	version='0.6.5',
+	name='KLibs',
+	version='0.7.0a1',
 	description='A framework for building psychological experiments in Python',
 	author='Jonathan Mulle & Austin Hurst',
 	author_email='this.impetus@gmail.com',
@@ -44,11 +42,8 @@ setup(
 		'pysdl2>=0.9.0',
 		'Pillow>=3.0.0',
 		'aggdraw>1.2.0',
-		'PyOpenGL',
-		'PyAudio'
-	],
-	dependency_links=[
-		'https://github.com/pytroll/aggdraw/tarball/master#egg=aggdraw-1.2.1'
+		'PyOpenGL>=3.1.0',
+		'PyAudio>=0.2.9'
 	]
 
 )

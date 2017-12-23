@@ -2,6 +2,7 @@
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import abc
+from os.path import join
 from klibs.KLEyeLink import PYLINK_AVAILABLE
 
 if PYLINK_AVAILABLE:
@@ -16,8 +17,7 @@ if PYLINK_AVAILABLE:
 		EL_TIME_START, EL_TIME_END, EL_MOCK_EVENT, EL_ALL_EVENTS, EL_TRUE, EL_FALSE, EDF_FILE,
 		TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 	from klibs import P
-	from klibs.KLUtilities import (full_trace, iterable, hide_mouse_cursor, mouse_pos, now,
-		exp_file_name)
+	from klibs.KLUtilities import full_trace, iterable, hide_mouse_cursor, mouse_pos, now
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import blit, fill, flip, clear
 	from klibs.KLGraphics.KLDraw import Rectangle, drift_correct_target
@@ -59,6 +59,12 @@ if PYLINK_AVAILABLE:
 			EnvAgent.__init__(self)
 			BoundaryInspector.__init__(self)
 			self.__current_sample__ = False
+
+		def __get_edf_name(self):
+			# EDFs require DOS-style short file names so we need to make sure name <= 8 chars
+			max_name_chars = 8 - (len(str(P.participant_id)) + 2)
+			project_name_abbrev = P.project_name[:max_name_chars-1]
+			return "p{0}_{1}.EDF".format(P.participant_id, project_name_abbrev)
 
 		def __eye__(self):
 			self.eye = self.eyeAvailable()
@@ -385,13 +391,13 @@ if PYLINK_AVAILABLE:
 			self.version = self.getTrackerVersion()
 			openGraphicsEx(self.custom_display)	
 
-			self.edf_filename = exp_file_name(EDF_FILE)
+			self.edf_filename = self.__get_edf_name()
 			flushGetkeyQueue()
 			self.setOfflineMode()
 			self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(P.screen_x-1, P.screen_y-1))
 			self.setLinkEventFilter("FIXATION,SACCADE,BLINK,LEFT,RIGHT")
 			self.setLinkEventData("GAZE, GAZERES, AREA, VELOCITY") # Need to specify manually for start events to work right
-			self.openDataFile(self.edf_filename[0])
+			self.openDataFile(self.edf_filename)
 			self.write("DISPLAY_COORDS 0 0 {0} {1}".format(P.screen_x-1, P.screen_y-1))
 			self.setSaccadeVelocityThreshold(P.saccadic_velocity_threshold)
 			self.setAccelerationThreshold(P.saccadic_acceleration_threshold)
@@ -428,7 +434,7 @@ if PYLINK_AVAILABLE:
 				self.stopRecording()
 			self.setOfflineMode()
 			self.closeDataFile()
-			self.receiveDataFile(self.edf_filename[0], self.edf_filename[1])
+			self.receiveDataFile(self.edf_filename, join(P.edf_dir, self.edf_filename))
 			return self.close()
 
 		def write(self, message):

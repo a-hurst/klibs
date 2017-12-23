@@ -14,8 +14,7 @@ with warnings.catch_warnings():
 		Mix_VolumeChunk)
 
 from klibs.KLEnvironment import EnvAgent
-from klibs.KLConstants import (AUDIO_ON, AUDIO_OFF, AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_RATE,
-	AR_THRESHOLD, AR_AUTO_THRESHOLD)
+from klibs.KLConstants import AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_RATE
 from klibs import P
 from klibs.KLUtilities import pump, flush, peak
 from klibs.KLTime import CountDown
@@ -113,14 +112,11 @@ class AudioClip(object):
 			self.__volume -= steps * self.__volume_increment
 			self.__volume = int(self.volume)
 
-		def mute(self, state=AUDIO_ON):
-			"""
+		def mute(self):
+			Mix_VolumeChunk(self.sample, 0)
 
-			:param state:
-			:return:
-			"""
-			Mix_VolumeChunk(self.sample, 0 if state == AUDIO_OFF else self.__volume)
-			return False
+		def unmute(self):
+			Mix_VolumeChunk(self.sample, self.__volume)
 
 		@property
 		def volume(self):
@@ -150,7 +146,7 @@ class AudioSample(object):
 		self.peak = max(self.array)
 		self.trough = min(self.array)
 		self.mean = sum(self.array) / len(self.array)
-		self.threshold = None if threshold == AR_AUTO_THRESHOLD else threshold
+		self.threshold = threshold
 
 	def is_below(self, threshold=None):
 		"""
@@ -173,23 +169,13 @@ class AudioStream(EnvAgent):
 	stream = None
 
 	def __init__(self, threshold=1):
-		"""
 
-		:param threshold:
-		"""
 		super(AudioStream, self).__init__()
 		self.threshold = 1
-		# if threshold == AR_AUTO_THRESHOLD:
-		# 	self.threshold = 3 * self.get_ambient_level()  # this is probably inadequate and should employ a log scale
-		# else:
-		# 	self.threshold = threshold
+
 
 	def sample(self):
-		"""
 
-
-		:return:
-		"""
 		if not self.stream:
 			self.init_stream()
 
@@ -197,8 +183,7 @@ class AudioStream(EnvAgent):
 		sample = AudioSample(chunk, self.threshold)
 
 		return sample
-		# except AttributeError:
-		# 	return AudioSample(self.stream.read(AR_CHUNK_SIZE), P.AR_AUTO_THRESHOLD)
+
 
 	def init_stream(self):
 

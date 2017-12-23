@@ -23,11 +23,9 @@ from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, S
 from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
 
 from klibs.KLConstants import (BL_RIGHT, BL_LEFT, BL_TOP, BL_BOTTOM, BL_TOP_RIGHT, BL_TOP_LEFT,
-	BL_BOTTOM_RIGHT, BL_BOTTOM_LEFT, BL_CENTER, TBL_EVENTS, TBL_LOGS, TBL_PARTICIPANTS, TBL_TRIALS,
-	TF_DATA, DATA_EXT, EDF_EXT, EDF_FILE, PARTICIPANT_FILE, DATETIME_STAMP, MOD_KEYS, 
+	BL_BOTTOM_RIGHT, BL_BOTTOM_LEFT, BL_CENTER, DATETIME_STAMP, MOD_KEYS, 
 	DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP, TK_S, TK_MS)
 from klibs import P
-from klibs import env
 
 
 def absolute_position(position, destination):
@@ -234,45 +232,6 @@ def equiv(comparator, canonical):
 		return comparator in equivalencies[canonical]
 	else:
 		return False
-
-
-def exp_file_name(file_type, participant_id=None, date=None, incomplete=False, as_string=True):
-	participant_id = P.participant_id if participant_id is None else participant_id
-	file_name_str = "p{0}_{1}{2}"
-	duplicate_file_name_str = "p{0}.{1}_{2}{3}"
-
-	if date is None:
-		date_query = "SELECT `created` FROM `participants` WHERE `id` = ?"
-		date = env.db.query(date_query, q_vars=tuple([participant_id]))[0][0][:10]
-	if file_type == PARTICIPANT_FILE:
-		file_extension = TF_DATA
-		if incomplete:
-			file_path = P.incomplete_data_dir
-			file_name_str = "p{0}_{1}_incomplete.txt"
-			duplicate_file_name_str = "p{0}.{1}_{2}_incomplete" + TF_DATA
-		else:
-			file_path = P.data_dir
-	if file_type == EDF_FILE:
-		file_extension = EDF_EXT
-		file_path = P.edf_dir
-		# EDFs require DOS-style short file names so we need to make sure name <= 8 chars
-		max_name_chars = 8 - (len(str(participant_id)) + 2)
-		project_name_abbrev = P.project_name[:max_name_chars-1]
-		file_name = file_name_str.format(participant_id, project_name_abbrev, file_extension)
-		return [file_name, os.path.join(file_path, file_name)]
-
-	file_name = file_name_str.format(participant_id, date, file_extension)	# second format arg = date sliced from date-time
-	if os.path.isfile(os.path.join(file_path, file_name)):
-		unique_file = False
-		append = 1
-		while not unique_file:
-			file_name = duplicate_file_name_str.format(participant_id, append, date)
-			if not os.path.isfile(os.path.join(file_path, file_name)):
-				unique_file = True
-			else:
-				append += 1
-
-	return os.path.join(file_path, file_name) if as_string else [file_path, file_name]
 
 
 def flush():

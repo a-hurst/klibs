@@ -184,7 +184,7 @@ def display_init(diagonal_in):
 		sdl2.SDL_PumpEvents()
 
 		display_mode = sdl2.video.SDL_DisplayMode()
-		sdl2.SDL_GetCurrentDisplayMode(0,display_mode)
+		sdl2.SDL_GetCurrentDisplayMode(0, display_mode)
 
 		P.screen_x = display_mode.w
 		P.screen_y = display_mode.h
@@ -203,14 +203,21 @@ def display_init(diagonal_in):
 		if P.screen_origin is None:
 			P.screen_origin = (0, 0)
 
+		SCREEN_FLAGS = (
+			sdl2.SDL_WINDOW_OPENGL |
+			sdl2.SDL_WINDOW_SHOWN |
+			sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP |
+			sdl2.SDL_WINDOW_ALLOW_HIGHDPI
+		)
 		window = sdl2.ext.Window("experiment", P.screen_x_y, P.screen_origin, SCREEN_FLAGS)
 		P.screen_diagonal_in = diagonal_in
 		P.screen_c = (P.screen_x / 2, P.screen_y / 2)
-		P.diagonal_px = sqrt(P.screen_x**2.0  + P.screen_y**2.0)
-		P.ppi = int(P.diagonal_px / diagonal_in)
-		P.monitor_x = P.screen_x / P.ppi
-		P.monitor_y = P.screen_y / P.ppi
-		P.screen_degrees_x = degrees(atan((2.55 * P.monitor_x / 2.0) / P.view_distance) * 2)
+		P.screen_diagonal_px = sqrt(P.screen_x**2.0 + P.screen_y**2.0)
+		P.ppi = int(P.screen_diagonal_px / diagonal_in)
+		P.monitor_height = P.screen_y / P.ppi # Generate this more directly?
+		P.monitor_width = P.screen_x / P.ppi # Generate this more directly?
+		P.screen_degrees_x = degrees(atan((2.55 * P.monitor_width / 2.0) / P.view_distance) * 2)
+		P.screen_degrees_y = degrees(atan((2.55 * P.monitor_height / 2.0) / P.view_distance) * 2)
 		P.pixels_per_degree = P.screen_x // P.screen_degrees_x
 		P.ppd = P.pixels_per_degree  # alias for convenience
 

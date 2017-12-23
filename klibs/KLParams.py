@@ -5,6 +5,7 @@ user's template of the params file, then autogenerate the template doc. AND the 
 """
 
 author = 'jono'
+
 import logging, time, tempfile
 from random import seed
 from datetime import datetime
@@ -15,181 +16,159 @@ from pkg_resources import resource_filename, resource_string
 from klibs.KLConstants import *
 
 
-#  project structure; default paths & filenames
-global project_name
-global asset_dir
-global config_dir
-global data_dir
-global incomplete_data_dir
-global edf_dir
-global incomplete_edf_dir
-global image_dir
-global local_dir
-global resources_dir
-global versions_dir
-
-global database_filename
-global database_path
-global database_local_path
-global database_backup_path
-global events_filename
-global events_file_path
-global ind_vars_filename
-global ind_vars_file_path
-global ind_vars_file_local_path
-global log_filename
-global log_file_path
-global params_file_path
-global params_local_file_path
-global schema_filename
-global schema_file_path
-global user_queries_filename
-global user_queries_file_path
-
-global initialized
-global random_seed
-global anonymous_username
-global logo_file_path
-global key_maps
-
 klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
-code_dir = "ExpAssets/Resources/code"  # hard-coded because it's required *before* the Experiment class is instantiated
 
-#########################################
-# Logging Defaults
-#########################################
-log_to_file = True
-level = logging.INFO
+# Runtime Variables
+participant_id = None
+p_id = None # alias for participant_id
+trial_id = None
+trial_number = 0
+block_number = 0
+recycle_count = 0 # reset on a per-block basis
 
+# State variables
+initialized = False
+display_initialized = False
+demographics_collected = False
+in_trial = False
+paused = False # (not implemented)
+practicing = False # True if during practice block
 
-exp = None
-exp_font_dir = "ExpAssets/Resources/font"
-sys_font_dir = "/Library/Fonts"
-user_font_dir = "~/Library/Fonts"
-klibs_font_dir = resource_filename('klibs', 'resources/font')
-font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
+# Experiment Attributes
+collect_demographics = True
+manual_demographics_collection = False
+manual_trial_generation = False
+multi_session_project = False
+multi_user = False # creates temp copy of db that gets merged into master at end
+trials_per_block = 0
+blocks_per_experiment = 0
+table_defaults = {} # default column values for db tables when using EntryTemplate
+#run_practice_blocks = True (not implemented)
 
+# Eye Tracking Settings
+eye_tracking = False
+eye_tracker_available = False
+manual_eyelink_setup = False
+manual_eyelink_recording = False
+show_gaze_dot = False # overridden by dm_show_gaze_dot if in development mode
+saccadic_velocity_threshold = 20
+saccadic_acceleration_threshold = 5000 # (change to be more accurate?)
+saccadic_motion_threshold = 0.15
+#calibrate_with_audio = True (not implemented)
+#calibrate_targets = 9 (not implemented)
 
-# default strings for communicating with participant
+# Labjack Settings
+labjack_available = False
+labjacking = False
+
+# Aesthetic Defaults
+default_fill_color = (45, 45, 45, 255)
+default_color = (255, 255, 255, 255)
+default_alert_color = (236, 88, 64, 255)
+default_font_size = "28pt"
+default_font_name = 'Frutiger' #TODO: find a new default font
+
+# Display defaults (user-defined)
+view_distance = 57  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen
+additional_displays = [] # (not implemented)
+screen_origin = (0,0)  # (not implemented) always (0,0) unless multiple displays in use
+blit_flip_x = False
+
+# Display defaults (defined automatically on launch in KLGrapics.display_init())
+ppi = 0  # pixels-per-inch
+pixels_per_degree = None  # pixels-per-degree, ie. degree of visual angle
+ppd = None  # alias of pixels_per_degree
+screen_diagonal_in = None # defined by screensize argument to 'klibs run'
+screen_diagonal_px = None
+screen_x = None
+screen_y = None
+screen_x_y = None
+screen_c = (None, None)
+screen_degrees_x = None
+screen_degrees_y = None
+monitor_height = None
+monitor_width = None
+refresh_rate = None # Number of times the display refreshes per second (in Hz)
+refresh_time = None # Expected time between display refreshes (in ms)
+
+# Database Export Settings
+id_field_name = "participant_id"
+primary_table = "trials"
+unique_identifier = "userhash"
+default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]
+default_participant_fields_sf = [["userhash", "participant"], "random_seed", "sex", "age", "handedness"]
+default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
+
+# Development mode & associated switches
+development_mode = False  # when True, skips collect_demographics & prints various details to screen
+dm_trial_show_mouse = True
+dm_auto_threshold = True # for audio responses
+dm_ignore_local_overrides = False
+dm_show_gaze_dot = True
+#debug_level = 3 # (not implemented)
+#dm_suppress_debug_pane = False # (debug pane was never implemented but maybe a good idea)
+#dm_print_log = True # (not implemented)
+#dm_print_events = True # (not implemented)
+
+# Verbose mode & logging params (not implemented)
+verbose_mode = False
+verbosity = -1
+#log_to_file = True
+#log_level = logging.INFO
+
+# default strings for communicating with participant (is this still useful?)
 no_answer_string = None
 invalid_answer_string = None
 block_break_message = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
 
-initialized = False
-audio_initialized = False
+# Font folder info
+exp_font_dir = "ExpAssets/Resources/font"
+sys_font_dir = "/Library/Fonts" # Should be updated to be cross-platform
+user_font_dir = "~/Library/Fonts"
+klibs_font_dir = resource_filename('klibs', 'resources/font')
+font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
 
-skeleton_mode = False
-calibrate_with_audio = True
-calibrate_targets = 9
+# Default Paths & Filenames (filled in by setup() and init_project() below)
+project_name = None
+asset_dir = None
+config_dir = None
+data_dir = None
+incomplete_data_dir = None
+edf_dir = None
+incomplete_edf_dir = None
+image_dir = None
+code_dir = None
+local_dir = None
+resources_dir = None
+versions_dir = None
 
-participant_id = None
-p_id = None
+database_filename = None
+database_path = None
+database_local_path = None
+database_backup_path = None
+events_filename = None
+events_file_path = None
+ind_vars_filename = None
+ind_vars_file_path = None
+ind_vars_file_local_path = None
+log_filename = None
+log_file_path = None
+params_file_path = None
+params_local_file_path = None
+schema_filename = None
+schema_file_path = None
+user_queries_filename = None
+user_queries_file_path = None
+logo_file_path = None
 
+anonymous_username = None
+random_seed = None
+key_maps = None
 
-id_field_name = "participant_id"
-unique_identifier = "userhash"
-collect_demographics = True
-demographics_collected = False
-manual_demographics_collection = False
-multi_user = False
-
-# eye tracking
-eye_tracking = False
-eye_tracker_available = False
-exp_factors = None
-manual_eyelink_setup = False
-manual_eyelink_recording = False
-
-# labjack
-labjack_available = False
-labjacking = False
-
-instructions = False  # todo: instructions file
-paused = False
-testing = False
-default_alert_duration = 1
-
-default_fill_color = (45, 45, 45, 255)
-default_drift_correct_fill_color = (125, 125, 125, 255)
-default_color = (255, 255, 255, 255)
-default_alert_color = (236, 88, 64, 255)
-default_response_color = default_color
-default_input_color = default_color
-default_font_size = "28pt"
-default_font_name = 'Frutiger'
-default_timeout_message = "Too slow!"
-
-monitor_x = None
-monitor_y = None
-diagonal_px = None
-ppi = 0  # pixels-per-inch, varies between CRT & LCD screens
-pixels_per_degree = None  # pixels-per-degree, ie. degree of visual angle
-ppd = None  # pixels-per-degree, ie. degree of visual angle
-screen_c = (None, None)
-screen_ratio = None
-screen_diagonal_in = None
-screen_x = None
-screen_y = None
-screen_x_y = None
-screen_degrees_x = None
-screen_degrees_y = None
-refresh_rate = None # Number of times the display refreshes per second (in Hz)
-refresh_time = None # Expected time between display refreshes (in ms)
-additional_displays = []
-screen_origin = (0,0)  # always (0,0) unless multiple displays in use
-view_distance = 104  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen
-display_initialized = False
-blit_flip_x = False
-saccadic_velocity_threshold = 20
-saccadic_acceleration_threshold = 5000
-saccadic_motion_threshold = 0.15
-
-fixation_size = 1  # deg of visual angle
-box_size = 1  # deg of visual angle
-cue_size = 1  # deg of visual angle
-cue_back_size = 1  # deg of visual angle
-verbosity = -1  # 0-10, with 0 being no errors and 10 being all errors todo: actually implement this hahaha, so fail
-
-trial_id = None
-trial_number = 0
-block_number = 0
-trials_per_block = 0
-blocks_per_experiment = 0
-between_subject_conditions = None
-multi_session_project = False
-
-run_practice_blocks = True
-show_practice_messages = True
-practicing = False
-recycle_count = 0  # reset on a per-block basis
-manual_trial_generation = False
-pre_render_block_messages = False
-
-# database
-data_columns = None
-primary_table = 'trials'
-default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]
-default_participant_fields_sf = [["userhash", "participant"], "random_seed", "sex", "age", "handedness"]
-default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
-data_column_format = DB_COL_TITLE
-
-
-# development mode & associated switches
-debug_level = 3
-development_mode = False  # when True, skips collect_demographics & prints various details to screen
-dm_trial_show_mouse = True
-dm_suppress_debug_pane = False
-dm_auto_threshold = True
-dm_print_log = True
-dm_print_events = True
-dm_ignore_local_overrides = False
-el_track_gaze = True
-verbose_mode = False
-in_trial = False
 
 def init_project():
 	from klibs.KLKeyMap import KeyMap
-	global key_maps
+	global key_maps # ? (should global keymaps be a thing?)
 	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
 	global project_name
 	global asset_dir
@@ -223,8 +202,8 @@ def init_project():
 
 	global initialized
 
-	key_maps = {"*": KeyMap("*", [], [], [])}
-	key_maps["*"].any_key = True
+	key_maps = {"*": KeyMap("*", [], [], [])} # ?
+	key_maps["*"].any_key = True # ?
 
 
 	# file names
@@ -269,10 +248,10 @@ def init_project():
 def setup(project_name_str, manual_seed=None):
 	global project_name
 	global asset_dir
-	global random_seed
 	global anonymous_username
 	global exp_font_dir
 	global image_dir
+	global code_dir
 	global config_dir
 	global resources_dir
 	global logo_file_path
@@ -289,6 +268,7 @@ def setup(project_name_str, manual_seed=None):
 	resources_dir = join(asset_dir, "Resources")
 	exp_font_dir = join(resources_dir, "font")
 	image_dir = join(resources_dir, "image")
+	code_dir = join(resources_dir, "code")
 	config_dir = join(asset_dir, "Config")
 	logo_file_path = resource_filename('klibs', 'resources/splash.png')
 

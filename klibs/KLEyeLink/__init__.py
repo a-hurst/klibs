@@ -16,5 +16,6 @@ if PYLINK_AVAILABLE and P.eye_tracker_available:
 		print "Using PyLink"
 else:
 	from KLTryLink import TryLink as EyeLinkExt
+	P.show_gaze_dot = True
 	if P.development_mode:
 		print "Using TryLink"

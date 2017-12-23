@@ -92,26 +92,12 @@ class TextStyle(object):
 
 
 class TextManager(object):
-	asset_path = "ExpAssets"
-	alert_color = (255, 0, 0, 255)
 	fonts = {}
 	font_sizes = {}
-	labels = {}
-	monitor_x = None
-	monitor_y = None
-	queue = {}
-	strings = {}
-	window_x = None
-	window_y = None
-	default_font_size = None
 	styles = {}
-	legacy_styles_count = 0
 	__default_color__ = (0, 0, 0, 255)
-	__default_input_color__ = (3, 118, 163, 255)
 	__default_bg_color__ = (255, 255, 255)
-	__default_font_size__ = None
 	__default_font__ = None
-	__default_message_duration__ = 1
 
 
 	def __init__(self):
@@ -119,7 +105,6 @@ class TextManager(object):
 		self.add_font("Anonymous Pro", font_file_basename="AnonymousPro")
 		self.add_font("Frutiger")
 		self.add_style("debug", 12, (225, 145, 85, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro", anti_alias=False)
-		self.default_font_size = P.default_font_size
 		self.default_color = P.default_color
 		TTF_Init()
 
@@ -281,23 +266,6 @@ class TextManager(object):
 		"""
 		if type(color) is list:
 			self.__default_color__ = color
-
-	@property
-	def default_input_color(self):
-		"""
-
-		:return:
-		"""
-		return self.__default_color
-
-	@default_input_color.setter
-	def default_input_color(self, color):
-		"""
-
-		:param color:
-		"""
-		if type(color) in (list, tuple):
-			self.__default_input_color__ = color
 
 	@property
 	def default_bg_color(self):

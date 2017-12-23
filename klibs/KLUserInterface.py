@@ -5,7 +5,7 @@ from time import time
 from sdl2 import (SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, SDLK_UP, SDLK_DOWN,
 	SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
 
-from klibs.KLConstants import MOD_KEYS, UI_METHOD_KEYSYMS
+from klibs.KLConstants import MOD_KEYS
 from klibs import P
 from klibs.KLUtilities import pump
 
@@ -148,25 +148,24 @@ def ui_request(key_press=None, execute=True, queue=None):
 			key_press = [key_press]
 		for k in key_press:
 			if k.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
-				if k.sym in UI_METHOD_KEYSYMS:
-					if k.sym == SDLK_q:
-						if execute:
-							from klibs.KLEnvironment import exp
-							exp.quit()
-						else:
-							return [True, "quit"]
-					elif k.sym == SDLK_c:
-						# todo: error handling here
-						if execute:
-							from klibs.KLEnvironment import el
-							return el.calibrate()
-						else:
-							return [True, "el_calibrate"]
-					elif k.sym == SDLK_p:
-						if execute:
-							return pause()
-						else:
-							return [True, "pause" if not P.paused else "unpause"]
+				if k.sym == SDLK_q:
+					if execute:
+						from klibs.KLEnvironment import exp
+						exp.quit()
+					else:
+						return [True, "quit"]
+				elif k.sym == SDLK_c:
+					# todo: error handling here
+					if execute:
+						from klibs.KLEnvironment import el
+						return el.calibrate()
+					else:
+						return [True, "el_calibrate"]
+				elif k.sym == SDLK_p:
+					if execute:
+						return pause()
+					else:
+						return [True, "pause" if not P.paused else "unpause"]
 		return False
 
 

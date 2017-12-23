@@ -1,12 +1,9 @@
 __author__ = 'jono'
 
-from klibs.KLConstants import ANY_KEY
-
 
 class KeyMap(object):
 	def __init__(self, name, ui_labels, data_labels, sdl_keysyms):
 		self.__any_key = None
-		self.any_key_string = ANY_KEY
 		self.map = [[], [], []]  # ui_labels, data_labels, sdl_keysyms
 		if type(name) is str:
 			self.name = name

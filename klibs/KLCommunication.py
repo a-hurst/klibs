@@ -18,7 +18,6 @@ from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
 
 global user_queries
-global block_break_messages
 
 __user_queries__ = None
 
@@ -141,7 +140,6 @@ def init_messaging():
 	from klibs.KLEnvironment import txtm, exp
 
 	global user_queries
-	global block_break_messages
 	global SLACK_STATUS
 
 	# try to create question objects (ie. JSON_Objects with expected keys) from demographics file
@@ -150,12 +148,6 @@ def init_messaging():
 	# default styles can't be created until screen dimensions are loaded into Params from exp.display_init()
 	txtm.add_style("default", P.default_font_size, P.default_color, font_label="Frutiger")
 	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font_label="Frutiger")
-
-	if P.pre_render_block_messages:
-		for i in range(1, P.blocks_per_experiment, 1):
-			msg = P.block_break_message.format(i, P.blocks_per_experiment)
-			r_msg = message(msg, blit=False)
-			block_break_messages.append(r_msg)
 	
 	# check if Slack messaging is set up properly, and import required packages if it is
 	try:

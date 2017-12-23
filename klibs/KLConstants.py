@@ -1,29 +1,86 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
 
-import imp
-import sdl2
 
-
-DB_EXT = ".db"
-EDF = "EDF"
-EDF_EXT = ".EDF"
-DATA_EXT = ".txt"
-BACK_EXT = ".backup"
-LOG_EXT = "_log.txt"
-SCHEMA_EXT = "_schema.sql"
-USER_QUERIES_EXT = "_user_queries.json"
-FACTORS_EXT = "_independent_variables.py"
-PARAMS_EXT = "_params.py"
-MESSSAGING_EXT = "_messaging.py"
+# Aliases for UI convenience
 INCH = "in"
 CM = "cm"
 TAB = "\t"
 NA = "NA"
 ALL = "*"
-# Display Constants
-PPI_CRT = 72
-PPI_LCD = 96
+RGBA = "RGBA"
+
+# TimeKeeper Constants
+TK_MS = 1 # Use milliseconds
+TK_S = 0 # Use seconds
+
+# KLBoundary shape aliases
+RECT_BOUNDARY = "rectangle"
+CIRCLE_BOUNDARY = "circle"
+ANNULUS_BOUNDARY = "annulus"
+
+# KLDraw Constants
+STROKE_INNER = 1
+STROKE_CENTER = 2
+STROKE_OUTER = 3
+KLD_LINE = "line"
+KLD_ARC = "arc"
+KLD_PATH = "path"
+KLD_MOVE = "move"
+
+# ResponseCollector Constants
+RC_AUDIO = 'audio'
+RC_KEYPRESS = 'keypress'
+RC_COLORSELECT = 'color_selection'
+RC_MOUSEDOWN = 'mousedown'
+RC_MOUSEUP = 'mouseup'
+RC_SACCADE = 'saccade'
+RC_FIXATION = 'fixation'
+RC_DRAW = 'draw'
+NO_RESPONSE = "NO_RESPONSE"
+TIMEOUT = -1
+
+# KLEyeLink constants for writing readable EyeLink code
+EL_LEFT_EYE = 0
+EL_RIGHT_EYE = 1
+EL_BOTH_EYES = 2
+EL_NO_EYES = -1
+EL_TRUE = 1
+EL_FALSE = 0
+# Constants corresponding to pylink's getTrackerVersion() return values
+EYELINK_I = 1
+EYELINK_II = 2
+EYELINK_1000 = 3
+# Variables indicating what to return from KLEyeLink functions
+EL_GAZE_START = "gaze_start"
+EL_GAZE_END = "gaze_end"
+EL_AVG_GAZE = "average_gaze"
+EL_TIME_START = "time_start"
+EL_TIME_END = "time_end"
+# KLEyeLink event types
+EL_MOCK_EVENT = -1
+EL_GAZE_POS = 200
+EL_BLINK_START = 3
+EL_BLINK_END = 4
+EL_FIXATION_START = 7
+EL_FIXATION_END = 8
+EL_FIXATION_BOTH = [7, 8]
+EL_FIXATION_UPDATE = 9
+EL_FIXATION_ALL = [7, 8, 9]
+EL_SACCADE_START = 5
+EL_SACCADE_END = 6
+EL_SACCADE_BOTH = [5, 6]
+EL_ALL_EVENTS = [
+	EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_BOTH, EL_FIXATION_UPDATE, EL_FIXATION_ALL,
+	EL_SACCADE_START, EL_SACCADE_END, EL_SACCADE_BOTH,
+	EL_BLINK_START, EL_BLINK_END
+]
+
+# KLNumpySurface Constants
+NS_FOREGROUND = 1  # NumpySurface foreground layer
+NS_BACKGROUND = 0  # NumpySurface background layer
+
+# KLGraphics.blit() registration aliases
 BL_CENTER = 5
 BL_TOP = 8
 BL_TOP_LEFT = 7
@@ -33,23 +90,33 @@ BL_RIGHT = 6
 BL_BOTTOM = 2
 BL_BOTTOM_LEFT = 1
 BL_BOTTOM_RIGHT = 3
+
+# File Extensions
+DB_EXT = ".db"
+EDF_EXT = ".EDF"
+DATA_EXT = ".txt"
+BACK_EXT = ".backup"
+LOG_EXT = "_log.txt"
+SCHEMA_EXT = "_schema.sql"
+USER_QUERIES_EXT = "_user_queries.json"
+FACTORS_EXT = "_independent_variables.py"
+PARAMS_EXT = "_params.py"
+MESSSAGING_EXT = "_messaging.csv"
+
+# KLText & pretty_join Constants
+TEXT_PX = "PX"
+TEXT_MULTIPLE = "*"
+TEXT_PT = "PT"
+DELIM_WRAP = "wrap"
+DELIM_NOT_LAST = "not_last"
+DELIM_NOT_FIRST = "not_first"
+
+# KLCommunication Constants (for query function)
 AUTO_POS = "auto"
 QUERY_ACTION_HASH = "hash"
 QUERY_ACTION_UPPERCASE = "uppercase"
 
-NS_FOREGROUND = 1  # NumpySurface foreground layer
-NS_BACKGROUND = 0  # NumpySurface background layer
-MAX_WAIT = 9999999
-OVER_WATCH = "over_watch"
-ANY_KEY = "ANY_KEY"
-TIMEOUT = -1
-NO_RESPONSE = "NO_RESPONSE"
-
-
-PARTICIPANT_FILE = 1
-EDF_FILE = 0
-
-# KLDatabase
+# KLDatabase Constants
 PY_FLOAT = 'float'
 PY_STR = 'str'
 PY_BOOL = 'bool'
@@ -80,120 +147,20 @@ TBL_EVENTS = "events"
 TBL_TRIALS = "trials"
 TBL_LOGS = "logs"
 
-# KLTextManager
-ANS_VALID = "answer valid"
-ANS_INVALID = "answer invalid"
-ANS_EMPTY = "empty answer"
-
-# Some definitions for visually clean interaction with the EyeLink C++ libraries
-EL_LEFT_EYE = 0
-EL_RIGHT_EYE = 1
-EL_BOTH_EYES = 2
-EL_NO_EYES = -1
-EL_TRUE = 1
-EL_FALSE = 0
-PARALLEL_AVAILABLE = False
-MAX_DRIFT_DEG = 3
-INIT_SAC_DIST = 3  # Min. distance (degrees) before eye movement == initiating saccade for response direction
-EL_TEMP_FILE = "temp_participant{0}".format(EDF)
-
-# Constants corresponding to pylink's getTrackerVersion() return values
-EYELINK_I = 1
-EYELINK_II = 2
-EYELINK_1000 = 3
-
-EL_GAZE_START = "gaze_start"
-EL_GAZE_END = "gaze_end"
-EL_AVG_GAZE = "average_gaze"
-EL_TIME_START = "time_start"
-EL_TIME_END = "time_end"
-# these mirror eyelink event codes where their counterpart exists
-EL_MOCK_EVENT = -1
-EL_GAZE_POS = 200
-EL_BLINK_START = 3
-EL_BLINK_END = 4
-EL_FIXATION_START = 7
-EL_FIXATION_END = 8
-EL_FIXATION_BOTH = [7,8]
-EL_FIXATION_UPDATE = 9
-EL_FIXATION_ALL = [7,8,9]
-EL_SACCADE_START = 5
-EL_SACCADE_END = 6
-EL_SACCADE_BOTH = [5,6]
-EL_ALL_EVENTS = [EL_BLINK_START, EL_BLINK_END, EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_BOTH, EL_FIXATION_UPDATE, EL_FIXATION_ALL, EL_SACCADE_START, EL_SACCADE_END, EL_SACCADE_BOTH]
-
-# lists of sdl2 key representations needed by klibs
-MOD_KEYS = {"Left Shift": 1, "Right Shift": 2, "Left Ctrl": 64, "Right Ctrl": 128,  # todo: make __mod_keysyms
-			"Left Alt": 256, "Right Alt": 512, "Left Command": 1024, "Right Command": 2048}
-
-UI_METHOD_KEYSYMS = [sdl2.SDLK_q, sdl2.SDLK_c, sdl2.SDLK_p]
-
-SCREEN_FLAGS = sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP | sdl2.SDL_RENDERER_ACCELERATED | sdl2.SDL_RENDERER_PRESENTVSYNC | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
-RECT_BOUNDARY = "rectangle"
-CIRCLE_BOUNDARY = "circle"
-ANNULUS_BOUNDARY = "annulus"
-RGBA = "RGBA"
-
-# TrialFactory Constants
-TF_FACTORS = 0
-TF_WEIGHTED_FACTORS = 1
-TF_STIM_FILE = 2
-TF_TRIAL_DATA = "Data"
-TF_TRIAL_PARAMETERS = "Parameters"
-TF_DATA = "data"
-TF_FACTOR = "factor"
-TF_TRIAL_COUNT = "trial_count"
-TF_TRIAL_COUNT_UC = "Trial_Count"
-TF_NAS = ["na", "n/a", "NA", "N/A", "nA", "Na", "n/A", "N/a"]
-
-# TextManager & Pretty Join Constants
-TEXT_PX = "PX"
-TEXT_MULTIPLE = "*"
-TEXT_PT = "PT"
-DELIM_WRAP = "wrap"
-DELIM_NOT_LAST = "not_last"
-DELIM_NOT_FIRST = "not_first"
-
-# Utilities Constants
-ENTERING = 1
-EXITING = 2
-EXCEPTION = 3
-DATETIME_STAMP = '%Y-%m-%d %H:%M:%S'
-
-# Drawbject Constants
-STROKE_INNER = 1
-STROKE_CENTER = 2
-STROKE_OUTER = 3
-KLD_LINE = "line"
-KLD_ARC = "arc"
-KLD_PATH = "path"
-KLD_MOVE = "move"
+# SDL2 keycodes for modifier keys (used for ui_request and other functions)
+MOD_KEYS = {
+	"Left Shift": 1, "Right Shift": 2,
+	"Left Ctrl": 64, "Right Ctrl": 128,
+	"Left Alt": 256, "Right Alt": 512,
+	"Left Command": 1024, "Right Command": 2048
+}
 
 # AudioResponse Constants
-AR_THRESHOLD = 1000
-AR_AUTO_THRESHOLD = 1
 AR_CHUNK_SIZE = 1024
 AR_CHUNK_READ_SIZE = 1024
 AR_RATE = 44100
-AUDIO_ON = 1
-AUDIO_OFF = 0
 
-# TimeKeeper Constants
-TK_MS = 1
-TK_S = 0
-
-# ResponseCollector Constants
-RC_AUDIO = 'audio'
-RC_KEYPRESS = 'keypress'
-RC_COLORSELECT = 'color_selection'
-RC_MOUSEDOWN = 'mousedown'
-RC_MOUSEUP = 'mouseup'
-RC_SACCADE = 'saccade'
-RC_FIXATION = 'fixation'
-RC_DRAW = 'draw'
-
-# EventInterface Event Constants
-
+# EventInterface Constants (a lot of these can probably go, but not touching until evm rewrite)
 EVI_TRIAL_START = "TRIAL_START"
 EVI_TRIAL_STOP = "TRIAL_STOP"
 EVI_BLOCK_START = "BLOCK_START"
@@ -218,4 +185,14 @@ EVI_CLOCK_SYNC = "CLOCK_SYNC"
 EVI_CLOCK_RESET = "CLOCK_RESET"
 EVI_DEREGISTER_EVENT = "DEREGISTER_EVENT"
 EVI_EVENT_SYNC_COMPLETE = "EVENT_SYNC_COMPLETE"
-EVI_CONSTANTS = [EVI_TRIAL_START, EVI_TRIAL_STOP, EVI_BLOCK_START, EVI_BLOCK_STOP, EVI_PR_TRIAL_START, EVI_PR_TRIAL_STOP, EVI_PR_BLOCK_START, EVI_PR_BLOCK_STOP, EVI_TRIAL_RECYCLED, EVI_EL_START_REC, EVI_EL_STOP_REC, EVI_EXP_SETUP_START, EVI_EXP_SETUP_STOP, EVI_EXP_END, EVI_T_PREP_START, EVI_T_PREP_STOP, EVI_T_CLEANUP_START, EVI_T_CLEANUP_STOP, EVI_SEND_TIME, EVI_CLOCK_SYNC, EVI_CLOCK_RESET, EVI_DEREGISTER_EVENT, EVI_EVENT_SYNC_COMPLETE]
+EVI_CONSTANTS = [
+	EVI_EXP_SETUP_START, EVI_EXP_SETUP_STOP, EVI_T_PREP_START, EVI_T_PREP_STOP,
+	EVI_BLOCK_START, EVI_BLOCK_STOP, EVI_PR_BLOCK_START, EVI_PR_BLOCK_STOP,
+	EVI_TRIAL_START, EVI_TRIAL_STOP, EVI_PR_TRIAL_START, EVI_PR_TRIAL_STOP, EVI_TRIAL_RECYCLED,
+	EVI_T_CLEANUP_START, EVI_T_CLEANUP_STOP, EVI_EXP_END,
+	EVI_EL_START_REC, EVI_EL_STOP_REC, EVI_SEND_TIME, EVI_CLOCK_SYNC, EVI_CLOCK_RESET,
+	EVI_DEREGISTER_EVENT, EVI_EVENT_SYNC_COMPLETE
+]
+
+# Misc Constants
+DATETIME_STAMP = '%Y-%m-%d %H:%M:%S'

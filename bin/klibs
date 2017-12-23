@@ -262,6 +262,8 @@ def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
 			P.eye_tracker_available = False
 			if KLEyeLink.PYLINK_AVAILABLE:
 				reload(KLEyeLink)
+		if P.development_mode and P.dm_show_gaze_dot:
+			P.show_gaze_dot = True
 		env.el = KLEyeLink.EyeLinkExt()
 	try:
 		env.db = DatabaseManager()

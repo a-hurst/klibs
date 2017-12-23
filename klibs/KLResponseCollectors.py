@@ -9,7 +9,7 @@ from klibs.KLExceptions import TrialException
 from klibs.KLNamedObject import *
 from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, RC_FIXATION, 
 	RC_MOUSEDOWN, RC_MOUSEUP, RC_SACCADE, NO_RESPONSE, EL_SACCADE_START, EL_SACCADE_END,
-	MAX_WAIT, TIMEOUT, TK_S, TK_MS, STROKE_INNER)
+	TIMEOUT, TK_S, TK_MS, STROKE_INNER)
 from klibs import P
 from klibs.KLUtilities import (pump, flush, hide_mouse_cursor, show_mouse_cursor, mouse_pos,
 	full_trace, iterable, angle_between)

@@ -29,7 +29,7 @@ KLibs requires Python 2.7 to run, and has not yet been updated to support Python
 After all the prerequisite libraries have been installed, you can run the following command to install KLibs and all its Python dependencies:
 
 ```
-pip install git+https://github.com/a-hurst/klibs.git --process-dependency-links
+pip install git+https://github.com/a-hurst/klibs.git
 ```
 
 Note that if you are using the default system-installed version of Python on macOS, you will need to preface the `pip install` command with `sudo -H` for the command to work.

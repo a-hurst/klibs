@@ -144,25 +144,17 @@ The second value is the anchor point on the object, specifed by a number from `1
 The third value is the location on the screen (in X/Y pixel coordinates) that the object should appear, relative to its anchor point as specified in the second value. KLibs automatically calculates the the coordinates for the center of the screen and saves them to `P.screen_c`, so to make things easy we can speficy this as the location for the circle to appear. The easiest way of drawing objects to places other than the center is to use P.screen_x and P.screen_y, which are the width and height, respectively, of the current display as measured in pixels from the top-left corner of the screen. If you wanted to draw a circle to the mid-left side of the screen you could use
 
 	self.midleft = (P.screen_x / 4, P.screen_y / 2)
-	clear(self.circle, 5, self.midleft)
+	blit(self.circle, 5, self.midleft)
 	
 	
 	
 
 ### flip()
 
-The `flip()` function takes the current contents of the display buffer (everything that has been blitted to the buffer since it was last cleared) and transfers them to the screen. It accepts one value, duration, which must be an integer greater than zero specifying the number of seconds for which the buffer contents should be shown on the screen. If no duration value is given, the function will display the buffer contents until the screen is refreshed with `clear()` or `blit()`.
-
-For example, to display the circle rendered in the previous example on the screen for 50 ms, you would use  
+The `flip()` function takes the current contents of the display buffer (everything that has been blitted to the buffer since it was last cleared) and transfers them to the screen. The function will display the buffer contents until the screen is refreshed with `clear()` or `blit()`.
 
 	blit(self.circle, 5, P.screen_c)
-	fill(0.050)
-	
-Note that timing using the flip() function is not incredibly accurate and should thus not be used in situations when the timing of events is important (e.g. cue/target duration, stimulus onset asynchrony). The Event timer from KLEventInterface should be used instead.
-
-
-	
-_Are there constants for common blit locations? (e.g. middle-left, top-right, etc.) Is it supposed to remove everything that was on the screen already?_
+	flip()
 
 ### fill()
 
@@ -170,6 +162,89 @@ The `fill()` function fills the display buffer with a specified colour (defaults
 
 ### clear()
 
-The `clear()` function clears both the display buffer and the display, replacing both with a specified colour (defaulting to `P.default_fill_color` if no colour specified). This is the equivalent of calling `fill()` to fill the buffer with a colour and subsequently `flip()` to transfer the contents of the buffer to the screen. (?)
+The `clear()` function clears both the display buffer and the display, replacing both with a specified colour (defaulting to `P.default_fill_color` if no colour specified). This is the equivalent of calling `fill()` to fill the buffer with a colour and subsequently `flip()` to transfer the contents of the buffer to the screen.
 
-##Putting It Together
+## Putting It Together
+
+So, you want to get started drawing in KLibs? Thanks to how KLibs is written, it's very easy to get from a fresh project to drawing a shape on the screen. To get started, create a new project called 'DrawTest' using 'klibs create DrawTest' in the folder you want to put it in, then open the experiment.py file for the project. Then we need to import the KLDraw library so we can use its shapes, and the basic functions for working with the display buffer from KLGraphics. We'll also import the function 'any_key' to allow you to make the experiment wait for your input. To do all this, add the following lines to the top of your experiment.py file:
+
+```python
+__author__ = "Your Name"
+
+import klibs
+from klibs import P
+from klibs.KLUserInterface import any_key # add this line
+from klibs.KLGraphics import fill, blit, flip # and this one
+from klibs.KLGraphics import KLDraw as kld # and also this one
+	
+```
+
+Then, in the setup section of the experiment, assign a shape from KLDraw to a variable. For the purpose of this tutorial we'll use a colour wheel, because it's pretty:
+
+```python
+	# Note: make sure to remove the 'pass' line from a function after adding real content to it
+    def setup(self):
+		# Define wheel diameter as 75% of the height of the screen
+		wheelsize = int(P.screen_y*0.75)
+		# Create colour wheel object
+        self.colour_wheel = kld.ColorWheel(diameter=wheelsize)
+```
+
+Note that we preface the colour wheel variable with the prefix 'self.'. This prefix is required whenever you want to use a variable defined in one function from other functions in the experiment object. For example, the variable 'wheelsize' is not prefaced with 'self.' here. If you tried to use that variable within the function trial() as-is, it would give you an error saying no such variable could be found. By using the 'self.' prefix, we make the varialbe an *attribute of the Experiment object*, meaning that we can access it from wherever.
+
+Then, to actually draw the shape to the screen so you can see it, add the following lines to the 'trial' function:
+
+```python
+    def trial(self):
+		# Fill the display buffer with the default fill colour (grey)
+		fill()
+		# Draw the colour wheel to the middle of the display buffer
+        blit(self.colour_wheel, registration=5, location=P.screen_c)
+		# Finally, draw the contents of the display buffer to the screen
+		flip()
+		# Lastly, wait for a keypress or click before continuing
+		any_key()
+```
+
+Make sure to leave in the 'return' section at the end of the trial function, as the experiment will crash with an error without it.
+
+Now, before you can run your experiment, you will need to add at least one independent variable to your independent_variables.py file in ExpAssets/Config/ (note: this will likely change soon, so that KLibs can launch with no independent variables set). For the purpose of this tutorial, you can add the following to the file:
+
+```python
+# Create an empty Independent Variable Set object
+DrawTest_ind_vars = IndependentVariableSet()
+# Add a varaible named "wheel_rotation" and an integer type to the set
+DrawTest_ind_vars.add_variable("wheel_rotation", int)
+# Add some angle values to the "wheel_rotation" variable
+DrawTest_ind_vars["wheel_rotation"].add_values(0, 30, 60, 90, 120, 180)
+```
+
+The consequence of doing this, other than allowing your experiment to launch, is that the Experiment object attribute `self.wheel_rotation` will take on a value selected from the given list on every trial (you can learn more in the "Generating Trials" manual page). To test this out in this tutorial, you can replace the line 'pass' with the following lines in your experiment.py's trial_prep function:
+
+```python
+	def trial_prep(self):
+		# Set the rotation of the colour wheel object to the trial's rotation value
+		self.colour_wheel.rotation = self.wheel_rotation
+		# Pre-render the wheel for faster blitting during runtime
+		self.colour_wheel.render()
+```
+
+All done! Now, go to the root of your DrawTest experiment folder in a terminal window if you haven't already (e.g. "cd DrawTest") and then try running your project by using 'klibs run [screensize]', replacing [screensize] with the size of your monitor in diagonal inches (e.g. on a 13" MacBook Pro, you would type 'klibs run 13'). This will start the klibs experiment runtime, and after you see the KLibs logo and press any key, you should see a nicely rendered colour wheel that changes rotation every time you press a key on your keyboard.
+
+!(DrawTest Colour Wheel)[resources/drawtest_colwheel.png]
+
+Well done! You're getting a hang of things already. To quit an experiment once it's launched, you can use either Command-Q on a Mac or Control-Q or Alt-Q on Linux to quit the experiment gracefully. 
+
+You'll notice that the experiment exits itself after a couple key presses. This is because by default, KLibs will run a single block of *n* trials, with *n* being the product of the number of different possible factors (in this case, we have 1 factor with 6 possible values, so 6 trials). You can manually set the number of blocks and trials per block in the params.py file in ExpAssets/Config. 
+
+**Python Protip:** while launching your experiment for the first time, you may have gotten an error like this:
+
+```
+  File "experiment.py", line 38
+    flip()
+    ^
+IndentationError: unexpected indent
+  File "/usr/local/bin/klibs", line 281, in run
+    experiment_file = imp.load_source(path, "experiment.py")
+```
+This is because Python as a language is super-picky about whether you use tabs or spaces to indent lines because indentation is how you indicate that a loop has started or ended and many other things. If you copy and paste lines of code from the internet into a Python file you've written, it may use a different kind of indentation and confuse the Python interpreter. To avoid this, most text editors have a "convert tabs to spaces" or "convert spaces to tabs" function you can use to make it all consistent. It doesn't matter which one you use (tabs or spaces, that is, but spaces is recommended by the official PEP8 style guide), the important thing is consistency.

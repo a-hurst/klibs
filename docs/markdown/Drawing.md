@@ -2,8 +2,6 @@
 
 Before drawing anything in a KLibs experiment, you first need to understand that KLibs uses what's known as the __painter's model__ for drawing. What this means is that objects can be continuously drawn on top of other objects in a KLibs experiment (just like paint can be added on top of existing paint on a canvas), but existing objects can't be removed individually. Instead, removing an individual object is done by refreshing the screen (starting with a fresh canvas) and redrawing all objects except those  you want removed.
 
-Clearing the screen of existing objects is accomplished by `clear()`
-
 __TODO: introduce concept of display buffer__
 
 In addition, rendering (the creation of an object) and displaying objects are accomplished by separate functions. To display all rendered objects to the screen, you can use flip().
@@ -19,12 +17,12 @@ In KLibs, several types of objects can be easily drawn. The following examples a
 
 The annulus class creates a ring object with a specified diameter, *width, *stroke, and fill.
 
-`self.ring = kld.Annulus(self, diameter, ring_width, stroke=None, fill=None, auto_draw=True)`
+`self.ring = kld.Annulus(self, diameter, ring_width, stroke=None, fill=None)`
 ### Bezier
 
 The Bezier class creates a curved line object (how does it work?)
 
-`self.bezier = kld.Bezier(self, height, width, origin, destination, ctrl1_s, ctrl1_e, ctrl2_s=None, ctrl2_e=None, stroke=None, fill=None, auto_draw=True)`
+`self.bezier = kld.Bezier(self, height, width, origin, destination, ctrl1_s, ctrl1_e, ctrl2_s=None, ctrl2_e=None, stroke=None, fill=None)`
 ### Ellipse
 
 The Ellipse class creates an oval object with a specified width, height, stroke, and fill. If height is not specified, it defaults to the same value as width and creates a circle.
@@ -57,13 +55,13 @@ The Asterisk class creates an asterisk object of a specified size, colour, and s
 
 The ColorWheel class creates an RGB colour wheel object with a specified diameter, thickness, and rotation.
 
-`self.rgb_wheel = kld.ColorWheel(self, diameter, thickness=None, rotation=0, auto_draw=True)`
+`self.rgb_wheel = kld.ColorWheel(self, diameter, thickness=None, rotation=0)`
 
 ### FreeDraw
 
 ???
 
-`self.freedraw = kld.FreeDraw(self, width, height, stroke, origin=None, fill=None, auto_draw=True)`
+`self.freedraw = kld.FreeDraw(self, width, height, stroke, origin=None, fill=None)`
   
 ## Object Properties
 
@@ -162,7 +160,15 @@ The `fill()` function fills the display buffer with a specified colour (defaults
 
 ### clear()
 
-The `clear()` function clears both the display buffer and the display, replacing both with a specified colour (defaulting to `P.default_fill_color` if no colour specified). This is the equivalent of calling `fill()` to fill the buffer with a colour and subsequently `flip()` to transfer the contents of the buffer to the screen.
+The `clear()` function clears both the display buffer and the display, replacing both with a specified colour (defaulting to `P.default_fill_color` if no colour specified). This function is the equivalent of:
+```
+fill()
+flip()
+fill()
+flip()
+```
+
+---
 
 ## Putting It Together
 
@@ -182,11 +188,11 @@ from klibs.KLGraphics import KLDraw as kld # and also this one
 Then, in the setup section of the experiment, assign a shape from KLDraw to a variable. For the purpose of this tutorial we'll use a colour wheel, because it's pretty:
 
 ```python
-	# Note: make sure to remove the 'pass' line from a function after adding real content to it
+    # Note: make sure to remove the 'pass' line from a function after adding real content to it
     def setup(self):
-		# Define wheel diameter as 75% of the height of the screen
-		wheelsize = int(P.screen_y*0.75)
-		# Create colour wheel object
+        # Define wheel diameter as 75% of the height of the screen
+        wheelsize = int(P.screen_y*0.75)
+        # Create colour wheel object
         self.colour_wheel = kld.ColorWheel(diameter=wheelsize)
 ```
 
@@ -196,14 +202,14 @@ Then, to actually draw the shape to the screen so you can see it, add the follow
 
 ```python
     def trial(self):
-		# Fill the display buffer with the default fill colour (grey)
-		fill()
-		# Draw the colour wheel to the middle of the display buffer
+        # Fill the display buffer with the default fill colour (grey)
+        fill()
+        # Draw the colour wheel to the middle of the display buffer
         blit(self.colour_wheel, registration=5, location=P.screen_c)
-		# Finally, draw the contents of the display buffer to the screen
-		flip()
-		# Lastly, wait for a keypress or click before continuing
-		any_key()
+        # Finally, draw the contents of the display buffer to the screen
+        flip()
+        # Lastly, wait for a keypress or click before continuing
+        any_key()
 ```
 
 Make sure to leave in the 'return' section at the end of the trial function, as the experiment will crash with an error without it.
@@ -219,23 +225,25 @@ DrawTest_ind_vars.add_variable("wheel_rotation", int)
 DrawTest_ind_vars["wheel_rotation"].add_values(0, 30, 60, 90, 120, 180)
 ```
 
-The consequence of doing this, other than allowing your experiment to launch, is that the Experiment object attribute `self.wheel_rotation` will take on a value selected from the given list on every trial (you can learn more in the "Generating Trials" manual page). To test this out in this tutorial, you can replace the line 'pass' with the following lines in your experiment.py's trial_prep function:
+The consequence of doing this, other than allowing your experiment to launch, is that the Experiment object attribute `self.wheel_rotation` will take on a value selected from the given list on every trial (you can learn more in the [Generating Trials](https://github.com/a-hurst/klibs/blob/testing/docs/markdown/Documentation%20-%20Generating%20Trials.md) manual page). To test this out in this tutorial, you can replace the line 'pass' with the following lines in your experiment.py's trial_prep function:
 
 ```python
-	def trial_prep(self):
-		# Set the rotation of the colour wheel object to the trial's rotation value
-		self.colour_wheel.rotation = self.wheel_rotation
-		# Pre-render the wheel for faster blitting during runtime
-		self.colour_wheel.render()
+    def trial_prep(self):
+        # Set the rotation of the colour wheel object to the trial's rotation value
+        self.colour_wheel.rotation = self.wheel_rotation
+        # Pre-render the wheel for faster blitting during runtime
+        self.colour_wheel.render()
 ```
 
 All done! Now, go to the root of your DrawTest experiment folder in a terminal window if you haven't already (e.g. "cd DrawTest") and then try running your project by using 'klibs run [screensize]', replacing [screensize] with the size of your monitor in diagonal inches (e.g. on a 13" MacBook Pro, you would type 'klibs run 13'). This will start the klibs experiment runtime, and after you see the KLibs logo and press any key, you should see a nicely rendered colour wheel that changes rotation every time you press a key on your keyboard.
 
-!(DrawTest Colour Wheel)[resources/drawtest_colwheel.png]
+![DrawTest Colour Wheel](https://raw.githubusercontent.com/a-hurst/klibs/testing/docs/markdown/resources/drawtest_colwheel.png)
 
 Well done! You're getting a hang of things already. To quit an experiment once it's launched, you can use either Command-Q on a Mac or Control-Q or Alt-Q on Linux to quit the experiment gracefully. 
 
 You'll notice that the experiment exits itself after a couple key presses. This is because by default, KLibs will run a single block of *n* trials, with *n* being the product of the number of different possible factors (in this case, we have 1 factor with 6 possible values, so 6 trials). You can manually set the number of blocks and trials per block in the params.py file in ExpAssets/Config. 
+
+---
 
 **Python Protip:** while launching your experiment for the first time, you may have gotten an error like this:
 

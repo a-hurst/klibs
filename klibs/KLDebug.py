@@ -3,6 +3,10 @@ __author__ = 'jono'
 from klibs import P
 from klibs.KLGraphics.KLDraw import *
 
+# NOTE: This is an old module that was written before some major KLibs updates, and thus needs
+# updating in order to be of any use. At present, fixing this is low-priority, but I may get around
+# to it eventually. In the meantime, do not use.
+
 
 def v(text, args=None):
 	if P.verbose_mode:

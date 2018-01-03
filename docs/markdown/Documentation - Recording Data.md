@@ -1,10 +1,12 @@
 # Recording Data
 
-Flashing shapes and collecting responses is all good and fun, but they're probably not much use to you as a researcher if you can't store the data from your trials somewhere. In KLibs, all data apart from EyeLink EDF files is stored in a lightweight SQLite database, which we use for collecting data because of the flexibility and organization it allows for when recording and exporting data. Databases usually aren't that nice to work with unless you already have experience with them, so KLibs provides you with simple Python and command-line interfaces for writing and exporting data that don't require any prior knowledge of SQL to use.
+Flashing shapes and collecting responses is all good and fun, but they're probably not much use to you as a researcher if you can't store the data from your trials somewhere. In KLibs, all data apart from EyeLink EDF files is stored in a lightweight SQLite database, which we use for collecting data because of the flexibility and organization it allows for when recording and exporting data.
+
+Databases usually aren't that nice to work with unless you already have experience with them, so KLibs provides you with simple Python and command-line interfaces for writing and exporting data that don't require any prior knowledge of SQL to use.
 
 ## The Database File
 
-Your project's SQLite database file can be found in your experiment's __ExpAssets__ folder with the name of your KLibs project and the extension .db. For example, the database for a KLibs project entitled __PosnerCueing__ would be found under `ExpAssets/PosnerCueing.db`. KLibs also automatically saves a backup copy of your experiment's database every time the experiment is run in the same folder with the extension .db.backup, in case the main database becomes corrupted or is edited accidentally.
+Your project's SQLite database file can be found in your experiment's `ExpAssets` folder with the name of your KLibs project and the extension `.db`. For example, the database for a KLibs project entitled `PosnerCueing` would be found under `ExpAssets/PosnerCueing.db`. KLibs also automatically saves a backup copy of your experiment's database every time the experiment is run in the same folder with the extension `.db.backup`, in case the main database becomes corrupted or is edited accidentally.
 
 To open and read your project's database, you can use the free cross-platform [DB Browser for SQLite](http://sqlitebrowser.org/) or any other program that can open SQLite Databases. Each database contains four tables by default: **events**, **logs**, **participants**, and **trials**, but you only need to concern yourself with the last two:
 
@@ -12,9 +14,9 @@ To open and read your project's database, you can use the free cross-platform [D
 
 The participants table is where demographics for your participants are recorded (sex, age, and handedness by default), as well as the date and time of the creation of the participant's data (i.e. when they started the experiment) and the version of KLibs that was used to run the experiment for that participant. 
 
-The *userhash* is a unique anonymous identifier for each participant that is generated during demographics collection. If demographics collection is skipped (e.g. during development mode), one will be generated anyway.
+The `userhash` is a unique anonymous identifier for each participant that is generated during demographics collection. If demographics collection is skipped (e.g. during development mode), one will be generated anyway.
 
-The *random\_seed* is the seed value that Python's built-in 'random' module uses as its "seed value" when generating random values. If you want to run an experiment with the exact same order of trial factors and random values as a previous run, you can copy this value from the database and run it using `klibs run -s [random_seed]`, replacing `[random_seed]` with the 'random\_seed' stored in the database for the run you want to reproduce.
+The `random_seed` is the seed value that Python's built-in 'random' module uses as its "seed value" when generating random values. If you want to run an experiment with the exact same order of trial factors and random values as a previous run, you can copy this value from the database and run it using `klibs run -s [random_seed]`, replacing `[random_seed]` with the 'random\_seed' stored in the database for the run you want to reproduce.
 
 ### Trials
 
@@ -56,24 +58,24 @@ The next time you run your KLibs experiment, a new database containing the new c
 Defining the schema for your database is one half of the equation, the other is writing data to your database. You might have noticed a block of code like this at the end of the 'trial' section of your project's `experiment.py` file:
 
 ```python
-	return {
-		"block_num": P.block_number,
-		"trial_num": P.trial_number
-	}
+return {
+    "block_num": P.block_number,
+    "trial_num": P.trial_number
+}
 ```
 
-When a trial in an experiment ends, it returns a Python Dict (dictionary) that must contain the names and values of all columns in the 'trials' table in the database, save for 'id' and 'participant_id' (these are filled in automatically). If this section is missing a column name or has an extra column name, it will crash your experiment with an error. Thus, after adding columns for the things you want to record at the end of each trial to the 'trials' table schema in the 'schema.sql' file, you will need to update this section of your 'experiment.py' file accordingly.
+When a trial in an experiment ends, it returns a Python Dict (dictionary) that must contain the names and values of all columns in the 'trials' table in the database, save for `id` and `participant_id` (these are filled in automatically). If this section is missing a column name or has an extra column name, it will crash your experiment with an error. Thus, after adding columns for the things you want to record at the end of each trial to the 'trials' table schema in the 'schema.sql' file, you will need to update this section of your 'experiment.py' file accordingly.
 
-For example, after editing your schema to add the 'cue\_loc', 'target\_loc', and 'reaction\_time' columns to the 'trials' table as shown in the previous section (and rebuilding your database to reflect your additions), you would then edit your return section to look something like this:
+For example, after editing your schema to add the `cue_loc`, `target_loc`, and `reaction_time` columns to the 'trials' table as shown in the previous section (and rebuilding your database to reflect your additions), you would then edit your return section to look something like this:
 
 ```python
-	return {
-		"block_num": P.block_number,
-		"trial_num": P.trial_number,
-		"cue_loc": self.cue_loc,
-		"target_loc": self.target_loc,
-		"reaction_time": rt # value returned from ResponseCollector
-	}
+return {
+    "block_num": P.block_number,
+    "trial_num": P.trial_number,
+    "cue_loc": self.cue_loc,
+    "target_loc": self.target_loc,
+    "reaction_time": rt # value returned from ResponseCollector
+}
 ```
 
 That's it! If everything worked correctly, your trial data should now be written to your database at the end of each trial. Remember that any changes to the database schema will require you to rebuild your database, causing you to lose all data recorded up to that point, so make sure to export your data and make a copy of your database somewhere safe if you ever need to add a column or table partway through data collection.

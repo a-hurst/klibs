@@ -139,13 +139,10 @@ The first value passed to the function is the name of the object to be blitted, 
 
 The second value is the anchor point on the object, specifed by a number from `1` to `9` relative to the number pad on a keyboard. For instance, since `7` is the top-left number on the number pad, this specifes to the blit function that the anchor point for the blitted object should be its top left corner. In this case we want the circle centered in the middle of the screen, so we use `5` to place the anchor point in the center of the object.  
 
-The third value is the location on the screen (in X/Y pixel coordinates) that the object should appear, relative to its anchor point as specified in the second value. KLibs automatically calculates the the coordinates for the center of the screen and saves them to `P.screen_c`, so to make things easy we can speficy this as the location for the circle to appear. The easiest way of drawing objects to places other than the center is to use P.screen_x and P.screen_y, which are the width and height, respectively, of the current display as measured in pixels from the top-left corner of the screen. If you wanted to draw a circle to the mid-left side of the screen you could use
+The third value is the location on the screen (in X/Y pixel coordinates) that the object should appear, relative to its anchor point as specified in the second value. KLibs automatically calculates the the coordinates for the center of the screen and saves them to `P.screen_c`, so to make things easy we can speficy this as the location for the circle to appear. The easiest way of drawing objects to places other than the center is to use `P.screen_x` and `P.screen_y`, which are the width and height, respectively, of the current display as measured in pixels from the top-left corner of the screen. If you wanted to draw a circle to the mid-left side of the screen you could use
 
 	self.midleft = (P.screen_x / 4, P.screen_y / 2)
 	blit(self.circle, 5, self.midleft)
-	
-	
-	
 
 ### flip()
 
@@ -172,7 +169,9 @@ flip()
 
 ## Putting It Together
 
-So, you want to get started drawing in KLibs? Thanks to how KLibs is written, it's very easy to get from a fresh project to drawing a shape on the screen. To get started, create a new project called 'DrawTest' using 'klibs create DrawTest' in the folder you want to put it in, then open the experiment.py file for the project. Then we need to import the KLDraw library so we can use its shapes, and the basic functions for working with the display buffer from KLGraphics. We'll also import the function 'any_key' to allow you to make the experiment wait for your input. To do all this, add the following lines to the top of your experiment.py file:
+So, you want to get started drawing in KLibs? Thanks to how KLibs is written, it's very easy to get from a fresh project to drawing a shape on the screen. To get started, create a new project called 'DrawTest' by running the command `klibs create DrawTest` in the folder you want to put it in, then open the experiment.py file for the project. 
+
+First, we need to import the KLDraw library so we can use its shapes, and the basic functions for working with the display buffer from KLGraphics. We'll also import the function 'any\_key' to allow you to make the experiment wait for your input. To do all this, add the following lines to the top of your experiment.py file:
 
 ```python
 __author__ = "Your Name"
@@ -214,18 +213,18 @@ Then, to actually draw the shape to the screen so you can see it, add the follow
 
 Make sure to leave in the 'return' section at the end of the trial function, as the experiment will crash with an error without it.
 
-Now, before you can run your experiment, you will need to add at least one independent variable to your independent_variables.py file in ExpAssets/Config/ (note: this will likely change soon, so that KLibs can launch with no independent variables set). For the purpose of this tutorial, you can add the following to the file:
+Now, before you can run your experiment, you will need to add at least one independent variable to your independent\_variables.py file in ExpAssets/Config/ (note: this will likely change soon, so that KLibs can launch without an independent variables set). For the purpose of this tutorial, you can add the following to the file:
 
 ```python
 # Create an empty Independent Variable Set object
 DrawTest_ind_vars = IndependentVariableSet()
-# Add a varaible named "wheel_rotation" and an integer type to the set
+# Add a varaible named "wheel_rotation" with an integer type to the set
 DrawTest_ind_vars.add_variable("wheel_rotation", int)
 # Add some angle values to the "wheel_rotation" variable
 DrawTest_ind_vars["wheel_rotation"].add_values(0, 30, 60, 90, 120, 180)
 ```
 
-The consequence of doing this, other than allowing your experiment to launch, is that the Experiment object attribute `self.wheel_rotation` will take on a value selected from the given list on every trial (you can learn more in the [Generating Trials](https://github.com/a-hurst/klibs/blob/testing/docs/markdown/Documentation%20-%20Generating%20Trials.md) manual page). To test this out in this tutorial, you can replace the line 'pass' with the following lines in your experiment.py's trial_prep function:
+The consequence of doing this, other than allowing your experiment to launch, is that the Experiment object attribute `self.wheel_rotation` will take on a value selected from the given list on every trial (you can learn more in the [Generating Trials](https://github.com/a-hurst/klibs/blob/testing/docs/markdown/Documentation%20-%20Generating%20Trials.md) manual page). To test this out in this tutorial, you can replace the line 'pass' with the following lines in your experiment.py's trial\_prep function:
 
 ```python
     def trial_prep(self):
@@ -235,7 +234,7 @@ The consequence of doing this, other than allowing your experiment to launch, is
         self.colour_wheel.render()
 ```
 
-All done! Now, go to the root of your DrawTest experiment folder in a terminal window if you haven't already (e.g. "cd DrawTest") and then try running your project by using 'klibs run [screensize]', replacing [screensize] with the size of your monitor in diagonal inches (e.g. on a 13" MacBook Pro, you would type 'klibs run 13'). This will start the klibs experiment runtime, and after you see the KLibs logo and press any key, you should see a nicely rendered colour wheel that changes rotation every time you press a key on your keyboard.
+All done! Now, go to the root of your DrawTest experiment folder in a terminal window if you haven't already (e.g. `cd DrawTest`) and then try running your project by using `klibs run [screensize]`, replacing [screensize] with the size of your monitor in diagonal inches (e.g. on a 13" MacBook Pro, you would type `klibs run 13`). This will start the klibs experiment runtime, and after you see the KLibs logo and press any key, you should see a nicely rendered colour wheel that changes rotation every time you press a key on your keyboard.
 
 ![DrawTest Colour Wheel](https://raw.githubusercontent.com/a-hurst/klibs/testing/docs/markdown/resources/drawtest_colwheel.png)
 
@@ -255,4 +254,4 @@ IndentationError: unexpected indent
   File "/usr/local/bin/klibs", line 281, in run
     experiment_file = imp.load_source(path, "experiment.py")
 ```
-This is because Python as a language is super-picky about whether you use tabs or spaces to indent lines because indentation is how you indicate that a loop has started or ended and many other things. If you copy and paste lines of code from the internet into a Python file you've written, it may use a different kind of indentation and confuse the Python interpreter. To avoid this, most text editors have a "convert tabs to spaces" or "convert spaces to tabs" function you can use to make it all consistent. It doesn't matter which one you use (tabs or spaces, that is, but spaces is recommended by the official PEP8 style guide), the important thing is consistency.
+This is because Python as a language is super-picky about whether you use tabs or spaces to indent lines because indentation is how you indicate that a loop has started or ended and many other things. If you copy and paste lines of code from the internet into a Python file you've written, it may use a different kind of indentation and confuse the Python interpreter. To avoid this, most text editors have a "convert tabs to spaces" or "convert spaces to tabs" function you can use to make it all consistent. It doesn't matter which one you use (tabs or spaces, that is, but spaces is recommended by the [official PEP8 style guide](https://www.python.org/dev/peps/pep-0008/)), the important thing is consistency.

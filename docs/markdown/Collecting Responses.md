@@ -1,6 +1,6 @@
 # Collecting Responses
 
-Unless all your data of interest is being recorded independently by something like an eye tracker or EEG machine, you're probably going to want to collect responses to stimuli from your participants at some point in your experiment. The preferred way to do this in KLibs is to use _**ResponseCollector**_ objects, one of which is provided for convenience during runtime as the Experiment attribute `self.rc`. There are several types of response you can collect in a KLibs experiment, some of which are not quite ready for public use, but this guide will give you the rundown of the most common and important ones and how to use them.
+Unless all your data of interest is being recorded independently by something like an eye tracker or EEG machine, you're probably going to want to collect responses to stimuli from your participants at some point in your experiment. The preferred way to do this in KLibs is to use **ResponseCollector** objects, one of which is provided for convenience during runtime as the Experiment attribute `self.rc`. There are several types of response you can collect in a KLibs experiment, some of which are not quite ready for public use, but this guide will give you the rundown of the most common and important ones and how to use them.
 
 *Author's Note*: If this section seems a little complicated and overwhelming, that's because it *is* a little complicated and overwhelming. Bear with me, I'll do my best to provide worked examples throughout and avoid making things any more complex than they need to be. 
 
@@ -10,7 +10,7 @@ A ResponseCollector is an object that simplifies the collecting of data from dif
 
 ### Setting up a ResponseCollector
 
-In your project's 'experiment.py' file, you might have noticed that there is an empty method called 'setup_response_collector'. This is run before 'trial_prep' at the beginning of every trial of your experiment, and is where you can set things like the timeout for your response colletion period, the type(s) of responses to collect, and what function (if any) should be run every loop to draw the right stimuli to the screen. It's also where you configure the different response listeners you'll be using for that trial, such as setting which keys to watch if collecting a keypress response, or setting the colour wheel object to use for a color selection response.
+In your project's 'experiment.py' file, you might have noticed that there is an empty method called 'setup\_response\_collector'. This is run before 'trial\_prep' at the beginning of every trial of your experiment, and is where you can set things like the timeout for your response colletion period, the type(s) of responses to collect, and what function (if any) should be run every loop to draw the right stimuli to the screen. It's also where you configure the different response listeners you'll be using for that trial, such as setting which keys to watch if collecting a keypress response, or setting the colour wheel object to use for a color selection response.
 
 To illustrate, let's take a look at the following code:
 
@@ -59,9 +59,9 @@ or
 ```python
 self.rc.display_kwargs = {'draw_boxes': True, 'target': 'circle'}
 ```
-within setup_response_collector to achieve this. Note that the only meaningful difference between the two is that in the second one you specify the names of the arguments as well as their values, whereas in the first you only have to provide the argument values but they have to all be in the correct order. The choice is yours for which to use, so I'd recommend whichever you find produces the most readable code.
+within setup\_response\_collector to achieve this. Note that the only meaningful difference between the two is that in the second one you specify the names of the arguments as well as their values, whereas in the first you only have to provide the argument values but they have to all be in the correct order. The choice is yours for which to use, so I'd recommend whichever you find produces the most readable code.
 
-The last two lines of the example 'setup_response_collector' block configure the ResponseCollector's keypress listener. The `key_map` attribute is specific to the keypress listener and we'll discuss that more below, but the `interrupts` attribute is shared by all response listener types. If `interrupts` is set to True for a response listener, it means that a response from that listener will immediately end the collection loop. If `interrupts` is not set to True for at least one listener, the collection loop will continue until the timeout value set by `terminate_after` is reached. 
+The last two lines of the example 'setup\_response\_collector' block configure the ResponseCollector's keypress listener. The `key_map` attribute is specific to the keypress listener and we'll discuss that more below, but the `interrupts` attribute is shared by all response listener types. If `interrupts` is set to True for a response listener, it means that a response from that listener will immediately end the collection loop. If `interrupts` is not set to True for at least one listener, the collection loop will continue until the timeout value set by `terminate_after` is reached. 
 
 ### Collecting data with a ResponseCollector
 
@@ -164,7 +164,7 @@ def wheel_callback(self):
 
 ```
 
-Then, in the 'setup_response_collector' section you need to enable the colour listener, set your display callback, and tell the listener what the wheel and probe objects are:
+Then, in the 'setup\_response\_collector' section you need to enable the colour listener, set your display callback, and tell the listener what the wheel and probe objects are:
 
 ```python
 def setup_response_collector(self):
@@ -175,9 +175,9 @@ def setup_response_collector(self):
     self.rc.color_listener.set_target(self.probe) # set your probe as the object with the target color
 ```
 
-The wheel and target objects are used during collection to determine which mouse clicks fall within the wheel and what the *degrees of angular error* are between the selected colour and the target colour on the wheel. Note that right now, our target object doesn't have a fill colour since we didn't give it one, but we'll give it one later during 'trial_prep'. The colour used for the angular error calculations isn't the colour of the target at the time `set_target` is used but rather whatever colour the target object has when entering the response collection loop.
+The wheel and target objects are used during collection to determine which mouse clicks fall within the wheel and what the *degrees of angular error* are between the selected colour and the target colour on the wheel. Note that right now, our target object doesn't have a fill colour since we didn't give it one, but we'll give it one later during 'trial\_prep'. The colour used for the angular error calculations isn't the colour of the target at the time `set_target` is used but rather whatever colour the target object has when entering the response collection loop.
 
-Now, the last things you need to do (apart from writing the code to show the target object at some point in the trial) are a) rotate the colour wheel by a random amount before entering the trial (to remove any possible location biases), and b) select a random colour from the wheel and set it as the fill for the target object. You should do this in trial_prep, which gets run before every trial:
+Now, the last things you need to do (apart from writing the code to show the target object at some point in the trial) are a) rotate the colour wheel by a random amount before entering the trial (to remove any possible location biases), and b) select a random colour from the wheel and set it as the fill for the target object. You should do this in trial\_prep, which gets run before every trial:
 
 ```python
 # within the imports section
@@ -186,7 +186,7 @@ from random import randrange # builtin python function for selecting random numb
 # somewhere within 'trial_prep'
 self.wheel.rotation = randrange(0, 360) # set wheel rotation to random angle between 0 and 359
 self.wheel.render() # pre-render wheel object for speed
-self.probe.fill = self.wheel.color_from_angle(randrange(0, 360)) # set probe fill to random color from wheel
+self.probe.fill = self.wheel.color_from_angle(randrange(0, 360)) # set fill to random color from wheel
 self.probe.render() # pre-render wheel object for speed
 
 ```

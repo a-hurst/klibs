@@ -1,7 +1,5 @@
 # Generating Trials
 
-_Note: Since the event of IndependentVariables.py, most of this will have to be rewritten_
-
 To simplify the process of creating a sequence of trials for an experiment, KLibs has a built-in feature called TrialFactory that generates a randomized list of trials for a given number of varaibles and conditions.
 
 
@@ -40,10 +38,8 @@ One way to use your trial variables in your experiment is with **if else** state
 
 ## Dealing With Continuous Variables
 
-While many of the variables used in cognitive psychology experiments can be broken into distinct factors, such as "left"/"right", "remember"/"know", "100 ms/900 ms", etc., other variables are able to 
+Support for continuous variables in independent\_variables.py (along with block-level variables) is in the feature pipeline and mostly written, but is not yet implemented. In the meantime, you can choose random values from a set or range using the ['random' module](https://docs.python.org/2/library/random.html) that comes with Python and define these with new values every trial within the 'trial\_prep' block of your experiment.py file.
 
 ## Number of Blocks and Trials per Block
 
 The number of blocks and trials per block of you experiment are set in the `[projectname]_params.py` file, found in the `ExpAssets/Config/` directory of your project. 
-
-_Maybe make this a general params section_

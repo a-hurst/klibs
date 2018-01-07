@@ -155,6 +155,33 @@ def build_registrations(source_height, source_width):
 def camel_to_snake(string):
 	return re.sub('([a-z0-9])([A-Z])', r'\1_\2', re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)).lower()
 
+def canvas_size_from_points(points, flat=False):
+	"""Determines the size of the smallest canvas (e.g. Drawbject surface) required to contain a
+	shape defined by a list of x,y points. 
+
+	Args:
+		points (:obj:`List`): A list of points that make up the shape to determine canvas size for.
+		flat (bool): Indicates whether the list of points is nested (e.g. [(x,y), (x,y), ...]) or 
+			flat (e.g. [x, y, x, y, ...]). Defaults to False (nested).
+
+	Returns:
+		A List containing the width and height (respectively) of the smallest canvas able to contain
+		the shape defined by the points.
+
+	"""
+	x_points = []
+	y_points = []
+	if flat: # aggdraw takes flat xy lists
+		for i in range(0, len(points), 2):
+			x_points.append(points[i])
+			y_points.append(points[i+1])
+	else:
+		for point in points:
+			x_points.append(point[0])
+			y_points.append(point[1])
+	w = int(max(x_points) - min(x_points)) + 2
+	h = int(max(y_points) - min(y_points)) + 2
+	return [w, h]
 
 def chunk(items, chunk_size):
 	"""Yield successive chunk-sized chunks from items."""
@@ -220,12 +247,12 @@ def deg_to_px(deg, even=False):
 
 def equiv(comparator, canonical):
 	equivalencies = {
-					"inch": ["in", "inch"],
-					"inches": ["ins", "inches"],
-					"cm": ["centimeter", "cm"],
-					"cms": ["centimeters", "cms"],
-					"CRT": ["crt", "CRT"],
-					"LCD": ["lcd", "LCD"]
+		"inch": ["in", "inch"],
+		"inches": ["ins", "inches"],
+		"cm": ["centimeter", "cm"],
+		"cms": ["centimeters", "cms"],
+		"CRT": ["crt", "CRT"],
+		"LCD": ["lcd", "LCD"]
 	}
 
 	if canonical in equivalencies:
@@ -443,12 +470,17 @@ def peak(v1, v2):
 		return v2
 
 
-def point_pos(origin, amplitude, angle, rotation=0, clockwise=False):
+def point_pos(origin, amplitude, angle, rotation=0, clockwise=False, return_int=True):
 	try:
 		origin = tuple(origin)
 		angle += rotation
 		theta_rad = radians((angle if clockwise else -angle) % 360)
-		return (int(origin[0] + (amplitude * cos(theta_rad))), int(origin[1] + (amplitude * sin(theta_rad))))
+		x_pos = origin[0] + (amplitude * cos(theta_rad))
+		y_pos = origin[1] + (amplitude * sin(theta_rad))
+		if return_int:
+			x_pos = int(x_pos)
+			y_pos = int(y_pos)
+		return (x_pos, y_pos)
 	except Exception as e:
 		print "point_pos() error"
 		print origin, amplitude, angle, rotation, type(origin), type(amplitude), type(angle), type(rotation)
@@ -611,13 +643,48 @@ def pt_to_px(pt_size):
 		raise TypeError("Argument 'pt_size' must be an integer.")
 	if 512 < pt_size < 2:
 		raise ValueError("Argument 'pt_size' must be between 2 and 512.")
-	# dpi = 96	# CRT default
 
 	return int(math.floor(1.0 / 72 * P.ppi * pt_size))
 
 
 def px_to_deg(length):	# length = px
 	return float(length / P.ppd)
+
+
+def rotate_points(points, origin, angle, clockwise=True, flat=False):
+	"""Rotates a list of x,y points around an origin point in 2d coordinate space.
+
+	Args:
+		points (:obj:`List`): The list of points to rotate.
+		origin (iter(x, y)): The x,y coordinates of the point to rotate the given points around.
+		angle (numeric): The angle in degrees by which to rotate the points around the origin.
+		clockwise(bool): Whether to rotate the points clockwise or counterclockwise. Defaults to
+			True (clockwise).
+		flat (bool): Indicates whether the list of points is nested (e.g. [(x,y), (x,y), ...]) or 
+			flat (e.g. [x, y, x, y, ...]). Defaults to False (nested).
+
+	Returns:
+		A List of rotated points in the format specified by flat (i.e. the translated
+		points will be nested if flat=False and flat if flat=True).
+
+	"""
+	rad_angle = radians((angle if clockwise else -angle) % 360)
+	rotated = []
+	if flat: # aggdraw takes flat xy lists
+		for i in range(0, len(points), 2):
+			dx = points[i] - origin[0]
+			dy = points[i+1] - origin[1]
+			rx = origin[0] + cos(rad_angle) * dx - sin(rad_angle) * dy
+			ry = origin[1] + sin(rad_angle) * dx + cos(rad_angle) * dy
+			rotated += [rx, ry]
+	else:
+		for point in points:
+			dx = point[0] - origin[0]
+			dy = point[1] - origin[1]
+			rx = origin[0] + cos(rad_angle) * dx - sin(rad_angle) * dy
+			ry = origin[1] + sin(rad_angle) * dx + cos(rad_angle) * dy
+			rotated.append((rx, ry))
+	return rotated
 
 
 def show_mouse_cursor():
@@ -723,6 +790,35 @@ def threaded(func):
 		p.start()
 		return p
 	return threaded_func
+
+
+def translate_points(points, delta, flat=False):
+	"""Translates a list of x,y points in 2d coordinate space.
+
+	Args:
+		points (:obj:`List`): The list of points to translate.
+		delta (iter(dx, dy)): An iterable containing the dx and dy values to translate all
+			points by.
+		flat (bool): Indicates whether the list of points is nested (e.g. [(x,y), (x,y), ...]) or 
+			flat (e.g. [x, y, x, y, ...]). Defaults to False (nested).
+
+	Returns:
+		A List of points translated by delta in the format specified by flat (i.e. the translated
+		points will be nested if flat=False and flat if flat=True).
+
+	"""
+	translated = []
+	if flat: # aggdraw takes flat xy lists
+		for i in range(0, len(points), 2):
+			dx = points[i] + delta[0]
+			dy = points[i+1] + delta[1]
+			translated += [dx, dy]
+	else:
+		for point in points:
+			dx = point[0] + delta[0]
+			dy = point[1] + delta[1]
+			translated.append((dx, dy))
+	return translated
 
 
 def type_str(var):

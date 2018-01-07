@@ -4,15 +4,16 @@ import abc
 from imp import load_source
 from bisect import bisect
 from os.path import join
-from math import cos, sin, radians
+from math import cos, sin, tan, atan, radians, ceil, sqrt
 
 from aggdraw import Brush, Draw, Pen, Symbol
 from PIL import Image
 from numpy import asarray
 
-from klibs.KLConstants import STROKE_CENTER, STROKE_INNER, STROKE_OUTER, KLD_LINE, KLD_MOVE, KLD_ARC, KLD_PATH
+from klibs.KLConstants import (STROKE_CENTER, STROKE_INNER, STROKE_OUTER,
+	KLD_LINE, KLD_MOVE, KLD_ARC, KLD_PATH)
 from klibs import P
-from klibs.KLUtilities import point_pos, midpoint
+from klibs.KLUtilities import point_pos, rotate_points, translate_points, canvas_size_from_points
 from klibs.KLGraphics import rgb_to_rgba
 from klibs.KLGraphics.colorspaces import const_lum
 
@@ -60,7 +61,6 @@ def drift_correct_target():
 
 	return aggdraw_to_numpy_surface(draw_context)
 
-#colors = load_source("*", join(P.klibs_dir, "colorspaces.py")).colors
 
 
 class Drawbject(object):
@@ -121,51 +121,35 @@ class Drawbject(object):
 	def __init__(self, width, height, stroke, fill, rotation=0):
 		super(Drawbject, self).__init__()
 
-		self.__stroke = None
-		self.stroke_color = None
-		self.stroke_width = 0
-		self.stroke_alignment = STROKE_INNER
-		self.__fill = None
-		self.fill_color = None
-		self.opacity = None
-		self.object_width = width
-		self.object_height = height
-		self.surface_width = None
-		self.surface_height = None
 		self.surface = None
 		self.canvas = None
 		self.rendered = None
+
+		self.__stroke = None
+		self.stroke_width = 0
+		self.stroke_color = None
+		self.stroke_alignment = STROKE_INNER
+		self.stroke = stroke
+
+		self.__fill = None
+		self.fill_color = None
+		self.fill = fill
+
+		self.__dimensions = None
+		self.object_width = width
+		self.object_height = height
 		self.rotation = rotation
-		try:
-			iter(stroke)
-			self.stroke = stroke
-		except TypeError:
-			self.stroke = None
 
-		try:
-			self.fill = fill
-		except TypeError:
-			self.fill = None
+		self.init_surface()
 
-
-		self.init_surface(width, height)
 
 	def __str__(self):
 		return "klibs.Drawbject.{0} ({1} x {2}) at {3}".format(self.__name__, self.surface_width, self.surface_height, hex(id(self)))
 
-	def init_surface(self, width=None, height=None):
-		if width is not None and height is not None:  # initial call infers dimensions; subsequent calls for clearing the surface only
-			if self.stroke_alignment == STROKE_OUTER:
-				self.surface_width = width + 2 + self.stroke_width * 2
-				self.surface_height = height + 2 + self.stroke_width * 2
-			elif self.stroke_alignment == STROKE_CENTER:
-				self.surface_width = width + 2 + self.stroke_width
-				self.surface_height = height + 2 + self.stroke_width
-			else:
-				self.surface_width = width + 2
-				self.surface_height = height + 2
+	def init_surface(self):
+		self._update_dimensions()
 		self.rendered = None # Clear any existing rendered texture
-		self.canvas = Image.new("RGBA", [self.surface_width, self.surface_height], (0, 0, 0, 0))
+		self.canvas = Image.new("RGBA", self.dimensions, (0, 0, 0, 0))
 		self.surface = Draw(self.canvas)
 		self.surface.setantialias(True)
 
@@ -189,23 +173,37 @@ class Drawbject(object):
 		"""
 		self.init_surface()
 		self.draw()
-
-		if self.__name__ in ["Annulus", "ColorWheel"]:
-			surface_array = asarray(self.canvas)
-		else:
-			surface_array = asarray(self.canvas.rotate(self.rotation, Image.BILINEAR, False))
-		if self.opacity < 255: # Apply opacity (if not fully opaque) to whole Drawbject
-			surface_array.setflags(write=1) # make RGBA values writeable
-			for x in range(surface_array.shape[0]):
-				for y in range(surface_array.shape[1]):
-					surface_array[x][y][3] = int(surface_array[x][y][3] * self.opacity/255)
-
-		self.rendered = surface_array
+		self.rendered = asarray(self.canvas)
 		return self.rendered
 
-	@abc.abstractproperty
-	def __name__(self):
-		pass
+	def _update_dimensions(self):
+		pts = self._draw_points(outline=True)
+		if pts != None:
+			self.__dimensions = canvas_size_from_points(pts, flat=True)
+		else:
+			if self.stroke_alignment == STROKE_OUTER:
+				stroke_w = self.stroke_width * 2
+			elif self.stroke_alignment == STROKE_CENTER:
+				stroke_w = self.stroke_width
+			else:
+				stroke_w = 0
+			w, h = [self.object_width, self.object_height]
+			self.__dimensions = [int(ceil(w+stroke_w))+2, int(ceil(h+stroke_w))+2]
+
+	@property
+	def dimensions(self):
+		"""List[int, int]: The height and width of the internal surface on which the shape
+		is drawn.
+		"""
+		return self.__dimensions
+
+	@property
+	def surface_width(self):
+		return self.__dimensions[0]
+
+	@property
+	def surface_height(self):
+		return self.__dimensions[1]
 
 	@property
 	def stroke(self):
@@ -224,33 +222,39 @@ class Drawbject(object):
 	@stroke.setter
 	def stroke(self, style):
 		if not style:
-			self.stroke_alignment = STROKE_OUTER
 			self.stroke_width = 0
 			self.stroke_color = None
+			self.stroke_alignment = STROKE_INNER
 			return self
 		try:
 			width, color, alignment = style
 		except ValueError:
 			width, color = style
-			alignment = STROKE_OUTER
+			alignment = STROKE_INNER
 
 		if alignment in [STROKE_INNER, STROKE_CENTER, STROKE_OUTER]:
 			self.stroke_alignment = alignment
 		else:
 			raise ValueError("Invalid value provided for stroke alignment; see KLConstants for accepted values")
 
-		if len(color) == 4:
-			self.opacity = color[3]
-			color = [i for i in color[0:3]]
-		else:
-			color = [i for i in color]
-			self.opacity = 255
+		color = list(color)
+		if len(color)==3:
+			color += [255]
 		self.stroke_color = color
 		self.stroke_width = width
-		self.__stroke = Pen(tuple(color), width, 255)
+		self.__stroke = Pen(tuple(color[:3]), width, color[3])
 		if self.surface: # don't call this when initializing the Drawbject for the first time
 			self.init_surface()
 		return self
+
+	@property
+	def stroke_offset(self):
+		if self.stroke_alignment == STROKE_OUTER:
+			return self.stroke_width * 0.5
+		if self.stroke_alignment == STROKE_INNER:
+			return self.stroke_width * -0.5
+		else:
+			return 0 
 
 	@property
 	def fill(self):
@@ -265,29 +269,33 @@ class Drawbject(object):
 		if not color:
 			self.fill_color = None
 			return self
-		if len(color) == 4:
-			self.opacity = color[3] if type(color[3]) is int else int(color[3] * 255)
-			color = tuple(color[0:3])
-		else:
-			color = tuple(color)
-			self.opacity = 255
+		color = list(color)
+		if len(color)==3:
+			color += [255]
 		self.fill_color = color
-		self.__fill = Brush(color, 255)
+		self.__fill = Brush(tuple(color[:3]), color[3])
 		if self.surface: # don't call this when initializing the Drawbject for the first time
 			self.init_surface()
 		return self
 
 	@abc.abstractmethod
-	def draw(self, as_numpy_surface=False):
+	def _draw_points(self, outline=False):
+		return None
+
+	@abc.abstractmethod
+	def draw(self):
+		pts = self._draw_points()
+		dx = self.surface_width / 2.0
+		dy = self.surface_height / 2.0
+		pts = translate_points(pts, delta=(dx, dy), flat=True)
+		
+		self.surface.polygon(pts, self.stroke, self.fill)
+		self.surface.flush()
+		return self.canvas
+
+	@abc.abstractproperty
+	def __name__(self):
 		pass
-
-	@property
-	def dimensions(self):
-		"""List[int, int]: The height and width of the internal surface on which the shape
-		is drawn.
-
-		"""
-		return [self.surface_width, self.surface_height]
 
 
 class FixationCross(Drawbject):
@@ -301,30 +309,35 @@ class FixationCross(Drawbject):
 			width, and the color of the stroke. Defaults to no stroke.
 		fill (Tuple[color], optional): The fill color for the cross in RGB or RGBA format.
 			Defaults to transparent fill.
-		auto_draw (bool): If True, draws the shape internally when created.
+		rotation (numeric, optional): The angle in degrees by which to rotate the cross 
+			when rendered. Defaults to 0 (no rotation).
+		auto_draw (bool, optional): If True, draws the shape internally when created.
 
 	Returns:
 		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified fixation cross.
 
 	"""
-	def __init__(self, size, thickness, stroke=None, fill=None, auto_draw=True):
-		if not stroke:  # ie. "fill" will actually be the stroke of two lines as against two intersecting rects
-			stroke = [thickness, fill]
-			fill = None
-		super(FixationCross, self).__init__(size, size, stroke, fill)
+	def __init__(self, size, thickness, stroke=None, fill=None, rotation=0, auto_draw=True):
+		self.thickness = thickness
+		super(FixationCross, self).__init__(size, size, stroke, fill, rotation)
+		if stroke == None:
+			self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
 		if auto_draw:
 			self.draw()
 
-	def draw(self, as_numpy_surface=False):
-		if not self.fill:
-			self.surface.line((self.surface_width // 2, 1, self.surface_width // 2, self.surface_width - 1), self.stroke)
-			self.surface.line((1, self.surface_height // 2, self.surface_height - 1, self.surface_height // 2), self.stroke)
-		else:
-			str_h1 = self.surface_height // 2 - self.stroke_width // 2
-			str_h2 = self.surface_height // 2 + self.stroke_width // 2
-			self.surface.rectangle([1, str_h1, self.surface_width - 1, str_h2])
-		self.surface.flush()
-		return self.canvas
+	def _draw_points(self, outline=False):
+		sw = self.stroke_width
+		so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
+		ht = self.thickness / 2.0 + so # half of the cross' thickness
+		hs = self.object_width / 2.0 + so # half of the cross' size
+		pts = []
+		pts += [-hs, ht, -ht, ht, -ht, hs] # upper-left corner
+		pts += [ht, hs, ht, ht, hs, ht] # upper-right corner
+		pts += [hs, -ht, ht, -ht, ht, -hs] # lower-right corner
+		pts += [-ht, -hs, -ht, -ht, -hs, -ht] # lower-left corner
+		if self.rotation != 0:
+			pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
+		return pts
 
 	@property
 	def __name__(self):
@@ -356,11 +369,13 @@ class Ellipse(Drawbject):
 		if auto_draw:
 			self.draw()
 
-	def draw(self, as_numpy_surface=False):
-		xy_1 = (self.stroke_width // 2) + 1
-		x_2 = self.surface_width - ((self.stroke_width // 2) + 1)
-		y_2 = self.surface_height - ((self.stroke_width // 2) + 1)
-		self.surface.ellipse([xy_1, xy_1, x_2, y_2], self.stroke, self.fill)
+	def draw(self):
+		surf_c = self.surface_width / 2.0 # center of the drawing surface
+		x1 = surf_c-(self.object_width/2.0 + self.stroke_offset)
+		y1 = surf_c-(self.object_height/2.0 + self.stroke_offset)
+		x2 = surf_c+(self.object_width/2.0 + self.stroke_offset)
+		y2 = surf_c+(self.object_height/2.0 + self.stroke_offset)
+		self.surface.ellipse([x1, y1, x2, y2], self.stroke, self.fill)
 		self.surface.flush()
 		return self.canvas
 
@@ -383,7 +398,6 @@ class Ellipse(Drawbject):
 		"""int: The height of the ellipse in pixels."""
 		return self.object_height
 
-
 	@height.setter
 	def height(self, value):
 		self.object_height = value
@@ -401,7 +415,6 @@ class Ellipse(Drawbject):
 		else:
 			return None
 
-
 	@diameter.setter
 	def diameter(self, value):
 		self.object_height = value
@@ -414,13 +427,12 @@ class Annulus(Drawbject):
 
 	Args:
 		diameter (int): The diameter of the annulus in pixels.
-		ring_width (int): The width of the ring of the annulus in pixels.
+		thickness (int): The thickness of the ring of the annulus in pixels.
 		stroke (List[alignment, width, Tuple[color]], optional): The stroke of the
 			annulus, indicating the alignment (inner, center, or outer), width, and
 			color of the stroke. Defaults to no stroke.
 		fill (Tuple[color], optional): The fill color for the annulus in RGB or RGBA
 			format. Defaults to transparent fill.
-		rotation (int, optional): 
 		auto_draw (bool): If True, internally draws the annulus on initialization.
 
 	Returns:
@@ -428,46 +440,53 @@ class Annulus(Drawbject):
 
 	"""
 
-	def __init__(self, diameter, ring_width, stroke=None, fill=None, rotation=0, auto_draw=True):
-		super(Annulus, self).__init__(diameter + 2, diameter + 2, stroke, fill)
-		self.ring_width = ring_width
+	def __init__(self, diameter, thickness, stroke=None, fill=None, auto_draw=True):
+		self.thickness = thickness
 		self.diameter = diameter
-		self.radius = self.diameter // 2
-		self.rotation = rotation
-		try:
-			self.ring_inner_width = ring_width - 2 * stroke[0]
-		except TypeError:
-			self.ring_inner_width = ring_width
-		if self.ring_width > self.radius:
-			raise ValueError("Ring width of annulus larger than radius; decrease ring_width or increase diameter")
-		if self.ring_inner_width < 1:
-			raise ValueError("Annulus area subsumed by stroke; increase ring_width or decrease stroke size")
-		if stroke is None:
+		self.radius = self.diameter / 2.0
+		super(Annulus, self).__init__(diameter, diameter, stroke, fill)
+		if not stroke:
 			self.stroke_color = (0,0,0,0)
 			self.stroke_width = 0
+
+		if self.thickness > self.radius:
+			raise ValueError("Thickness of annulus larger than radius; decrease thickness or increase diameter")
 		if auto_draw:
 			self.draw()
 
-	def draw(self,  as_numpy_surface=False):
+	def draw(self):
+		surf_c = self.surface_width / 2.0 # center of the drawing surface
 		if self.stroke:
-			stroked_path_pen = Pen(tuple(self.stroke_color), self.ring_width)
-			xy_1 = 2 + self.ring_width//2
-			xy_2 = self.surface_width - (2 + self.ring_width//2)
-			self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroked_path_pen, self.transparent_brush)
-		xy_1 = 2 + self.ring_width//2
-		xy_2 = self.surface_width - (2 + self.ring_width//2)
-		path_pen = Pen(tuple(self.fill_color), self.ring_inner_width)
-		self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
+			if self.stroke_alignment == STROKE_CENTER:
+				stroke_pen = Pen(tuple(self.stroke_color), self.stroke_width/2.0)
+				# draw outer stroke ring
+				xy_1 = surf_c - (self.radius+self.stroke_width/4.0)
+				xy_2 = surf_c + (self.radius+self.stroke_width/4.0)
+				self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen, self.transparent_brush)
+				# draw inner stroke ring
+				xy_1 = surf_c - (self.radius-(self.thickness+self.stroke_width/4.0))
+				xy_2 = surf_c + (self.radius-(self.thickness+self.stroke_width/4.0))
+				self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen, self.transparent_brush)
+			else:
+				if self.stroke_alignment == STROKE_OUTER:
+					xy_1 = surf_c - (self.radius+self.stroke_width/2.0)
+					xy_2 = surf_c + (self.radius+self.stroke_width/2.0)
+				elif self.stroke_alignment == STROKE_INNER:
+					xy_1 = surf_c - (self.radius-(self.thickness+self.stroke_width/2.0))
+					xy_2 = surf_c + (self.radius-(self.thickness+self.stroke_width/2.0))
+				stroke_pen = Pen(tuple(self.stroke_color), self.stroke_width)
+				self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen, self.transparent_brush)
+		if self.fill:
+			xy_1 = surf_c - (self.radius-self.thickness/2.0)
+			xy_2 = surf_c + (self.radius-self.thickness/2.0)
+			ring_pen = Pen(tuple(self.fill_color), self.thickness)
+			self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], ring_pen, self.transparent_brush)
 		self.surface.flush()
 		return self.canvas
 
 	@property
 	def __name__(self):
 		return "Annulus"
-
-	@property
-	def thickness(self): # because ColorWheelResponse expects it
-		return self.ring_width
 
 
 class Rectangle(Drawbject):
@@ -481,34 +500,32 @@ class Rectangle(Drawbject):
 			color of the stroke. Defaults to no stroke.
 		fill (Tuple[color], optional): The fill color for the rectangle in RGB or RGBA
 			format. Defaults to transparent fill.
-		auto_draw (bool): If True, internally draws the rectangle on initialization.
+		rotation (numeric, optional): The angle in degrees by which to rotate the rectangle
+			when rendered. Defaults to 0 (no rotation).
+		auto_draw (bool, optional): If True, draws the rectangle internally when created.
 
 	Returns:
 		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified rectangle.
 
 	"""
 
-	def __init__(self, width, height=None, stroke=None, fill=None, auto_draw=True):
+	def __init__(self, width, height=None, stroke=None, fill=None, rotation=0, auto_draw=True):
 		if not height:
 			height = width
-		super(Rectangle, self).__init__(width, height, stroke, fill)
+		super(Rectangle, self).__init__(width, height, stroke, fill, rotation)
 		if auto_draw:
 			self.draw()
-
-	def draw(self, as_numpy_surface=False):
-		stroke_offset = self.stroke_width//2
-		xy1 = stroke_offset + 1
-		x2 = self.surface_width  - (stroke_offset + 1)
-		y2 = self.surface_height - (stroke_offset + 1)
-		if self.stroke:
-			if self.fill:
-				self.surface.rectangle((xy1, xy1, x2, y2), self.stroke, self.fill)
-			else:
-				self.surface.rectangle((xy1, xy1, x2, y2), self.stroke)
-		else:
-			self.surface.rectangle((1, 1, self.surface_width - 1, self.surface_height - 1), self.fill)
-		self.surface.flush()
-		return self.canvas
+	
+	def _draw_points(self, outline=False):
+		so = self.stroke_offset + self.stroke_width / 2.0 if outline else self.stroke_offset
+		x1 = -(self.object_width/2.0 + so)
+		y1 = -(self.object_height/2.0 + so)
+		x2 = (self.object_width/2.0 + so)
+		y2 = (self.object_height/2.0 + so)
+		pts = [x1, y1, x2, y1, x2, y2, x1, y2]
+		if self.rotation != 0:
+			pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
+		return pts
 
 	@property
 	def __name__(self):
@@ -520,31 +537,51 @@ class Asterisk(Drawbject):
 
 	Args:
 		size (int): The height and width of the asterisk in pixels.
-		color (Tuple[color]): The color of the asterisk, expressed as an iterable of
+		fill (Tuple[color]): The color of the asterisk, expressed as an iterable of
 			integer values from 0 to 255 representing an RGB or RGBA color.
-		stroke (int, optional): The thickness of the asterisk in pixels. Defaults to '1'
+		thickness (int, optional): The thickness of the asterisk in pixels. Defaults to '1'
 			if no value is given.
+		rotation (numeric, optional): The angle in degrees by which to rotate the asterisk 
+			when rendered. Defaults to 0 (no rotation).
+		auto_draw (bool, optional): If True, draws the shape internally when created.
 
 	Returns:
 		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified asterisk.
 
 	"""
-	def __init__(self, size, color, stroke=1):
-		super(Asterisk, self).__init__(size, size, (stroke, color), fill=None)
+	def __init__(self, size, fill, thickness=1, rotation=0, auto_draw=True):
 		self.size = size
+		self.thickness = thickness
+		#super(Asterisk, self).__init__(size, size, [stroke, color, STROKE_INNER], None)
+		super(Asterisk, self).__init__(size, size, None, fill, rotation)
+		self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
+		if auto_draw:
+			self.draw()
 
+	def _draw_points(self, outline=False):
+		ht = self.thickness / 2.0 # half of the asterisk's thickness
+		hs = self.size / 2.0 # half of the asterisk's size
+		spokes = 6
+		pts = []
+		for s in range(0, spokes):
+			spoke = [-ht, ht, -ht, hs, ht, hs, ht, ht]
+			pts += rotate_points(spoke, (0, 0), s*(-360.0/spokes), flat=True)
+		if self.rotation != 0:
+			pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
+		return pts
 
-	def draw(self, as_numpy_surface=False):
-		x_os = int(self.surface_width * 0.925)
-		y_os = int(self.surface_height * 0.75)
-		l1 = [x_os + 1, y_os + 1, self.surface_width - x_os + 1, self.surface_height - y_os + 1]
-		l2 = [self.surface_width - x_os + 1, y_os + 1, x_os + 1, self.surface_height - y_os + 1]
-		l3 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height + 1]
-		self.surface.line((l1[0], l1[1], l1[2],l1[3]), self.stroke)
-		self.surface.line((l2[0], l2[1], l2[2],l2[3]), self.stroke)
-		self.surface.line((l3[0], l3[1], l3[2],l3[3]), self.stroke)
-		self.surface.flush()
-		return self.canvas
+	#def draw(self):
+	#	
+	#	surf_c = self.surface_height / 2.0
+	#	a, b = point_pos((0,0), self.object_width, -90, 60, return_int=False)
+	#	l1 = [surf_c-(a/2.0), surf_c-(b/2.0), surf_c+(a/2.0), surf_c+(b/2.0)]
+	#	l2 = [surf_c-(a/2.0), surf_c+(b/2.0), surf_c+(a/2.0), surf_c-(b/2.0)]
+	#	l3 = [surf_c, 1, surf_c, self.surface_height - 1]
+	#	self.surface.line((l1[0], l1[1], l1[2],l1[3]), self.stroke)
+	#	self.surface.line((l2[0], l2[1], l2[2],l2[3]), self.stroke)
+	#	self.surface.line((l3[0], l3[1], l3[2],l3[3]), self.stroke)
+	#	self.surface.flush()
+	#	return self.canvas
 
 	@property
 	def __name__(self):
@@ -552,35 +589,43 @@ class Asterisk(Drawbject):
 
 
 class Asterisk2(Drawbject):
-	"""Creates a Drawbject containing an eight-spoke asterisk.
+	"""Creates a Drawbject containing an eight-spoke asterisk with somewhat square dimensions.
 
 	Args:
 		size (int): The height and width of the asterisk in pixels.
-		color (Tuple[color]): The color of the asterisk, expressed as an iterable of
+		fill (Tuple[color]): The color of the asterisk, expressed as an iterable of
 			integer values from 0 to 255 representing an RGB or RGBA color.
-		stroke (int, optional): The thickness of the asterisk in pixels. Defaults to '1'
+		thickness (int, optional): The thickness of the asterisk in pixels. Defaults to '1'
 			if no value is given.
+		rotation (numeric, optional): The angle in degrees by which to rotate the asterisk 
+			when rendered. Defaults to 0 (no rotation).
+		auto_draw (bool, optional): If True, draws the shape internally when created.
 
 	Returns:
 		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified asterisk.
 
 	"""
-	def __init__(self, size, color, stroke=1):
-		super(Asterisk2, self).__init__(size, size, (stroke, color), fill=None)
+	def __init__(self, size, fill, thickness=1, rotation=0, auto_draw=True):
 		self.size = size
-
-
-	def draw(self, as_numpy_surface=False):
-		l1 = [1, 1, self.surface_width + 1, self.surface_height + 1]
-		l2 = [self.surface_width + 1, 1, 1, self.surface_height + 1]
-		l3 = [self.surface_width // 2 + 1, 1, self.surface_width // 2 + 1, self.surface_height + 1]
-		l4 = [1, self.surface_height // 2 + 1, self.surface_width + 1, self.surface_height // 2 + 1]
-		self.surface.line((l1[0], l1[1], l1[2],l1[3]), self.stroke)
-		self.surface.line((l2[0], l2[1], l2[2],l2[3]), self.stroke)
-		self.surface.line((l3[0], l3[1], l3[2],l3[3]), self.stroke)
-		self.surface.line((l4[0], l4[1], l4[2],l4[3]), self.stroke)
-		self.surface.flush()
-		return self.canvas
+		self.thickness = thickness
+		super(Asterisk2, self).__init__(size, size, None, fill, rotation)
+		self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
+		if auto_draw:
+			self.draw()
+	
+	def _draw_points(self, outline=False):
+		ht = self.thickness / 2.0 # half of the asterisk's thickness
+		hss = self.size / 2.0 # half of the asterisk's straight (vertical/horizontal) size
+		hds = sqrt(2*(hss**2)) # half of the asterisk's diagonail size
+		spokes = 8
+		pts = []
+		for s in range(0, spokes):
+			hs = hss if s%2 == 0 else hds
+			spoke = [-ht, ht, -ht, hs, ht, hs, ht, ht]
+			pts += rotate_points(spoke, (0, 0), s*(-360.0/spokes), flat=True)
+		if self.rotation != 0:
+			pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
+		return pts
 
 	@property
 	def __name__(self):
@@ -638,7 +683,7 @@ class Line(Drawbject):
 		self.p1 = (self.p1[0] + x_offset, self.p1[1] + y_offset)
 		self.p2 = (self.p2[0] + x_offset, self.p2[1] + y_offset)
 
-	def draw(self, as_numpy_surface=False):
+	def draw(self):
 		x1 = self.p1[0] + (self.margin[1] + 1)
 		y1 = self.p1[1] + (self.margin[0] + 1)
 		x2 = self.p2[0] + (self.margin[1] + 1)
@@ -647,13 +692,18 @@ class Line(Drawbject):
 		self.surface.flush()
 		return self.canvas
 
+	@property
+	def __name__(self):
+		return "Line"
+
 
 class Triangle(Drawbject):
 	"""Creates a Drawbject containing an isoceles or equilateral triangle.
 
 	Args:
 		base (int): The width of the base of the triangle in pixels.
-		height (int): The height of the triangle in pixels.
+		height (int, optional): The height of the triangle in pixels. If not specified,
+			an equilateral triangle will be drawn.
 		rotation (float|int, optional): The degrees by which to rotate the triangle when
 			rendering. Defaults to 0 (no rotation).
 		stroke (List[alignment, width, Tuple[color]], optional): The stroke of the
@@ -661,26 +711,33 @@ class Triangle(Drawbject):
 			color of the stroke. Defaults to no stroke.
 		fill (Tuple[color], optional): The fill color for the triangle in RGB or RGBA format.
 			Defaults to transparent fill.
+		rotation (numeric, optional): The angle in degrees by which to rotate the triangle
+			when rendered. Defaults to 0 (no rotation).
 
 	Returns:
 		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified triangle.
 
 	"""
-	def __init__(self, base, height, rotation=0, stroke=None, fill=None):
+	def __init__(self, base, height=None, stroke=None, fill=None, rotation=0):
 		self.base = base
+		if not height: # if no height given, draw equilateral
+			height = base/2.0 * sqrt(3)
 		self.height = height
-		self.rotation = rotation
-
 		super(Triangle, self).__init__(base, height, stroke, fill, rotation)
-
-	def draw(self, as_numpy_surface=False):
-		self.surface.polygon((1, 1, self.base // 2 + 1, self.height + 1, self.base + 1, 1), self.stroke, self.fill)
-		self.surface.flush()
-		return self.canvas
+	
+	def _draw_points(self, outline=False):
+		so = self.stroke_offset + self.stroke_width / 2.0 if outline else self.stroke_offset
+		half_y = self.height / 2.0 + so
+		half_x = (half_y*2)/(self.height/(self.base/2.0)) # to preserve angles when adding stroke
+		pts = [-half_x, half_y, 0, -half_y, half_x, half_y]
+		if self.rotation != 0:
+			pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
+		return pts
 
 	@property
 	def __name__(self):
 		return "Triangle"
+
 
 class Arrow(Drawbject):
 	"""Creates a Drawbject containing an arrow.
@@ -712,31 +769,35 @@ class Arrow(Drawbject):
 		self.tail_h = tail_h
 		self.head_h = head_h
 		self.head_w = head_w
-		surf_x = self.head_w + self.tail_w
-		surf_y = self.head_h if head_h > tail_h else tail_h
-		super(Arrow, self).__init__(surf_x, surf_y, stroke, fill, rotation)
-
-
-	def draw(self, as_numpy_surface=False):
-		surf_cy = self.head_h // 2 if self.head_h > self.tail_h else self.tail_h // 2
+		arrow_w = self.head_w + self.tail_w
+		arrow_h = self.head_h if head_h > tail_h else tail_h
+		super(Arrow, self).__init__(arrow_w, arrow_h, stroke, fill, rotation)
+		# Set stroke to empty pen to avoid aggdraw anti-aliasing weirdness
+		if stroke == None:
+			self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
+	
+	def _draw_points(self, outline=False):
+		so = self.stroke_offset + self.stroke_width / 2.0 if outline else self.stroke_offset
+		xo = -(self.tail_w + self.head_w) / 2.0 - so # starting x value (x origin)
+		half_hh = (self.head_w+2*so)/(self.head_w/(self.head_h/2.0)) # half head height
 		pts = []
-		# start the tail
-		pts += [1, (surf_cy - self.tail_h // 2) + 1]
-		pts += [self.tail_w + 1, (surf_cy - self.tail_h // 2) + 1]
-		# # draw the head
-		pts += [self.tail_w + 1, (surf_cy - self.head_h // 2) + 1]
-		pts += [self.tail_w + self.head_w + 1, surf_cy + 1]
-		pts += [self.tail_w + 1, (surf_cy + self.head_h // 2) + 1]
-		# finish the tail
-		pts += [self.tail_w + 1, (surf_cy + self.tail_h // 2) + 1]
-		pts += [1, (surf_cy +  self.tail_h // 2) + 1]
-		self.surface.polygon(pts, self.stroke, self.fill)
-		self.surface.flush()
-		return self.canvas
+		# draw the tail
+		pts += [xo + self.tail_w, self.tail_h / 2.0 + so]
+		pts += [xo, self.tail_h / 2.0 + so]
+		pts += [xo, -self.tail_h / 2.0 - so]
+		pts += [xo + self.tail_w, -self.tail_h / 2.0 - so]
+		# draw the head
+		pts += [xo + self.tail_w, -half_hh]
+		pts += [xo + self.tail_w + self.head_w + so*2, 0]
+		pts += [xo + self.tail_w, half_hh]
+		if self.rotation != 0:
+			pts = rotate_points(pts, (0,0), self.rotation, flat=True)
+		return pts
 
-		@property
-		def __name__(self):
-			return "Arrow"
+	@property
+	def __name__(self):
+		return "Arrow"
+
 
 class ColorWheel(Drawbject):
 	"""Creates a Drawbject containing a color wheel. By default, the color wheel
@@ -749,8 +810,8 @@ class ColorWheel(Drawbject):
 		colorspace (:obj:`list`, optional): The list of colours to render the colour
 			wheel with, in the form of RGB or RGBA tuples. Defaults to a CIELUV
 			constant-luminance colour wheel if not specified.
-		rotation (int, optional): The degrees by which to rotate the color wheel when
-			rendered. Defaults to 0 (no rotation).
+		rotation (int, optional): The angle in degrees by which to rotate the color wheel
+			when rendered. Defaults to 0 (no rotation).
 		auto_draw (bool): If True, internally draws the color wheel on initialization.
 
 	Returns:
@@ -759,25 +820,22 @@ class ColorWheel(Drawbject):
 	"""
 
 	def __init__(self, diameter, thickness=None, colorspace=None, rotation=0, auto_draw=True):
-		super(ColorWheel, self).__init__(diameter, diameter, stroke=None, fill=None)
 		if colorspace == None:
 			colorspace = const_lum
 		self.palette = colorspace
-		self.rotation = rotation
 		self.diameter = diameter
-		self.radius = self.diameter // 2
+		self.radius = self.diameter / 2.0
 		self.thickness = 0.20 * diameter if not thickness else thickness
-		self.opacity = 255
-
+		super(ColorWheel, self).__init__(diameter, diameter, None, None, rotation)
 		if auto_draw:
 			self.draw()
 
-	def draw(self, as_numpy_surface=False):
+	def draw(self):
 		rotation = self.rotation
+		center = self.surface_width / 2.0
+		r = self.radius + 1
 		for i in range(0, len(self.palette)):
 			brush = Brush(rgb_to_rgba(self.palette[i]))
-			center = self.surface_width // 2
-			r = self.radius + 1
 			vertices = [center, center]
 			for i in range(0, 4):
 				r_shift = -0.25 if i < 2 else 1.25
@@ -791,8 +849,8 @@ class ColorWheel(Drawbject):
 		# Create annulus mask and apply it to colour disc
 		mask = Image.new('L', (self.surface_width, self.surface_height), 0)
 		d = Draw(mask)
-		xy_1 = 2 + self.thickness//2
-		xy_2 = self.surface_width - (2 + self.thickness//2)
+		xy_1 = center - (self.radius-self.thickness/2.0)
+		xy_2 = center + (self.radius-self.thickness/2.0)
 		path_pen = Pen(255, self.thickness)
 		d.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
 		d.flush()
@@ -961,8 +1019,6 @@ class Bezier(Drawbject):
 		sym = Symbol(path_str.format(*data))
 		self.surface.path((0,0), sym, self.stroke, self.fill)
 		self.surface.flush()
-		print self.fill_color
-		print self.fill
 		return self.canvas
 
 
@@ -1028,7 +1084,9 @@ class Bezier(Drawbject):
 # 			if svg_start.match()
 #
 
-
-#  to handle legacy code in which KLIBs had a Circle object rather than an Ellipse object
-def Circle(diameter, stroke=None, fill=None, auto_draw=True):
-	return Ellipse(diameter, diameter, stroke, fill, auto_draw)
+# polygon
+	#hs = self.size / 2.0 # half of the asterisk's size
+	#sides = 6
+	#pts = []
+	#for s in range(0, sides):
+	#	pts += rotate_points([0, hs], (0, 0), s*(360.0/sides), flat=True)

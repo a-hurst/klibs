@@ -4,7 +4,7 @@ import abc
 from imp import load_source
 from bisect import bisect
 from os.path import join
-from math import cos, sin, tan, atan, radians, ceil, sqrt
+from math import cos, sin, radians, ceil, sqrt
 
 from aggdraw import Brush, Draw, Pen, Symbol
 from PIL import Image
@@ -549,9 +549,10 @@ class Asterisk(Drawbject):
 		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified asterisk.
 
 	"""
-	def __init__(self, size, fill, thickness=1, rotation=0, auto_draw=True):
+	def __init__(self, size, fill, thickness=1, spokes=6, rotation=0, auto_draw=True):
 		self.size = size
 		self.thickness = thickness
+		self.spokes = spokes
 		super(Asterisk, self).__init__(size, size, None, fill, rotation)
 		self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
 		if auto_draw:
@@ -560,14 +561,24 @@ class Asterisk(Drawbject):
 	def _draw_points(self, outline=False):
 		ht = self.thickness / 2.0 # half of the asterisk's thickness
 		hs = self.size / 2.0 # half of the asterisk's size
-		spokes = 6
 		pts = []
-		for s in range(0, spokes):
-			spoke = [-ht, ht, -ht, hs, ht, hs, ht, ht]
-			pts += rotate_points(spoke, (0, 0), s*(-360.0/spokes), flat=True)
+		for s in range(0, self.spokes):
+			spoke = [-ht, -ht, -ht, -hs, ht, -hs, ht, -ht]
+			pts += rotate_points(spoke, (0, 0), s*(360.0/self.spokes), flat=True)
 		if self.rotation != 0:
 			pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
 		return pts
+
+	@property
+	def spokes(self):
+		return self.__spokes
+
+	@spokes.setter
+	def spokes(self, n):
+		if n not in range(3, 13):
+			raise ValueError("Number of spokes must be int between 3 and 12")
+		else:
+			self.__spokes = n
 
 	@property
 	def __name__(self):

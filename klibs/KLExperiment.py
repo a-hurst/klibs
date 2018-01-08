@@ -24,23 +24,13 @@ from klibs.KLCommunication import message, query, collect_demographics
 
 
 class Experiment(EnvAgent):
-	"""
-	Initializes a KLExperiment Object
-	:param project_name: Project title, used in creating filenames and instance variables.
-	:type project_name: String
-	"""
-
+	
 	window = None
 	paused = False
 	
 	blocks = None
 
-	def __init__(self, project_name):
-		"""
-		Initializes a KLExperiment Object
-		:param project_name: Project title, used in creating filenames and instance variables.
-		:type project_name: String
-		"""
+	def __init__(self):
 		super(Experiment, self).__init__()
 
 		# initialize audio management for the experiment

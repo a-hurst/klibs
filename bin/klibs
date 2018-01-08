@@ -12,6 +12,7 @@ try:
 except ImportError:
 	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m")
 	print("The 'klibs' Python module could not be found! Please reinstall KLibs.\n")
+	exit()
 
 try:
 	from klibs.KLExceptions import DatabaseException
@@ -280,7 +281,7 @@ def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
 	try:
 		experiment_file = imp.load_source(path, "experiment.py")
 		experiment = getattr(experiment_file, project_name)
-		env.exp = experiment(project_name)
+		env.exp = experiment()
 
 		# create a display context if everything's gone well so far
 		env.exp.window = display_init(screen_size)

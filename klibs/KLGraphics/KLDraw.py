@@ -552,7 +552,6 @@ class Asterisk(Drawbject):
 	def __init__(self, size, fill, thickness=1, rotation=0, auto_draw=True):
 		self.size = size
 		self.thickness = thickness
-		#super(Asterisk, self).__init__(size, size, [stroke, color, STROKE_INNER], None)
 		super(Asterisk, self).__init__(size, size, None, fill, rotation)
 		self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
 		if auto_draw:
@@ -569,19 +568,6 @@ class Asterisk(Drawbject):
 		if self.rotation != 0:
 			pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
 		return pts
-
-	#def draw(self):
-	#	
-	#	surf_c = self.surface_height / 2.0
-	#	a, b = point_pos((0,0), self.object_width, -90, 60, return_int=False)
-	#	l1 = [surf_c-(a/2.0), surf_c-(b/2.0), surf_c+(a/2.0), surf_c+(b/2.0)]
-	#	l2 = [surf_c-(a/2.0), surf_c+(b/2.0), surf_c+(a/2.0), surf_c-(b/2.0)]
-	#	l3 = [surf_c, 1, surf_c, self.surface_height - 1]
-	#	self.surface.line((l1[0], l1[1], l1[2],l1[3]), self.stroke)
-	#	self.surface.line((l2[0], l2[1], l2[2],l2[3]), self.stroke)
-	#	self.surface.line((l3[0], l3[1], l3[2],l3[3]), self.stroke)
-	#	self.surface.flush()
-	#	return self.canvas
 
 	@property
 	def __name__(self):

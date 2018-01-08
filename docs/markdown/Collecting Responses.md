@@ -81,7 +81,7 @@ response = self.rc.keypress_listener.response(rt=False) # get just the response 
 rt = self.rc.keypress_listener.response(value=False) # get just the reaction time value
 ```
 
-**Note on reaction times:** in KLibs, reaction times are determined by calculating the time between the moment the stimuli for the response collection loop are first presented and the time a response is first recorded. However, if your loop has a display callback it will be synced with the refresh rate of the screen (typically 16.7 ms per refresh, unless you have a special fancy monitor) meaning that collected responses can have up to ±17ms inaccuracy. Generally this doesn't end up being a huge problem during analysis but it's still something to keep in mind.
+**Note on reaction times:** in KLibs, reaction times are determined by calculating the time between the moment the stimuli for the response collection loop are first presented and the time a response is first recorded. However, if your loop has a display callback it will be synced with the refresh rate of the screen (typically 16.7 ms per refresh, unless you have a special fancy monitor) meaning that collected responses can have up to +17ms inaccuracy. Generally this doesn't end up being a huge problem during analysis but it's still something to keep in mind.
 
 ## Types of Response Listeners
 
@@ -127,7 +127,7 @@ The next argument is the *data labels* for the keys being used. When one of thes
 
 The fourth and final argument for the KeyMap object are the *SDL2 Keycodes* that correspond to the keys you want to watch for input from. These are the unique identifiers that SDL2 uses internally for identifying individual keys on the keyboard. To figure out what keycodes correspond to the keys you want to use, you can use [the Keycode lookup table](https://wiki.libsdl.org/SDL_Keycode) in the official SDL2 docs. Note that the number of UI labels, data labels and keycodes all have to be equal and in the same order for the KeyMap to work properly.
 
-Now, once you've defined your KeyMap, all you need to do is assign it to your ResponseCollector's keypress listener (assusimg you've already enabled the listener with `self.rc.uses()`):
+Now, once you've defined your KeyMap, all you need to do is assign it to your ResponseCollector's keypress listener (assuming you've already enabled the listener with `self.rc.uses()`):
 
 ```python
 # within setup_response_collector(), after self.rc.uses
@@ -141,7 +141,7 @@ self.rc.uses(RC_COLORSELECT) # to enable listener
 self.rc.color_listener # to access/configure listener
 ```
 
-One of KLibs' most novel and interesting features is how easy it makes it to do experiments with colour wheels, which are often used in memory research and occasionally attention and perception research to measure how different factors affect people's accuracy at identifying a colour they had seen previously. 
+One of KLibs' most novel features is how easy it makes it to do experiments with colour wheels, which are often used in memory research and occasionally attention and perception research to measure how different factors affect people's accuracy at identifying a colour they had seen previously. 
 
 Before you can use the colour selection listener, you first need to create a ColorWheel object using KLDraw, and a callback function that draws the colour wheel to the screen. You also need another KLDraw object, such as a dot (with the Ellipse drawbject) that you will use as a probe that will contain the target colour during trials:
 

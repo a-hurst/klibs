@@ -128,7 +128,7 @@ class Drawbject(object):
 		self.__stroke = None
 		self.stroke_width = 0
 		self.stroke_color = None
-		self.stroke_alignment = STROKE_INNER
+		self.stroke_alignment = STROKE_OUTER
 		self.stroke = stroke
 
 		self.__fill = None
@@ -149,7 +149,13 @@ class Drawbject(object):
 	def init_surface(self):
 		self._update_dimensions()
 		self.rendered = None # Clear any existing rendered texture
-		self.canvas = Image.new("RGBA", self.dimensions, (0, 0, 0, 0))
+		if self.fill_color:
+			col = self.fill_color
+		elif self.stroke_color:
+			col = self.stroke_color
+		else:
+			col = (0, 0, 0)
+		self.canvas = Image.new("RGBA", self.dimensions, (col[0], col[1], col[2], 0))
 		self.surface = Draw(self.canvas)
 		self.surface.setantialias(True)
 
@@ -224,13 +230,13 @@ class Drawbject(object):
 		if not style:
 			self.stroke_width = 0
 			self.stroke_color = None
-			self.stroke_alignment = STROKE_INNER
+			self.stroke_alignment = STROKE_OUTER
 			return self
 		try:
 			width, color, alignment = style
 		except ValueError:
 			width, color = style
-			alignment = STROKE_INNER
+			alignment = STROKE_OUTER
 
 		if alignment in [STROKE_INNER, STROKE_CENTER, STROKE_OUTER]:
 			self.stroke_alignment = alignment
@@ -420,6 +426,11 @@ class Ellipse(Drawbject):
 		self.object_height = value
 		self.object_width = value
 		self.init_surface()
+
+
+# Depricated, only here to avoid breaking legacy code. Will be removed soon.
+def Circle(diameter, stroke=None, fill=None, auto_draw=True):
+	return Ellipse(diameter, diameter, stroke, fill, auto_draw)
 
 
 class Annulus(Drawbject):

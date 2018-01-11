@@ -13,6 +13,7 @@ from klibs import P
 from klibs.KLKeyMap import KeyMap
 from klibs.KLUtilities import (full_trace, pump, flush, now, list_dimensions, force_quit,
 	show_mouse_cursor, hide_mouse_cursor)
+from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
@@ -264,34 +265,35 @@ class Experiment(EnvAgent):
 				raise e
 		except Exception:
 			print full_trace()
-		try:
-			self.el.shut_down()
-		except:
-			if P.eye_tracking and P.eye_tracker_available:
-				print "EyeLink.stopRecording() unsuccessful.\n \033[91m****** MANUALLY STOP RECORDING PLEASE & " \
-					  "THANKS!! *******\033[0m"
 
-		try:
-			lj.shut_down()
-		except:
-			if P.labjacking and P.labjack_available:
-				print "LabJack.shutdown() unsuccessful. \n\033[91m****** DISCONNECT & RECONNECT LABJACK PLEASE & " \
-					  "THANKS! *******\033[0m"
+		if P.eye_tracking and P.eye_tracker_available:	
+			try:
+				self.el.shut_down()
+			except:
+				print("EyeLink.stopRecording() unsuccessful.")
+				cso("<red>****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******</red>")
+
+		if P.labjacking and P.labjack_available:
+			try:
+				lj.shut_down()
+			except:
+				print("LabJack.shutdown() unsuccessful.")
+				cso("<red>****** DISCONNECT & RECONNECT LABJACK PLEASE & THANKS! *******</red>")
 
 		SDL_Quit()
 
 		# temporary lines added for certain experiments using a log file
-		try:
-			self.log_f.close()
-		except AttributeError:
-			pass
+		#try:
+		#	self.log_f.close()
+		#except AttributeError:
+		#	pass
 
 		try:
 			self.evm.terminate()
 		except RuntimeError:
 			force_quit()
 
-		print "\n\n\033[92m*** '{0}' successfully shutdown. ***\033[0m\n\n".format(P.project_name)
+		cso("\n\n<green>*** '{0}' successfully shutdown. ***</green>\n\n".format(P.project_name))
 		exit()
 
 	def run(self, *args, **kwargs):

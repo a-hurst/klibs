@@ -53,8 +53,6 @@ class BlockIterator(object):
 			return trials
 
 
-
-
 class TrialIterator(BlockIterator):
 
 	def __init__(self, block_of_trials):
@@ -104,10 +102,6 @@ class TrialFactory(object):
 	event_code_generator = None
 
 	def __init__(self, trial_generator=None):
-		"""
-
-		:param trial_generator:
-		"""
 		self.trial_generator = trial_generator
 
 	def __generate_trials__(self, factors=None, block_count=None, trial_count=None):
@@ -155,10 +149,7 @@ class TrialFactory(object):
 		return blocks
 
 	def generate(self, exp_factors=None):
-		"""
 
-
-		"""
 		import sys
 		from imp import load_source
 		if not exp_factors:
@@ -186,11 +177,6 @@ class TrialFactory(object):
 			self.blocks = BlockIterator(self.__generate_trials__())
 
 	def export_trials(self):
-		"""
-
-
-		:return:
-		"""
 		return self.blocks
 
 	def add_factor_by_inference(self, factor_name, generator, argument_list):
@@ -253,11 +239,12 @@ class TrialFactory(object):
 		log_f = open(join(P.local_dir, "TrialFactory_dump.txt"), "w+")
 		log_f.write("Blocks: {0}, Trials: {1}\n\n".format(P.blocks_per_experiment, P.trials_per_block))
 		log_f.write("*****************************************\n")
-		log_f.write("*                 Factors               *\n")
+		log_f.write("*                Factors                *\n")
 		log_f.write("*****************************************\n\n")
 		for f in self.exp_factors:
 			log_f.write("{0}: {1}\n".format(f[0], f[1]))
-		log_f.write("\n\n\n*****************************************\n")
+		log_f.write("\n\n\n")
+		log_f.write("*****************************************\n")
 		log_f.write("*                Trials                 *\n")
 		log_f.write("*****************************************\n\n")
 		block_num = 1

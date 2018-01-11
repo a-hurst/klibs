@@ -212,8 +212,8 @@ class AudioStream(EnvAgent):
 
 	def get_ambient_level(self, period=1):
 		
-		warn_msg = ("Please remain quite while the ambient noise level is sampled. "
-					"Sampling will begin in {0} seconds.")
+		warn_msg = ("Please remain quiet while the ambient noise level is sampled. "
+					"Sampling will begin in {0} second{1}.")
 		peaks = []
 
 		wait_period = CountDown(3)
@@ -221,7 +221,8 @@ class AudioStream(EnvAgent):
 			ui_request()
 			fill()
 			remaining = int(math.ceil(wait_period.remaining()))
-			message(warn_msg.format(remaining), location=P.screen_c, registration=5)
+			s = "" if remaining == 1 else "s" # to avoid "1 seconds"
+			message(warn_msg.format(remaining, s), location=P.screen_c, registration=5)
 			flip()
 		
 		fill()
@@ -242,7 +243,6 @@ class AudioStream(EnvAgent):
 		
 		flush()
 		self.init_stream()
-		self.sample() # eat first part of stream to avoid
 		sample_period = CountDown(period+0.05)
 		while sample_period.counting():
 			ui_request()

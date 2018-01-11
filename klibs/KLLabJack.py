@@ -11,16 +11,18 @@ try:
 except ImportError:
 	P.labjack_available = False
 	if P.labjacking:
-		print "\n\033[91m\t - Unable to import LabJack library, 'u3'. Fix installation or install from here: https://labjack.com/support/software/examples/ud/labjackpython \033[0m"
+		print(
+			"\n\033[91m\t - Unable to import LabJack library, 'u3'. "
+			"Fix installation or install from here: "
+			"https://labjack.com/support/software/examples/ud/labjackpython \033[0m"
+		)
 
 
 class LabJack(object):
-	experiment = None
 	labjack = None
 	messages = {}
 
-	def __init__(self, experiment):
-		self.experiment = experiment
+	def __init__(self):
 		if P.labjacking and P.labjack_available:
 			self.labjack = u3.U3()
 			self.labjack.configU3()

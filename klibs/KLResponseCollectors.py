@@ -205,7 +205,11 @@ class AudioResponse(ResponseType):
 			msg = "Provide a normal sample of your intended response."
 			peaks.append( self.stream.get_peak_during(3, msg) )
 			if i < 2:
-				next_message = "Got it; {0} more samples to collect. Press any key to continue".format(2 - i)
+				s = "" if i==1 else "s" # to avoid "1 more samples"
+				next_message = (
+					"Got it! {0} more sample{1} to collect. "
+					"Press any key to continue".format(2 - i, s)
+				)
 				fill()
 				message(next_message, location=P.screen_c, registration=5)
 				flip()

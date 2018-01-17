@@ -3,7 +3,7 @@ __author__ = 'jono'
 import random
 from re import compile
 import csv
-from copy import copy
+from copy import copy, deepcopy
 from itertools import product
 from os.path import exists, join
 from os import makedirs
@@ -86,18 +86,9 @@ class TrialIterator(BlockIterator):
 
 
 class TrialFactory(object):
-	experiment = None  # parent KLExperiment object
-	blocks = None
-	practice_blocks = None
-	executed_trials = None
-	meta_factors = None
-	exp_factors = None
-	max_trials = None
-	excluded_practice_factors = None
-	config_file_rows = []
 
-	# Behaviors
-	trial_generation_scheme = None
+	exp_factors = None
+	excluded_practice_factors = None
 	trial_generator = None
 	event_code_generator = None
 
@@ -124,7 +115,9 @@ class TrialFactory(object):
 		if block_count is None:
 			block_count = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
 		if trial_count is None:
-			trial_count = trial_set_count if not P.trials_per_block > 0 else P.trials_per_block
+			if P.trials_per_block <= 0:
+				P.trials_per_block = trial_set_count
+			trial_count = trial_set_count
 
 		total_trials = block_count * trial_count
 
@@ -196,25 +189,20 @@ class TrialFactory(object):
 		:param trial_count:
 		:param factor_mask:
 		"""
-		if not factor_mask:
+		if factor_mask:
+			if not isinstance(factor_mask, dict):
+				raise TypeError("Factor overrides must be in the form of a dictionary.")
+			factors = deepcopy(self.exp_factors) # copy factors to new list
+			for factor in factors:
+				if factor[0] in factor_mask.keys():
+					new_values = factor_mask[factor[0]]
+					if hasattr(new_values, '__iter__') == False:
+						new_values = [new_values] # if not iterable, put in list
+					factor[1] = new_values
+		else:
 			# If no factor mask, generate trials randomly based on self.exp_factors
 			factors = None
-		else:
-			factors = []
-			col_index = 0
-			for col in factor_mask:
-				val_index = 0
-				col_name = self.exp_factors[col_index][0]
-				vals = []
-				for val in col:
-					for i in range(0,val):
-						try:
-							vals.append(self.exp_factors[col_index][1][val_index])
-						except IndexError:
-							pass
-					val_index += 1
-				col_index += 1
-				factors.append([col_name, vals if len(vals) else [None]])
+
 		block = self.__generate_trials__(factors, 1, trial_count)
 		self.blocks.insert(block_num - 1, block[0], practice)  # there is no "zero" block from the UI/UX perspective
 
@@ -236,27 +224,26 @@ class TrialFactory(object):
 	def dump(self):
 		if not exists(P.local_dir):
 			makedirs(P.local_dir)
-		log_f = open(join(P.local_dir, "TrialFactory_dump.txt"), "w+")
-		log_f.write("Blocks: {0}, Trials: {1}\n\n".format(P.blocks_per_experiment, P.trials_per_block))
-		log_f.write("*****************************************\n")
-		log_f.write("*                Factors                *\n")
-		log_f.write("*****************************************\n\n")
-		for f in self.exp_factors:
-			log_f.write("{0}: {1}\n".format(f[0], f[1]))
-		log_f.write("\n\n\n")
-		log_f.write("*****************************************\n")
-		log_f.write("*                Trials                 *\n")
-		log_f.write("*****************************************\n\n")
-		block_num = 1
-		for b in self.blocks:
-			log_f.write("Block {0}\n".format(block_num))
-			trial_num = 1
-			for t in b:
-				log_f.write("\tTrial {0}: {1} \n".format(trial_num, t))
-				trial_num += 1
-			block_num += 1
-			log_f.write("\n")
-		log_f.close()
+		with open(join(P.local_dir, "TrialFactory_dump.txt"), "w") as log_f:
+			log_f.write("Blocks: {0}, Trials: {1}\n\n".format(P.blocks_per_experiment, P.trials_per_block))
+			log_f.write("*****************************************\n")
+			log_f.write("*                Factors                *\n")
+			log_f.write("*****************************************\n\n")
+			for f in self.exp_factors:
+				log_f.write("{0}: {1}\n".format(f[0], f[1]))
+			log_f.write("\n\n\n")
+			log_f.write("*****************************************\n")
+			log_f.write("*                Trials                 *\n")
+			log_f.write("*****************************************\n\n")
+			block_num = 1
+			for b in self.blocks:
+				log_f.write("Block {0}\n".format(block_num))
+				trial_num = 1
+				for t in b:
+					log_f.write("\tTrial {0}: {1} \n".format(trial_num, t))
+					trial_num += 1
+				block_num += 1
+				log_f.write("\n")
 
 	@property
 	def trial_generation_function(self, trial_generator):

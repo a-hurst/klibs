@@ -146,7 +146,7 @@ class Experiment(EnvAgent):
 		# 		if P.display_initialized:
 		# 			raise
 
-	def insert_practice_block(self, block_nums, trial_counts=None, factor_masks=None):
+	def insert_practice_block(self, block_nums, trial_counts=None, factor_mask=None):
 		"""
 		Adds one or more practice blocks to the experiment. This function must be called during setup(),
 		otherwise the trials will have already been exported and this function will no longer have
@@ -168,8 +168,8 @@ class Experiment(EnvAgent):
 		:type block_nums: Iterable of Ints
 		:param trial_counts: Numbers of trials per practice block.
 		:type trial_counts: Iterable of Ints
-		:param factor_masks: Mask specifying the possible combinations of factors for each practice block.
-		:type factor_masks: Iterable of Iterables of Ints
+		:param factor_mask: Override values for variables specified in independent_variables.py.
+		:type factor_mask: Dict of Lists
 		:raises: TrialException
 		"""
 		if self.blocks:
@@ -187,10 +187,8 @@ class Experiment(EnvAgent):
 			trial_counts = ([P.trials_per_block]  if trial_counts is None else [trial_counts]) * len(block_nums)
 		while len(trial_counts) < len(block_nums):
 			trial_counts.append(P.trials_per_block)
-		if list_dimensions(factor_masks) == 2 or not factor_masks:
-			factor_masks = [factor_masks] * len(block_nums)
 		for i in range(0, len(block_nums)):
-			self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_masks[i])
+			self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_mask)
 			P.blocks_per_experiment += 1
 
 	def add_keymap(self, name, ui_labels=None, data_labels=None, sdl_keysyms=None):

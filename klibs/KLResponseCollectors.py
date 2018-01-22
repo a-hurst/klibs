@@ -797,6 +797,8 @@ class ResponseCollector(EnvAgent):
 				interrupt = False
 				for l in self.using():
 					interrupt = self.listeners[l].collect(e_queue)
+					if interrupt:
+						break
 				if interrupt:
 					break
 

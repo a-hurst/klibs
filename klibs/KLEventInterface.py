@@ -249,7 +249,6 @@ class EventManager(EnvAgent):
 		if not self.registered(label):
 			raise NameError("Event '{0}' not registered with the EventInterface.".format(label))
 		if pump_events:
-			pump()
 			ui_request()
 
 		return label in self.trial_events
@@ -267,7 +266,6 @@ class EventManager(EnvAgent):
 		if not self.registered(label):
 			raise NameError("Event '{0}' not registered with the EventInterface.".format(label))
 		if pump_events:
-			pump()
 			ui_request()
 
 		return label not in self.trial_events

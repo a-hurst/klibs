@@ -146,8 +146,8 @@ def init_messaging():
 	user_queries.import_queries()
 
 	# default styles can't be created until screen dimensions are loaded into Params from exp.display_init()
-	txtm.add_style("default", P.default_font_size, P.default_color, font_label="Frutiger")
-	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font_label="Frutiger")
+	txtm.add_style("default", P.default_font_size, P.default_color, font_label=P.default_font_name)
+	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font_label=P.default_font_name)
 	
 	# check if Slack messaging is set up properly, and import required packages if it is
 	try:

@@ -104,6 +104,7 @@ class TextManager(object):
 		self.__build_font_sizes__()
 		self.add_font("Anonymous Pro", font_file_basename="AnonymousPro")
 		self.add_font("Frutiger")
+		self.add_font(P.default_font_name)
 		self.add_style("debug", 12, (225, 145, 85, 255), bg_color=(0, 0, 0, 0), font_label="Anonymous Pro", anti_alias=False)
 		self.default_color = P.default_color
 		TTF_Init()
@@ -168,6 +169,7 @@ class TextManager(object):
 					if w.value > surface_width:
 						surface_width = w.value
 
+		#TODO: fix mis-detected height problem for some fonts (e.g. Poppins)
 		net_line_height = style.font_size + style.line_height
 		output = NpS(width=surface_width, height=(len(lines) * net_line_height))
 		for line in lines:
@@ -228,24 +230,23 @@ class TextManager(object):
 		TTF_CloseFont(rendering_font)
 		return surface
 
-	def add_font(self, font_name, font_extension="ttf", font_file_basename=None):
+	def add_font(self, font_name, font_file_basename=None):
 		"""
 
 		:param font_name: Reference name of font within experiment context; typically mirrors filename.
 		:type font_name: String
-		:param font_extension: File extension of the font's file, usually, 'ttf' or 'otf'.
 		:param font_file_basename: Filename without extension of file; used when font_name does not match filename.
 		:return:
 		"""
 
 		if not font_file_basename:
-			font_file_basename = ".".join([font_name, font_extension])
-		else:
-			font_file_basename = ".".join([font_file_basename, font_extension])
+			font_file_basename = font_name
 
 		for d in P.font_dirs:
-			if isfile(join(d, font_file_basename)):
-				self.fonts[font_name] = join(d, font_file_basename)
+			for ext in [".ttf", ".otf"]:
+				path_to_font = join(d, font_file_basename + ext)
+				if isfile(path_to_font):
+					self.fonts[font_name] = path_to_font
 		if not font_name in self.fonts:
 			raise ImportError("Font {0} not found in any expected destination.".format(font_file_basename))
 		return self

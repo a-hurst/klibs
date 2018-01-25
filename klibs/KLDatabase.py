@@ -533,7 +533,7 @@ class DatabaseManager(EnvAgent):
 			P.primary_table = table
 		try:
 			join_tables = join_tables[0].split(",")
-		except IndexError:
+		except TypeError:
 			join_tables = []
 		column_names = self.build_column_header(multi_file, join_tables)
 		data = self.collect_export_data(multi_file, join_tables)

@@ -1,13 +1,14 @@
 __author__ = 'jono'
 
+import sys
 import random
-from re import compile
-import csv
+from collections import OrderedDict
 from copy import copy, deepcopy
 from itertools import product
 from os.path import exists, join
 from os import makedirs
-
+from imp import load_source
+		
 from klibs.KLEnvironment import EnvAgent
 from klibs import P
 from klibs.KLIndependentVariable import IndependentVariableSet
@@ -100,7 +101,11 @@ class TrialFactory(object):
 		if factors is None:
 			factors = self.exp_factors
 
-		trial_tuples = list(product(*[factor[1][:] for factor in factors]))
+		factor_list = []
+		for name, values in factors.items(): # convert dict to list
+			factor_list.append([name, values])
+
+		trial_tuples = list(product(*[factor[1][:] for factor in factor_list]))
 		if len(trial_tuples) == 0: trial_tuples = [ [] ]
 		# convert each trial tuple to list and insert at the front of it a boolean indicating if it is a practice trial
 		trial_set = []
@@ -117,7 +122,7 @@ class TrialFactory(object):
 		if trial_count is None:
 			if P.trials_per_block <= 0:
 				P.trials_per_block = trial_set_count
-			trial_count = trial_set_count
+			trial_count = P.trials_per_block
 
 		total_trials = block_count * trial_count
 
@@ -134,7 +139,7 @@ class TrialFactory(object):
 		if total_trials < trial_set_count:
 			while len(trials) > total_trials:
 				trials.pop()
-
+		
 		# Divide full list of trials into blocks of equal size (block size = trial_count)
 		blocks = []
 		for i in range(0, len(trials), trial_count):
@@ -142,9 +147,6 @@ class TrialFactory(object):
 		return blocks
 
 	def generate(self, exp_factors=None):
-
-		import sys
-		from imp import load_source
 		if not exp_factors:
 			try:
 				if P.dm_ignore_local_overrides:
@@ -152,18 +154,21 @@ class TrialFactory(object):
 				sys.path.append(P.ind_vars_file_local_path)
 				for k, v in load_source("*", P.ind_vars_file_local_path).__dict__.iteritems():
 					try:
-						self.exp_factors = v.to_list()
+						factors = v.to_dict()
 					except (AttributeError, TypeError):
 						pass
 			except (IOError, RuntimeError):
 				for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
 					try:
-						self.exp_factors = v.to_list()
+						factors = v.to_dict()
 					except (AttributeError, TypeError):
 						pass
-
 		else:
-			self.exp_factors = exp_factors.to_list()
+			factors = exp_factors.to_dict()
+
+		# Create alphabetically-sorted ordered dict from factors
+		self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
+
 		try:
 			self.blocks = BlockIterator(self.trial_generator(self.exp_factors))
 		except TypeError:
@@ -192,13 +197,17 @@ class TrialFactory(object):
 		if factor_mask:
 			if not isinstance(factor_mask, dict):
 				raise TypeError("Factor overrides must be in the form of a dictionary.")
+			
 			factors = deepcopy(self.exp_factors) # copy factors to new list
-			for factor in factors:
-				if factor[0] in factor_mask.keys():
-					new_values = factor_mask[factor[0]]
+			for name in factor_mask.keys():
+				if name in factors.keys():
+					new_values = factor_mask[name]
 					if hasattr(new_values, '__iter__') == False:
 						new_values = [new_values] # if not iterable, put in list
-					factor[1] = new_values
+					factors[name] = new_values
+				else:
+					e = "'{0}' is not the name of an active independent variable".format(name)
+					raise ValueError(e)
 		else:
 			# If no factor mask, generate trials randomly based on self.exp_factors
 			factors = None
@@ -215,11 +224,12 @@ class TrialFactory(object):
 		:param factor:
 		:return: :raise ValueError:
 		"""
-		for i in self.exp_factors:
-			if i[0] == factor:
-				return len(i[1])
-		e_msg = "Factor '{0}' not found.".format(factor)
-		raise ValueError(e_msg)
+		try:
+			n = len(self.exp_factors[factor])
+			return n
+		except KeyError:
+			e_msg = "Factor '{0}' not found.".format(factor)
+			raise ValueError(e_msg)
 
 	def dump(self):
 		if not exists(P.local_dir):
@@ -229,8 +239,8 @@ class TrialFactory(object):
 			log_f.write("*****************************************\n")
 			log_f.write("*                Factors                *\n")
 			log_f.write("*****************************************\n\n")
-			for f in self.exp_factors:
-				log_f.write("{0}: {1}\n".format(f[0], f[1]))
+			for name, values in self.exp_factors.items():
+				log_f.write("{0}: {1}\n".format(name, values))
 			log_f.write("\n\n\n")
 			log_f.write("*****************************************\n")
 			log_f.write("*                Trials                 *\n")

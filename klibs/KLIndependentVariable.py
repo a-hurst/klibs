@@ -31,27 +31,21 @@ class IndependentVariable(NamedObject):
 		self.data_type = data_type
 
 	def __str__(self):
-		return "klibs.IndependentVariable, ({0} entries at {2})".format(len(self.values), self.height, hex(id(self)))
+		return "klibs.IndependentVariable, ({0} entries at {1})".format(len(self.values), hex(id(self)))
 
 	def add_value(self, name, distribution=1):
-		"""
-
-		:param name:
-		:param distribution:
-		:raise ValueError:
-		"""
 		try:
 			name = self.data_type(name)
 		except ValueError:
 			e_msg = "{0} cannot be validly represented as a {0} value.".format(name, self.data_type)
 			raise ValueError(e_msg)
+		for v in self.values: # if value is duplicate, increment distribution of existing value
+			if v.name == name:
+				v.distribution += 1
+				return
 		self.values.add(VariableValue(name, distribution))
 
 	def add_values(self, *args):
-		"""
-
-		:param args:
-		"""
 		for v in args:
 			if iterable(v):
 				self.add_value(*v)
@@ -59,15 +53,16 @@ class IndependentVariable(NamedObject):
 				self.add_value(v)
 
 	def to_list(self):
-		"""
-
-
-		:return:
-		"""
 		values = []
 		for v in self.values:
 			values += [v.name] * v.distribution
 		return [self.name, values]
+
+	def to_dict(self):
+		values = []
+		for v in self.values:
+			values += [v.name] * v.distribution
+		return {self.name: values}
 
 	@property
 	def data_type(self):
@@ -93,19 +88,9 @@ class IndependentVariable(NamedObject):
 class IndependentVariableSet(NamedInventory):
 
 	def __init__(self):
-		"""
-
-
-		"""
 		super(IndependentVariableSet, self).__init__()
 
 	def add_variable(self, name, d_type, values=[]):
-		"""
-
-		:param name:
-		:param d_type:
-		:param values:
-		"""
 		ivar = IndependentVariable(name, d_type)
 		for v in values:
 			if iterable(v):
@@ -116,31 +101,23 @@ class IndependentVariableSet(NamedInventory):
 
 	@property
 	def enabled(self):
-		"""
-
-
-		:return:
-		"""
 		active_vars = NamedInventory()
 		for indv in self:
 			if not len(indv.values):
 				indv.enabled = False
 			if indv.enabled:
 				active_vars.add(indv)
-
 		return active_vars
 
 	def to_list(self):
-		"""
-
-
-		:return:
-		"""
 		return [iv.to_list() for iv in self.enabled]
+
+	def to_dict(self):
+		ivs = {}
+		for iv in self.enabled:
+			name, values = iv.to_list()
+			ivs[name] = values
+		return ivs
 
 	def delete(self, ivar_old):
 		self.__delitem__(ivar_old)
-
-
-
-

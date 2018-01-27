@@ -82,12 +82,16 @@ class Experiment(EnvAgent):
 		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1,...param_n]]
 		"""
 		pump()
-		for p in self.trial_factory.exp_factors:
-			attr_name = p[0]
-			attr_val = trial[self.trial_factory.exp_factors.index(p)]
-			setattr(self, attr_name, attr_val)
-		self.setup_response_collector()
 
+		# At start of every trial, before setup_response_collector or trial_prep are run, retrieve
+		# the values of the independent variables (factors) for that trial (as generated earlier by
+		# TrialFactory) and set them as attributes of the experiment object.
+		factors = self.trial_factory.exp_factors.keys()
+		for iv in factors:
+			iv_value = trial[factors.index(iv)]
+			setattr(self, iv, iv_value)
+
+		self.setup_response_collector()
 		self.trial_prep()
 		tx = None
 		try:

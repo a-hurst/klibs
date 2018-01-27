@@ -150,7 +150,10 @@ class Drawbject(object):
 		self._update_dimensions()
 		self.rendered = None # Clear any existing rendered texture
 		if self.fill_color:
-			col = self.fill_color
+			if self.stroke_color and self.fill_color[3] == 255:
+				col = self.stroke_color
+			else:
+				col = self.fill_color
 		elif self.stroke_color:
 			col = self.stroke_color
 		else:

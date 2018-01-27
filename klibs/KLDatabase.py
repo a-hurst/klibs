@@ -618,16 +618,17 @@ class DatabaseManager(EnvAgent):
 			return False
 
 		self.__master._drop_tables()
-		e = "Error: Database schema could not be deployed; there is a syntax error in the SQL file."
 		try:
 			self.__master._deploy_schema(P.schema_file_path)
 			self.__master.build_table_schemas()
-			print("Database successfully rebuilt! Please make sure to update your experiment.py to "
-				  "reflect any changes you might have made to tables or column names.\n")
-		except (sqlite3.ProgrammingError, ValueError):
-			self.__master._drop_tables(self.table_list)
+			print("\nDatabase successfully rebuilt! Please make sure to update your experiment.py "
+				  "to reflect any changes you might have made to tables or column names.\n")
+		except (sqlite3.ProgrammingError, sqlite3.OperationalError, ValueError) as e:
+			cso("\n<red>Syntax error encountered in '{0}'. Please double-check the formatting of "
+				"the schema and try again.</red>\n".format(P.schema_filename))
+			self.__master._drop_tables(self.__master.table_list)
 			self.__restore__()
-			raise IOError(e)
+			raise e
 
 	## Convenience methods that all pass to corresponding method of current DB ##
 

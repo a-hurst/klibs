@@ -374,7 +374,20 @@ def hard_reset(path):
 
 
 def update(branch='default'):
+	import logging
 	import pip
+
+	# Avoid unnecessary terminal clutter by suppressing alerts for non-upgraded dependencies
+	class pipFilter(logging.Filter):
+		def filter(self, record):
+			return not record.getMessage().startswith('Requirement not upgraded')
+	try:
+		pip.req.req_set.logger.addFilter(pipFilter())
+	except AttributeError:
+		pip._internal.resolve.logger.addFilter(pipFilter())
+	except:
+		pass
+
 	#TODO: This should really be able to compare the version/commit/origin of the current KLibs
 	#install and the one about to be installed to make sure you can't unintentionally overwrite
 	#a newer local version or install from a different branch.
@@ -383,7 +396,7 @@ def update(branch='default'):
 	if branch != 'default':
 		git_repo += "@{0}".format(branch)
 	
-	update_cmd = 'install -U git+{0}#egg=klibs --no-deps'.format(git_repo)
+	update_cmd = 'install -U git+{0}#egg=klibs --upgrade-strategy only-if-needed'.format(git_repo)
 	update_prompt = cso(
 		"\n<green_d>Updating will replace the current install of KLibs with the most "
 		"recent commit of the </green_d><purple>{0}</purple><green_d> branch of "

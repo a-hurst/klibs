@@ -66,6 +66,7 @@ class AudioClip(object):
 			super(AudioClip, self).__init__()
 			self.started = False
 			self.channel = self.default_channel
+			self.sample = Mix_LoadWAV(sdl2.ext.compat.byteify(file_path, "utf-8"))
 
 		def play(self, channel=-1, loops=0):
 			"""

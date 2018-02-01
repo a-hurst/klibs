@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+__author__ = 'Austin Hurst & Jonathan Mulle'
 
 import os
 import sys
@@ -22,6 +22,9 @@ except:
 	exc_type, exc_value, exc_traceback = sys.exc_info()
 	print(traceback.print_exception(exc_type, exc_value, exc_traceback, limit=5, file=sys.stdout))
 	exit()
+
+if __name__ == '__main__':
+	cli()
 
 
 # Utility Functions #
@@ -86,7 +89,6 @@ def create(name, path):
 	template_files = [
 		("schema.sql", ["ExpAssets", "Config"]),
 		("independent_variables.py", ["ExpAssets", "Config"]),
-		("messaging.csv", ["ExpAssets", "Config"]),
 		("params.py", ["ExpAssets", "Config"]),
 		("user_queries.json", ["ExpAssets", "Config"]),
 		("experiment.py", []),
@@ -254,7 +256,6 @@ def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
 
 	# create runtime environment
 	env.evm = EventManager()
-	env.evm.import_events()
 	env.txtm = TextManager()
 	env.tk = TimeKeeper()
 	env.rc = ResponseCollector()
@@ -402,13 +403,13 @@ def update(branch='default'):
 		exit()
 
 
-# the part of the script that gets run when klibs is invoked from cli
-if __name__ == '__main__': 
+# the function that gets run when klibs is launched from the command line
+def cli(): 
 
 	sys.dont_write_bytecode = True # suppress creation of useless .pyc files
 
 	class CustomHelpFormatter(argparse.HelpFormatter):
-
+		# default argparse help formatting is kind of a mess, so we override some things
 		def _format_action_invocation(self, action):
 			if not action.option_strings or action.nargs == 0:
 				return argparse.HelpFormatter._format_action_invocation(self, action)

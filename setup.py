@@ -35,7 +35,7 @@ setup(
 	url='http://github.com/a-hurst/klibs',
 	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeLink'],
 	include_package_data=True,
-	scripts=['bin/klibs'],
+	entry_points = {'console_scripts': ['klibs = klibs.__main__:cli']},
 	python_requires='>=2.7, <3',
 	install_requires=[
 		'numpy>=1.8.0rc1', 

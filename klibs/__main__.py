@@ -184,7 +184,6 @@ def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
 	from klibs import env
 	from klibs.KLUtilities import force_quit
 	from klibs.KLGraphics import display_init
-	from klibs import KLEyeLink
 	from klibs.KLDatabase import DatabaseManager
 	from klibs.KLEventInterface import EventManager
 	from klibs.KLTime import TimeKeeper
@@ -262,10 +261,9 @@ def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
 	if P.eye_tracking:
 		if no_eyelink is True:
 			P.eye_tracker_available = False
-			if KLEyeLink.PYLINK_AVAILABLE:
-				reload(KLEyeLink)
 		if P.development_mode and P.dm_show_gaze_dot:
 			P.show_gaze_dot = True
+		from klibs import KLEyeLink # needs to be imported after params are read in
 		env.el = KLEyeLink.EyeLinkExt()
 	try:
 		env.db = DatabaseManager()

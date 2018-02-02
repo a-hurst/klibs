@@ -14,7 +14,7 @@ if PYLINK_AVAILABLE:
 	from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
 		EL_SACCADE_START, EL_SACCADE_END, EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_ALL,
 		EL_BLINK_START, EL_BLINK_END, EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_AVG_GAZE,
-		EL_TIME_START, EL_TIME_END, EL_MOCK_EVENT, EL_ALL_EVENTS, EL_TRUE, EL_FALSE, EDF_FILE,
+		EL_TIME_START, EL_TIME_END, EL_MOCK_EVENT, EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
 		TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 	from klibs import P
 	from klibs.KLUtilities import full_trace, iterable, hide_mouse_cursor, mouse_pos, now
@@ -178,15 +178,15 @@ if PYLINK_AVAILABLE:
 				clear()
 				self.applyDriftCorrect()
 			except RuntimeError:
-				self.setOfflineMode()
 				try:
-					self.waitForModeReady(500)
+					self.setOfflineMode()
 				except RuntimeError:
 					self.unresolved_exceptions += 1
 					if self.unresolved_exceptions > 5:
 						print "\n\033[91m*** Fatal Error: Unresolvable EyeLink Error ***\033[0m"
 						print full_trace()
-					raise TrialException("EyeLink not ready.")
+						self.unresolved_exceptions = 0
+						raise TrialException("EyeLink not ready.")
 				return self.drift_correct()
 
 		def fixated_boundary(self, label, valid_events=EL_FIXATION_START, event_queue=None, report=EL_TIME_START,

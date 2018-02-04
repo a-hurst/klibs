@@ -6,8 +6,13 @@ import csv
 import abc
 from time import time, sleep
 import multiprocessing as mp
+from Queue import Queue
 from os import kill
-from signal import SIGKILL
+
+try:
+	from signal import SIGKILL
+except:
+	pass
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EventError
@@ -157,6 +162,86 @@ class TrialEvent(Event):
 		"trial_time": self.trial_time,
 		"eyelink_time": self.eyelink_time,
 		"sdl_event_code" : self.sdl_event_code}
+
+
+class MiniEventManager(object):
+
+	def __init__(self):
+		super(MiniEventManager, self).__init__()
+		self.issued = {}
+		self.event_onsets = {}
+		self.clock_sync_queue = Queue() # should always be empty
+		self.start_time = None
+
+	def __event_issued(self, label):
+		if self.issued[label] == True:
+			return True
+		elif self.event_onsets[label] < (time()-self.start_time)*1000:
+			self.issued[label] = True
+			return True
+		else:
+			return False
+
+	def after(self, label, pump_events=False):
+		if type(label) is not str:
+			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
+		if not label in self.event_onsets:
+			raise NameError("Event '{0}' not registered with the EventInterface.".format(label))
+		if pump_events:
+			ui_request()
+
+		return self.__event_issued(label)
+
+	def before(self, label, pump_events=False):
+		if type(label) is not str:
+			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
+		if not label in self.event_onsets:
+			raise NameError("Event '{0}' not registered with the EventInterface.".format(label))
+		if pump_events:
+			ui_request()
+
+		return not self.__event_issued(label)
+
+	def between(self, label_1, label_2):
+		return self.after(label_1) and self.before(label_2)
+
+	def register_ticket(self, event):
+		if event in EVI_CONSTANTS:
+			pass
+		if not isinstance(event, TrialEventTicket):
+			try:
+				event = TrialEventTicket(*event)
+			except SyntaxError:
+				raise TypeError("Expected TrialEventTicket, EventInterface constant or list for argument 'event'.")
+		self.issued[event.label] = False
+		self.event_onsets[event.label] = event.onset
+
+	def register_tickets(self, events):
+		for e in events:
+			self.register_ticket(e)
+
+	def start_clock(self):
+		self.start_time = time()
+
+	def stop_clock(self):
+		self.issued = {}
+		self.event_onsets = {}
+		self.start_time = None
+	
+	def terminate(self):
+		pass
+
+	@property
+	def trial_time(self):
+		return time()
+
+	@property
+	def trial_time_ms(self):
+		return self.trial_time * 1000
+
+	@property
+	def timestamp(self):
+		return time()
 
 
 class EventManager(EnvAgent):

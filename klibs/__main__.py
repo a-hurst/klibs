@@ -185,7 +185,7 @@ def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
 	from klibs.KLUtilities import force_quit
 	from klibs.KLGraphics import display_init
 	from klibs.KLDatabase import DatabaseManager
-	from klibs.KLEventInterface import EventManager
+	from klibs.KLEventInterface import MiniEventManager as EventManager
 	from klibs.KLTime import TimeKeeper
 	from klibs.KLText import TextManager
 	from klibs.KLResponseCollectors import ResponseCollector

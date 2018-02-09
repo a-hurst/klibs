@@ -260,11 +260,7 @@ class Experiment(EnvAgent):
 				else:
 					print "Commit() to self.database failed."
 					raise e
-			try:
-				self.database.close()
-			except Exception as e:  # TODO: Determine exception tpye
-				print "Database.close() unsuccessful."
-				raise e
+			self.database.close()
 		except Exception:
 			print full_trace()
 

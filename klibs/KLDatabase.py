@@ -459,8 +459,8 @@ class DatabaseManager(EnvAgent):
 		
 		col_data = columns
 		for colname in sub.keys():
-			col_data.replace(colname, "`{0}`".format(sub[colname]))
-		
+			col_data = col_data.replace(colname, "\'{0}\'".format(sub[colname]))
+			
 		q = "INSERT INTO master.{0} ({1}) SELECT {2} FROM {0}".format(table, columns, col_data)
 		self.__local.cursor.execute(q)
 	

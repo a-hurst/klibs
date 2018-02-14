@@ -340,12 +340,12 @@ def query(query_ob, anonymous=False):
 			# handle user indicating that they're finished
 			if sdl_keysym in (SDLK_KP_ENTER, SDLK_RETURN):  # ie. if enter or return
 				if len(input_string) or query_ob.allow_null:
-					if f.type == "int":
+					if f.type == int:
 						try:
 							input_string = int(input_string)
 						except ValueError:
 							error_string = "Please respond with an integer."
-					elif f.type == "float":
+					elif f.type == float:
 						try:
 							input_string = float(input_string)
 						except ValueError:

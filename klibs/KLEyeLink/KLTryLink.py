@@ -22,12 +22,13 @@ import abc
 class TryLink(EnvAgent, BoundaryInspector):
 	__anonymous_boundaries__ = 0
 	__gaze_boundaries__ = {}
-	experiment = None
 	custom_display = None
+	version = "TryLink"
 	dc_width = None  # ie. drift-correct width
 	edf_filename = None
 	unresolved_exceptions = 0
 	start_time = [None, None]
+	initialized = False
 	__recording__ = False
 	__eye_used__ = None
 	last_mouse_pos = None
@@ -311,7 +312,8 @@ class TryLink(EnvAgent, BoundaryInspector):
 	def setup(self):
 		self.dc_width = P.screen_y // 60
 		self.add_boundary("drift_correct", [P.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
-		return self.calibrate()
+		self.calibrate()
+		self.initialized = True
 
 	def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 		self.__recording__ = True
@@ -345,7 +347,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 		"""
 		result = self.__within_boundary__(label, self.sample())
 		return result if not return_queue else [result, event_queue]
-
+	
 	@abc.abstractmethod
 	def listen(self, **kwargs):
 		pass

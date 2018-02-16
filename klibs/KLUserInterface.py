@@ -2,8 +2,8 @@ __author__ = 'jono'
 
 from time import time
 
-from sdl2 import (SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, SDLK_UP, SDLK_DOWN,
-	SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
+from sdl2 import (SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL, KMOD_GUI,
+	SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
 
 from klibs.KLConstants import MOD_KEYS
 from klibs import P
@@ -147,7 +147,7 @@ def ui_request(key_press=None, execute=True, queue=None):
 		except TypeError:
 			key_press = [key_press]
 		for k in key_press:
-			if k.mod in (MOD_KEYS["Left Command"], MOD_KEYS["Right Command"]):
+			if any(k.mod & mod for mod in [KMOD_GUI, KMOD_CTRL]): # if ctrl or meta being held
 				if k.sym == SDLK_q:
 					if execute:
 						from klibs.KLEnvironment import exp
@@ -155,17 +155,18 @@ def ui_request(key_press=None, execute=True, queue=None):
 					else:
 						return [True, "quit"]
 				elif k.sym == SDLK_c:
-					# todo: error handling here
-					if execute:
+					if P.eye_tracking:
 						from klibs.KLEnvironment import el
-						return el.calibrate()
-					else:
-						return [True, "el_calibrate"]
-				elif k.sym == SDLK_p:
-					if execute:
-						return pause()
-					else:
-						return [True, "pause" if not P.paused else "unpause"]
+						if el.initialized: # make sure el.setup() has been run already
+							if execute:
+								return el.calibrate()
+							else:
+								return [True, "el_calibrate"]
+				#elif k.sym == SDLK_p:
+				#	if execute:
+				#		return pause()
+				#	else:
+				#		return [True, "pause" if not P.paused else "unpause"]
 		return False
 
 

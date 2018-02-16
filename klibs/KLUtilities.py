@@ -17,13 +17,13 @@ from sdl2 import (SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL
 	SDL_PeepEvents, SDL_GetError, SDL_GetTicks,
 	SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_GETEVENT, SDL_MOUSEMOTION, 
 	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
-	KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS)
+	KMOD_SHIFT, KMOD_CAPS)
 from sdl2.ext import get_events
 from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
 from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
 
 from klibs.KLConstants import (BL_RIGHT, BL_LEFT, BL_TOP, BL_BOTTOM, BL_TOP_RIGHT, BL_TOP_LEFT,
-	BL_BOTTOM_RIGHT, BL_BOTTOM_LEFT, BL_CENTER, DATETIME_STAMP, MOD_KEYS, 
+	BL_BOTTOM_RIGHT, BL_BOTTOM_LEFT, BL_CENTER, DATETIME_STAMP,
 	DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP, TK_S, TK_MS)
 from klibs import P
 
@@ -757,11 +757,10 @@ def scale(coords, canvas_size, target_size=None, scale=True, center=True):
 
 def sdl_key_code_to_str(sdl_keysym):
 	key_name = SDL_GetKeyName(sdl_keysym).replace("Keypad ", "")
-	if key_name in MOD_KEYS:  # TODO: probably use sdl keysyms as keys instead of key_names
-		return False
 	if key_name == "Space":
 		return " "
-	if SDL_GetModState() not in (KMOD_LSHIFT, KMOD_RSHIFT, KMOD_CAPS):
+	if not any(SDL_GetModState() & mod for mod in [KMOD_CAPS, KMOD_SHIFT]):
+		# if not holding Shift or Caps Lock isn't on, make letter lower case.
 		key_name = key_name.lower()
 	return key_name if len(key_name) == 1 else False  # to cover all keys that aren't alphanumeric or handled here
 

@@ -39,15 +39,13 @@ if PYLINK_AVAILABLE:
 		__anonymous_boundaries__ = 0
 		__gaze_boundaries__ = {}
 		__eye_used__ = None
-		gaze_dot = None
-		experiment = None
 		custom_display = None
 		version = None
 		dc_width = None  # ie. drift-correct width
 		edf_filename = None
 		unresolved_exceptions = 0
 		start_time = [None, None]
-		draw_gaze = False
+		initialized = False
 
 		def __init__(self):
 			if P.eye_tracker_available:
@@ -404,6 +402,7 @@ if PYLINK_AVAILABLE:
 			self.setMotionThreshold(P.saccadic_motion_threshold)
 			self.calibrate()
 			beginRealTimeMode(10)
+			self.initialized = True
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 			self.start_time = [now(), None]

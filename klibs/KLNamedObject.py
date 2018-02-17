@@ -1,7 +1,6 @@
 __author__ = 'jono'
 
 import collections
-import copy
 
 
 class NamedObject(object):

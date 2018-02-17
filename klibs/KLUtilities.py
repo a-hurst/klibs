@@ -11,7 +11,7 @@ import traceback
 import multiprocessing as mp
 from sys import exc_info
 from subprocess import Popen, PIPE
-from math import sin, cos, radians, pi, atan2, degrees, ceil
+from math import sin, cos, acos, atan2, radians, pi, degrees, ceil
 
 from sdl2 import (SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents,
 	SDL_PeepEvents, SDL_GetError, SDL_GetTicks,
@@ -56,9 +56,6 @@ def absolute_position(position, destination):
 			width = P.screen_x
 		except:
 			raise TypeError("Argument 'destination' invalid; must be [x,y] iterable, numpy.ndarray or klibs.NumpySurface.")
-
-	#  Older version of KLIBs didn't use location constants; this converts old string-style location identifiers
-	if position in LEGACY_LOCATIONS: position = LEGACY_LOCATIONS[position]
 
 	locations = {
 		BL_CENTER: [width // 2, height // 2],
@@ -136,7 +133,7 @@ def bounded_by(pos, left, right, top, bottom):
 				return False
 		else:
 			e = "Argument 'pos' must be a tuple, others must be integers."
-			raise TypeError()
+			raise TypeError(e)
 
 
 def build_registrations(source_height, source_width):
@@ -481,7 +478,7 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False, return_int=
 			x_pos = int(x_pos)
 			y_pos = int(y_pos)
 		return (x_pos, y_pos)
-	except Exception as e:
+	except Exception:
 		print "point_pos() error"
 		print origin, amplitude, angle, rotation, type(origin), type(amplitude), type(angle), type(rotation)
 		raise

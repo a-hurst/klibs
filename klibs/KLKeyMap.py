@@ -58,7 +58,7 @@ class KeyMap(object):
 			else:
 				return False
 		else:
-			raise TypeError(self.arg_error_str("sdl_keysym", type(sdl_keysym), "int", False))
+			raise TypeError("SDL Keysyms must be of type 'int'.")
 
 	def read(self, sdl_keysym, format="ui"):
 		if self.any_key:

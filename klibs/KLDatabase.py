@@ -150,7 +150,7 @@ class Database(EnvAgent):
 	table_schemas = None
 
 	def __init__(self, path):
-		super(EnvAgent, self).__init__()
+		super(Database, self).__init__()
 		self.db = sqlite3.connect(path)
 		self.cursor = self.db.cursor()
 		self.__open_entries = {}
@@ -389,7 +389,7 @@ class DatabaseManager(EnvAgent):
 	__current = None
 	
 	def __init__(self):
-		super(EnvAgent, self).__init__()
+		super(DatabaseManager, self).__init__()
 		self.__load_master__()
 		if P.multi_user:
 			print(P.database_local_path)

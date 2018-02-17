@@ -6,7 +6,7 @@ from sdl2 import SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP,
 
 from klibs.KLEnvironment import EnvAgent, evm
 from klibs.KLExceptions import TrialException
-from klibs.KLNamedObject import *
+from klibs.KLNamedObject import NamedObject, NamedInventory
 from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, RC_FIXATION, 
 	RC_MOUSEDOWN, RC_MOUSEUP, RC_SACCADE, NO_RESPONSE, EL_SACCADE_START, EL_SACCADE_END,
 	TIMEOUT, TK_S, TK_MS, STROKE_INNER)
@@ -45,10 +45,7 @@ class ResponseType(NamedObject, EnvAgent):
 
 	def collect(self, event_queue):
 		if not self.max_collected():
-			try:
-				self.collect_response(event_queue)
-			except TypeError:
-				self.collect_response()
+			self.collect_response(event_queue)
 		return self.max_collected() and self.interrupts
 
 	def reset(self):
@@ -89,7 +86,7 @@ class ResponseType(NamedObject, EnvAgent):
 		self.__timed_out__ = state == True
 
 	@abc.abstractmethod
-	def collect_response(self):
+	def collect_response(self, event_queue):
 		pass
 
 	@property
@@ -120,7 +117,7 @@ class ResponseType(NamedObject, EnvAgent):
 	def min_response_count(self):
 		return self.__min_response_count__
 
-	@max_response_count.setter
+	@min_response_count.setter
 	def min_response_count(self, count):
 		self.__min_response_count__ = count
 
@@ -155,7 +152,7 @@ class KeyPressResponse(ResponseType):
 
 				if self.key_map:
 					if self.key_map.validate(sdl_keysym):
-						if len(self.responses) < self.min_response_count:
+						if len(self.responses) < self.max_response_count:
 							self.responses.append([self.key_map.read(sdl_keysym, "data"), (self.evm.trial_time_ms - self.__rc_start_time__[0])])
 						if self.interrupts:
 							return self.responses if self.max_response_count > 1 else self.responses[0]
@@ -251,11 +248,11 @@ class AudioResponse(ResponseType):
 				elif key_pressed(SDLK_v, queue=q):
 					self.validate()
 
-	def collect_response(self):
+	def collect_response(self, event_queue):
 		if not self.calibrated:
 			raise RuntimeError("AudioResponse not ready for collection; calibration not completed.")
 		if self.stream.sample().peak >= self.stream.threshold:
-			if len(self.responses) < self.min_response_count:
+			if len(self.responses) < self.max_response_count:
 				self.responses.append([self.stream.sample().peak, (self.evm.trial_time_ms - self.__rc_start_time__[0])])
 			if self.interrupts:
 				self.stop()
@@ -276,7 +273,7 @@ class MouseDownResponse(ResponseType, BoundaryInspector):
 	def collect_response(self, event_queue):
 		for event in event_queue:
 			if event.type is SDL_MOUSEBUTTONDOWN:
-				if len(self.responses) < self.min_response_count:
+				if len(self.responses) < self.max_response_count:
 					boundary =  self.within_boundaries([event.x, event.y])
 					if boundary:
 						self.responses.append( [boundary, [event.x, event.y], (self.evm.trial_time_ms - self.__rc_start_time__[0])] )
@@ -291,7 +288,7 @@ class MouseUpResponse(ResponseType, BoundaryInspector):
 	def collect_response(self, event_queue):
 		for event in event_queue:
 			if event.type is SDL_MOUSEBUTTONUP:
-				if len(self.responses) < self.min_response_count:
+				if len(self.responses) < self.max_response_count:
 					boundary = self.within_boundaries([event.x, event.y])
 					if boundary:
 						self.responses.append([boundary, [event.x, event.y], (self.evm.trial_time_ms - self.__rc_start_time__[0])])
@@ -303,7 +300,7 @@ class JoystickResponse(ResponseType):
 	def __init__(self, rc_start_time):
 		pass
 
-	def collect_response(self):
+	def collect_response(self, event_queue):
 		pass
 
 
@@ -316,7 +313,7 @@ class SaccadeResponse(ResponseType):
 	def __init__(self, rc_start_time):
 		super(SaccadeResponse, self).__init__(rc_start_time, RC_SACCADE)
 
-	def collect_response(self):
+	def collect_response(self, event_queue):
 		for e in self.el.get_event_queue([self.el.eyelink.ENDSACC]):
 			origin_ok = True
 			destination_ok = True
@@ -401,7 +398,7 @@ class ColorSelectionResponse(ResponseType):
 				else:
 					response = angle_err
 
-				if len(self.responses) < self.min_response_count:
+				if len(self.responses) < self.max_response_count:
 					rt = self.evm.trial_time_ms - self.__rc_start_time__[0]
 					self.responses.append([response, rt])
 					if self.interrupts:
@@ -703,7 +700,7 @@ class ResponseCollector(EnvAgent):
 		count = 0
 		if listener:
 			return self.listeners[listener].response_count
-		for l in self.uses:
+		for l in self.__uses__:
 			count += self.listeners[l].response_count
 		return count
 
@@ -836,7 +833,7 @@ class ResponseCollector(EnvAgent):
 
 	def enable(self, listener):
 		self.__uses__[listener] = True
-		self.listeners.add(self.__rc_index__[l](self.rc_start_time))
+		self.listeners.add(self.__rc_index__[listener](self.rc_start_time))
 
 	def enabled(self):
 		en = []
@@ -897,7 +894,7 @@ class ResponseCollector(EnvAgent):
 	def min_response_count(self):
 		return self.__min_response_count__
 
-	@max_response_count.setter
+	@min_response_count.setter
 	def min_response_count(self, count):
 		self.__min_response_count__ = count
 
@@ -950,7 +947,7 @@ class ResponseCollector(EnvAgent):
 		else:
 			self.callbacks['display'][2]
 
-	@display_args.setter
+	@display_kwargs.setter
 	def display_kwargs(self, kwargs_list):
 		if type(kwargs_list) is not dict:
 			raise TypeError("Property 'display_kwargs' must be a dict.")
@@ -1002,7 +999,7 @@ class ResponseCollector(EnvAgent):
 	def before_flip_kwargs(self):
 		return self.callbacks['before_flip'][2]
 
-	@before_flip_args.setter
+	@before_flip_kwargs.setter
 	def before_flip_kwargs(self, kwargs_list):
 		if type(kwargs_list) is not dict:
 			raise TypeError("Property 'kwargs_list' must be a dict.")
@@ -1054,7 +1051,7 @@ class ResponseCollector(EnvAgent):
 	def after_flip_kwargs(self):
 		return self.callbacks['after_flip'][2]
 
-	@after_flip_args.setter
+	@after_flip_kwargs.setter
 	def after_flip_kwargs(self, kwargs_list):
 		if type(kwargs_list) is not dict:
 			raise TypeError("Property 'kwargs_list' must be a dict.")
@@ -1106,7 +1103,7 @@ class ResponseCollector(EnvAgent):
 	def before_return_kwargs(self):
 		return self.callbacks['before_return'][2]
 
-	@before_return_args.setter
+	@before_return_kwargs.setter
 	def before_return_kwargs(self, args_list):
 		if type(args_list) is not dict:
 			raise TypeError('Args list must be either a list or a tuple')

@@ -11,7 +11,7 @@ from signal import SIGKILL
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EventError
-from klibs.KLNamedObject import *
+from klibs.KLNamedObject import NamedObject, NamedInventory, CachedInventory
 from klibs.KLConstants import (TK_S, TK_MS, TBL_EVENTS, EVI_CONSTANTS, EVI_DEREGISTER_EVENT,
 	EVI_SEND_TIME, EVI_CLOCK_RESET, EVI_TRIAL_START, EVI_TRIAL_STOP, EVI_EXP_END)
 from klibs import P
@@ -45,7 +45,7 @@ class TrialEventTicket(EnvAgent, NamedObject):
 		self.created = time()
 
 	def __str__(self):
-		return "<klibs.KLEventInterface.EventTicket, ('{0}': {1}, at {3})".format(self.label, self.onset, self.data, hex(id(self)))
+		return "<klibs.KLEventInterface.EventTicket, ('{0}': {1} at {2})>".format(self.label, self.onset, hex(id(self)))
 
 	def issue(self, trial_time):
 		self.issued = True

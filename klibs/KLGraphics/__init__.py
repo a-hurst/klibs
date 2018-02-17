@@ -283,7 +283,7 @@ def flip(window=None):
 		ValueError: If called outside of an experiment runtime and no window is specified.
 
 	"""
-	from klibs.KLEnvironment import exp, el
+	from klibs.KLEnvironment import exp
 
 	if exp:
 		exp.before_flip()

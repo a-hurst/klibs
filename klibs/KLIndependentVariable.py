@@ -37,7 +37,7 @@ class IndependentVariable(NamedObject):
 		try:
 			name = self.data_type(name)
 		except ValueError:
-			e_msg = "{0} cannot be validly represented as a {0} value.".format(name, self.data_type)
+			e_msg = "{0} cannot be validly represented as a {1} value.".format(name, self.data_type)
 			raise ValueError(e_msg)
 		for v in self.values: # if value is duplicate, increment distribution of existing value
 			if v.name == name:

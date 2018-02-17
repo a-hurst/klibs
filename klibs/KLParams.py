@@ -13,8 +13,8 @@ from os import makedirs
 from os.path import exists, join
 from pkg_resources import resource_filename, resource_string
 
-from klibs.KLConstants import *
-
+from klibs.KLConstants import (TAB, DATETIME_STAMP, DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
+	FACTORS_EXT, PARAMS_EXT, MESSSAGING_EXT, BACK_EXT)
 
 klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
 
@@ -73,6 +73,7 @@ view_distance = 57  # in centimeters, 57m = in 1deg of visual angle per horizont
 additional_displays = [] # (not implemented)
 screen_origin = (0,0)  # (not implemented) always (0,0) unless multiple displays in use
 blit_flip_x = False
+ignore_points_at = [] # For ignoring problematic pixel coordinates when using DrawResponse
 
 # Display defaults (defined automatically on launch in KLGrapics.display_init())
 ppi = 0  # pixels-per-inch
@@ -170,9 +171,6 @@ def init_project():
 	from klibs.KLKeyMap import KeyMap
 	global key_maps # ? (should global keymaps be a thing?)
 	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
-	global project_name
-	global asset_dir
-	global config_dir
 	global data_dir
 	global incomplete_data_dir
 	global edf_dir

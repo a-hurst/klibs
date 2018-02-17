@@ -270,13 +270,14 @@ class Experiment(EnvAgent):
 			except:
 				print("EyeLink.stopRecording() unsuccessful.")
 				cso("<red>****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******</red>")
-
-		if P.labjacking and P.labjack_available:
-			try:
-				lj.shut_down()
-			except:
-				print("LabJack.shutdown() unsuccessful.")
-				cso("<red>****** DISCONNECT & RECONNECT LABJACK PLEASE & THANKS! *******</red>")
+				
+		#Commented out until LabJack integration is reimplemented/reconsidered
+		#if P.labjacking and P.labjack_available:
+		#	try:
+		#		lj.shut_down()
+		#	except:
+		#		print("LabJack.shutdown() unsuccessful.")
+		#		cso("<red>****** DISCONNECT & RECONNECT LABJACK PLEASE & THANKS! *******</red>")
 
 		SDL_Quit()
 

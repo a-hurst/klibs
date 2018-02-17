@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
-from sqlite3 import IntegrityError
-from hashlib import sha1
+import os
 from copy import copy
 from time import time
+from hashlib import sha1
+from threading import Thread
+from sqlite3 import IntegrityError
 
 from sdl2 import (SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_RETURN,
 	SDLK_KP_ENTER, SDLK_ESCAPE)
@@ -16,6 +18,14 @@ from klibs.KLUtilities import (absolute_position, pretty_join, sdl_key_code_to_s
 	flush, iterable)
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
+
+try:
+	from slacker import Slacker
+	from slacker import Error as SlackerError
+	SLACK_STATUS = "available"
+except ImportError:
+	SLACK_STATUS = "slacker_missing"
+
 
 global user_queries
 
@@ -84,8 +94,6 @@ def collect_demographics(anonymous=False):
 	:return:
 	"""
 	from klibs.KLEnvironment import exp, db
-	global user_queries
-
 
 
 	"""
@@ -137,9 +145,7 @@ def collect_demographics(anonymous=False):
 
 
 def init_messaging():
-	from klibs.KLEnvironment import txtm, exp
-
-	global user_queries
+	from klibs.KLEnvironment import txtm
 	global SLACK_STATUS
 
 	# try to create question objects (ie. JSON_Objects with expected keys) from demographics file
@@ -149,23 +155,16 @@ def init_messaging():
 	txtm.add_style("default", P.default_font_size, P.default_color, font_label=P.default_font_name)
 	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font_label=P.default_font_name)
 	
-	# check if Slack messaging is set up properly, and import required packages if it is
-	try:
-		import os # To test for presence of API key environment variable
-		import socket # To test internet connect to slack.com
-		from slacker import Slacker
-		from slacker import Error as SlackerError
-		from threading import Thread
-
-		socket.create_connection(("www.slack.com", 80))
-		os.environ['SLACK_API_KEY']
-		SLACK_STATUS = "available"
-	except ImportError: # if slacker library not installed
-		SLACK_STATUS = "slacker_missing"
-	except socket.gaierror: # if slack.com not reachable
-		SLACK_STATUS = "no_connection"
-	except KeyError: # if API key not defined in environment
-		SLACK_STATUS = "no_API_key"
+	# If Slacker is installed, determine if slack.com is reachable and an API key has been set
+	if SLACK_STATUS == "available":
+		try:
+			import socket
+			socket.create_connection(("www.slack.com", 80))
+			os.environ['SLACK_API_KEY']
+		except socket.gaierror: # if slack.com not reachable
+			SLACK_STATUS = "no_connection"
+		except KeyError: # if API key not defined in environment
+			SLACK_STATUS = "no_API_key"
 
 
 def message(text, style=None, location=None, registration=None, blit_txt=True,

@@ -69,11 +69,10 @@ def err(err_string):
 # Actual CLI Functions #
 
 def create(name, path):
-	import time
 	import shutil
 	import re
 	from random import choice
-	from os.path import join, normpath
+	from os.path import join
 	from tempfile import mkdtemp
 	from pkg_resources import resource_filename
 

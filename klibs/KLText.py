@@ -97,7 +97,6 @@ class TextManager(object):
 	styles = {}
 	__default_color__ = (0, 0, 0, 255)
 	__default_bg_color__ = (255, 255, 255)
-	__default_font__ = None
 
 
 	def __init__(self):
@@ -257,7 +256,7 @@ class TextManager(object):
 
 		:return:
 		"""
-		return self.__default_color
+		return self.__default_color__
 
 	@default_color.setter
 	def default_color(self, color):
@@ -274,7 +273,7 @@ class TextManager(object):
 
 		:return:
 		"""
-		return self.__default_bg_color
+		return self.__default_bg_color__
 
 	@default_bg_color.setter
 	def default_bg_color(self, color):
@@ -285,19 +284,3 @@ class TextManager(object):
 		if type(color) is list:
 			self.__default_bg_color__ = color
 
-	@property
-	def default_font(self):
-		"""
-
-		:return:
-		"""
-		return self.__default_bg_color
-
-	@default_bg_color.setter
-	def default_font(self, color):
-		"""
-
-		:param color:
-		"""
-		if type(color) is list:
-			self.__default_bg_color__ = color

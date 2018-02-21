@@ -45,7 +45,7 @@ CREATE TABLE participants (
 	id integer primary key autoincrement not null,
 	userhash text not null,
 	random_seed text not null,
-	sex text not null,
+	gender text not null,
 	age integer not null, 
 	handedness text not null,
 	created text not null,

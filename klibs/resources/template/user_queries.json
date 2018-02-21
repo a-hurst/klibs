@@ -8,7 +8,7 @@
         {
             "title": "name",
             "database_field": "userhash",
-            "query": "What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.",
+            "query": "What is your full name, banner number or e-mail address?\nYour answer will be encrypted and cannot be read later.",
             "accepted": null,
             "allow_null": false,
             "format": {
@@ -40,10 +40,10 @@
             "active": true
         },
         {
-            "title": "sex",
-            "database_field": "sex",
-            "query": "What is your sex? \nAnswer with:  (m)ale,(f)emale",
-            "accepted": ["m", "f"],
+            "title": "gender",
+            "database_field": "gender",
+            "query": "What is your gender?\nAnswer with: (m)ale, (f)emale, or (n)on-binary",
+            "accepted": ["m", "f", "n"],
             "allow_null": false,
             "format": {
                 "type": "str",
@@ -70,14 +70,15 @@
                 "accept_as_true": null,
                 "action": null
             },
-            "anonymous_value": "EVAL: 'm' if now() % 2 > 0  else 'f'",
+            "anonymous_value": "n",
             "active": true
         },
         {
             "title": "handedness",
             "database_field": "handedness",
-            "query": "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous.",
+            "query": "Are you right-handed, left-handed or ambidextrous?\nAnswer with: (r)ight, (l)eft, or (a)mbidextrous",
             "accepted": ["r", "l", "a"],
+            "allow_null": false,
             "format": {
                 "type": "str",
                 "styles": {
@@ -137,7 +138,7 @@
                 "accept_as_true": null,
                 "action": null
             },
-            "anonymous_value": 1,
+            "anonymous_value": -1,
             "active": true
         }
     ],

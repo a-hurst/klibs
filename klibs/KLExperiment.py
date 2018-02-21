@@ -315,6 +315,7 @@ class Experiment(EnvAgent):
 		try:
 			self.__execute_experiment__(*args, **kwargs)
 		except RuntimeError:
+			print(full_trace())
 			force_quit()
 
 		self.quit()

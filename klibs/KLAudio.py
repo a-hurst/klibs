@@ -27,9 +27,7 @@ try:
 	import pyaudio
 	PYAUDIO_AVAILABLE = True
 except ImportError:
-	print "\t* Warning: PyAudio library not found; audio input will not be available."
 	PYAUDIO_AVAILABLE = False
-
 
 
 class AudioManager(object):
@@ -42,6 +40,7 @@ class AudioManager(object):
 		if PYAUDIO_AVAILABLE:
 			self.input = pyaudio.PyAudio()
 		else:
+			print("\t* Warning: PyAudio library not found; audio input will not be available.")
 			self.input = None
 
 	def open(self, *args, **kwargs):

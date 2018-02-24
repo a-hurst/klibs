@@ -50,7 +50,6 @@ CREATE TABLE participants (
 	handedness text not null,
 	created text not null,
 	klibs_commit text not null
-
 );
 
 CREATE TABLE events (

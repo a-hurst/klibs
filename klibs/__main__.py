@@ -8,13 +8,6 @@ import argparse
 import traceback
 
 try:
-	imp.find_module('klibs')
-except ImportError:
-	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m")
-	print("The 'klibs' Python module could not be found! Please reinstall KLibs.\n")
-	exit()
-
-try:
 	from klibs.KLExceptions import DatabaseException
 	from klibs.KLUtilities import colored_stdout as cso
 except:

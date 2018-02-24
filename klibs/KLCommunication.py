@@ -27,9 +27,8 @@ except ImportError:
 	SLACK_STATUS = "slacker_missing"
 
 
-global user_queries
+user_queries = None
 
-__user_queries__ = None
 
 class UserQuerySet(object):
 	def __init__(self):
@@ -49,15 +48,6 @@ class UserQuerySet(object):
 		for k in self.default_strings:
 			setattr(P, k, self.default_strings[k])
 
-	# @property
-	# def user_queries():
-	# 	return __user_queries__
-	#
-	# @user_queries.setter
-	# def user_queries(query_set):
-	# 	__user_queries__ = query_set
-
-user_queries = UserQuerySet()
 
 def alert(text, blit=True, display_for=0):
 		"""
@@ -77,14 +67,9 @@ def alert(text, blit=True, display_for=0):
 		# todo: instead hard-fill, "separate screen" flag; copy current surface, blit over it, reblit surf or fresh
 		# todo: address the absence of default colors
 
-
-
 		clear()
 		fill(P.default_fill_color)
 		message(text, "alert", blit_txt=True, flip_screen=True)
-		if display_for > 0:
-			pass
-			# todo: use ui_request and timekeeper
 
 
 def collect_demographics(anonymous=False):
@@ -105,7 +90,6 @@ def collect_demographics(anonymous=False):
 
 	# ie. demographic questions aren't being asked for this experiment
 	if not P.collect_demographics and not anonymous: return
-
 
 	# first insert required, automatically-populated fields
 	db.init_entry('participants', instance_name='ptcp', set_current=True)
@@ -146,9 +130,11 @@ def collect_demographics(anonymous=False):
 
 def init_messaging():
 	from klibs.KLEnvironment import txtm
+	global user_queries
 	global SLACK_STATUS
 
 	# try to create question objects (ie. JSON_Objects with expected keys) from demographics file
+	user_queries = UserQuerySet()
 	user_queries.import_queries()
 
 	# default styles can't be created until screen dimensions are loaded into Params from exp.display_init()
@@ -265,7 +251,6 @@ def query(query_ob, anonymous=False):
 
 	input_string = ''  # populated in loop below
 	error_string = None
-
 
 	f = query_ob.format
 	if f.type in ("int", "float", "str", "bool"):
@@ -403,6 +388,7 @@ def query(query_ob, anonymous=False):
 		return input_string in f.accept_as_true
 	else:
 		return input_string
+
 
 def slack_message(message, channel=None):
 	"""

@@ -2,7 +2,7 @@ __author__ = 'jono'
 
 import abc
 import aggdraw
-from sdl2 import SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP, SDLK_c, SDLK_v
+from sdl2 import SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP
 
 from klibs.KLEnvironment import EnvAgent, evm
 from klibs.KLExceptions import TrialException
@@ -13,13 +13,11 @@ from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, R
 from klibs import P
 from klibs.KLUtilities import (pump, flush, hide_mouse_cursor, show_mouse_cursor, mouse_pos,
 	full_trace, iterable, angle_between)
-from klibs.KLTime import CountDown
-from klibs.KLUserInterface import ui_request, any_key, key_pressed
+from klibs.KLUserInterface import ui_request
 from klibs.KLBoundary import BoundaryInspector, AnnulusBoundary
 from klibs.KLGraphics import NpS, fill, flip, blit
 from klibs.KLGraphics import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import Annulus, ColorWheel, Drawbject
-from klibs.KLCommunication import message
 from klibs.KLAudio import AudioStream
 
 
@@ -185,84 +183,42 @@ class AudioResponse(ResponseType):
 	def __init__(self, rc_start_time):
 		super(AudioResponse, self).__init__(rc_start_time, RC_AUDIO)
 		self.stream = AudioStream()
-		self.threshold_valid = False
-		self.calibrated = False
-
-	def calibrate(self):
-		peaks = []
-		if P.development_mode and P.dm_auto_threshold:
-			ambient = self.stream.get_ambient_level()
-			if ambient == 0:
-				raise RuntimeError("Ambient level appears to be zero; exit the anachoic chamber or restart the experiment.")
-			self.stream.threshold = ambient * 5
-			self.threshold_valid = True
-			self.calibrated = True
-			return
-		for i in range(0, 3):
-			msg = "Provide a normal sample of your intended response."
-			peaks.append( self.stream.get_peak_during(3, msg) )
-			if i < 2:
-				s = "" if i==1 else "s" # to avoid "1 more samples"
-				next_message = (
-					"Got it! {0} more sample{1} to collect. "
-					"Press any key to continue".format(2 - i, s)
-				)
-				fill()
-				message(next_message, location=P.screen_c, registration=5)
-				flip()
-				any_key()
-		self.stream.threshold = min(peaks)
-		self.validate()
-
-	def validate(self):
-		instruction = "Ok, threshold set! To ensure its validity, please provide one (and only one) more response."
-		fill()
-		message(instruction, location=P.screen_c, registration=5)
-		flip()
-		self.start()
-		validate_counter = CountDown(5)
-		while validate_counter.counting():
-			ui_request()
-			if self.stream.sample().peak >= self.stream.threshold:
-				validate_counter.finish()
-				self.threshold_valid = True
-		self.stop()
-
-		if self.threshold_valid:
-			validation_msg = "Great, validation was successful. Press any key to continue."
-		else:
-			validation_msg = "Validation wasn't successful. Type C to re-calibrate or V to try validation again."
-		fill()
-		message(validation_msg, location=P.screen_c, registration=5)
-		flip()
-		response_collected = False
-		while not response_collected:
-			q = pump(True)
-			if self.threshold_valid:
-				if key_pressed(queue=q):
-					self.calibrated = True
-					return
-			else:
-				if key_pressed(SDLK_c, queue=q):
-					self.calibrate()
-				elif key_pressed(SDLK_v, queue=q):
-					self.validate()
+		self.__threshold = None
 
 	def collect_response(self, event_queue):
-		if not self.calibrated:
-			raise RuntimeError("AudioResponse not ready for collection; calibration not completed.")
-		if self.stream.sample().peak >= self.stream.threshold:
+		if not self.threshold:
+			raise RuntimeError("A threshold must be set before audio responses can be collected.")
+		if self.stream.sample().peak >= self.threshold:
 			if len(self.responses) < self.max_response_count:
-				self.responses.append([self.stream.sample().peak, (self.evm.trial_time_ms - self.__rc_start_time__[0])])
+				self.responses.append([
+					self.stream.sample().peak,
+					(self.evm.trial_time_ms - self.__rc_start_time__[0])
+				])
 			if self.interrupts:
-				self.stop()
+				self.stream.stop()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
 
-	def start(self):
-		self.stream.init_stream()
+	@property
+	def threshold(self):
+		"""int: The threshold value to for collecting audio responses. Any samples with peaks
+		higher than this value will be considered responses, any samples with peaks lower than this
+		value will be ignored. Should be set using :meth:`klibs.KLAudio.AudioCalibrator.calibrate`.
 
-	def stop(self):
-		self.stream.kill_stream()
+		Raises:
+			ValueError: If the threshold is not an integer between 0 and 32767.
+		"""
+		return self.__threshold
+
+	@threshold.setter
+	def threshold(self, value):
+		try:
+			value = float(value)
+			err = False
+		except TypeError:
+			err = True
+		if err or not 0 < value < 37267:
+			raise ValueError("Threshold must be an integer between 0 and 32767 exclusive") 
+		self.__threshold = value
 
 
 class MouseDownResponse(ResponseType, BoundaryInspector):
@@ -280,6 +236,7 @@ class MouseDownResponse(ResponseType, BoundaryInspector):
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
 
+
 class MouseUpResponse(ResponseType, BoundaryInspector):
 
 	def __init__(self, rc_start_time):
@@ -294,14 +251,6 @@ class MouseUpResponse(ResponseType, BoundaryInspector):
 						self.responses.append([boundary, [event.x, event.y], (self.evm.trial_time_ms - self.__rc_start_time__[0])])
 				if self.interrupts:
 					return self.responses if self.max_response_count > 1 else self.responses[0]
-
-
-class JoystickResponse(ResponseType):
-	def __init__(self, rc_start_time):
-		pass
-
-	def collect_response(self, event_queue):
-		pass
 
 
 class SaccadeResponse(ResponseType):
@@ -347,9 +296,13 @@ class SaccadeResponse(ResponseType):
 
 
 class FixationResponse(ResponseType):
-
 	def __init__(self, rc_start_time):
-		super(FixationResponse, self).__init__(rc_start_time, RC_FIXATION)
+		raise NotImplementedError("Fixation responses are not yet implemented.")
+
+
+class JoystickResponse(ResponseType):
+	def __init__(self, rc_start_time):
+		raise NotImplementedError("Game controller responses are not yet implemented.")
 
 
 class ColorSelectionResponse(ResponseType):
@@ -724,7 +677,7 @@ class ResponseCollector(EnvAgent):
 			pass
 
 		# do any preparatory work for listeners to be used during the collection loop
-		if self.using(RC_AUDIO): self.audio_listener.start()
+		if self.using(RC_AUDIO): self.audio_listener.stream.start()
 		if self.using(RC_MOUSEDOWN) or self.using(RC_MOUSEUP) or self.using(RC_COLORSELECT): show_mouse_cursor()
 
 		if self.flip:
@@ -761,7 +714,7 @@ class ResponseCollector(EnvAgent):
 					listener.timed_out = True
 				listener.responses.append([listener.null_response, TIMEOUT])
 		if self.using(RC_AUDIO):
-			self.audio_listener.stop()
+			self.audio_listener.stream.stop()
 		self.rc_start_time[0] = None # Reset before next trial
 
 	def __collect__(self):
@@ -822,6 +775,7 @@ class ResponseCollector(EnvAgent):
 	def reset(self):
 		# Clear all listeners and set all use flags to False
 		# (is this really the best way to do this? Or should rc objects persist across experiment?)
+		if self.using(RC_AUDIO): self.audio_listener.stream.close()
 		self.listeners = NamedInventory()
 		for k in self.__uses__.keys():
 			self.__uses__[k] = False

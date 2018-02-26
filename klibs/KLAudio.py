@@ -10,6 +10,7 @@ from array import array
 with warnings.catch_warnings():
 	warnings.simplefilter("ignore")
 	import sdl2.ext
+	from sdl2 import SDLK_c, SDLK_v
 	from sdl2.sdlmixer import (Mix_LoadWAV, Mix_PlayChannel, Mix_Playing, Mix_HaltChannel, 
 		Mix_VolumeChunk)
 
@@ -18,7 +19,7 @@ from klibs.KLConstants import AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_RATE
 from klibs import P
 from klibs.KLUtilities import pump, flush, peak
 from klibs.KLTime import CountDown
-from klibs.KLUserInterface import ui_request
+from klibs.KLUserInterface import ui_request, key_pressed, any_key
 from klibs.KLGraphics.KLDraw import Ellipse
 from klibs.KLGraphics import fill, blit, flip
 from klibs.KLCommunication import message
@@ -31,7 +32,18 @@ except ImportError:
 
 
 class AudioManager(object):
+	"""A class for initializing and configuring audio input/output during the experiment
+	runtime. An instance of this is created in the experiment object when the experiment
+	runtime starts, and can be accessed from within your experiment class using
+	'self.audio'. As such, you should never need to create your own AudioManager object.
 
+	Attributes:
+		input (:obj:`pyaudio.PyAudio`, None): An interface for creating/destroying audio streams
+			and getting information about the host's audio hardware/APIs. See the PyAudio
+			documentation for more information. If the pyaudio module is not installed, this
+			attribute will be a NoneType instead.
+
+	"""
 	def __init__(self):
 		super(AudioManager, self).__init__()
 		if not sdl2.SDL_WasInit(sdl2.SDL_INIT_AUDIO):
@@ -43,10 +55,20 @@ class AudioManager(object):
 			print("\t* Warning: PyAudio library not found; audio input will not be available.")
 			self.input = None
 
-	def open(self, *args, **kwargs):
-		if not PYAUDIO_AVAILABLE:
-			raise RuntimeError("The PyAudio module is not installed; audio input is not available.")
-		return self.input.open(*args, **kwargs)
+	def calibrate(self):
+		"""Determines a threshold loudness to use for vocal responses based on sample input from
+		the participant. See :obj:`KLAudio.AudioCalibrator` for more details.
+
+		Returns:
+			int: an integer from 1 to 32767 representing the threshold value to use for vocal
+				responses.
+
+		Raises:
+			RuntimeError: If using auto thresholding and the recorded ambient noise level is 0.
+
+		"""
+		c = AudioCalibrator()
+		return c.calibrate()
 
 
 # Note AudioClip is an adaption of code originally written by mike lawrence (github.com/mike-lawrence)
@@ -134,64 +156,43 @@ class AudioClip(object):
 
 
 class AudioSample(object):
+	"""A sample of audio input from an AudioStream.
 
-	def __init__(self, raw_sample, threshold):
-		"""
+	Args:
+		raw_sample (str): A bytestring of audio as returned by pyaudio.Sample.read() or
+			AudioSample.read().
+	
+	Attributes:
+		array (:obj:`array.array`): A Python array object containing the data from the input sample
+			in signed 16-bit ('h') format.
+		peak (int): The highest value in the sample (maximum is 32767).
+		trough (int): The lowest value in the sample (minimum is -32768).
+		mean (int): The average value in the sample.
 
-		:param raw_sample:
-		:param threshold:
-		"""
+	"""
+	def __init__(self, raw_sample):
 		super(AudioSample, self).__init__()
 		self.array = array('h', raw_sample)
 		self.peak = max(self.array)
 		self.trough = min(self.array)
 		self.mean = sum(self.array) / len(self.array)
-		self.threshold = threshold
-
-	def is_below(self, threshold=None):
-		"""
-
-		:param threshold:
-		:return:
-		"""
-		return self.peak < threshold if threshold else self.threshold
-
-	def is_above(self, threshold=None):
-		"""
-
-		:param threshold:
-		:return:
-		"""
-		return self.trough > threshold if threshold else self.threshold
 
 
-class AudioStream(EnvAgent):
-	stream = None
+class AudioStream(pyaudio.Stream, EnvAgent):
+	"""A stream of audio from the default system audio input device (usually a microphone).
+	See the :obj:`pyaudio.Stream` documentation for a full list of this class's methods and
+	attributes.
 
+	Args:
+		threshold (int, optional): A threshold value for comparing sample peaks and means to.
+			Defaults to 1.
+
+	"""
 	def __init__(self, threshold=1):
-
-		super(AudioStream, self).__init__()
-		self.threshold = 1
-
-
-	def sample(self):
-
-		if not self.stream:
-			self.init_stream()
-
-		chunk = self.stream.read(AR_CHUNK_SIZE, False)
-		sample = AudioSample(chunk, self.threshold)
-
-		return sample
-
-
-	def init_stream(self):
-
-		try:
-			self.kill_stream()
-		except (AttributeError, IOError) as e:
-			pass  # on first pass, no stream exists; on subsequent passes, extant stream should be stopped & overwritten
-		
+		if not PYAUDIO_AVAILABLE:
+			raise RuntimeError("The PyAudio module is not installed; audio input is not available.")
+		EnvAgent.__init__(self)
+		self.threshold = threshold
 		# Due to using a depricated macOS API, portaudio will print a warning everytime it's called.
 		# The following lines suppress this error.
 		devnull = os.open(os.devnull, os.O_WRONLY)
@@ -199,19 +200,156 @@ class AudioStream(EnvAgent):
 		sys.stderr.flush()
 		os.dup2(devnull, 2)
 		os.close(devnull)
-		self.stream = self.exp.audio.open(
-			format=pyaudio.paInt16, channels=1, rate=AR_RATE,
-			input=True, output=True, frames_per_buffer=AR_CHUNK_SIZE
+		pyaudio.Stream.__init__(self, PA_manager=self.exp.audio.input,
+			format=pyaudio.paInt16, channels=1, rate=AR_RATE, frames_per_buffer=AR_CHUNK_SIZE,
+			input=True, output=False, start=False
 		)
 		os.dup2(old_stderr, 2)
 		os.close(old_stderr)
 
-	def kill_stream(self):
-		self.stream.stop_stream()
+	def sample(self):
+		"""Fetches the most recent audio sample from the input stream. If the stream is not already
+		open when this method is called, it will open one automatically.
+
+		Returns:
+			:obj:`KLAudio.AudioSample`: An AudioSample containing the most recent 1024 frames from
+				the input stream.
+		"""
+		if not self.is_active():
+			self.start()
+		chunk = self.read(AR_CHUNK_SIZE, False)
+		sample = AudioSample(chunk)
+		return sample
+
+	def start(self):
+		"""Starts the input stream. If the stream is already active, calling this method will
+		restart it.
+		"""
+		if self.is_active():
+			self.stop()
+		self.start_stream()
+	
+	def stop(self):
+		"""Stops the input stream. To prevent conflicts between AudioStreams and conserve system
+		resources, you should call this whenever you are done using a stream.
+		"""
+		self.stop_stream()
+
+
+class AudioCalibrator(object):
+
+	def __init__(self):
+		super(AudioCalibrator, self).__init__()
+		self.stream = None
+		self.threshold = None
+		self.threshold_valid = False
+
+	def calibrate(self):
+		"""Determines the loudness threshold for vocal responses based on sample input from the
+		participant. 
+		
+		During calibration, input levels are monitored during three 3-second intervals in which 
+		participants are asked to make a single vocal response. After all three samples are
+		collected, the threshold is set to the smallest peak value of the three samples, and the
+		participant is prompted to make one more response to see if it passes the threshold.
+		If it does, calibration is complete and will end after any key is pressed. If it doesn't,
+		the participant will be notified that calibration wasn't sucessful and will be prompted to
+		press 'c' to calibrate again, or 'v' to try validation again.
+
+		As a convenience for programmers writing and testing experiments using audio input, if
+		KLibs is in development mode and the Params option 'dm_auto_threshold' is set to True, this
+		calibration process will be skipped for a quicker one requiring no user input. In this
+		mode, the ambient room noise is recorded for one second after a countdown, and the
+		threshold is then set to be five times the average peak volume from that interval.
+		This will not work if your microphone does not pick up any ambient room noise.
+
+		Returns:
+			int: an integer from 1 to 32767 representing the threshold value to use for vocal
+				responses.
+
+		Raises:
+			RuntimeError: If using auto thresholding and the recorded ambient noise level is 0.
+		"""
+		if not self.stream:
+			self.stream = AudioStream()
+		if P.development_mode and P.dm_auto_threshold:
+			ambient = self.get_ambient_level()
+			if ambient == 0:
+				e = ("Ambient level appears to be zero, increase the gain on your microphone or "
+					 "disable auto-thresholding.")
+				raise RuntimeError(e)
+			elif ambient*5 > 32767:
+				e = ("Ambient noise level too high to use auto-thresholding. Reduce the gain on "
+					 "your microphone or try and reduce the noise level in the room.")
+				raise RuntimeError(e)
+			self.threshold = ambient * 5
+		else:
+			peaks = []
+			for i in range(0, 3):
+				msg = "Provide a normal sample of your intended response."
+				peaks.append( self.get_peak_during(3, msg) )
+				if i < 2:
+					s = "" if i==1 else "s" # to avoid "1 more samples"
+					next_message = (
+						"Got it! {0} more sample{1} to collect. "
+						"Press any key to continue".format(2 - i, s)
+					)
+					fill()
+					message(next_message, location=P.screen_c, registration=5)
+					flip()
+					any_key()
+			self.threshold = min(peaks)
+			self.__validate()
 		self.stream.close()
+		return self.threshold
+
+	def __validate(self):
+		instruction = ("Ok, threshold set!"
+					   "To ensure its validity, please provide one (and only one) more response.")
+		fill()
+		message(instruction, location=P.screen_c, registration=5)
+		flip()
+		self.stream.start()
+		validate_counter = CountDown(5)
+		while validate_counter.counting():
+			ui_request()
+			if self.stream.sample().peak >= self.threshold:
+				validate_counter.finish()
+				self.threshold_valid = True
+		self.stream.stop()
+
+		if self.threshold_valid:
+			validation_msg = "Great, validation was successful! Press any key to continue."
+		else:
+			validation_msg = ("Validation wasn't successful. "
+							  "Type C to re-calibrate or V to try validation again.")
+		fill()
+		message(validation_msg, location=P.screen_c, registration=5)
+		flip()
+		selection_made = False
+		while not selection_made:
+			q = pump(True)
+			if self.threshold_valid:
+				if key_pressed(queue=q):
+					return
+			else:
+				if key_pressed(SDLK_c, queue=q):
+					self.calibrate()
+				elif key_pressed(SDLK_v, queue=q):
+					self.__validate()
 
 	def get_ambient_level(self, period=1):
+		"""Determines the average ambient noise level from the input stream over a given period.
+		Gives a 3-second countdown before starting to help the user ensure they are quiet.
 		
+		Args:
+			period (numeric, optional): The number of seconds to record input for. Defaults to one
+				second.
+
+		Returns:
+			int: The average of the peaks of all samples recorded during the period.
+
+		"""
 		warn_msg = ("Please remain quiet while the ambient noise level is sampled. "
 					"Sampling will begin in {0} second{1}.")
 		peaks = []
@@ -225,36 +363,49 @@ class AudioStream(EnvAgent):
 			message(warn_msg.format(remaining, s), location=P.screen_c, registration=5)
 			flip()
 		
+		self.stream.start()
 		fill()
 		flip()
 		sample_period = CountDown(period)
 		while sample_period.counting():
 			ui_request()
-			peaks.append(self.sample().peak)
-
+			peaks.append(self.stream.sample().peak)
+		self.stream.stop()
 		return sum(peaks) / len(peaks)
 
-	def get_peak_during(self, period=3, msg=None):
+	def get_peak_during(self, period, msg=None):
+		"""Determines the peak loudness value recorded over a given period. Displays a visual
+		callback that shows the current input volume and the loudest peak encounteredduring the
+		interval so far.
+		
+		Args:
+			period (numeric): the number of seconds to record input for.
+			msg (:obj:`KLGraphics.KLNumpySurface.NumpySurface`, optional): a rendered message
+				to display in the top-right corner of the screen during the sampling loop.
 
+		Returns:
+			int: the loudest peak of all samples recorded during the period.
+
+		"""
 		local_peak = 0
 		last_sample = 0
 		if msg:
 			msg = message(msg, blit_txt=False)
 		
 		flush()
-		self.init_stream()
+		self.stream.start()
 		sample_period = CountDown(period+0.05)
 		while sample_period.counting():
 			ui_request()
-			sample = self.sample().peak
+			sample = self.stream.sample().peak
 			if sample_period.elapsed() < 0.05:
 				# Sometimes 1st or 2nd peaks are extremely high for no reason, so ignore first 50ms
 				continue
 			if sample > local_peak:
 				local_peak = sample
 			sample_avg = (sample + last_sample) / 2
-			peak_circle = peak(5, int((local_peak*P.screen_x*0.9) / 65000))
-			sample_circle = peak(5, int((sample_avg*P.screen_x*0.9) / 65000))
+			peak_circle = peak(5, int((local_peak/32767.0) * P.screen_y*0.8))
+			sample_circle = peak(5, int((sample_avg/32767.0) * P.screen_y*0.8))
 			last_sample = sample
 			
 			fill()
@@ -263,6 +414,5 @@ class AudioStream(EnvAgent):
 			if msg:
 				blit(msg, location=[25,25], registration=7)
 			flip()
-		self.kill_stream()
-
+		self.stream.stop()
 		return local_peak

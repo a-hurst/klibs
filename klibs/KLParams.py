@@ -61,6 +61,9 @@ saccadic_motion_threshold = 0.15
 labjack_available = False
 labjacking = False
 
+# Slack Messaging Settings
+use_slack_messaging = False
+
 # Aesthetic Defaults
 default_fill_color = (45, 45, 45, 255)
 default_color = (255, 255, 255, 255)

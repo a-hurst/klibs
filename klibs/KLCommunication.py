@@ -2,6 +2,7 @@
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import os
+import socket
 from copy import copy
 from time import time
 from hashlib import sha1
@@ -16,15 +17,16 @@ from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, DELIM_NOT_LAST,
 import klibs.KLParams as P
 from klibs.KLUtilities import (absolute_position, pretty_join, sdl_key_code_to_str, now, pump,
 	flush, iterable)
+from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
 
 try:
 	from slacker import Slacker
 	from slacker import Error as SlackerError
-	SLACK_STATUS = "available"
+	SLACKER_AVAILABLE = True
 except ImportError:
-	SLACK_STATUS = "slacker_missing"
+	SLACKER_AVAILABLE = False
 
 
 user_queries = None
@@ -131,7 +133,6 @@ def collect_demographics(anonymous=False):
 def init_messaging():
 	from klibs.KLEnvironment import txtm
 	global user_queries
-	global SLACK_STATUS
 
 	# try to create question objects (ie. JSON_Objects with expected keys) from demographics file
 	user_queries = UserQuerySet()
@@ -141,16 +142,28 @@ def init_messaging():
 	txtm.add_style("default", P.default_font_size, P.default_color, font_label=P.default_font_name)
 	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font_label=P.default_font_name)
 	
-	# If Slacker is installed, determine if slack.com is reachable and an API key has been set
-	if SLACK_STATUS == "available":
-		try:
-			import socket
-			socket.create_connection(("www.slack.com", 80))
-			os.environ['SLACK_API_KEY']
-		except socket.gaierror: # if slack.com not reachable
-			SLACK_STATUS = "no_connection"
-		except KeyError: # if API key not defined in environment
-			SLACK_STATUS = "no_API_key"
+	if P.development_mode:
+		P.use_slack_messaging = False
+
+	# If using slack, determine if API key/room id have been set and slack.com is reachable
+	if P.use_slack_messaging:
+		warning = None
+		if SLACKER_AVAILABLE:
+			if not 'SLACK_API_KEY' in os.environ:
+				warning = "A Slack API key could not be found"
+			elif not 'SLACK_ROOM_ID' in os.environ:
+				warning = "A Slack room ID could not be found"
+			else:
+				try:
+					socket.create_connection(("www.slack.com", 80))	
+				except socket.gaierror:
+					warning = "Unable to connect to slack.com"
+		else:
+			warning = "The 'slacker' module is not installed"
+
+		if warning: # if slack messaging not available, print warning saying why
+			print("\t* Warning: {0}. Slack messaging will not be available.".format(warning))
+			P.use_slack_messaging = False
 
 
 def message(text, style=None, location=None, registration=None, blit_txt=True,
@@ -390,56 +403,60 @@ def query(query_ob, anonymous=False):
 		return input_string
 
 
-def slack_message(message, channel=None):
-	"""
-	Sends a message to a specified channel in a Slack group using the Slack API. This is useful for 
-	keeping updated on a participant's progress during an experiment, for allowing participants to 
-	call you back into the room at any point by pressing a certain key, and being notified of any errors 
-	that might have occured during the experiment without participant intervention. To use this function,
-	you must first have a Slack team set up for the function to post to, a Slack bot for the function to 
-	post as, and a room for the function to post to. To create a Slack bot for your team, go to 
-	'Manage > Custom Integrations > Bots > Add Configuration' and configure your bot with a name. 
-	
-	For the purpose of security, it is not advisable to include your Slack API (the unique alphanumeric 
-	string that allows you to perfrom actions as a bot) directly in your code. As such, this function 
-	looks for an environment variable called 'SLACK_API_KEY' and uses its value to initialize the Slacker 
-	instance, returning an error if none is found. In addition, the function attempts to use the 
-	environment variable "SLACK_ROOM_ID" to determine the channel to post to if one is not specified.
-	To add these variables to your environment, you can define them in your ~/.bash_profile.
+def slack_message(message):
+	"""Sends a given message to a channel in a user-defined Slack group. This can be used for
+	keeping updated on a participant's progress through blocks during a session, for allowing
+	participants to call you into the experiment room by pressing a certain key, or for being
+	notified of runtime problems (e.g. significant EyeLink drift) as soon as they happen.
+	To avoid annoying your co-workers while testing/debugging experiments, messages sent through
+	this command will be printed to the terminal instead of being sent to the channel while in
+	development mode.
 
-	:param message: Message to be sent to the specified slack channel.
-	:param channel: Slack channel to send the message to. Defaults to value of environment variable 'SLACK_ROOM_ID'.
+	To use this feature, you must first have a Slack team set up, a channel that you want messages
+	sent to, and a Slack bot that will write your messages to that channel. To create a Slack bot
+	for your team, go to 'Manage > Custom Integrations > Bots > Add Configuration' on your team's
+	Slack page and configure your bot with a name.
+	
+	For security reasons, it's a bad idea to include your Slack API key (the unique id that lets
+	you control your Slack bot) directly in your code, and it also makes your experiment programs
+	harder to share with others if you do. To avoid these problems, the Slack messaging feature
+	looks for two environment variables on the computer it's being run on:
+
+	- SLACK_API_KEY: Should be set to the unique API key for your team's Slack bot.
+	- SLACK_ROOM_ID: Should be set to the name of the channel you want messages from that
+		computer to be posted to (e.g. '#room1').
+		
+	If you have multiple experiment rooms, it's a good idea to have separate Slack channels (and
+	thus separate 'SLACK_ROOM_ID's) for each of them.
+
+	The parameter 'use_slack_messaging' must be set to True in order for messages to be sent to
+	Slack. If this parameter is set to False, this function will do nothing.
+
+	Args:
+		message (str): the message to be sent to the Slack channel.
+
 	"""
 	
 	def slack_msg_thread(_api_key, _message, _channel):
-		"""
-		Function to send message to channel. Run in a separate thread using Thread().
-		"""
+		# Actually sends the message to the channel, run in a separate thread using Thread().
 		try:
 			slack = Slacker(_api_key)
 			slack.chat.post_message(_channel, _message, as_user="true:")
-		except SlackerError:
-			print "Error: Problem encountered with messaging API. Please verify that the destination channel exists and is typed correctly."
-			raise
+		except SlackerError as e:
+			cso("<red>Warning: Unable to send message '{0}' to channel '{1}', "
+				"problem encountered with Slack API.</red>".format(_message, _channel))
+			print("Exception encoutered: {0}".format(str(e)))
 		
-	if SLACK_STATUS == "available":
-		try:
-			api_key = os.environ['SLACK_API_KEY']
-			if not channel:
-				channel = os.environ['SLACK_ROOM_ID']
-			# The post_message function can take > 1 second to return, so we run it in a separate thread
-			# to avoid delaying the whole experiment whenever it's called.
-			msg_thread = Thread(target=slack_msg_thread, args=(api_key, str(message), channel,))
-			msg_thread.start()
-		except KeyError:
-			print "Error: No channel specifed and no default 'SLACK_ROOM_ID' defined in ~/.bash_profile."
-			raise
+	if P.use_slack_messaging:
+		api_key = os.environ['SLACK_API_KEY']
+		channel = os.environ['SLACK_ROOM_ID']
+		if channel[0] != '#': # if no leading hashtag, append one so it works anyway
+			channel = '#{0}'.format(channel)
+		# The post_message function can take > 1 second to return, so we run it in a separate
+		# thread to avoid delaying the whole experiment whenever it's called.
+		msg_thread = Thread(target=slack_msg_thread, args=(api_key, str(message), channel,))
+		msg_thread.start()
 	else:
-		if SLACK_STATUS == "slacker_missing":
-			raise ImportError("The slacker module, which is required for Slack messaging, is not installed.")
-		elif SLACK_STATUS == "no_connection":
-			raise OSError("KLibs failed to connect to slack.com. Please ensure you are connected to the internet.")
-		elif SLACK_STATUS == "no_API_key":
-			raise ValueError("No Slack API key has been defined in the environment."
-							 "To use Slack messaging, please add your key to your ~./bash_profile as 'SLACK_API_KEY'.")
-	
+		if P.development_mode:
+			print("Slack message: {0}".format(message))
+		

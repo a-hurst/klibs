@@ -147,14 +147,6 @@ TBL_EVENTS = "events"
 TBL_TRIALS = "trials"
 TBL_LOGS = "logs"
 
-# SDL2 keycodes for modifier keys (used for ui_request and other functions)
-MOD_KEYS = {
-	"Left Shift": 1, "Right Shift": 2,
-	"Left Ctrl": 64, "Right Ctrl": 128,
-	"Left Alt": 256, "Right Alt": 512,
-	"Left Command": 1024, "Right Command": 2048
-}
-
 # AudioResponse Constants
 AR_CHUNK_SIZE = 1024
 AR_CHUNK_READ_SIZE = 1024

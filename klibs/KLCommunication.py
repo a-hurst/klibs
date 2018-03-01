@@ -143,10 +143,10 @@ def init_messaging():
 	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font_label=P.default_font_name)
 	
 	if P.development_mode:
-		P.use_slack_messaging = False
+		P.slack_messaging = False
 
 	# If using slack, determine if API key/room id have been set and slack.com is reachable
-	if P.use_slack_messaging:
+	if P.slack_messaging:
 		warning = None
 		if SLACKER_AVAILABLE:
 			if not 'SLACK_API_KEY' in os.environ:
@@ -163,7 +163,7 @@ def init_messaging():
 
 		if warning: # if slack messaging not available, print warning saying why
 			print("\t* Warning: {0}. Slack messaging will not be available.".format(warning))
-			P.use_slack_messaging = False
+			P.slack_messaging = False
 
 
 def message(text, style=None, location=None, registration=None, blit_txt=True,
@@ -429,7 +429,7 @@ def slack_message(message):
 	If you have multiple experiment rooms, it's a good idea to have separate Slack channels (and
 	thus separate 'SLACK_ROOM_ID's) for each of them.
 
-	The parameter 'use_slack_messaging' must be set to True in order for messages to be sent to
+	The parameter 'slack_messaging' must be set to True in order for messages to be sent to
 	Slack. If this parameter is set to False, this function will do nothing.
 
 	Args:
@@ -447,7 +447,7 @@ def slack_message(message):
 				"problem encountered with Slack API.</red>".format(_message, _channel))
 			print("Exception encoutered: {0}".format(str(e)))
 		
-	if P.use_slack_messaging:
+	if P.slack_messaging:
 		api_key = os.environ['SLACK_API_KEY']
 		channel = os.environ['SLACK_ROOM_ID']
 		if channel[0] != '#': # if no leading hashtag, append one so it works anyway

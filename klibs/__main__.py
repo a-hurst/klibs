@@ -166,7 +166,7 @@ def create(name, path):
 	cso("<green_d>\nProject successfully created at:</green_d> '<blue>{0}</blue>'".format(project_path))
 
 
-def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
+def run(screen_size, path, condition, devmode, no_eyelink, seed):
 
 	cso("\n\n<green>*** Now loading KLIBS Environment ***</green>")
 	cso("<green_d>(Note: if a bunch of SDL errors were just reported, this was expected, "
@@ -221,6 +221,9 @@ def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
 	# Add ExpAssets/Resources/code to pythonpath for easy importing
 	sys.path.append(P.code_dir)
 
+	# If a condition was specified, set it in Params
+	P.condition = condition
+
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
 		setattr(P, k, v)
@@ -230,13 +233,19 @@ def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
 		for k, v in imp.load_source("*", P.params_local_file_path).__dict__.iteritems():
 			setattr(P, k, v)
 
-	# logging and debugging will go here one day....
-	# klog_config = {}
-	# lg.basicConfig(filename='example.log', level=DEBUG)
+	# If a condition has been specified, make sure it's a valid condition as per params.py
+	if P.condition != None:
+		if len(P.conditions) == 0:
+			err("No between-participant conditions have been defined for this experiment. "
+				"You can define valid condition names in your experiment's params.py file.")
+		elif P.condition not in P.conditions:
+			cond_list = "', '".join(P.conditions)
+			err("'{0}' is not a valid condition for this experiment (must be one of '{1}'). "
+				"Please relaunch the experiment.".format(P.condition, cond_list))
 
 	# set some basic global Params
-	P.verbose_mode = verbose
-	if dev_mode:
+	#P.verbose_mode = verbose
+	if devmode:
 		P.development_mode = True
 		P.collect_demographics = False
 	if not P.labjack_available:
@@ -267,6 +276,8 @@ def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
 			cso("<red>Unable to load database.</red>")
 			force_quit()
 	
+	# create basic text styles, load in user queries, and initialize slack (if enabled)
+	init_messaging()
 
 	# finally, import the project's Experiment class and instantiate
 	try:
@@ -277,9 +288,6 @@ def run(screen_size, path, dev_mode, no_eyelink, seed, verbose):
 		# create a display context if everything's gone well so far
 		env.exp.window = display_init(screen_size)
 		env.exp.show_logo()
-
-		# create basic text styles and auto-render block-break messages if need configured to do so
-		init_messaging()
 
 		# create an anonymous user if not collecting demographic information
 		if not P.manual_demographics_collection:
@@ -446,12 +454,12 @@ def cli():
         epilog="For help on how to use a specific command, try 'klibs (command) --help'."
 	)
 	subparsers = parser.add_subparsers(
-		title='commands', metavar='                                 ' # fixes indentation issue
+		title='commands', metavar='                                    ' # fixes indentation issue
 	)
 
 	create_parser = subparsers.add_parser('create', 
 		help='Create a new project template',
-        usage='klibs create <name> [path] [--help]'
+        usage='klibs create <name> [path] [-h]'
     )
 	create_parser.add_argument('name', type=str,
 		help=("The name of the new project. This will be used for the folder name, the class name "
@@ -460,42 +468,46 @@ def cli():
 	)
 	create_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
 		help=("The path where the new project should be created. "
-		"Defaults to current working directory if no path is manually specified.")
+		"Defaults to current working directory.")
 	)
 	create_parser.set_defaults(func=create)
 
 	run_parser = subparsers.add_parser('run', formatter_class=CustomHelpFormatter,
 		help='Run a KLibs experiment',
-		usage='klibs run <screen_size> [path] [-d -ELx -s <seed> -v] [--help]'
+		usage='klibs run <screen_size> [path] [-d -ELx -c <condition> -s <seed>] [-h]'
 	)
 	run_parser.add_argument('screen_size', type=int,
-		help=("The diagonal size of the screen in inches on which the experiment is being run. "
-		"This is used to calculate degrees of visual angle during experiment runtime.")
+		help=("The diagonal size in inches of the screen on which the experiment is being run. "
+		"Used to calculate degrees of visual angle during experiment runtime.")
 	)
 	run_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
 		help=("Path to the directory containing the KLibs project. "
-		"Defaults to current working directory if no path is manually specified.")
+		"Defaults to current working directory.")
 	)
-	run_parser.add_argument('-s', '--seed', default=time.time(), type=float, nargs="?",
-		metavar="seed",
-		help=("The seed to use for random number generation during the KLibs runtime. "
-		"Defaults to current system time if not manually specified.")
+	run_parser.add_argument('-d', '--devmode', action="store_true",
+		help=("Enables development mode, which skips demographics collection and turns on "
+		"several debugging features.")
 	)
-	run_parser.add_argument('-d', '--dev_mode', action="store_true",
-		help=("Development mode turns off demographics collection and turns on several "
-		"debugging features.")
+	run_parser.add_argument('-c', '--condition', nargs="?", type=str, metavar="c",
+		help=("If the experiment has between-participant conditions, allows the user "
+		"to specify which condition to run.")
 	)
 	run_parser.add_argument('-ELx', '--no_eyelink', action="store_true",
 		help=("Signals the absence of a connected EyeLink unit. "
 		"Does nothing for non-eyetracking experiments.")
 	)
+	run_parser.add_argument('-s', '--seed', default=time.time(), type=float, nargs="?",
+		metavar="seed",
+		help=("The seed to use for random number generation during the KLibs runtime. "
+		"Defaults to current system time.")
+	)
 	#run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true",
 	#	help="Debug log will be blit to translucent panel on screen in real time."
 	#)
 	# todo: verbose mode should accept a value, and then logging should be incrementally verbose
-	run_parser.add_argument('-v', '--verbose', action="store_true",
-		help="EventsInterface will syndicate EyeLink, LabJack & log messages to terminal."
-	)
+	#run_parser.add_argument('-v', '--verbose', action="store_true",
+	#	help="EventsInterface will syndicate EyeLink, LabJack & log messages to terminal."
+	#)
 	run_parser.set_defaults(func=run)
 
 	export_parser = subparsers.add_parser('export', formatter_class=CustomHelpFormatter,
@@ -503,8 +515,8 @@ def cli():
 		usage='klibs export [path] [-c] [-t <primary_table>] [-j <table1,...>] [--help]'
 	)
 	export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, metavar="path",
-		help=("Path to directory containing the KLibs project. "
-		"Defaults to current working directory if no path is manually specified.")
+		help=("Path to the directory containing the KLibs project. "
+		"Defaults to current working directory.")
 	)
 	export_parser.add_argument('-t', '--table', nargs="?", type=str, metavar="table",
 		help=("Specify the primary table to join with the participants table during export. "
@@ -522,7 +534,7 @@ def cli():
 
 	update_parser = subparsers.add_parser('update',
 		help='Update KLibs to the newest available version',
-		usage='klibs update [branch] [--help]'
+		usage='klibs update [branch] [-h]'
 	)
 	update_parser.add_argument('branch', default='default', nargs="?", type=str,
 		help=("The branch of the KLibs GitHub repository from which to install the latest version. "
@@ -532,21 +544,21 @@ def cli():
 
 	rebuild_parser = subparsers.add_parser('db-rebuild',
 		help='Delete and rebuild the database',
-		usage='klibs db-rebuild [path] [--help]'
+		usage='klibs db-rebuild [path] [-h]'
 	)
 	rebuild_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-		help=("Path to directory containing the KLibs project. "
-		"Parent folder must be the project name.")
+		help=("Path to the directory containing the KLibs project. "
+		"Defaults to current working directory.")
 	)
 	rebuild_parser.set_defaults(func=rebuild_db)
 
 	reset_parser = subparsers.add_parser('hard-reset',
 		help='Delete all collected data',
-		usage='klibs hard-reset [path] [--help]'
+		usage='klibs hard-reset [path] [-h]'
 	)
 	reset_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str,
-		help=("Path to directory containing the KLibs project. "
-		"Parent folder must be the project name.")
+		help=("Path to the directory containing the KLibs project. "
+		"Defaults to current working directory.")
 	)
 	reset_parser.set_defaults(func=hard_reset)
 

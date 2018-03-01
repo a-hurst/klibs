@@ -33,6 +33,7 @@ demographics_collected = False
 in_trial = False
 paused = False # (not implemented)
 practicing = False # True if during practice block
+condition = None
 
 # Experiment Attributes
 collect_demographics = True
@@ -42,6 +43,7 @@ multi_session_project = False
 multi_user = False # creates temp copy of db that gets merged into master at end
 trials_per_block = 0
 blocks_per_experiment = 0
+conditions = []
 table_defaults = {} # default column values for db tables when using EntryTemplate
 run_practice_blocks = True # (not implemented in klibs itself)
 
@@ -62,7 +64,7 @@ labjack_available = False
 labjacking = False
 
 # Slack Messaging Settings
-use_slack_messaging = False
+slack_messaging = False
 
 # Aesthetic Defaults
 default_fill_color = (45, 45, 45, 255)

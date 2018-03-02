@@ -392,7 +392,7 @@ class DatabaseManager(EnvAgent):
 		super(DatabaseManager, self).__init__()
 		self.__load_master__()
 		if P.multi_user:
-			print(P.database_local_path)
+			print("Local database: {0}".format(P.database_local_path))
 			shutil.copy(P.database_path, P.database_local_path)
 			self.__local = Database(P.database_local_path)
 			self.__local.flush()

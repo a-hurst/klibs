@@ -14,7 +14,7 @@ except:
 	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m\n\nStack Trace:")
 	exc_type, exc_value, exc_traceback = sys.exc_info()
 	print(traceback.print_exception(exc_type, exc_value, exc_traceback, limit=5, file=sys.stdout))
-	exit()
+	sys.exit()
 
 if __name__ == '__main__':
 	cli()
@@ -48,7 +48,7 @@ def ensure_directory_structure(dir_map, root, parents=[], create_missing=False):
 				except OSError as e:
 					cso("failed")
 					cso(dir_map, parents)
-					exit()
+					sys.exit()
 		new_parents = [p for p in parents]
 		new_parents.append(d)
 		missing_dirs += ensure_directory_structure(subdirs, root, new_parents, create_missing)
@@ -56,7 +56,7 @@ def ensure_directory_structure(dir_map, root, parents=[], create_missing=False):
 
 def err(err_string):
 	cso("<red>\nError: " + err_string + "</red>\n")
-	exit()
+	sys.exit()
 
 
 # Actual CLI Functions #
@@ -138,7 +138,7 @@ def create(name, path):
 			return create(name, path)
 		elif response == "q":
 			cso("\n<green_d>Fine. Be that way. But I think we both know you'll be back.</green_d>")
-			exit()
+			sys.exit()
 		else:
 			cso("\n<green_d>Pardon? I didn't catch that.</green_d>\n")
 
@@ -170,11 +170,10 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 
 	cso("\n\n<green>*** Now loading KLIBS Environment ***</green>")
 	cso("<green_d>(Note: if a bunch of SDL errors were just reported, this was expected, "
-		"do not be alarmed!</green_d>")
+		"do not be alarmed!)</green_d>")
 
 	from klibs import P
 	from klibs import env
-	from klibs.KLUtilities import force_quit
 	from klibs.KLGraphics import display_init
 	from klibs.KLDatabase import DatabaseManager
 	from klibs.KLEventInterface import EventManager
@@ -199,12 +198,13 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 
 	missing_dirs = ensure_directory_structure(dir_structure, path)
 	if len(missing_dirs):
+		print("")
 		cso("<red>Some expected or required directories for this project appear to be missing.</red>")
 		while True:
 			query = cso(
 				"<green_d>You can</green_d> "
 				"<purple>(c)</purple><green_d>reate them automatically or view a "
-				"<purple>(r)</purple><green_d>eport on the missing directories.</green_d>", False
+				"<purple>(r)</purple><green_d>eport on the missing directories: </green_d>", False
 			)
 			action = raw_input(query).lower()[0]
 			if action == "r":
@@ -269,12 +269,10 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 	try:
 		env.db = DatabaseManager()
 	except DatabaseException as e:
-		if e.message == "Quitting.":
-			env.evm.terminate()
-			exit()
-		else:
+		if e.message != "Quitting.":
 			cso("<red>Unable to load database.</red>")
-			force_quit()
+		env.evm.terminate()
+		sys.exit()
 	
 	# create basic text styles, load in user queries, and initialize slack (if enabled)
 	init_messaging()
@@ -295,14 +293,14 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 
 		# off to the races team...
 		env.exp.run()
-	except SystemExit:
-		pass
+
 	except Exception as e:
 		print("".join(["\n"] +
 			traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]) + 
 			traceback.format_tb(sys.exc_info()[2])
 		))
-		force_quit()
+		env.evm.terminate()
+		sys.exit()
 
 
 def export(path, table=None, combined=False, join=None):
@@ -408,10 +406,10 @@ def update(branch='default'):
 			pip.main(update_cmd.split(' '))
 		except OSError:
 			cso("<red>Root permissions required to reinstall klibs.</red>")
-			exit()
+			sys.exit()
 	else:
 		print("")
-		exit()
+		sys.exit()
 
 
 # the function that gets run when klibs is launched from the command line

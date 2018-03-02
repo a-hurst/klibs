@@ -264,10 +264,6 @@ def flush():
 	return
 
 
-def force_quit():
-	Popen(['pkill', '-f', 'python'], stdout=PIPE, stderr=PIPE).communicate()
-
-
 def full_trace():
 	exception_list = traceback.format_stack()
 	exception_list = exception_list[:-2]
@@ -710,26 +706,33 @@ def safe_flag_string(flags, prefix=None, uc=True):
 	return eval(flag_string)
 
 def scale(coords, canvas_size, target_size=None, scale=True, center=True):
-	'''
-	A function to scale and/or center layout pixel coordinates from a given resolution to a 
-	smaller or larger resolution, respecting aspect ratio. For example, if an animation was
-	written based on the pixel coordinates of a 1920x1080 display and you wanted to be able 
-	to test the project out on a laptop with a resolution of 1280x800, this function will 
-	scale the animation coordinates down to suit the smaller display. In addition, on a larger
-	display you might not want to scale pixel coordinates up, but you might want to center the 
-	layout on your screen instead of having it up in the top-left corner. 
+	"""Scales and/or centers pixel coordinates intended for use at a given resolution to a
+	smaller or larger resolution, maintaining aspect ratio.
+	
+	For example, if an animation was written based on the pixel coordinates of a 1920x1080 display
+	and you wanted to be able to use it on screens with smaller or larger resolutions, you could
+	use this function to scale its coordinates to fit the screen based on its height and width in
+	pixels. If the target size is larger or a different aspect ratio than the canvas (original)
+	size, you can also optionally translate coordinates so that they are centered in the middle of
+	the screen.
 	
 	This function should only be used when expressing your layout in degrees of visual angle 
-	is impossible or impractical.
+	or fractions of screen height/width is impossible or impractical.
 
-	:param coords: A tuple of x,y coordinates to transform.
-	:param canvas_size: A tuple giving the resolution of the screen the animation was written for.
-	:param target_size: A tuple giving the pixel dimensions of the intended output (default: P.screen_x_y)
-	:param scale: If True, the input coordinates will be scaled to target_size.
-	:param center: If True, the input coordinate will be adjusted so that the animation is centered on the screen.
+	Args:
+		coords (tuple): The (x,y) coordinates to scale.
+		canvas_size (tuple): The size in pixels of the original surface.
+		target_size (tuple, optional): The size in pixels of the intended output surface. Defaults
+			to the current screen resolution (P.screen_x_y).
+		scale (bool, optional): If True, the input coordinates will be scaled to target_size.
+		center (bool, optional): If True, and target_size is larger canvas_size or has a different
+			aspect ratio, the input coordinates will be translated so that the they are aligned to
+			the center of the target surface and not the upper-left corner.
 
-	:return: A tuple containing the translated x
-	'''
+	Returns:
+		tuple: The scaled (x,y) coordinates.
+
+	"""
 	x,y = coords
 	if tuple(canvas_size) == P.screen_x_y:
 		return coords
@@ -778,14 +781,6 @@ def str_pad(string, str_len, pad_char=" ", pad_dir="r"):
 		raise ValueError("Desired string length shorter current string.")
 	padding = "".join([pad_char] * pad_len)
 	return string+padding if pad_dir == "r" else padding+string
-
-
-def threaded(func):
-	def threaded_func(*args, **kwargs):
-		p = mp.Process(target=func, args=args, kwargs=kwargs)
-		p.start()
-		return p
-	return threaded_func
 
 
 def translate_points(points, delta, flat=False):

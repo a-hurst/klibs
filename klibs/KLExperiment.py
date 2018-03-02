@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
+import sys
 from abc import abstractmethod
 from os import mkdir
 from os.path import join
@@ -11,7 +12,7 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
-from klibs.KLUtilities import (full_trace, pump, flush, now, list_dimensions, force_quit,
+from klibs.KLUtilities import (full_trace, pump, flush, now, list_dimensions,
 	show_mouse_cursor, hide_mouse_cursor)
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLTrialFactory import TrialFactory
@@ -239,9 +240,12 @@ class Experiment(EnvAgent):
 	def quit(self):
 		"""
 		Safely exits the program, ensuring data has been saved and that any connected EyeLink unit's recording is
-		stopped. This, not Python's exit()
+		stopped. This, not Python's sys.exit()
 		should be used to exit an experiment.
 		"""
+
+		#TODO: this needs hella cleanup, so much commented-out and messy code
+
 		if P.verbose_mode:
 			print full_trace()
 
@@ -286,14 +290,10 @@ class Experiment(EnvAgent):
 		#	self.log_f.close()
 		#except AttributeError:
 		#	pass
-
-		try:
-			self.evm.terminate()
-		except RuntimeError:
-			force_quit()
+		self.evm.terminate()
 
 		cso("\n\n<green>*** '{0}' successfully shutdown. ***</green>\n\n".format(P.project_name))
-		exit()
+		sys.exit()
 
 	def run(self, *args, **kwargs):
 		"""
@@ -316,7 +316,6 @@ class Experiment(EnvAgent):
 			self.__execute_experiment__(*args, **kwargs)
 		except RuntimeError:
 			print(full_trace())
-			force_quit()
 
 		self.quit()
 

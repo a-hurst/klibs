@@ -6,8 +6,6 @@ import csv
 import abc
 from time import time, sleep
 import multiprocessing as mp
-from os import kill
-from signal import SIGKILL
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EventError
@@ -15,7 +13,7 @@ from klibs.KLNamedObject import NamedObject, NamedInventory, CachedInventory
 from klibs.KLConstants import (TK_S, TK_MS, TBL_EVENTS, EVI_CONSTANTS, EVI_DEREGISTER_EVENT,
 	EVI_SEND_TIME, EVI_CLOCK_RESET, EVI_TRIAL_START, EVI_TRIAL_STOP, EVI_EXP_END)
 from klibs import P
-from klibs.KLUtilities import pump, threaded
+from klibs.KLUtilities import pump
 from klibs.KLUserInterface import ui_request
 
 
@@ -183,8 +181,8 @@ class EventManager(EnvAgent):
 		self.trial_events = CachedInventory()
 		self.pipe, child = mp.Pipe()
 		self.clock_sync_queue = mp.Queue()
-		self.clock = __event_clock__(child, self.clock_sync_queue)
-		self.clock_p_id = self.clock.pid
+		self.clock = mp.Process(target=__event_clock__, args=(child, self.clock_sync_queue))
+		self.clock.start()
 
 	def __poll__(self):
 		"""
@@ -448,11 +446,13 @@ class EventManager(EnvAgent):
 
 	def terminate(self, max_wait=1):
 		self.tk.start("terminate")
-		self.register_ticket(EVI_EXP_END)
+		self.clock.terminate()
 		while self.tk.elapsed("terminate") < max_wait:
-			pump()
+			sleep(0.05)
+			if not self.clock.is_alive():
+				break
 		if self.clock.is_alive():
-			kill(self.clock.p.pid, SIGKILL)
+			raise RuntimeError("Unable to terminate clock process")
 
 	def until(self, label):
 		self.__sync_tickets__()
@@ -577,7 +577,6 @@ class EventManager(EnvAgent):
 	# 		self.write(message, True, False)
 
 
-@threaded
 def __event_clock__(pipe, queue):
 	start = time()
 	events = []

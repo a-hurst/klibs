@@ -14,7 +14,7 @@ from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLUserInterface import ui_request
 
-from sdl2 import SDL_MOUSEBUTTONDOWN, SDL_GetTicks
+from sdl2 import SDL_MOUSEBUTTONDOWN, SDL_GetTicks, SDL_Delay
 from math import atan2, radians
 import abc
 
@@ -99,9 +99,11 @@ class TryLink(EnvAgent, BoundaryInspector):
 			event_queue = pump(True)
 			ui_request(queue=event_queue)
 			if el_draw_fixation == EL_TRUE:
-					fill(P.default_fill_color if not fill_color else fill_color)
-					blit(drift_correct_target() if target_img is None else target_img, 5, location)
-					flip()
+				fill(P.default_fill_color if not fill_color else fill_color)
+				blit(drift_correct_target() if target_img is None else target_img, 5, location)
+				flip()
+			else:
+				SDL_Delay(1) # required for pump() to reliably return mousebuttondown events
 			for e in event_queue:
 				if e.type == SDL_MOUSEBUTTONDOWN and super(TryLink, self).within_boundary(boundary, [e.button.x, e.button.y]):
 					hide_mouse_cursor()

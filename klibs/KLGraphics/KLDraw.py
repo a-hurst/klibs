@@ -17,11 +17,11 @@ from klibs.KLUtilities import point_pos, rotate_points, translate_points, canvas
 from klibs.KLGraphics import rgb_to_rgba, aggdraw_to_numpy_surface
 from klibs.KLGraphics.colorspaces import const_lum
 
-######################################################################
-#
-# aggdraw Documentation: http://effbot.org/zone/pythondoc-aggdraw.htm
-#
-######################################################################
+##########################################################################
+#                                                                        #
+#  aggdraw Documentation: http://effbot.org/zone/pythondoc-aggdraw.html  #
+#                                                                        #
+##########################################################################
 
 
 def cursor(color=None):
@@ -33,7 +33,7 @@ def cursor(color=None):
 		for c in P.default_fill_color:
 			cursor_color.append(abs(c - 255))
 		cursor_color = cursor_color[0:3]
-	# coordinate tuples are easier to read/modify but aggdraw needs a stupid x,y,x,y,x,y list, so... :S
+	# coordinate tuples are easier to read/modify but aggdraw needs a stupid x,y,x,y,x,y list
 	cursor_coords = [(6, 0), (6, 27), (12, 21), (18, 32), (20, 30), (15, 20), (23, 20), (6, 0)]
 	cursor_xy_list = []
 	for point in cursor_coords:
@@ -49,13 +49,13 @@ def cursor(color=None):
 def drift_correct_target():
 	from klibs.KLGraphics import aggdraw_to_numpy_surface
 	draw_context_length = P.screen_y // 60
-	while draw_context_length % 3 != 0:  # center-dot is 1/3 of parent; offset unequal if parent not divisible by 3
+	while draw_context_length % 3 != 0: # inner dot should be 1/3 size of target
 		draw_context_length += 1
 	black_brush = Brush((0, 0, 0, 255))
 	white_brush = Brush((255, 255, 255, 255))
 	draw_context = Draw("RGBA", [draw_context_length + 2, draw_context_length + 2], (0, 0, 0, 0))
 	draw_context.ellipse([0, 0, draw_context_length, draw_context_length], black_brush)
-	wd_top = draw_context_length // 3  #ie. white_dot_top, the inner white dot of the calibration point
+	wd_top = draw_context_length // 3 # size of the inner white dot of the calibration point
 	wd_bot = 2 * draw_context_length // 3
 	draw_context.ellipse([wd_top, wd_top, wd_bot, wd_bot], white_brush)
 
@@ -144,7 +144,8 @@ class Drawbject(object):
 
 
 	def __str__(self):
-		return "klibs.Drawbject.{0} ({1} x {2}) at {3}".format(self.__name__, self.surface_width, self.surface_height, hex(id(self)))
+		properties = [self.__name__, self.surface_width, self.surface_height, hex(id(self))]
+		return "klibs.Drawbject.{0} ({1} x {2}) at {3}".format(*properties)
 
 	def init_surface(self):
 		self._update_dimensions()
@@ -244,7 +245,7 @@ class Drawbject(object):
 		if alignment in [STROKE_INNER, STROKE_CENTER, STROKE_OUTER]:
 			self.stroke_alignment = alignment
 		else:
-			raise ValueError("Invalid value provided for stroke alignment; see KLConstants for accepted values")
+			raise ValueError("Invalid stroke alignment, see KLConstants for accepted values")
 
 		color = list(color)
 		if len(color)==3:
@@ -464,7 +465,7 @@ class Annulus(Drawbject):
 			self.stroke_width = 0
 
 		if self.thickness > self.radius:
-			raise ValueError("Thickness of annulus larger than radius; decrease thickness or increase diameter")
+			raise ValueError("Thickness larger than radius; reduce thickness or increase diameter")
 		if auto_draw:
 			self.draw()
 
@@ -563,7 +564,7 @@ class Asterisk(Drawbject):
 		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified asterisk.
 
 	"""
-	def __init__(self, size, fill, thickness=1, spokes=6, rotation=0, auto_draw=True):
+	def __init__(self, size, thickness, fill, spokes=6, rotation=0, auto_draw=True):
 		self.size = size
 		self.thickness = thickness
 		self.spokes = spokes
@@ -599,8 +600,9 @@ class Asterisk(Drawbject):
 		return "Asterisk"
 
 
-class Asterisk2(Drawbject):
-	"""Creates a Drawbject containing an eight-spoke asterisk with somewhat square dimensions.
+class SquareAsterisk(Drawbject):
+	"""Creates a Drawbject containing an eight-spoke square-shaped asterisk. Spokes alternate
+	between short with flat ends and long with pointed ends.
 
 	Args:
 		size (int): The height and width of the asterisk in pixels.
@@ -616,10 +618,10 @@ class Asterisk2(Drawbject):
 		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified asterisk.
 
 	"""
-	def __init__(self, size, fill, thickness=1, rotation=0, auto_draw=True):
+	def __init__(self, size, thickness, fill, rotation=0, auto_draw=True):
 		self.size = size
 		self.thickness = thickness
-		super(Asterisk2, self).__init__(size, size, None, fill, rotation)
+		super(SquareAsterisk, self).__init__(size, size, None, fill, rotation)
 		self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
 		if auto_draw:
 			self.draw()
@@ -627,12 +629,14 @@ class Asterisk2(Drawbject):
 	def _draw_points(self, outline=False):
 		ht = self.thickness / 2.0 # half of the asterisk's thickness
 		hss = self.size / 2.0 # half of the asterisk's straight (vertical/horizontal) size
-		hds = sqrt(2*(hss**2)) # half of the asterisk's diagonail size
+		hds = sqrt(2*(hss**2)) # half of the asterisk's diagonal size
 		spokes = 8
 		pts = []
 		for s in range(0, spokes):
-			hs = hss if s%2 == 0 else hds
-			spoke = [-ht, ht, -ht, hs, ht, hs, ht, ht]
+			if s%2 == 0: # alternate between short/flat and long/pointed spokes
+				spoke = [-ht, ht, -ht, hss, ht, hss, ht, ht]
+			else:
+				spoke = [-ht, ht, -ht, hds-ht, 0, hds, ht, hds-ht, ht, ht]
 			pts += rotate_points(spoke, (0, 0), s*(-360.0/spokes), flat=True)
 		if self.rotation != 0:
 			pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
@@ -640,10 +644,10 @@ class Asterisk2(Drawbject):
 
 	@property
 	def __name__(self):
-		return "Asterisk2"
+		return "SquareAsterisk"
 
 
-class Line(Drawbject):
+class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this still useful?
 	"""Creates a Drawbject containing a line.
 
 	Args:
@@ -670,25 +674,32 @@ class Line(Drawbject):
 			self.p1, self.p2 = pts
 		else:
 			self.p1 = (0,0)
-			self.p2 = point_pos(self.p1, length, -90, rotation) # A rotation of 0 draws a vertical line
+			self.p2 = point_pos(self.p1, length, -90, rotation) # rotation of 0 = vertical line
 
 		self.__translate_to_positive__()
-		# determine surface margins depending on the rotation and thickness of the line so it doesn't get cropped at the corners
+		# determine surface margins based on the rotation and thickness of the line so it doesn't
+		# get cropped at the corners
 		margin = point_pos((0,0), thickness/2.0, -90, rotation)
 		self.margin = map(abs, margin)
 		w = abs(self.p1[0] - self.p2[0]) + self.margin[1] * 2
 		h = abs(self.p1[1] - self.p2[1]) + self.margin[0] * 2
 		super(Line, self).__init__(w, h, [thickness, color, STROKE_INNER], fill=None)
 		if P.development_mode:
-			f_vars = [length, rotation, self.p1[0], self.p1[1], self.p2[0], self.p2[1], self.surface_width, self.surface_height]
-			print "Len {0}px at {1}deg: ({2}, {3}) => ({4}, {5}) on canvas ({6} x {7})".format(*f_vars)
+			linestr = "Line: {0}px at {1}deg: ({2}, {3}) => ({4}, {5}) on canvas ({6} x {7})"
+			f_vars = [
+				length, rotation, self.p1[0], self.p1[1], self.p2[0], self.p2[1], 
+				self.surface_width, self.surface_height
+			]
+			print(linestr.format(*f_vars))
 
 		if auto_draw:
 			self.draw()
 
 	def __translate_to_positive__(self):
-		# Translates line coordinates into aggdraw surface space (i.e. top-left corner becomes (0,0)) by offsetting the coordinates
-		# such that the furthest left point is aligned to x=0 and the furthest up point is aligned to y=0.
+		"""Translates line coordinates into aggdraw space (i.e. top-left corner becomes (0,0)) 
+		by offsetting the coordinates such that the furthest left point is aligned to x=0 and
+		the furthest up point is aligned to y=0.
+		"""
 		x_offset = -min(self.p1[0], self.p2[0])
 		y_offset = -min(self.p1[1], self.p2[1])
 		self.p1 = (self.p1[0] + x_offset, self.p1[1] + y_offset)
@@ -870,7 +881,8 @@ class ColorWheel(Drawbject):
 		return self.canvas
 
 	def color_from_angle(self, angle, rotation=None):
-		# allows function access with arbitrary rotation, such as is needed by ColorSelectionResponseCollector
+		"""Retrieves the color at a given angle on the wheel, taking any rotation into account.
+		"""
 		if not rotation:
 			rotation = self.rotation
 		
@@ -881,7 +893,9 @@ class ColorWheel(Drawbject):
 		return color
 
 	def angle_from_color(self, color, rotation=None):
-		# allows function access with arbitrary rotation, such as is needed by ColorSelectionResponseCollector
+		"""Retreives the angle of the middle of a given color on the wheel, taking any rotation
+		into account.
+		"""
 		#TODO: return true middle when two or more adjacent colours are the same
 		if not rotation:
 			rotation = self.rotation
@@ -889,7 +903,8 @@ class ColorWheel(Drawbject):
 		try:
 			i = self.palette.index(rgb_to_rgba(color))
 		except ValueError:
-			raise ValueError("The color {0} does not exist in the color wheel palette.".format(rgb_to_rgba(color)))
+			err_str = "The color '{0}' does not exist in the color wheel palette."
+			raise ValueError(err_str.format(rgb_to_rgba(color)))
 		degrees_per_colour = 360.0/len(self.palette)
 		angle = ((i+0.5) * degrees_per_colour + rotation) % 360
 		return angle

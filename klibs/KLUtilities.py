@@ -669,14 +669,15 @@ def rotate_points(points, origin, angle, clockwise=True, flat=False):
 			dy = points[i+1] - origin[1]
 			rx = origin[0] + cos(rad_angle) * dx - sin(rad_angle) * dy
 			ry = origin[1] + sin(rad_angle) * dx + cos(rad_angle) * dy
-			rotated += [rx, ry]
+			# values rounded to 12 decimal places to avoid 0.99999999999...
+			rotated += [round(rx, 12), round(ry, 12)]
 	else:
 		for point in points:
 			dx = point[0] - origin[0]
 			dy = point[1] - origin[1]
 			rx = origin[0] + cos(rad_angle) * dx - sin(rad_angle) * dy
 			ry = origin[1] + sin(rad_angle) * dx + cos(rad_angle) * dy
-			rotated.append((rx, ry))
+			rotated.append((round(rx, 12), round(ry, 12)))
 	return rotated
 
 

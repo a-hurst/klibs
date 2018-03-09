@@ -238,12 +238,10 @@ class Experiment(EnvAgent):
 		pass
 
 	def quit(self):
-		"""
-		Safely exits the program, ensuring data has been saved and that any connected EyeLink unit's recording is
-		stopped. This, not Python's sys.exit()
-		should be used to exit an experiment.
-		"""
+		"""Safely exits the program, ensuring data has been saved and any connected EyeLink unit's
+		recording is stopped. This, not Python's sys.exit(), should be used to exit an experiment.
 
+		"""
 		#TODO: this needs hella cleanup, so much commented-out and messy code
 
 		if P.verbose_mode:
@@ -320,10 +318,12 @@ class Experiment(EnvAgent):
 		self.quit()
 
 	def show_logo(self):
+		logo = NpS(P.logo_file_path)
 		flush()
-		fill()
-		blit(NpS(P.logo_file_path), 5, P.screen_c)
-		flip()
+		for i in (1, 2):
+			fill()
+			blit(logo, 5, P.screen_c)
+			flip()
 		any_key()
 
 

@@ -103,14 +103,11 @@ class TryLink(EnvAgent, BoundaryInspector):
 				blit(drift_correct_target() if target_img is None else target_img, 5, location)
 				flip()
 			else:
-				SDL_Delay(1) # required for pump() to reliably return mousebuttondown events
+				SDL_Delay(2) # required for pump() to reliably return mousebuttondown events
 			for e in event_queue:
 				if e.type == SDL_MOUSEBUTTONDOWN and super(TryLink, self).within_boundary(boundary, [e.button.x, e.button.y]):
 					hide_mouse_cursor()
 					return 0
-					# fixated = self.within_boundary(boundary, EL_MOCK_EVENT, event_queue=event_queue)
-					# if clicked:
-					# 	return fixated
 
 	def fixated_boundary(self, label, valid_events=None, inspect=EL_FIXATION_END, event_queue=None, report=None,
 						 return_queue=False):

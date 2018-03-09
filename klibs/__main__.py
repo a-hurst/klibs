@@ -474,7 +474,7 @@ def cli():
 		help='Run a KLibs experiment',
 		usage='klibs run <screen_size> [path] [-d -ELx -c <condition> -s <seed>] [-h]'
 	)
-	run_parser.add_argument('screen_size', type=int,
+	run_parser.add_argument('screen_size', type=float,
 		help=("The diagonal size in inches of the screen on which the experiment is being run. "
 		"Used to calculate degrees of visual angle during experiment runtime.")
 	)

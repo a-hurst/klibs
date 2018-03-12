@@ -9,7 +9,7 @@ import datetime
 import re
 import traceback
 import multiprocessing as mp
-from sys import exc_info
+from sys import exc_info, version_info
 from subprocess import Popen, PIPE
 from math import sin, cos, acos, atan2, radians, pi, degrees, ceil
 
@@ -311,7 +311,7 @@ def interpolated_path_len(points):
 
 def iterable(obj, exclude_strings=True):
 	if exclude_strings:
-		return hasattr(obj, '__iter__')
+		return hasattr(obj, '__iter__') and not isinstance(obj, str)
 	else:
 		try:
 			iter(obj)
@@ -825,24 +825,31 @@ def unicode_to_str(content):
 		"""
 		import unicodedata
 
-		if type(content) is unicode:
-			# convert string to ascii
-			converted = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
+		try:
+			basestring
+		except NameError:
+			basestring = str
+
+		if isinstance(content, basestring):
+			if version_info[0] == 2:
+				# convert string to ascii
+				converted = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
+			else:
+				converted = content # unicode is native str type in py3, so don't convert
 
 			# convert JS booleans to Python booleans
 			if converted in ("true", "false"):
 				converted = converted == "true"
 
-		# elif type(content) in (list, dict):
 		elif iterable(content):
 			#  manage dicts first
 			try:
 				converted = {}	# converted output for this level of the data
 				for k in content:
 					v = content[k]	# ensure the keys are ascii strings
-					if type(k) is unicode:
+					if isinstance(k, basestring):
 						k = unicode_to_str(k)
-					if type(v) is unicode:
+					if isinstance(v, basestring):
 						converted[k] = unicode_to_str(v)
 					elif iterable(v):
 						converted[k] = unicode_to_str(v)
@@ -852,7 +859,7 @@ def unicode_to_str(content):
 			except (TypeError, IndexError):
 				converted = []
 				for i in content:
-					if type(i) is unicode:
+					if isinstance(i, basestring):
 						converted.append(unicode_to_str(i))
 					elif iterable(i):
 						converted.append(unicode_to_str(i))
@@ -860,8 +867,8 @@ def unicode_to_str(content):
 						converted.append(i)
 
 		else:
-			# assume it's numeric
-			return content
+			return content # assume it's numeric
+			
 		return converted
 
 

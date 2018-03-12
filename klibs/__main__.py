@@ -225,12 +225,12 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 	P.condition = condition
 
 	# import params defined in project's local params file in ExpAssets/Config
-	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
+	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
 		setattr(P, k, v)
 
 	# if a local params file exists, do the same:
 	if os.path.exists(P.params_local_file_path) and not P.dm_ignore_local_overrides:
-		for k, v in imp.load_source("*", P.params_local_file_path).__dict__.iteritems():
+		for k, v in imp.load_source("*", P.params_local_file_path).__dict__.items():
 			setattr(P, k, v)
 
 	# If a condition has been specified, make sure it's a valid condition as per params.py
@@ -314,7 +314,7 @@ def export(path, table=None, combined=False, join=None):
 	P.setup(project_name)
 
 	# import params defined in project's local params file in ExpAssets/Config
-	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
+	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
 		setattr(P, k, v)
 	multi_file = combined != True
 	DatabaseManager().export(table, multi_file, join)
@@ -331,7 +331,7 @@ def rebuild_db(path):
 	P.setup(project_name)
 
 	# import params defined in project's local params file in ExpAssets/Config
-	for k, v in imp.load_source("*", P.params_file_path).__dict__.iteritems():
+	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
 		setattr(P, k, v)
 	DatabaseManager().rebuild()
 

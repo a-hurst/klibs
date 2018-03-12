@@ -16,7 +16,7 @@ from pkg_resources import resource_filename, resource_string
 from klibs.KLConstants import (TAB, DATETIME_STAMP, DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
 	FACTORS_EXT, PARAMS_EXT, MESSSAGING_EXT, BACK_EXT)
 
-klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
+klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
 
 # Runtime Variables
 participant_id = None

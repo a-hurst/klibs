@@ -250,8 +250,9 @@ def init_project():
 
 def setup(project_name_str, manual_seed=None):
 	global project_name
-	global asset_dir
+	global random_seed
 	global anonymous_username
+	global asset_dir
 	global exp_font_dir
 	global image_dir
 	global code_dir

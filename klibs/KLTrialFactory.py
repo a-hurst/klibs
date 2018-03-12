@@ -213,9 +213,9 @@ class TrialFactory(object):
 			factors = None
 
 		block = self.__generate_trials__(factors, 1, trial_count)
-		self.blocks.insert(block_num - 1, block[0], practice)  # there is no "zero" block from the UI/UX perspective
+		self.blocks.insert(block_num - 1, block[0], practice) # there is no "zero" block from the UI/UX perspective
 
- 	def define_trial(self, rule, quantity):
+	def define_trial(self, rule, quantity):
 		pass
 
 	def num_values(self, factor):

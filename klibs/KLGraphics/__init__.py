@@ -12,7 +12,7 @@ from PIL import Image
 from klibs import P
 from klibs.KLUtilities import absolute_position, build_registrations
 from klibs.KLConstants import *
-from KLNumpySurface import NumpySurface as NpS
+from .KLNumpySurface import NumpySurface as NpS
 
 
 def aggdraw_to_numpy_surface(draw_context):

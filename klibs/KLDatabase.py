@@ -81,7 +81,7 @@ class EntryTemplate(object):
 						if i[0] == column[0]:
 							insert_template[self.index_of(column[0])] = str(i[1])
 				else:
-					print self.data
+					print(self.data)
 					raise ValueError("Column '{0}' may not be null.".format(column))
 			else:
 				insert_template[self.index_of(column[0])] = column[0]
@@ -134,7 +134,7 @@ class EntryTemplate(object):
 		self.data[self.index_of(field)] = value
 
 	def report(self):
-		print self.schema
+		print(self.schema)
 
 
 # TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
@@ -265,12 +265,12 @@ class Database(EnvAgent):
 				# when insert() is directly used to add data to a table in the db, and that table
 				# doesn't exist, KLibs crashes hard with an IOError: Broken Pipe. Need to add proper
 				# and informative error handling for this.
-				print "Error: unable to write data to database."
+				print("Error: unable to write data to database.")
 				raise e
 		except sqlite3.OperationalError:
-			print full_trace()
-			print "\n\n"
-			print "Tried to match the following:\n\n{0}\n\nwith\n\n{1}".format(self.table_schemas[table], data.insert_query())
+			err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
+			print(full_trace())
+			print(err.format(self.table_schemas[table], data.insert_query()))
 			self.exp.quit()
 		self.db.commit()
 		return self.cursor.lastrowid

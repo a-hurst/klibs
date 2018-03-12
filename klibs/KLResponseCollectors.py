@@ -726,7 +726,7 @@ class ResponseCollector(EnvAgent):
 					timeout = self.terminate_after[0]
 					if self.terminate_after[1] == TK_S: timeout *= 1000.0
 					if t > (self.rc_start_time[0] + timeout):
-						print "Broke due to force timeout."
+						print("Broke due to force timeout.")
 						break
 				except TypeError:
 					pass

@@ -18,6 +18,7 @@ if PYLINK_AVAILABLE:
 		TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 	from klibs import P
 	from klibs.KLUtilities import full_trace, iterable, hide_mouse_cursor, mouse_pos, now
+	from klibs.KLUtilities import colored_stdout as cso
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import blit, fill, flip, clear
 	from klibs.KLGraphics.KLDraw import Rectangle, drift_correct_target
@@ -53,7 +54,8 @@ if PYLINK_AVAILABLE:
 					EyeLink.__init__(self)
 				except RuntimeError as e:
 					if e.message == "Could not connect to tracker at 100.1.1.1":
-						print "Could not connect to tracker at 100.1.1.1. If EyeLink machine is on, ready & connected try turning off the wifi on this machine."
+						err = "{0}. Please make sure the EyeLink is on and ready and try again."
+						print(err.format(e.message))
 			EnvAgent.__init__(self)
 			BoundaryInspector.__init__(self)
 			self.__current_sample__ = False
@@ -181,8 +183,8 @@ if PYLINK_AVAILABLE:
 				except RuntimeError:
 					self.unresolved_exceptions += 1
 					if self.unresolved_exceptions > 5:
-						print "\n\033[91m*** Fatal Error: Unresolvable EyeLink Error ***\033[0m"
-						print full_trace()
+						cso("\n<red>*** Fatal Error: Unresolvable EyeLink Error ***</red>")
+						print(full_trace())
 						self.unresolved_exceptions = 0
 						raise TrialException("EyeLink not ready.")
 				return self.drift_correct()
@@ -383,7 +385,7 @@ if PYLINK_AVAILABLE:
 			try:
 				self.custom_display = ELCustomDisplay()
 			except Exception as e:
-				print e
+				print(e)
 				raise e
 
 			self.version = self.getTrackerVersion()

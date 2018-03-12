@@ -273,7 +273,7 @@ def query(query_ob, anonymous=False):
 	elif f.type is None:
 		pass
 	else:
-		print f.type
+		print(f.type)
 		e_msg = "Invalid data type for query '{0}'".format(query_ob.title)
 		raise ValueError(e_msg)
 	p = f.positions

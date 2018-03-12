@@ -154,7 +154,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		return ((x, y), b)
 
 	def alert_printf(self, message):
-		print "EyeLink Alert: {0}".format(message)
+		print("EyeLink Alert: {0}".format(message))
 
 	def setup_image_display(self, width, height):
 		'''Sets camera image to the provided size, returns 1 on success.'''

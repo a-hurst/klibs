@@ -299,7 +299,7 @@ class EventManager(EnvAgent):
 				try:
 					self.db.insert(cache[e].dump(), TBL_EVENTS, False)
 				except RuntimeError:
-					print "Event Table not found; if this is an old KLIBs experiment, consider updating the SQL schema to the new standard."
+					print("'events' table not found, skipping event dumping...")
 					break
 		self.events_dumped = True
 
@@ -356,9 +356,9 @@ class EventManager(EnvAgent):
 			self.exp.labjack.log_data_event(eeg_send)
 
 		if P.verbose_mode and edf:
-			print "\t\033[94mEvent (\033[92mEDF\033[94m): \033[0m{0}".format(edf_send)
+			print("\t\033[94mEvent (\033[92mEDF\033[94m): \033[0m{0}".format(edf_send))
 		if P.verbose_mode and eeg:
-			print "\t\033[94mEvent (\033[92mEEG\033[94m): \033[0m{0}".format(eeg_send)
+			print("\t\033[94mEvent (\033[92mEEG\033[94m): \033[0m{0}".format(eeg_send))
 
 	def registered(self, label):
 		"""
@@ -515,7 +515,7 @@ class EventManager(EnvAgent):
 
 	def debug_list_tickets(self):
 		for e in self.queued_tickets:
-			print e
+			print(e)
 
 # def deregister(self, label):
 	# 	"""

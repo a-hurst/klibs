@@ -121,7 +121,7 @@ class JSON_Object(object):
 					setattr(self, i, v)
 		except (TypeError, IndexError) as e:
 			if initial_pass:
-				print e
+				print(e)
 				raise ValueError("Top-level element must be a key-value pair.")
 			converted = []
 			for i in content:
@@ -163,8 +163,8 @@ class JSON_Object(object):
 		vals = self.__items__ if not subtree else subtree.__items__
 		for k in keys:
 			if isinstance(vals[k], JSON_Object):
-				print "{0}".format(depth * "\t" + k)
+				print("{0}".format(depth * "\t" + k))
 				self.report(depth + 1, vals[k])
 			else:
-				print "{0}: {1}".format(depth * "\t" + k, vals[k])
+				print("{0}: {1}".format(depth * "\t" + k, vals[k]))
 

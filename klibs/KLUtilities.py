@@ -227,7 +227,7 @@ def colored_stdout(string, print_string=True, args=[]):
 	original_color = "\033[0m"
 	string =  end_col.sub(original_color, string)
 	if print_string:
-		print string
+		print(string)
 	else:
 		return string
 
@@ -474,9 +474,9 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False, return_int=
 			x_pos = int(x_pos)
 			y_pos = int(y_pos)
 		return (x_pos, y_pos)
-	except Exception:
-		print "point_pos() error"
-		print origin, amplitude, angle, rotation, type(origin), type(amplitude), type(angle), type(rotation)
+	except Exception as e:
+		err = "point_pos error (start: {0}, amp: {1}, ang: {2}, rot: {3})"
+		print(err.format(origin, amplitude, angle, rotation))
 		raise
 
 

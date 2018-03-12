@@ -245,7 +245,7 @@ class Experiment(EnvAgent):
 		#TODO: this needs hella cleanup, so much commented-out and messy code
 
 		if P.verbose_mode:
-			print full_trace()
+			print(full_trace())
 
 		#try:
 		#	if not self.evm.events_dumped:
@@ -260,11 +260,11 @@ class Experiment(EnvAgent):
 				if e.message == "Cannot operate on a closed database.":
 					pass
 				else:
-					print "Commit() to self.database failed."
+					print("Commit() to self.database failed.")
 					raise e
 			self.database.close()
 		except Exception:
-			print full_trace()
+			print(full_trace())
 
 		if P.eye_tracking and P.eye_tracker_available:	
 			try:

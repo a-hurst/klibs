@@ -98,22 +98,7 @@ class BoundaryInspector(object):
 		:param label:
 		:return: :raise ValueError:
 		"""
-		print "Warning: BoundaryInspector mixin's 'draw_boundary' method is under construction and isn't currently implemented."
-		return
-		from klibs.KLGraphics.KLDraw import Rectangle
-
-		if label == "*":
-			return [self.draw_boundary(l) for l in self.boundaries]
-		try:
-			b = self.boundaries[label]
-		except KeyError:
-			if shape is None:
-				raise IndexError("No boundary registered with name '{0}'.".format(boundary))
-			if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
-				raise ValueError("Argument  'shape' must be a valid shape constant (ie. RECT, CIRCLE, etc.).")
-		width = boundary[1][1] - boundary[0][1]
-		height = boundary[1][0] - boundary[0][0]
-		return Rectangle(width, height, [3, [255, 255, 255, 255]]).render(),
+		raise NotImplementedError("Boundary drawing will be implemented in a future version.")
 
 	def add_anonymous_boundary(self, bounds, shape):
 		"""

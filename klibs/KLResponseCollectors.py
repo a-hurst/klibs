@@ -639,7 +639,7 @@ class ResponseCollector(EnvAgent):
 			in_use = []
 			for l in self.__uses__:
 				in_use.append(self.using(l))
- 			return in_use
+			return in_use
 		return self.__uses__[listener]
 
 	def response_count(self, listener=None):

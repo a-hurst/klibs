@@ -231,7 +231,7 @@ class EventManager(EnvAgent):
 		e = self.queued_tickets if events else False
 		s = self.stages if stages else False
 		self.pipe.send([e, s])
-		for e in self.queued_tickets:
+		for e in list(self.queued_tickets):
 			self.issued_tickets.add(self.queued_tickets.pop(e))
 
 	def after(self, label, pump_events=False):

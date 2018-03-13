@@ -9,7 +9,7 @@ import datetime
 import re
 import traceback
 import multiprocessing as mp
-from sys import exc_info, version_info
+from sys import exc_info
 from subprocess import Popen, PIPE
 from math import sin, cos, acos, atan2, radians, pi, degrees, ceil
 
@@ -276,6 +276,15 @@ def full_trace():
 	return exception_str[:-1]
 
 
+def getinput(*args, **kwargs):
+	# python-agnostic function for getting console input. Saves us from requring 'future'
+	# or 'six' compatibility package (for now, anyway).
+	try:
+		return raw_input(*args, **kwargs)
+	except NameError:
+		return input(*args, **kwargs)
+
+
 def hide_mouse_cursor():
 	SDL_ShowCursor(SDL_DISABLE)
 
@@ -430,7 +439,8 @@ def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
 		else:
 			return (x.value, y.value)
 	else:
-		SDL_WarpMouseGlobal(*position)
+		x, y = [int(n) for n in position]
+		SDL_WarpMouseGlobal(x, y)
 		return position
 
 
@@ -831,7 +841,7 @@ def unicode_to_str(content):
 			basestring = str
 
 		if isinstance(content, basestring):
-			if version_info[0] == 2:
+			if not P.python3:
 				# convert string to ascii
 				converted = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
 			else:

@@ -15,6 +15,7 @@ from klibs.KLIndependentVariable import IndependentVariableSet
 
 
 class BlockIterator(object):
+
 	def __init__(self, blocks):
 		self.blocks = blocks
 		self.practice_blocks = []
@@ -42,7 +43,7 @@ class BlockIterator(object):
 		else:
 			raise ValueError("Can't insert block at index {0}; it has already passed.".format(index))
 
-	def next(self):
+	def __next__(self):
 		if self.i >= self.length:
 			self.i = 0 # reset index so we can iterate over it again
 			raise StopIteration
@@ -52,6 +53,8 @@ class BlockIterator(object):
 			trials.practice = self.i - 1 in self.practice_blocks
 
 			return trials
+	
+	next = __next__ # alias for python 2
 
 
 class TrialIterator(BlockIterator):
@@ -62,13 +65,15 @@ class TrialIterator(BlockIterator):
 		self.i = 0
 		self.__practice = False
 
-	def next(self):
+	def __next__(self):
 		if self.i >= self.length:
 			self.i = 0
 			raise StopIteration
 		else:
 			self.i += 1
 			return self.trials[self.i - 1]
+
+	next = __next__ # alias for python 2
 
 	def recycle(self):
 		self.trials.append(self.trials[self.i - 1])
@@ -152,13 +157,13 @@ class TrialFactory(object):
 				if P.dm_ignore_local_overrides:
 					raise RuntimeError("Ignoring local overrides")
 				sys.path.append(P.ind_vars_file_local_path)
-				for k, v in load_source("*", P.ind_vars_file_local_path).__dict__.iteritems():
+				for k, v in load_source("*", P.ind_vars_file_local_path).__dict__.items():
 					try:
 						factors = v.to_dict()
 					except (AttributeError, TypeError):
 						pass
 			except (IOError, RuntimeError):
-				for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
+				for k, v in load_source("*", P.ind_vars_file_path).__dict__.items():
 					try:
 						factors = v.to_dict()
 					except (AttributeError, TypeError):

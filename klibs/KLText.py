@@ -5,8 +5,8 @@ from math import floor
 import ctypes
 from ctypes import byref
 
-from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderText_Blended,
-	TTF_RenderUTF8_Solid, TTF_SizeText)
+from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_Blended,
+	TTF_RenderUTF8_Solid, TTF_SizeUTF8)
 from sdl2.ext import PixelView
 from sdl2 import SDL_Color
 import numpy as np
@@ -134,7 +134,7 @@ class TextManager(object):
 		return arr
 
 	def __wrap__(self, text, style, rendering_font, align, width=None):
-		lines = text.split("\n")
+		lines = text.split(b"\n")
 		if width:
 			surface_width = width
 			wrapped_lines = []
@@ -145,18 +145,18 @@ class TextManager(object):
 					# position in string at position nearest cutoff, move backwards until space
 					# character is encountered, and then trim string up to this point, adding it
 					# to wrapped_lines.
-					TTF_SizeText(rendering_font, line, byref(w), byref(h))
+					TTF_SizeUTF8(rendering_font, line, byref(w), byref(h))
 					while w.value > surface_width:
 						pos = int(surface_width/float(w.value) * len(line))
 						segment = line[:pos].rstrip()
-						TTF_SizeText(rendering_font, segment, byref(segment_w), byref(h))
+						TTF_SizeUTF8(rendering_font, segment, byref(segment_w), byref(h))
 						while line[pos] != ' ' or segment_w.value > surface_width:
 							pos = pos - 1
 							segment = line[:pos].rstrip()
-							TTF_SizeText(rendering_font, segment, byref(segment_w), byref(h))
+							TTF_SizeUTF8(rendering_font, segment, byref(segment_w), byref(h))
 						wrapped_lines.append(segment)
 						line = line[pos:].lstrip()
-						TTF_SizeText(rendering_font, line, byref(w), byref(h))
+						TTF_SizeUTF8(rendering_font, line, byref(w), byref(h))
 				wrapped_lines.append(line)
 			lines = wrapped_lines
 		else:
@@ -164,7 +164,7 @@ class TextManager(object):
 			w, h = ctypes.c_int(0), ctypes.c_int(0)
 			for line in lines:
 				if len(line):
-					TTF_SizeText(rendering_font, line, byref(w), byref(h))
+					TTF_SizeUTF8(rendering_font, line, byref(w), byref(h))
 					if w.value > surface_width:
 						surface_width = w.value
 
@@ -200,16 +200,18 @@ class TextManager(object):
 		if not isinstance(style, TextStyle):
 			style = self.styles[style]
 
-		text = str(text)
-		rendering_font = TTF_OpenFont(self.fonts[style.font_label], style.font_size)
+		if not isinstance(text, bytes):
+			text = str(text).encode('utf-8')
+		
+		rendering_font = TTF_OpenFont(self.fonts[style.font_label].encode(), style.font_size)
 		if max_width != None:
 			w, h = ctypes.c_int(0), ctypes.c_int(0)
-			TTF_SizeText(rendering_font, text, ctypes.byref(w), ctypes.byref(h))
+			TTF_SizeUTF8(rendering_font, text, ctypes.byref(w), ctypes.byref(h))
 			needs_wrap = w.value > max_width
 		else:
 			needs_wrap = False
 
-		if len(text.split("\n")) > 1 or needs_wrap:
+		if len(text.split(b"\n")) > 1 or needs_wrap:
 			if align not in ["left", "center", "right"]:
 				raise ValueError("Text alignment must be one of 'left', 'center', or 'right'.")
 			return self.__wrap__(text, style, rendering_font, align, max_width)
@@ -218,7 +220,7 @@ class TextManager(object):
 			text = " "
 		bgra_color = [style.color[2], style.color[1], style.color[0], style.color[3]]
 		if style.anti_aliased:
-			rendered_text = TTF_RenderText_Blended(rendering_font, text, SDL_Color(*bgra_color)).contents
+			rendered_text = TTF_RenderUTF8_Blended(rendering_font, text, SDL_Color(*bgra_color)).contents
 			surface_array = self.__SDLSurface_to_ndarray(rendered_text)
 		else:
 			rendered_text = TTF_RenderUTF8_Solid(rendering_font, text, SDL_Color(*bgra_color)).contents

@@ -44,7 +44,7 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 		Raises:
 			TypeError: If the 'source' object passed is not one of the accepted types.
 		"""
-		from KLDraw import Drawbject
+		from .KLDraw import Drawbject
 		
 		if isinstance(source, NpS):
 			height = source.height

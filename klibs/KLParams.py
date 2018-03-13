@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
+__author__ = 'jono'
 """
 TODO: set this up such that all vars are in a dict with a key representing whether the var should be included in the
 user's template of the params file, then autogenerate the template doc. AND the runtime params from that dict
 """
 
-author = 'jono'
-
+import sys
 import logging, time, tempfile
 from random import seed
 from datetime import datetime
@@ -250,16 +250,18 @@ def init_project():
 
 def setup(project_name_str, manual_seed=None):
 	global project_name
-	global asset_dir
+	global random_seed
 	global anonymous_username
+	global asset_dir
 	global exp_font_dir
 	global image_dir
 	global code_dir
 	global config_dir
 	global resources_dir
 	global logo_file_path
+	global python3
 
-
+	python3 = sys.version_info[0] == 3
 	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
 
 	#  seed the experiment with either a passed random_seed or else the current unix time

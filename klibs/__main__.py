@@ -10,6 +10,7 @@ import traceback
 try:
 	from klibs.KLExceptions import DatabaseException
 	from klibs.KLUtilities import colored_stdout as cso
+	from klibs.KLUtilities import getinput
 except:
 	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m\n\nStack Trace:")
 	exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -111,7 +112,7 @@ def create(name, path):
 			"your project a different name and try again.".format(name, path))
 
 	# Get author name for adding to project files
-	author = raw_input(cso("\n<green_d>Please provide your first and last name: </green_d>", False))
+	author = getinput(cso("\n<green_d>Please provide your first and last name: </green_d>", False))
 	if len(author.split()) < 2:
 		one_name_peeps = ["Madonna", "Prince", "Cher", "Bono", "Sting"]
 		cso("<red>\nOk {0}, take it easy.</red> "
@@ -131,7 +132,7 @@ def create(name, path):
 			"<purple>N</purple><green_d>o, or</green_d> "
 			"<purple>Q</purple><green_d>uit: </green_d>", False
         )
-		response = raw_input(query)[0].lower()
+		response = getinput(query)[0].lower()
 		if response == "y":
 			verified = True
 		elif response == "n":
@@ -206,7 +207,7 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 				"<purple>(c)</purple><green_d>reate them automatically or view a "
 				"<purple>(r)</purple><green_d>eport on the missing directories: </green_d>", False
 			)
-			action = raw_input(query).lower()[0]
+			action = getinput(query).lower()[0]
 			if action == "r":
 				cso("<green_d>The following expected directories were not found:</green_d>")
 				for md in missing_dirs:
@@ -353,7 +354,7 @@ def hard_reset(path):
 		"that previous participants were run with, and reset the project's database. "
 		"Are you sure you want to continue?</red> (Y/N): ", False
 	)
-	if raw_input(reset_prompt).lower() == "y":
+	if getinput(reset_prompt).lower() == "y":
 		for d in ['Data', 'EDF', '.versions', ('Local', 'logs')]:
 			if iterable(d):
 				d = join(*d)
@@ -399,7 +400,7 @@ def update(branch='default'):
 		"</green_d><purple>'{1}'</purple><green_d>. Are you sure you want to continue? "
 		"(Y/N): </green_d>".format(branch, git_repo_short), False
 	)
-	if raw_input(update_prompt).lower() == "y":
+	if getinput(update_prompt).lower() == "y":
 		print("")
 		cso("<green_d>Updating klibs to latest commit from {0}...</green_d>".format(git_repo_short))
 		try:

@@ -87,7 +87,7 @@ class Experiment(EnvAgent):
 		# At start of every trial, before setup_response_collector or trial_prep are run, retrieve
 		# the values of the independent variables (factors) for that trial (as generated earlier by
 		# TrialFactory) and set them as attributes of the experiment object.
-		factors = self.trial_factory.exp_factors.keys()
+		factors = list(self.trial_factory.exp_factors.keys())
 		for iv in factors:
 			iv_value = trial[factors.index(iv)]
 			setattr(self, iv, iv_value)

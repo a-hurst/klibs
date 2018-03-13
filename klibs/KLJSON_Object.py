@@ -3,6 +3,8 @@ __author__ = 'jono'
 import json
 import unicodedata
 from re import compile
+
+from klibs import P
 from klibs.KLUtilities import iterable, now
 
 
@@ -18,7 +20,7 @@ class JSON_Object(object):
 		self.__objectified__ = self.__objectify__(self.__items__, not (child_object and type(decoded_data) is list))
 		self.__current__ = 0
 		try:
-			self.keys = self.__items__.keys()
+			self.keys = list(self.__items__.keys())
 			self.values = []
 			for k in self.keys:
 				self.values.append(self.__dict__[k])
@@ -32,9 +34,17 @@ class JSON_Object(object):
 		:param content:
 		:return:
 		"""
-		if type(content) is unicode:
-			# convert string to ascii
-			converted = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
+		try:
+			basestring
+		except NameError:
+			basestring = str
+
+		if isinstance(content, basestring):
+			if not P.python3:
+				# convert string to ascii
+				converted = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
+			else:
+				converted = content # unicode is native str type in py3, so don't convert
 
 			# convert JS booleans to Python booleans
 			if converted in ("true", "false"):
@@ -59,9 +69,9 @@ class JSON_Object(object):
 				converted = {}  # converted output for this level of the data
 				for k in content:
 					v = content[k]  # ensure the keys are ascii strings
-					if type(k) is unicode:
+					if isinstance(k, basestring):
 						k = self.__unicode_to_str__(k)
-					if type(v) is unicode:
+					if isinstance(v, basestring):
 						converted[k] = self.__unicode_to_str__(v)
 					elif iterable(v):
 						converted[k] = self.__unicode_to_str__(v)
@@ -71,7 +81,7 @@ class JSON_Object(object):
 			except (TypeError, IndexError):
 				converted = []
 				for i in content:
-					if type(i) is unicode:
+					if isinstance(i, basestring):
 						converted.append(self.__unicode_to_str__(i))
 					elif iterable(i):
 						converted.append(self.__unicode_to_str__(i))
@@ -139,7 +149,7 @@ class JSON_Object(object):
 	def __getitem__(self, key):
 		return self.__dict__[key]
 
-	def next(self):
+	def __next__(self):
 		"""
 
 
@@ -152,6 +162,8 @@ class JSON_Object(object):
 		except IndexError:
 			self.__current__ = 0
 			raise StopIteration
+
+	next = __next__ # alias for python 2
 
 	def report(self, depth=0, subtree=None):
 		"""

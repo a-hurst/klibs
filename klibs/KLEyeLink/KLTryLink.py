@@ -214,7 +214,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 							if d_type == EL_SACCADE_END:
 								if P.development_mode:
 									msg = "saccade: {0},{1} to {2},{3}"
-									print(msg.format(e_first.x-e_first.xrel, e_first.y-e_first.yrel, e.x, e.y)
+									print(msg.format(e_first.x-e_first.xrel, e_first.y-e_first.yrel, e.x, e.y))
 								queue.append(MouseEvent(start_event=e_first, end_event=e, el_type=EL_SACCADE_END))
 							elif d_type == EL_FIXATION_END:
 								if P.development_mode:

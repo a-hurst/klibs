@@ -14,7 +14,7 @@ from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_
 	PY_NUM, PY_INT, PY_FLOAT, PY_BIN, PY_STR, QUERY_SEL, TAB, ID, DATA_EXT)
 from klibs import P
 from klibs.KLUtilities import (full_trace, type_str, iterable, bool_to_int, boolean_to_logical,
-	snake_to_camel, unicode_to_str)
+	snake_to_camel, unicode_to_str, getinput)
 from klibs.KLUtilities import colored_stdout as cso
 #TODO: replace all manual usage of colour output with cso
 
@@ -410,10 +410,10 @@ class DatabaseManager(EnvAgent):
 		)
 		db_action = ArgumentParser()
 		db_action.add_argument('action', type=str, choices=['c', 's', 'q'])
-		action = db_action.parse_args([raw_input(err_string).lower()[0]]).action
+		action = db_action.parse_args([getinput(err_string).lower()[0]]).action
 
 		if action == DB_SUPPLY_PATH:
-			P.database_path = raw_input(cso("<green_d>Great. Where might it be?</green_d>", False))
+			P.database_path = getinput(cso("<green_d>Great. Where might it be?</green_d>", False))
 			self.__load_master__()
 		elif action == DB_CREATE:
 			open(P.database_path, "a").close()

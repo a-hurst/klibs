@@ -767,7 +767,9 @@ def scale(coords, canvas_size, target_size=None, scale=True, center=True):
 	return (x,y)
 
 def sdl_key_code_to_str(sdl_keysym):
-	key_name = SDL_GetKeyName(sdl_keysym).replace("Keypad ", "")
+	key_name = SDL_GetKeyName(sdl_keysym).replace(b"Keypad ", b"")
+	if P.python3:
+		key_name = key_name.decode('utf-8')
 	if key_name == "Space":
 		return " "
 	if not any(SDL_GetModState() & mod for mod in [KMOD_CAPS, KMOD_SHIFT]):

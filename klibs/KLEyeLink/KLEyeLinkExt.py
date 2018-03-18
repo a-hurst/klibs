@@ -46,6 +46,7 @@ if PYLINK_AVAILABLE:
 		unresolved_exceptions = 0
 		start_time = [None, None]
 		initialized = False
+		quitting = False
 
 		def __init__(self):
 			if P.eye_tracker_available:
@@ -429,6 +430,7 @@ if PYLINK_AVAILABLE:
 				pass
 
 		def shut_down(self):
+			self.quitting = True
 			if self.isRecording() == 0:
 				self.stopRecording()
 			self.setOfflineMode()

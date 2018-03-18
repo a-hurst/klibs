@@ -304,7 +304,7 @@ class AudioCalibrator(object):
 		return self.threshold
 
 	def __validate(self):
-		instruction = ("Ok, threshold set!"
+		instruction = ("Okay, threshold set! "
 					   "To ensure its validity, please provide one (and only one) more response.")
 		fill()
 		message(instruction, location=P.screen_c, registration=5)

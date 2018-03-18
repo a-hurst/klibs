@@ -148,21 +148,16 @@ class TrialFactory(object):
 
 	def generate(self, exp_factors=None):
 		if not exp_factors:
+			set_name = "{0}_ind_vars".format(P.project_name)
 			try:
 				if P.dm_ignore_local_overrides:
 					raise RuntimeError("Ignoring local overrides")
 				sys.path.append(P.ind_vars_file_local_path)
-				for k, v in load_source("*", P.ind_vars_file_local_path).__dict__.iteritems():
-					try:
-						factors = v.to_dict()
-					except (AttributeError, TypeError):
-						pass
+				var_set = load_source("*", P.ind_vars_file_local_path).__dict__[set_name]
+				factors = var_set.to_dict()
 			except (IOError, RuntimeError):
-				for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
-					try:
-						factors = v.to_dict()
-					except (AttributeError, TypeError):
-						pass
+				var_set = load_source("*", P.ind_vars_file_path).__dict__[set_name]
+				factors = var_set.to_dict()
 		else:
 			factors = exp_factors.to_dict()
 

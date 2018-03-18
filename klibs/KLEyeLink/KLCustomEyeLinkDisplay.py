@@ -131,7 +131,9 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		for event in pump(True):
 			if event.type == sdl2.SDL_KEYDOWN:
 				keysym = event.key.keysym
-				ui_request(keysym)
+				if not self.el.quitting:  
+					# don't process quit requests while already quitting
+					ui_request(keysym)
 				try:
 					key = self.pylink_keycodes[keysym.sym]
 				except KeyError:

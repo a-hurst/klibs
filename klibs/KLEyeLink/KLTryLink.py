@@ -29,6 +29,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 	unresolved_exceptions = 0
 	start_time = [None, None]
 	initialized = False
+	quitting = False
 	__recording__ = False
 	__eye_used__ = None
 	last_mouse_pos = None

@@ -494,10 +494,10 @@ def cli():
 		help=("Signals the absence of a connected EyeLink unit. "
 		"Does nothing for non-eyetracking experiments.")
 	)
-	run_parser.add_argument('-s', '--seed', default=time.time(), type=float, nargs="?",
-		metavar="seed",
+	run_parser.add_argument('-s', '--seed', type=int, nargs="?", metavar="seed",
+		default=int(os.urandom(4).encode('hex'), 16), # a random 9/10 digit int
 		help=("The seed to use for random number generation during the KLibs runtime. "
-		"Defaults to current system time.")
+		"Defaults to a random integer.")
 	)
 	#run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true",
 	#	help="Debug log will be blit to translucent panel on screen in real time."

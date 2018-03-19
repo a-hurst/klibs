@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-TODO: set this up such that all vars are in a dict with a key representing whether the var should be included in the
-user's template of the params file, then autogenerate the template doc. AND the runtime params from that dict
+TODO: set this up such that all vars are in a dict with a key representing whether the var should
+be included in the user's template of the params file, then autogenerate the template doc. AND the
+runtime params from that dict (this was Jon's idea, is it worth the effort / likely API breaking?)
 """
 
 author = 'jono'
@@ -106,7 +107,7 @@ default_participant_fields_sf = [["userhash", "participant"], "random_seed", "se
 default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
 
 # Development mode & associated switches
-development_mode = False  # when True, skips collect_demographics & prints various details to screen
+development_mode = False # when True, skips collect_demographics & prints various details to screen
 dm_trial_show_mouse = True
 dm_auto_threshold = True # for audio responses
 dm_ignore_local_overrides = False
@@ -125,7 +126,6 @@ verbosity = -1
 # default strings for communicating with participant (is this still useful?)
 no_answer_string = None
 invalid_answer_string = None
-block_break_message = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
 
 # Font folder info
 exp_font_dir = "ExpAssets/Resources/font"
@@ -175,7 +175,7 @@ key_maps = None
 def init_project():
 	from klibs.KLKeyMap import KeyMap
 	global key_maps # ? (should global keymaps be a thing?)
-	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
+
 	global data_dir
 	global incomplete_data_dir
 	global edf_dir
@@ -238,7 +238,11 @@ def init_project():
 	versions_dir = join(asset_dir, ".versions")
 	logs_dir = join(local_dir, "logs")
 
-	for path in [local_dir, logs_dir, versions_dir, edf_dir, data_dir, incomplete_data_dir, incomplete_edf_dir]:
+	project_structure = [
+		local_dir, logs_dir, versions_dir, edf_dir, data_dir,
+		incomplete_data_dir, incomplete_edf_dir
+	]
+	for path in project_structure:
 		if not exists(path):
 			try:
 				makedirs(path)
@@ -248,7 +252,7 @@ def init_project():
 	initialized = True
 	return True
 
-def setup(project_name_str, manual_seed=None):
+def setup(project_name_str, seed_value):
 	global project_name
 	global random_seed
 	global anonymous_username
@@ -260,12 +264,10 @@ def setup(project_name_str, manual_seed=None):
 	global resources_dir
 	global logo_file_path
 
-
-	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
-
-	#  seed the experiment with either a passed random_seed or else the current unix time
-
-	random_seed = manual_seed if manual_seed != None else time.time()
+	timestamp = datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP)
+	anonymous_username = "demo_user_{0}".format(timestamp)
+	random_seed = seed_value
+	
 	seed(random_seed)
 	project_name = project_name_str
 	asset_dir = "ExpAssets"

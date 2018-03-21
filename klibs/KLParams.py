@@ -7,11 +7,11 @@ runtime params from that dict (this was Jon's idea, is it worth the effort / lik
 
 author = 'jono'
 
-import logging, time, tempfile
+import logging, time, tempfile, sys
 from random import seed
 from datetime import datetime
-from os import makedirs
-from os.path import exists, join
+from os import makedirs, environ
+from os.path import exists, join, expanduser
 from pkg_resources import resource_filename, resource_string
 
 from klibs.KLConstants import (TAB, DATETIME_STAMP, DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
@@ -127,13 +127,6 @@ verbosity = -1
 no_answer_string = None
 invalid_answer_string = None
 
-# Font folder info
-exp_font_dir = "ExpAssets/Resources/font"
-sys_font_dir = "/Library/Fonts" # Should be updated to be cross-platform
-user_font_dir = "~/Library/Fonts"
-klibs_font_dir = resource_filename('klibs', 'resources/font')
-font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
-
 # Default Paths & Filenames (filled in by setup() and init_project() below)
 project_name = None
 asset_dir = None
@@ -183,6 +176,7 @@ def init_project():
 	global local_dir
 	global logs_dir
 	global versions_dir
+	global font_dirs
 	
 	global database_filename
 	global database_path
@@ -205,9 +199,9 @@ def init_project():
 
 	global initialized
 
+
 	key_maps = {"*": KeyMap("*", [], [], [])} # ?
 	key_maps["*"].any_key = True # ?
-
 
 	# file names
 	database_filename = str(project_name) + DB_EXT
@@ -238,6 +232,15 @@ def init_project():
 	versions_dir = join(asset_dir, ".versions")
 	logs_dir = join(local_dir, "logs")
 
+	# Font folder info (linux & win need testing)
+	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
+	if sys.platform == 'darwin':
+		font_dirs += ["/Library/Fonts", join(expanduser("~"), "Library/Fonts")]
+	elif sys.platform == 'win32':
+		font_dirs += [join(environ['WINDIR'], "fonts")]
+	else: # if linux or unix-like
+		font_dirs += ["/usr/share/fonts", "/usr/local/share/fonts", join(expanduser("~"), ".fonts")]
+
 	project_structure = [
 		local_dir, logs_dir, versions_dir, edf_dir, data_dir,
 		incomplete_data_dir, incomplete_edf_dir
@@ -252,7 +255,7 @@ def init_project():
 	initialized = True
 	return True
 
-def setup(project_name_str, seed_value):
+def setup(project_name_str, seed_value=None):
 	global project_name
 	global random_seed
 	global anonymous_username

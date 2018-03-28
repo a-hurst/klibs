@@ -52,24 +52,6 @@ CREATE TABLE participants (
 	klibs_commit text not null
 );
 
-CREATE TABLE events (
-	id integer primary key autoincrement not null,
-	user_id integer not null,
-	trial_id integer not null,
-	trial_num integer not null,
-	label text not null,
-	trial_clock float not null,
-	eyelink_clock integer
-);
-
-CREATE TABLE logs (
-	id integer primary key autoincrement not null,
-	user_id integer not null,
-	message text not null,
-	trial_clock float not null,
-	eyelink_clock integer
-);
-
 CREATE TABLE trials (
 	id integer primary key autoincrement not null,
 	participant_id integer not null references participants(id),

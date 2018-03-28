@@ -95,12 +95,12 @@ def bool_to_int(boolean_val):
 
 
 def boolean_to_logical(value, convert_integers=False):
-	if value in ["false", "False"] or value is False: return "FALSE"
-	if value in ["true", "True"] or value is True: return "TRUE"
-	if convert_integers is True:
-		if value in [1,"1"]: return "TRUE"
-		if value in [0,"0"]: return "FALSE"
-	return None
+	if convert_integers and value in [0, 1, '0', '1']:
+		value = bool(int(value))
+	logical = str(value).upper()
+	if logical not in ['TRUE', 'FALSE']:
+		logical = None
+	return logical
 
 
 def bounded_by(pos, left, right, top, bottom):
@@ -835,11 +835,11 @@ def unicode_to_str(content):
 
 		# elif type(content) in (list, dict):
 		elif iterable(content):
-			#  manage dicts first
-			try:
-				converted = {}	# converted output for this level of the data
+			# manage dicts first
+			if isinstance(content, dict):
+				converted = {} # converted output for this level of the data
 				for k in content:
-					v = content[k]	# ensure the keys are ascii strings
+					v = content[k] # ensure the keys are ascii strings
 					if type(k) is unicode:
 						k = unicode_to_str(k)
 					if type(v) is unicode:
@@ -849,7 +849,7 @@ def unicode_to_str(content):
 					else:
 						converted[k] = v
 
-			except (TypeError, IndexError):
+			else:
 				converted = []
 				for i in content:
 					if type(i) is unicode:
@@ -858,6 +858,8 @@ def unicode_to_str(content):
 						converted.append(unicode_to_str(i))
 					else:
 						converted.append(i)
+				if isinstance(content, tuple):
+					converted = tuple(converted)
 
 		else:
 			# assume it's numeric

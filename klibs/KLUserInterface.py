@@ -135,13 +135,13 @@ def ui_request(key_press=None, execute=True, queue=None):
 	if queue:
 		ret_val = None
 		for e in queue:
-			v = ui_request(e)
+			v = ui_request(e, execute)
 			if v: ret_val = v
 		return ret_val
 	if not key_press:
 		for event in pump(True):
 			if event.type in [SDL_KEYUP, SDL_KEYDOWN]:
-				request = ui_request(event.key.keysym)
+				request = ui_request(event.key.keysym, execute)
 				if request:
 					return
 			if event.type == SDL_KEYUP:

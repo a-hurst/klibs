@@ -2,12 +2,13 @@
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import abc
+import time
 from os.path import join
 from klibs.KLEyeLink import PYLINK_AVAILABLE
 
 if PYLINK_AVAILABLE:
 	from pylink import (EyeLink, openGraphicsEx, flushGetkeyQueue, pumpDelay,
-		beginRealTimeMode, endRealTimeMode)
+		beginRealTimeMode, endRealTimeMode, msecDelay)
 
 	from klibs.KLExceptions import TrialException, EyeLinkError
 	from klibs.KLEnvironment import EnvAgent
@@ -51,11 +52,14 @@ if PYLINK_AVAILABLE:
 
 		def __init__(self):
 			if P.eye_tracker_available:
+				print("")
 				try:
 					EyeLink.__init__(self)
 				except RuntimeError as e:
-					if e.message == "Could not connect to tracker at 100.1.1.1":
-						print "Could not connect to tracker at 100.1.1.1. If EyeLink machine is on, ready & connected try turning off the wifi on this machine."
+					if "Could not connect" in e.message:
+						print("! If the EyeLink is on, ready, & connected, try turning off "
+							"the Wi-Fi on this machine or restarting the EyeLink PC.\n")
+					raise e
 			EnvAgent.__init__(self)
 			BoundaryInspector.__init__(self)
 			self.__current_sample__ = False
@@ -436,6 +440,7 @@ if PYLINK_AVAILABLE:
 			if self.isRecording() == 0:
 				self.stopRecording()
 			self.setOfflineMode()
+			msecDelay(500)
 			self.closeDataFile()
 			self.receiveDataFile(self.edf_filename, join(P.edf_dir, self.edf_filename))
 			return self.close()

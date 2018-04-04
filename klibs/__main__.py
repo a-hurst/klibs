@@ -255,7 +255,6 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 	#TODO: check if current commit matches experiment.py and warn user if not
 
 	# create runtime environment
-	env.evm = EventManager()
 	env.txtm = TextManager()
 	env.tk = TimeKeeper()
 	env.rc = ResponseCollector()
@@ -265,20 +264,23 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 		if P.development_mode and P.dm_show_gaze_dot:
 			P.show_gaze_dot = True
 		from klibs import KLEyeLink # needs to be imported after params are read in
-		env.el = KLEyeLink.EyeLinkExt()
+		try:
+			env.el = KLEyeLink.EyeLinkExt()
+		except RuntimeError:
+			sys.exit()
 	try:
 		env.db = DatabaseManager()
 	except DatabaseException as e:
 		if e.message != "Quitting.":
 			cso("<red>Unable to load database.</red>")
-		env.evm.terminate()
 		sys.exit()
-	
-	# create basic text styles, load in user queries, and initialize slack (if enabled)
-	init_messaging()
+	env.evm = EventManager()
 
-	# finally, import the project's Experiment class and instantiate
 	try:
+		# create basic text styles, load in user queries, and initialize slack (if enabled)
+		init_messaging()
+
+		# finally, import the project's Experiment class and instantiate
 		experiment_file = imp.load_source(path, "experiment.py")
 		experiment = getattr(experiment_file, project_name)
 		env.exp = experiment()

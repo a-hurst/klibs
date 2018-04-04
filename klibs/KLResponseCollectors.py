@@ -197,6 +197,12 @@ class AudioResponse(ResponseType):
 			if self.interrupts:
 				self.stream.stop()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
+	
+	def _refresh_stream(self):
+		if self.stream.is_active():
+			self.stream.stop()
+		self.stream.close()
+		self.stream = AudioStream()
 
 	@property
 	def threshold(self):

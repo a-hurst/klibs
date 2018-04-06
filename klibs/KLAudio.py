@@ -5,6 +5,7 @@ import os
 import sys
 import warnings
 import math
+import time
 from array import array
 
 with warnings.catch_warnings():
@@ -71,6 +72,14 @@ class AudioManager(object):
 		"""
 		c = AudioCalibrator()
 		return c.calibrate()
+	
+	def reload_stream(self):
+		# experimental, to hopefully fix a bug where audio responses randomly stop working
+		if not self.stream.is_stopped():
+			self.stream.stop()
+		self.stream.close()
+		time.sleep(0.005) # hopefully this prevents "Bad Device" errors.
+		self.stream = AudioStream(self.input)
 
 	def shut_down(self):
 		if not self.stream.is_stopped():

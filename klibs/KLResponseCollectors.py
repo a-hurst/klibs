@@ -182,24 +182,19 @@ class AudioResponse(ResponseType):
 
 	def __init__(self, rc_start_time):
 		super(AudioResponse, self).__init__(rc_start_time, RC_AUDIO)
-		self.stream = self.exp.audio.stream
 		self.__threshold = None
 
 	def collect_response(self, event_queue):
 		if not self.threshold:
 			raise RuntimeError("A threshold must be set before audio responses can be collected.")
-		if self.stream.sample().peak >= self.threshold:
+		if self.exp.audio.stream.sample().peak >= self.threshold:
 			if len(self.responses) < self.max_response_count:
 				self.responses.append([
-					self.stream.sample().peak,
+					self.exp.audio.stream.sample().peak,
 					(self.evm.trial_time_ms - self.__rc_start_time__[0])
 				])
 			if self.interrupts:
-				self.stream.stop()
 				return self.responses if self.max_response_count > 1 else self.responses[0]
-	
-	def _refresh_stream(self):
-		pass
 
 	@property
 	def threshold(self):
@@ -680,7 +675,7 @@ class ResponseCollector(EnvAgent):
 			pass
 
 		# do any preparatory work for listeners to be used during the collection loop
-		if self.using(RC_AUDIO): self.audio_listener.stream.start()
+		if self.using(RC_AUDIO): self.exp.audio.stream.start()
 		if self.using(RC_MOUSEDOWN) or self.using(RC_MOUSEUP) or self.using(RC_COLORSELECT): show_mouse_cursor()
 
 		if self.flip:
@@ -717,7 +712,7 @@ class ResponseCollector(EnvAgent):
 					listener.timed_out = True
 				listener.responses.append([listener.null_response, TIMEOUT])
 		if self.using(RC_AUDIO):
-			self.audio_listener.stream.stop()
+			self.exp.audio.stream.stop()
 		self.rc_start_time[0] = None # Reset before next trial
 
 	def __collect__(self):
@@ -778,7 +773,6 @@ class ResponseCollector(EnvAgent):
 	def reset(self):
 		# Clear all listeners and set all use flags to False
 		# (is this really the best way to do this? Or should rc objects persist across experiment?)
-		if self.using(RC_AUDIO): self.audio_listener.stream.close()
 		self.listeners = NamedInventory()
 		for k in self.__uses__.keys():
 			self.__uses__[k] = False

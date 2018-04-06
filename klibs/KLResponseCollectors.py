@@ -182,7 +182,7 @@ class AudioResponse(ResponseType):
 
 	def __init__(self, rc_start_time):
 		super(AudioResponse, self).__init__(rc_start_time, RC_AUDIO)
-		self.stream = AudioStream()
+		self.stream = self.exp.audio.stream
 		self.__threshold = None
 
 	def collect_response(self, event_queue):
@@ -199,10 +199,7 @@ class AudioResponse(ResponseType):
 				return self.responses if self.max_response_count > 1 else self.responses[0]
 	
 	def _refresh_stream(self):
-		if self.stream.is_active():
-			self.stream.stop()
-		self.stream.close()
-		self.stream = AudioStream()
+		pass
 
 	@property
 	def threshold(self):

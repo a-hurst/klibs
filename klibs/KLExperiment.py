@@ -281,6 +281,7 @@ class Experiment(EnvAgent):
 		#		print("LabJack.shutdown() unsuccessful.")
 		#		cso("<red>****** DISCONNECT & RECONNECT LABJACK PLEASE & THANKS! *******</red>")
 
+		self.audio.shut_down()
 		SDL_Quit()
 
 		# temporary lines added for certain experiments using a log file

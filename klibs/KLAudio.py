@@ -51,9 +51,11 @@ class AudioManager(object):
 			sdl2.sdlmixer.Mix_OpenAudio(44100, sdl2.sdlmixer.MIX_DEFAULT_FORMAT, 2, 1024)
 		if PYAUDIO_AVAILABLE:
 			self.input = pyaudio.PyAudio()
+			self.stream = AudioStream(self.input)
 		else:
 			print("\t* Warning: PyAudio library not found; audio input will not be available.")
 			self.input = None
+			self.stream = None
 
 	def calibrate(self):
 		"""Determines a threshold loudness to use for vocal responses based on sample input from
@@ -69,6 +71,12 @@ class AudioManager(object):
 		"""
 		c = AudioCalibrator()
 		return c.calibrate()
+
+	def shut_down(self):
+		if not self.stream.is_stopped():
+			self.stream.stop()
+		self.stream.close()
+		self.input.terminate()
 
 
 # Note AudioClip is an adaption of code originally written by mike lawrence (github.com/mike-lawrence)
@@ -188,7 +196,7 @@ class AudioStream(pyaudio.Stream, EnvAgent):
 			Defaults to 1.
 
 	"""
-	def __init__(self, threshold=1):
+	def __init__(self, pa_instance, threshold=1):
 		if not PYAUDIO_AVAILABLE:
 			raise RuntimeError("The PyAudio module is not installed; audio input is not available.")
 		EnvAgent.__init__(self)
@@ -200,7 +208,7 @@ class AudioStream(pyaudio.Stream, EnvAgent):
 		sys.stderr.flush()
 		os.dup2(devnull, 2)
 		os.close(devnull)
-		pyaudio.Stream.__init__(self, PA_manager=self.exp.audio.input,
+		pyaudio.Stream.__init__(self, PA_manager=pa_instance,
 			format=pyaudio.paInt16, channels=1, rate=AR_RATE, frames_per_buffer=AR_CHUNK_SIZE,
 			input=True, output=False, start=False
 		)
@@ -236,7 +244,7 @@ class AudioStream(pyaudio.Stream, EnvAgent):
 		self.stop_stream()
 
 
-class AudioCalibrator(object):
+class AudioCalibrator(EnvAgent):
 
 	def __init__(self):
 		super(AudioCalibrator, self).__init__()
@@ -271,7 +279,7 @@ class AudioCalibrator(object):
 			RuntimeError: If using auto thresholding and the recorded ambient noise level is 0.
 		"""
 		if not self.stream:
-			self.stream = AudioStream()
+			self.stream = self.exp.audio.stream
 		if P.development_mode and P.dm_auto_threshold:
 			ambient = self.get_ambient_level()
 			if ambient == 0:
@@ -300,7 +308,6 @@ class AudioCalibrator(object):
 					any_key()
 			self.threshold = min(peaks)
 			self.__validate()
-		self.stream.close()
 		return self.threshold
 
 	def __validate(self):

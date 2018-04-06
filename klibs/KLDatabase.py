@@ -14,9 +14,8 @@ from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_
 	PY_NUM, PY_INT, PY_FLOAT, PY_BIN, PY_STR, QUERY_SEL, TAB, ID, DATA_EXT)
 from klibs import P
 from klibs.KLUtilities import (full_trace, type_str, iterable, bool_to_int, boolean_to_logical,
-	snake_to_camel, unicode_to_str)
+	snake_to_camel)
 from klibs.KLUtilities import colored_stdout as cso
-#TODO: replace all manual usage of colour output with cso
 
 
 class EntryTemplate(object):
@@ -152,6 +151,7 @@ class Database(EnvAgent):
 	def __init__(self, path):
 		super(Database, self).__init__()
 		self.db = sqlite3.connect(path)
+		self.db.text_factory = str
 		self.cursor = self.db.cursor()
 		self.__open_entries = {}
 		if len(self._tables()) == 0:
@@ -307,7 +307,7 @@ class Database(EnvAgent):
 		if query_type != QUERY_SEL: self.db.commit()
 		if return_result:
 			if fetch_all:
-				return unicode_to_str(result.fetchall())
+				return result.fetchall()
 			else:
 				return result
 		return True
@@ -484,7 +484,6 @@ class DatabaseManager(EnvAgent):
 
 	def collect_export_data(self, multi_file=True,  join_tables=[]):
 		participant_ids = self.__master.query("SELECT `id`, `{0}` FROM `participants`".format(P.unique_identifier))
-		participant_ids.insert(0, (-1,))  # for test data collected before anonymous_user added to collect_demographics()
 		default_fields = P.default_participant_fields if multi_file else P.default_participant_fields_sf
 
 		t_cols = []
@@ -501,7 +500,7 @@ class DatabaseManager(EnvAgent):
 			wc_count = 0
 			q_wildcards = []
 			q_vars = []
-			cols = p_cols + t_cols if p[0] != -1 else t_cols
+			cols = p_cols + t_cols
 			for c in cols:
 				if not iterable(c):
 					q_vars.append(c)
@@ -512,7 +511,7 @@ class DatabaseManager(EnvAgent):
 					q_wildcards.append("`{"+str(wc_count)+"}` AS `{"+ str(wc_count + 1)+"}`")
 					wc_count += 2
 			q = "SELECT " + ",".join(q_wildcards) + " FROM `{0}` ".format(P.primary_table)
-			for t in ['participants'] + join_tables if p[0] != -1 else join_tables:
+			for t in ['participants'] + join_tables:
 				key = 'id' if t == 'participants' else 'participant_id'
 				q += " JOIN {0} ON `{1}`.`participant_id` = `{0}`.`{2}` ".format(t, P.primary_table, key)
 			q += " WHERE `{0}`.`participant_id` = ?".format(P.primary_table)
@@ -520,7 +519,6 @@ class DatabaseManager(EnvAgent):
 			p_data = []
 			for trial in self.__master.query(q, q_vars=tuple([p[0]])):
 				row_str = TAB.join(str(col) for col in trial)
-				if p[0] == -1: row_str = TAB.join([P.default_demo_participant_str, row_str])
 				p_data.append(row_str)
 			data.append([p[0], p_data])
 		return data
@@ -567,9 +565,21 @@ class DatabaseManager(EnvAgent):
 
 
 	def export_header(self, user_id=None):
-		#TODO: make header info reflect info when participant was run, instead of just current settings which
-		# is somewhat misleading (add runtime_info table)
-		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", P.klibs_commit]]
+		#TODO: make header info reflect info when participant was run, instead of just current
+		# settings which is somewhat misleading (add runtime_info table)
+		
+		if user_id:
+			commit_q = "SELECT `klibs_commit` FROM `participants` WHERE `id` = ?"
+			klibs_commit = self.__master.query(commit_q, q_vars=[user_id])[0][0]
+		else:
+			# if doing multifile export, only append commit if all data collected with same one
+			commits = self.__master.query("SELECT DISTINCT `klibs_commit` FROM `participants`")
+			if len(commits) > 1:
+				klibs_commit = "(multiple)"
+			else:
+				klibs_commit = commits[0][0]
+
+		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", klibs_commit]]
 		eyelink_vars = ["EYELINK SETTINGS",
 						["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
 						["Saccadic Acceleration Threshold", P.saccadic_acceleration_threshold],
@@ -577,7 +587,7 @@ class DatabaseManager(EnvAgent):
 		exp_vars 	 = ["EXPERIMENT SETTINGS",
 						["Trials Per Block", P.trials_per_block],
 						["Blocks Per Experiment", P.blocks_per_experiment]]
-		
+
 		header = ""
 		header_info = [klibs_vars, exp_vars]
 		if P.eye_tracking and P.eye_tracker_available:

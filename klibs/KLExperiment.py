@@ -80,7 +80,7 @@ class Experiment(EnvAgent):
 
 	def __trial__(self, trial, practice):
 		"""
-		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1,...param_n]]
+		Private method; manages a trial.
 		"""
 		pump()
 
@@ -199,7 +199,7 @@ class Experiment(EnvAgent):
 	def add_keymap(self, name, ui_labels=None, data_labels=None, sdl_keysyms=None):
 		"""
 		``relocation_planned``
-		A convenience method that creates a :mod:`~klibs.KLKeyMap`.\ :class:`~klibs.KLKeyMap.KeyMap` instance from
+		A convenience method that creates a :mod:`~klibs.KLKeyMap`. :class:`~klibs.KLKeyMap.KeyMap` instance from
 		supplied information.
 		Equivalent to::
 			P.key_maps['name'] = KLKeyMap.KeyMap(name, ui_labels, data_labels, sdl_keysyms)

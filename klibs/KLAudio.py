@@ -52,6 +52,7 @@ class AudioManager(object):
 			sdl2.sdlmixer.Mix_OpenAudio(44100, sdl2.sdlmixer.MIX_DEFAULT_FORMAT, 2, 1024)
 		if PYAUDIO_AVAILABLE:
 			self.input = pyaudio.PyAudio()
+			self.device_name = str(self.input.get_default_input_device_info()['name'])
 			self.stream = AudioStream(self.input)
 		else:
 			print("\t* Warning: PyAudio library not found; audio input will not be available.")
@@ -74,17 +75,30 @@ class AudioManager(object):
 		return c.calibrate()
 	
 	def reload_stream(self):
-		# experimental, to hopefully fix a bug where audio responses randomly stop working
+		# PyAudio can't handle interrupted device connections (unplugging/replugging), so we need
+		# to fully terminate and reopen the PyAudio instance to reconnect to an interrupted device
 		if not self.stream.is_stopped():
-			self.stream.stop()
-		self.stream.close()
-		time.sleep(0.005) # hopefully this prevents "Bad Device" errors.
-		self.stream = AudioStream(self.input)
+				self.stream.stop()
+		try:
+			self.stream.close()
+			self.stream = AudioStream(self.input)
+			return False
+		except IOError:
+			self.input.terminate()
+			self.input = pyaudio.PyAudio()
+			default_device_name = str(self.input.get_default_input_device_info()['name'])
+			if default_device_name != self.device_name:
+				raise RuntimeError('Audio input device disconnected mid-experiment.')
+			self.stream = AudioStream(self.input)
+			return True
 
 	def shut_down(self):
-		if not self.stream.is_stopped():
-			self.stream.stop()
-		self.stream.close()
+		try:
+			if not self.stream.is_stopped():
+				self.stream.stop()
+			self.stream.close()
+		except IOError:
+			pass
 		self.input.terminate()
 
 

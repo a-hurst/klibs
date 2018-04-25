@@ -183,6 +183,7 @@ class AudioResponse(ResponseType):
 	def __init__(self, rc_start_time):
 		super(AudioResponse, self).__init__(rc_start_time, RC_AUDIO)
 		self.__threshold = None
+		self._stream_error = False
 
 	def collect_response(self, event_queue):
 		if not self.threshold:
@@ -195,6 +196,22 @@ class AudioResponse(ResponseType):
 				])
 			if self.interrupts:
 				return self.responses if self.max_response_count > 1 else self.responses[0]
+
+	def reset(self):
+		self.responses = []
+		self._stream_error = False
+
+	@property
+	def stream_error(self):
+		"""bool: A flag indicating whether an audio input error occurred during the last collection
+		loop. If you are using an external input device to record audio (e.g. a USB Microphone) and
+		the connection cuts out for an instant, the stream will continue to record but the stream
+		will be completely silent, meaning that any audio responses on that trial will fail to be
+		detected. You can check this flag after collection to determine if a lack of response was
+		due to this problem or not.
+
+		"""
+		return self._stream_error
 
 	@property
 	def threshold(self):
@@ -712,7 +729,9 @@ class ResponseCollector(EnvAgent):
 					listener.timed_out = True
 				listener.responses.append([listener.null_response, TIMEOUT])
 		if self.using(RC_AUDIO):
-			self.exp.audio.stream.stop()
+			err = self.exp.audio.reload_stream()
+			if err:
+				self.audio_listener._stream_error = True
 		self.rc_start_time[0] = None # Reset before next trial
 
 	def __collect__(self):

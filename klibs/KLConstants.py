@@ -104,9 +104,9 @@ PARAMS_EXT = "_params.py"
 MESSSAGING_EXT = "_messaging.csv"
 
 # KLText & pretty_join Constants
-TEXT_PX = "PX"
+TEXT_PT = "pt"
+TEXT_PX = "px"
 TEXT_MULTIPLE = "*"
-TEXT_PT = "PT"
 DELIM_WRAP = "wrap"
 DELIM_NOT_LAST = "not_last"
 DELIM_NOT_FIRST = "not_first"

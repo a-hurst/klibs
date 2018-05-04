@@ -1,170 +1,75 @@
 __author__ = 'jono'
 
+import io
+import re
 import json
-import unicodedata
-from re import compile
-from klibs.KLUtilities import iterable, now
+
+
+class AttributeDict(dict):
+	'''A Python dictionary that lets you access items like you would object attributes.
+	For example, the AttributeDict d = {'one': 1, 'two': 2}, you could get the value of 'one'
+	through either d['one'] or d.one.
+	'''
+	def __getattr__(self, key):
+		return self[key]
+
+	def __setattr__(self, key, value):
+		self[key] = value
 
 
 class JSON_Object(object):
-	__eval_regex__ = compile("^EVAL:[ ]*(.*)$")
+	'''A class for importing JSON objects such that you can access their attributes the same way
+	you would a Python object. For example, if you imported a .json file with the following
+	contents:
 
-	def __init__(self, json_file_path=None, decoded_data=None, child_object=False):
+	:: json
+
+		{
+		"study_words": [
+			{"word":"cognition", "syllables":3, "type":"noun"},
+			{"word":"experimental", "syllables":5, "type":"verb"}
+			],
+		"foil_words": [
+			{"word":"cognitive", "syllables":3, "type":"adjective"},
+			{"word":"experiment", "syllables":4, "type":"noun"}
+			]
+		}
+
+	you could then import and access its contents like this::
+
+		wordbank_path = os.path.join('path', 'to', 'wordbank.json')
+		wordbank = JSON_Object(wordbank_path)
+		print(wordbank.study_words)
+		for word in wordbank.study_words:
+			print(word.word, word.syllables, word.type)
+
+	Alternatively, you could access the objects' contents like you would a Python dictonary::
+
+		for word in wordbank['foil_words']:
+			print(word['word'], word['syllables'], word['type'])
+	
+	Note that all objects and variable names in the imported JSON file must be valid Python
+	object attribute names (i.e. no spaces, periods, special characters, etc.), and will result
+	in a ValueError during import if an invalid attribute name is encountered.
+
+	'''
+
+	def __init__(self, json_file_path):
 		self.file_path = json_file_path
 		try:
-			self.__items__ = self.__unicode_to_str__(json.load(open(json_file_path)) if json_file_path else decoded_data)
+			json_file = io.open(self.file_path, encoding='utf-8')
+			json_dict = json.load(json_file, object_hook=self.__objectify)
+			for key in json_dict:
+				setattr(self, key, json_dict[key])
 		except ValueError:
 			raise ValueError("JSON file is poorly formatted. Please check syntax.")
-		self.__objectified__ = self.__objectify__(self.__items__, not (child_object and type(decoded_data) is list))
-		self.__current__ = 0
-		try:
-			self.keys = self.__items__.keys()
-			self.values = []
-			for k in self.keys:
-				self.values.append(self.__dict__[k])
-		except AttributeError:
-			self.keys = range(0, len(self.__items__))
-			self.values = self.__items__
-
-	def __unicode_to_str__(self, content):
-		"""
-
-		:param content:
-		:return:
-		"""
-		if type(content) is unicode:
-			# convert string to ascii
-			converted = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
-
-			# convert JS booleans to Python booleans
-			if converted in ("true", "false"):
-				converted = converted == "true"
-
-			# run eval on Python code passed as a JSON string
-			eval_statement = self.__eval_regex__.match(converted)
-			if eval_statement is not None:
-				converted = eval(eval_statement.group(1))
-				if type(converted) is tuple:
-					converted = list(converted)
-				# todo: this next bit is broken, it's so unimportant I didn't even try to fix it but maybe one day
-				# on the off chance that the eval returns well-formed JSON
-				# try:
-				# 	converted = JSON_Object(converted)
-				# except ValueError:
-				# 	pass
-
-		elif type(content) in (list, dict):
-			#  manage dicts first
-			try:
-				converted = {}  # converted output for this level of the data
-				for k in content:
-					v = content[k]  # ensure the keys are ascii strings
-					if type(k) is unicode:
-						k = self.__unicode_to_str__(k)
-					if type(v) is unicode:
-						converted[k] = self.__unicode_to_str__(v)
-					elif iterable(v):
-						converted[k] = self.__unicode_to_str__(v)
-					else:
-						converted[k] = v
-
-			except (TypeError, IndexError):
-				converted = []
-				for i in content:
-					if type(i) is unicode:
-						converted.append(self.__unicode_to_str__(i))
-					elif iterable(i):
-						converted.append(self.__unicode_to_str__(i))
-					else:
-						converted.append(i)
-
-		else:
-			# assume it's numeric
-			return content
-
-		return converted
-
-	def __find_nested_dicts__(self, data):
-		"""
-
-		:param data:
-		:return:
-		"""
-		tmp = []
-		for i in data:
-			if type(i) is dict:
-				tmp.append(JSON_Object(None, i, True))
-			elif type(i) is list:
-				tmp.append(self.__find_nested_dicts__(i))
-			else:
-				tmp.append(i)
-		return tmp
-
-	def __objectify__(self, content, initial_pass=False):
-
-		"""
-
-		:param content:
-		:param initial_pass:
-		:return: :raise ValueError:
-		"""
-		try:
-			converted = {}
-			for i in content:
-				v = content[i]
-				if type(v) is dict:
-					v = JSON_Object(None, v, True)
-				elif type(v) is list:
-					v = self.__find_nested_dicts__(v)
-				converted[i] = v
-				if initial_pass:
-					setattr(self, i, v)
-		except (TypeError, IndexError) as e:
-			if initial_pass:
-				print e
-				raise ValueError("Top-level element must be a key-value pair.")
-			converted = []
-			for i in content:
-				if type(i) is dict:
-					converted.append(JSON_Object(None, i, True))
-				elif type(i) is list:
-					converted.append(self.__find_nested_dicts__(i))
-				else:
-					converted.append(i)
-		return converted
-
-	def __iter__(self):
-		return self
-
-	def __getitem__(self, key):
-		return self.__dict__[key]
-
-	def next(self):
-		"""
-
-
-		:return: :raise StopIteration:
-		"""
-		try:
-			i =  self.keys[self.__current__]
-			self.__current__ += 1
-			return i
-		except IndexError:
-			self.__current__ = 0
-			raise StopIteration
-
-	def report(self, depth=0, subtree=None):
-		"""
-
-		:param depth:
-		:param subtree:
-		"""
-		keys = self.keys if not subtree else subtree
-		vals = self.__items__ if not subtree else subtree.__items__
-		for k in keys:
-			if isinstance(vals[k], JSON_Object):
-				print "{0}".format(depth * "\t" + k)
-				self.report(depth + 1, vals[k])
-			else:
-				print "{0}: {1}".format(depth * "\t" + k, vals[k])
-
+	
+	def __objectify(self, dict_obj):
+		# Check if JSON object name is a valid Python class attribute name
+		valid_attr_name = re.compile(r"[A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__)")
+		for key in dict_obj.keys():
+			if re.match(valid_attr_name, key) == None:
+				print(u"Error: '{0}' is not a valid Python class attribute name ".format(key) +
+					u"(try removing special characters).\n")
+				raise RuntimeError("Error encountered loading json_object")
+		return AttributeDict(dict_obj)

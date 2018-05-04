@@ -32,7 +32,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		self.drawer = None # aggdraw Draw with self.img as context
 		self.title = None
 
-		self.txtm.add_style("el_setup", 24, P.default_color, font_label="Frutiger")
+		self.txtm.add_style("el_setup", "24pt", P.default_color, font_label="Frutiger")
 		self.dc_target = drift_correct_target()
 
 		pylink.EyeLinkCustomDisplay.__init__(self)

@@ -154,12 +154,6 @@ class KeyPressResponse(ResponseType):
 							self.responses.append([self.key_map.read(sdl_keysym, "data"), (self.evm.trial_time_ms - self.__rc_start_time__[0])])
 						if self.interrupts:
 							return self.responses if self.max_response_count > 1 else self.responses[0]
-					else:
-						invalid_key = True
-						# todo: write adjustable behaviour for informing participants of invalid keys
-						# wrong_key_message = "Please respond using '{0}'.".format(key_map.valid_keys())
-						# self.alert(wrong_key_message)
-						# invalid_key = False
 				else:
 					raise RuntimeError("No keymap has been set for this KeyPressResponse object.")
 

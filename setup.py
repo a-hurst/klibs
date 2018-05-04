@@ -6,9 +6,9 @@ import subprocess as sub
 import shutil
 
 # Get the git hash for the current KLibs commit
-cmd = 'git rev-parse --verify HEAD'.split(' ')
-commit = sub.check_output(cmd).rstrip('\n')
-with open('klibs/resources/current_commit.txt', 'w+') as f:
+cmd = b'git rev-parse --verify HEAD'.split(b' ')
+commit = sub.check_output(cmd).rstrip(b'\n')
+with open('klibs/resources/current_commit.txt', 'wb+') as f:
 	f.write(commit)
 	
 # Remove old lib folder if present
@@ -20,15 +20,15 @@ if path.isdir(old_lib):
 		try:
 			remove(old_lib)
 		except:
-			print "/nUnable to remove old lib folder at {0}. You can remove it manually " \
-				  "using 'sudo rm -rf {0}'\n".format(old_lib)
+			print("/nUnable to remove old lib folder at {0}. You can remove it manually "
+				  "using 'sudo rm -rf {0}'\n".format(old_lib))
 	
 
 install_packages = ['klibs']
 
 setup(
 	name='KLibs',
-	version='0.7.0a4',
+	version='0.7.1a0',
 	description='A framework for building psychological experiments in Python',
 	author='Jonathan Mulle & Austin Hurst',
 	author_email='this.impetus@gmail.com',

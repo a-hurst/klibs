@@ -2,6 +2,7 @@
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import os
+import re
 import socket
 from copy import copy
 from time import time
@@ -15,6 +16,7 @@ from sdl2 import (SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_R
 from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, DELIM_NOT_LAST, DELIM_NOT_FIRST,
 	QUERY_ACTION_UPPERCASE, QUERY_ACTION_HASH)
 import klibs.KLParams as P
+from klibs.KLJSON_Object import JSON_Object
 from klibs.KLUtilities import (absolute_position, pretty_join, sdl_key_code_to_str, now, pump,
 	flush, iterable)
 from klibs.KLUtilities import colored_stdout as cso
@@ -30,65 +32,31 @@ except ImportError:
 
 
 user_queries = None
+default_strings = None
 
+def alert(text):
+	'''A convenience function for clearing the screen and displaying an alert message. Will
+	probably be depricated soon.
 
-class UserQuerySet(object):
-	def __init__(self):
-		self.query_set = None
-		self.default_strings = {}
-
-	def import_queries(self):
-		from klibs.KLJSON_Object import JSON_Object
-		try:
-			self.query_set = JSON_Object(P.user_queries_file_path)
-			for k in self.query_set:
-				setattr(self, k, self.query_set[k])
-		except ValueError:
-			raise ValueError("User queries file has at least one formatting error; cannot continue.")
-
-		# set default strings for communication
-		for k in self.default_strings:
-			setattr(P, k, self.default_strings[k])
-
-
-def alert(text, blit=True, display_for=0):
-		"""
-		Convenience function wrapping
-		:mod:`~klibs.KLExperiment`.\ :class:`~klibs.KLExperiment.Experiment`.\ :func:`~klibs.KLExperiment.Experiment
-		.message`
-		``Alert_string`` is formatted as 'warning' text (ie. red, large, screen center).
-
-		:param text: Message to display as alert.
-		:type text: String
-		:param blit: Return surface or :func:`~klibs.KLExperiment.Experiment.blit` automatically
-		:type blit: Bool
-		:param display_for: Number of seconds to display the alert message for (overrides 'any key' dismissal).
-		:type display_for: Int
-
-		"""
-		# todo: instead hard-fill, "separate screen" flag; copy current surface, blit over it, reblit surf or fresh
-		# todo: address the absence of default colors
-
-		clear()
-		fill(P.default_fill_color)
-		message(text, "alert", blit_txt=True, flip_screen=True)
+	'''
+	clear()
+	message(text, "alert", blit_txt=True, flip_screen=True)
 
 
 def collect_demographics(anonymous=False):
-	"""
+	'''Collects participant demographics and writes them to the 'participants' table in the
+	experiment's database, based on the queries in the "demographic" section of the project's
+	user_queries.json file. Run automatically on launch if P.manual_demographics_collection is
+	False (which is the default setting), but if P.manual_demographics_collection = True then this
+	function should be called once at some point during the setup portion of your experiment class.
 
-	:param anonymous:
-	:return:
-	"""
+	Args:
+		anonymous (bool, optional): If True, this function will log all of the anonymous values for
+			the experiment's demographic queries to the database immediately without prompting the
+			user for input.
+
+	'''
 	from klibs.KLEnvironment import exp, db
-
-
-	"""
-	Gathers participant demographic information and enter it into the project database.
-	Should not be explicitly called; see ``P.collect_demographics``.
-	:param anonymous: Toggles generation of arbitrary participant info in lieu of participant-supplied info.
-	:type anonymous: Boolean
-	"""
 
 	# ie. demographic questions aren't being asked for this experiment
 	if not P.collect_demographics and not anonymous: return
@@ -130,17 +98,33 @@ def collect_demographics(anonymous=False):
 			pass
 
 
-def init_messaging():
-	from klibs.KLEnvironment import txtm
-	global user_queries
+def init_default_textstyles():
 
-	# try to create question objects (ie. JSON_Objects with expected keys) from demographics file
-	user_queries = UserQuerySet()
-	user_queries.import_queries()
+	from klibs.KLEnvironment import txtm
 
 	# default styles can't be created until screen dimensions are loaded into Params from exp.display_init()
 	txtm.add_style("default", P.default_font_size, P.default_color, font_label=P.default_font_name)
 	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font_label=P.default_font_name)
+
+
+def init_messaging():
+
+	global user_queries
+	global default_strings
+
+	# Load the user_queries file in and store the queries in an object
+	try:
+		user_queries = JSON_Object(P.user_queries_file_path)
+		# After loading in queries, verify that all required sections are present
+		required_sections = ['default_strings', 'demographic', 'experimental']
+		for req in required_sections:
+			if not req in user_queries.__dict__.keys():
+				err = "<red>Error: user_queries.json file missing required section '{0}'.</red>"
+				cso(err.format(req))
+				raise ValueError()
+		default_strings = user_queries.default_strings # for easy accessiblity
+	except ValueError:
+		raise ValueError("User queries file has at least one formatting error; cannot continue.")
 	
 	if P.development_mode:
 		P.slack_messaging = False
@@ -251,142 +235,173 @@ def message(text, style=None, location=None, registration=None, blit_txt=True,
 
 
 def query(query_ob, anonymous=False):
-	"""
+	'''Asks the user a question and collects the response via the keyboard. Intended for use with
+	the queries contained within a project's user_queries.json file. This function is used
+	internally for collecting demographics at the start of each run, but can also be used during
+	experiment runtime to collect info from participants based on the queries contained in the
+	"experimental" section of the user_queries.json file.
 
-	:param query_ob:
-	:param anonymous:
-	:return: :raise TypeError:
-	"""
+	Args:
+		query_ob (:class:`~klibs.KLJSON_Object.AttributeDict`): The object containing the query
+			to present. See :obj:`~klibs.KLCommunication.user_queries` for more information.
+		anonymous (bool, optional): If True, will immediately return the query object's anonymous
+			value without prompting the user (used interally for P.development_mode). Defaults to
+			False.
+	
+	Returns:
+		The response to the query, coerced to the type specified by query_ob.format.type (can be
+		str, int, float, bool, or None).
+	
+	Raises:
+		ValueError: If the query object's type is not one of "str", "int", "float", "bool", or None,
+			or if a query_ob.format.range value is given and the type is not "int" or "float".
+		TypeError: If query_ob.accepted is specified and it is not a list of values, or if a
+			query_ob.format.range is specified and it is not a two-item list.
+			
+	'''
 	from klibs.KLEnvironment import txtm
 
 	if anonymous:
+		try:
+			# Check if anon value is an EVAL statement, and if so evaluate it
+			eval_statement = re.match(re.compile(u"^EVAL:[ ]*(.*)$"), query_ob.anonymous_value)
+			if eval_statement:
+				query_ob.anonymous_value = eval(eval_statement.group(1))
+		except TypeError:
+			pass
 		return query_ob.anonymous_value
 
-	input_string = ''  # populated in loop below
-	error_string = None
-
 	f = query_ob.format
-	if f.type in ("int", "float", "str", "bool"):
-		f.type = eval(f.type)
-	elif f.type in (int, float, str, bool):
-		pass
-	elif f.type is None:
-		pass
-	else:
-		print f.type
-		e_msg = "Invalid data type for query '{0}'".format(query_ob.title)
-		raise ValueError(e_msg)
-	p = f.positions
-	q_text = message(query_ob.query, f.styles.query, blit_txt=False)
+	if f.type not in ("int", "float", "str", "bool", None):
+		err = "Invalid data type for query '{0}': {1}".format(query_ob.title, f.type)
+		raise ValueError(err)
+	
+	q_text = message(query_ob.query, f.styles.query, align='center', blit_txt=False)
 
 	# address automatic positioning
+	p = f.positions
 	if p.locations.query == AUTO_POS:
-		p.locations.query =  [P.screen_c[0], int(0.1 * P.screen_y)]
+		p.locations.query = [P.screen_c[0], int(0.1 * P.screen_y)]
 		p.registrations.query = BL_CENTER
-
 	if p.locations.input == AUTO_POS:
 		v_pad = q_text.height + 2 * txtm.styles[f.styles.query].line_height
-		p.locations.input =  [P.screen_c[0], p.locations.query[1] + v_pad]
+		p.locations.input = [P.screen_c[0], p.locations.query[1] + v_pad]
 		p.registrations.input = BL_CENTER
 
-	# define this to save typing it out repeatedly blow
-	def blit_question(input_text=None):
-		fill()
-		blit(q_text, p.registrations.query, p.locations.query)
+	# Create an informative error message for invalid responses
+	accepted_responses = query_ob.accepted  # for code readability
+	if accepted_responses:
 		try:
-			blit(input_text, p.registrations.input, p.locations.input)
-		except TypeError:
-			pass  # ie. input_text=None
-		flip()
-
-	# create an accepted answers string to present to user
-	if query_ob.accepted:
-		try:
-			iter(query_ob.accepted)
-			accepted_str = pretty_join(query_ob.accepted, delimiter=",", delimit_behaviors=[DELIM_NOT_LAST],
-									   wrap_each="'", before_last='or', prepend='[ ', append=']')
-			invalid_answer_string = P.invalid_answer.format(accepted_str)
-
+			iter(accepted_responses)
+			accepted_str = pretty_join(
+				accepted_responses, delimiter=",", delimit_behaviors=[DELIM_NOT_LAST],
+				wrap_each="", before_last='or', prepend='[ ', append=' ]')
+			invalid_answer_str = default_strings['invalid_answer'].format(accepted_str)
 		except:
-			raise TypeError("The 'accepted' key of a question object must be an array/list (JSON/Python).")
-
-	blit_question()
+			raise TypeError("The 'accepted' key of a question must be a list of values.")
+	elif f.range:
+		if f.type not in ("int", "float"):
+			raise ValueError("Only queries with numeric types can use the range parameter.")
+		elif isinstance(f.range, list) == False or len(f.range) != 2:
+			raise TypeError("Query ranges must be two-item lists, containing an upper bound "
+				"and a lower bound.")
+		template = "Your answer must be a number between {0} and {1}, inclusive."
+		invalid_answer_str = template.format(f.range[0], f.range[1])
 
 	# user input loop; exited by breaking
-	flush()
-	SDL_PumpEvents()
+	input_string = ''  # populated in loop below
+	error_string = None
 	user_finished = False
 
+	# Clear event queue and draw query text to screen before entering input loop
+	flush()
+	fill()
+	blit(q_text, p.registrations.query, p.locations.query)
+	flip()
+
 	while not user_finished:
-		input_surface = None
 		for event in pump(True):
-			if event.type !=  SDL_KEYDOWN:
+
+			# Skip non-keyboard events
+			if event.type != SDL_KEYDOWN:
 				continue
+
+			error_string = None # clear error string (if any) on new keypress event
 			ui_request(event.key.keysym)
+			sdl_keysym = event.key.keysym.sym
 
-			# reset error and input strings if an error has been displayed
-			error_string = None
+			if sdl_keysym == SDLK_ESCAPE:
+				# Esc clears any existing input
+				input_string = ""
 
-			key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
-			sdl_keysym = key.keysym.sym
-
-			# handle deletions
-			if sdl_keysym == SDLK_BACKSPACE:
+			elif sdl_keysym == SDLK_BACKSPACE:
+				# Backspace removes last character from input
 				input_string = input_string[:-1]
 
-			# handle user indicating that they're finished
-			if sdl_keysym in (SDLK_KP_ENTER, SDLK_RETURN):  # ie. if enter or return
-				if len(input_string) or query_ob.allow_null:
-					if f.type == int:
+			elif sdl_keysym in (SDLK_KP_ENTER, SDLK_RETURN):
+				# Enter or Return check if a valid response has been made and end loop if it has
+				if len(input_string) > 0 or query_ob.allow_null is True:
+					response = input_string
+					# If type is 'int' or 'float', make sure input can be converted to that type
+					if f.type == "int":
 						try:
-							input_string = int(input_string)
+							response = int(input_string)
 						except ValueError:
 							error_string = "Please respond with an integer."
-					elif f.type == float:
+					elif f.type == "float":
 						try:
-							input_string = float(input_string)
+							response = float(input_string)
 						except ValueError:
 							error_string = "Please respond with a number."
+					# If no errors yet, check input against list of accepted values (if q has one)
 					if not error_string:
-						if query_ob.accepted:   # to make the accepted list work, there's a lot of checking yet to do
-							user_finished = input_string in query_ob.accepted
+						if accepted_responses:
+							user_finished = response in accepted_responses
 							if not user_finished:
-								error_string = invalid_answer_string
+								error_string = invalid_answer_str
+						elif f.range:
+							user_finished = (f.range[0] <= response <= f.range[1])
+							if not user_finished:
+								error_string = invalid_answer_str
 						else:
 							user_finished = True
 				else:
-					error_string = P.no_answer_string
+					# If no input and allow_null is false, display error
+					error_string = default_strings['no_answer_string']
 
-				if error_string:
-					input_surface = message(error_string, f.styles.error, blit_txt=False)
-					input_string = ""
-
-			# escape erases the user input
-			if sdl_keysym == SDLK_ESCAPE:
-				input_string = ""
-				input_surface = None
-
-			if sdl_key_code_to_str(sdl_keysym):
+			elif sdl_key_code_to_str(sdl_keysym):
+				# If input is not a special key, process and add it to input (if valid)
 				input_string += sdl_key_code_to_str(sdl_keysym)
 				if f.case_sensitive is False:
 					input_string = input_string.lower()
+				input_string = input_string.strip() # remove any trailing whitespace
 
-			# remove trailing whitespace
-			input_string = str(input_string).strip()
-
-			if not input_surface:
+			# If any text entered or error message encountered, render text for drawing
+			if error_string:
+				rendered_input = message(error_string, f.styles.error, blit_txt=False)
+				input_string = ""
+			elif len(input_string):
 				if f.password:
-					input_surface = message(len(input_string) * '*', f.styles.input, blit_txt=False)
+					rendered_input = message(len(input_string)*'*', f.styles.input, blit_txt=False)
 				else:
-					input_surface = message(input_string, f.styles.input, blit_txt=False)
+					rendered_input = message(input_string, f.styles.input, blit_txt=False)
+			else:
+				rendered_input = None
 
-			blit_question(input_text=input_surface)
+			# Draw question and any entered response to screen 
+			fill()
+			blit(q_text, p.registrations.query, p.locations.query)
+			if rendered_input:
+				blit(rendered_input, p.registrations.input, p.locations.input)
+			flip()
 
+	# Once a valid response has been made, clear the screen
 	fill()
 	flip()
-	if f.type is int:
+
+	if f.type == "int":
 		return int(input_string)
-	elif f.type is str:
+	elif f.type == "str":
 		if f.action == QUERY_ACTION_HASH:
 			return sha1(str(input_string)).hexdigest()
 		elif f.action == QUERY_ACTION_UPPERCASE:
@@ -395,9 +410,9 @@ def query(query_ob, anonymous=False):
 			return None
 		else:
 			return str(input_string)
-	elif f.type is float:
+	elif f.type == "float":
 		return float(input_string)
-	elif f.type is bool:
+	elif f.type == "bool":
 		return input_string in f.accept_as_true
 	else:
 		return input_string

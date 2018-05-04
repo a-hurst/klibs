@@ -71,7 +71,8 @@ slack_messaging = False
 default_fill_color = (45, 45, 45, 255)
 default_color = (255, 255, 255, 255)
 default_alert_color = (236, 88, 64, 255)
-default_font_size = "28pt"
+default_font_size = 28
+default_font_unit = 'pt'
 default_font_name = 'Frutiger' #TODO: find a new default font
 
 # Display defaults (user-defined)
@@ -232,14 +233,8 @@ def init_project():
 	versions_dir = join(asset_dir, ".versions")
 	logs_dir = join(local_dir, "logs")
 
-	# Font folder info (linux & win need testing)
+	# Font folder info
 	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
-	if sys.platform == 'darwin':
-		font_dirs += ["/Library/Fonts", join(expanduser("~"), "Library/Fonts")]
-	elif sys.platform == 'win32':
-		font_dirs += [join(environ['WINDIR'], "fonts")]
-	else: # if linux or unix-like
-		font_dirs += ["/usr/share/fonts", "/usr/local/share/fonts", join(expanduser("~"), ".fonts")]
 
 	project_structure = [
 		local_dir, logs_dir, versions_dir, edf_dir, data_dir,

@@ -598,7 +598,7 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap
 						output += str(each_n[1]) + whitespace
 				else:
 					log_str = "Klib.prettyJoin() config parameter 'eachN[0]' must be an int, '{0}' {1} passed. {2}"
-					log(log_str.format(each_n, type(each_n, 10)))
+					print(log_str.format(each_n, type(each_n, 10)))
 			else:
 				raise ValueError("Argument 'each_n' must have length 2.")
 		elif each_n is not None:
@@ -618,7 +618,7 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap
 		elif n == len(array) - 1 and DELIM_NOT_LAST in delimit_behaviors:
 			pass
 		elif n == len(array) - 2 and DELIM_NOT_LAST in delimit_behaviors:
-			pass
+			output += delimiter
 		else:
 			output += delimiter + whitespace
 
@@ -629,15 +629,6 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap
 		output += append
 
 	return output
-
-
-def pt_to_px(pt_size):
-	if type(pt_size) is not int:
-		raise TypeError("Argument 'pt_size' must be an integer.")
-	if 512 < pt_size < 2:
-		raise ValueError("Argument 'pt_size' must be between 2 and 512.")
-
-	return int(math.floor(1.0 / 72 * P.ppi * pt_size))
 
 
 def px_to_deg(length):	# length = px
@@ -815,56 +806,6 @@ def translate_points(points, delta, flat=False):
 
 def type_str(var):
 	return type(var).__name__
-
-
-def unicode_to_str(content):
-		"""
-
-		:param content:
-		:return:
-		"""
-		import unicodedata
-
-		if type(content) is unicode:
-			# convert string to ascii
-			converted = unicodedata.normalize('NFKD', content).encode('ascii','ignore')
-
-			# convert JS booleans to Python booleans
-			if converted in ("true", "false"):
-				converted = converted == "true"
-
-		# elif type(content) in (list, dict):
-		elif iterable(content):
-			# manage dicts first
-			if isinstance(content, dict):
-				converted = {} # converted output for this level of the data
-				for k in content:
-					v = content[k] # ensure the keys are ascii strings
-					if type(k) is unicode:
-						k = unicode_to_str(k)
-					if type(v) is unicode:
-						converted[k] = unicode_to_str(v)
-					elif iterable(v):
-						converted[k] = unicode_to_str(v)
-					else:
-						converted[k] = v
-
-			else:
-				converted = []
-				for i in content:
-					if type(i) is unicode:
-						converted.append(unicode_to_str(i))
-					elif iterable(i):
-						converted.append(unicode_to_str(i))
-					else:
-						converted.append(i)
-				if isinstance(content, tuple):
-					converted = tuple(converted)
-
-		else:
-			# assume it's numeric
-			return content
-		return converted
 
 
 def smart_sleep(interval, units=TK_MS):

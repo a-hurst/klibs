@@ -180,7 +180,7 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 	from klibs.KLTime import TimeKeeper
 	from klibs.KLText import TextManager
 	from klibs.KLResponseCollectors import ResponseCollector
-	from klibs.KLCommunication import init_messaging, collect_demographics
+	from klibs.KLCommunication import init_messaging, collect_demographics, init_default_textstyles
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)
@@ -288,6 +288,9 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 		# create a display context if everything's gone well so far
 		env.exp.window = display_init(screen_size)
 		env.exp.show_logo()
+
+		# once display size and pixels-per-degree known, initialize default text styles
+		init_default_textstyles()
 
 		# create an anonymous user if not collecting demographic information
 		if not P.manual_demographics_collection:

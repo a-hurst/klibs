@@ -10,7 +10,7 @@ from klibs.KLGraphics.KLDraw import *
 
 def v(text, args=None):
 	if P.verbose_mode:
-		print text.format(args)
+		print(text.format(args))
 
 class Debugger(object):
 	experiment = None
@@ -36,14 +36,14 @@ class Debugger(object):
 			if l[3]:
 				display_lines.append(line)
 			if l[4] and cli is True:
-				print line
+				print(line)
 		for l in self.labelled_logs:
 			e = self.labelled_logs[l]
 			line = "{0} [{1}]: {2} {3}".format(l, e[1], e[0], "({0})".format(e[2]) if e[2] else e[2])
 			if e[3]:
 				display_lines.append(line)
 			if e[4] and cli is True:
-				print line
+				print(line)
 		if display:
 			if len(display_lines):
 				text = "\n".join(display_lines)

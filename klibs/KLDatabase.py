@@ -14,7 +14,7 @@ from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_
 	PY_NUM, PY_INT, PY_FLOAT, PY_BIN, PY_STR, QUERY_SEL, TAB, ID, DATA_EXT)
 from klibs import P
 from klibs.KLUtilities import (full_trace, type_str, iterable, bool_to_int, boolean_to_logical,
-	snake_to_camel)
+	snake_to_camel, getinput)
 from klibs.KLUtilities import colored_stdout as cso
 
 
@@ -80,7 +80,7 @@ class EntryTemplate(object):
 						if i[0] == column[0]:
 							insert_template[self.index_of(column[0])] = str(i[1])
 				else:
-					print self.data
+					print(self.data)
 					raise ValueError("Column '{0}' may not be null.".format(column))
 			else:
 				insert_template[self.index_of(column[0])] = column[0]
@@ -133,7 +133,7 @@ class EntryTemplate(object):
 		self.data[self.index_of(field)] = value
 
 	def report(self):
-		print self.schema
+		print(self.schema)
 
 
 # TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
@@ -265,12 +265,12 @@ class Database(EnvAgent):
 				# when insert() is directly used to add data to a table in the db, and that table
 				# doesn't exist, KLibs crashes hard with an IOError: Broken Pipe. Need to add proper
 				# and informative error handling for this.
-				print "Error: unable to write data to database."
+				print("Error: unable to write data to database.")
 				raise e
 		except sqlite3.OperationalError:
-			print full_trace()
-			print "\n\n"
-			print "Tried to match the following:\n\n{0}\n\nwith\n\n{1}".format(self.table_schemas[table], data.insert_query())
+			err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
+			print(full_trace())
+			print(err.format(self.table_schemas[table], data.insert_query()))
 			self.exp.quit()
 		self.db.commit()
 		return self.cursor.lastrowid
@@ -410,10 +410,10 @@ class DatabaseManager(EnvAgent):
 		)
 		db_action = ArgumentParser()
 		db_action.add_argument('action', type=str, choices=['c', 's', 'q'])
-		action = db_action.parse_args([raw_input(err_string).lower()[0]]).action
+		action = db_action.parse_args([getinput(err_string).lower()[0]]).action
 
 		if action == DB_SUPPLY_PATH:
-			P.database_path = raw_input(cso("<green_d>Great. Where might it be?</green_d>", False))
+			P.database_path = getinput(cso("<green_d>Great. Where might it be?</green_d>", False))
 			self.__load_master__()
 		elif action == DB_CREATE:
 			open(P.database_path, "a").close()
@@ -518,6 +518,7 @@ class DatabaseManager(EnvAgent):
 			q = q.format(*q_vars)
 			p_data = []
 			for trial in self.__master.query(q, q_vars=tuple([p[0]])):
+				print(trial)
 				row_str = TAB.join(str(col) for col in trial)
 				p_data.append(row_str)
 			data.append([p[0], p_data])

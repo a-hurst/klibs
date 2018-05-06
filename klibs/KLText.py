@@ -28,7 +28,7 @@ class TextStyle(object):
 		self._line_height = 0.5
 		self.__font_size_units = P.default_font_unit
 		self.__line_height_units = '*' # multiple of font size
-		self.__fontpath = fontpath
+		self.__fontpath = fontpath.encode('utf-8')
 		self.label = label
 		self.scale_factor = self._get_scale_factor()
 		self.font_size = font_size if font_size else P.default_font_size
@@ -157,7 +157,7 @@ class TextManager(object):
 
 
 	def __wrap__(self, text, style, rendering_font, align, width=None):
-		lines = text.split("\n")
+		lines = text.split(b"\n")
 		if width:
 			surface_width = width
 			wrapped_lines = []
@@ -251,7 +251,7 @@ class TextManager(object):
 		else:
 			needs_wrap = False
 
-		if len(text.split("\n")) > 1 or needs_wrap:
+		if len(text.split(b"\n")) > 1 or needs_wrap:
 			if align not in ["left", "center", "right"]:
 				raise ValueError("Text alignment must be one of 'left', 'center', or 'right'.")
 			return self.__wrap__(text, style, rendering_font, align, max_width)

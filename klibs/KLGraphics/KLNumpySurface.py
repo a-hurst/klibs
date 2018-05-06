@@ -203,7 +203,7 @@ class NumpySurface(object):
 			px = self.render()
 		px_count = px.shape[0] * px.shape[1]
 		new_px = px.reshape((px_count,4))
-		print new_px.shape
+		print(new_px.shape)
 
 	def blit(self, source, layer=NS_FOREGROUND, registration=7, location=(0, 0), behavior=None):
 		# todo: implement layer logic here
@@ -430,7 +430,7 @@ class NumpySurface(object):
 					iter(location)
 					location = [location[0], location[1]]
 				except AttributeError:
-					print "Argument 'location' must be iterable set of polar coordinates."
+					print("Argument 'location' must be iterable set of polar coordinates.")
 				new_pos = [0, 0]
 				mask_x1 = 0
 				mask_x2 = 0

@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
+__author__ = 'jono'
 """
 TODO: set this up such that all vars are in a dict with a key representing whether the var should
 be included in the user's template of the params file, then autogenerate the template doc. AND the
 runtime params from that dict (this was Jon's idea, is it worth the effort / likely API breaking?)
 """
 
-author = 'jono'
-
-import logging, time, tempfile, sys
+import sys
+import logging, time, tempfile
 from random import seed
 from datetime import datetime
 from os import makedirs, environ
@@ -17,7 +17,7 @@ from pkg_resources import resource_filename, resource_string
 from klibs.KLConstants import (TAB, DATETIME_STAMP, DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
 	FACTORS_EXT, PARAMS_EXT, MESSSAGING_EXT, BACK_EXT)
 
-klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
+klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
 
 # Runtime Variables
 participant_id = None

@@ -227,7 +227,7 @@ def colored_stdout(string, print_string=True, args=[]):
 	original_color = "\033[0m"
 	string =  end_col.sub(original_color, string)
 	if print_string:
-		print string
+		print(string)
 	else:
 		return string
 
@@ -276,6 +276,15 @@ def full_trace():
 	return exception_str[:-1]
 
 
+def getinput(*args, **kwargs):
+	# python-agnostic function for getting console input. Saves us from requring 'future'
+	# or 'six' compatibility package (for now, anyway).
+	try:
+		return raw_input(*args, **kwargs)
+	except NameError:
+		return input(*args, **kwargs)
+
+
 def hide_mouse_cursor():
 	SDL_ShowCursor(SDL_DISABLE)
 
@@ -311,7 +320,7 @@ def interpolated_path_len(points):
 
 def iterable(obj, exclude_strings=True):
 	if exclude_strings:
-		return hasattr(obj, '__iter__')
+		return hasattr(obj, '__iter__') and not isinstance(obj, str)
 	else:
 		try:
 			iter(obj)
@@ -430,7 +439,8 @@ def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
 		else:
 			return (x.value, y.value)
 	else:
-		SDL_WarpMouseGlobal(*position)
+		x, y = [int(n) for n in position]
+		SDL_WarpMouseGlobal(x, y)
 		return position
 
 
@@ -474,9 +484,9 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False, return_int=
 			x_pos = int(x_pos)
 			y_pos = int(y_pos)
 		return (x_pos, y_pos)
-	except Exception:
-		print "point_pos() error"
-		print origin, amplitude, angle, rotation, type(origin), type(amplitude), type(angle), type(rotation)
+	except Exception as e:
+		err = "point_pos error (start: {0}, amp: {1}, ang: {2}, rot: {3})"
+		print(err.format(origin, amplitude, angle, rotation))
 		raise
 
 
@@ -748,7 +758,8 @@ def scale(coords, canvas_size, target_size=None, scale=True, center=True):
 	return (x,y)
 
 def sdl_key_code_to_str(sdl_keysym):
-	key_name = SDL_GetKeyName(sdl_keysym).replace("Keypad ", "")
+	key_name = SDL_GetKeyName(sdl_keysym).replace(b"Keypad ", b"")
+	key_name = str(key_name.decode('utf-8')) # for py3k compatibility
 	if key_name == "Space":
 		return " "
 	if not any(SDL_GetModState() & mod for mod in [KMOD_CAPS, KMOD_SHIFT]):

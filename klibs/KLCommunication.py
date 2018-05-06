@@ -403,7 +403,7 @@ def query(query_ob, anonymous=False):
 		return int(input_string)
 	elif f.type == "str":
 		if f.action == QUERY_ACTION_HASH:
-			return sha1(str(input_string)).hexdigest()
+			return sha1(str(input_string).encode('utf-8')).hexdigest()
 		elif f.action == QUERY_ACTION_UPPERCASE:
 			return str(input_string).upper()
 		elif query_ob.allow_null and len(input_string) == 0:

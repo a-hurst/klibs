@@ -11,10 +11,10 @@ except ImportError:
 	PYLINK_AVAILABLE = False
 
 if PYLINK_AVAILABLE and P.eye_tracker_available:
-	from KLEyeLinkExt import EyeLinkExt
+	from .KLEyeLinkExt import EyeLinkExt
 	if P.development_mode:
 		print("Using PyLink")
 else:
-	from KLTryLink import TryLink as EyeLinkExt
+	from .KLTryLink import TryLink as EyeLinkExt
 	if P.development_mode:
 		print("Using TryLink")

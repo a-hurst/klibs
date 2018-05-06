@@ -973,7 +973,7 @@ class FreeDraw(Drawbject):
 			y2 = s[1] + e_size
 			b = Brush((0,0,0))
 			self.surface.ellipse([x1,y1,x2,y2], b)
-			print "CHUNK! {0}".format([x1,y1,x2,y2])
+			print("CHUNK! {0}".format([x1,y1,x2,y2]))
 		self.surface.flush()
 
 	def draw(self, with_points=False):

@@ -10,15 +10,15 @@ from hashlib import sha1
 from threading import Thread
 from sqlite3 import IntegrityError
 
-from sdl2 import (SDL_PumpEvents, SDL_KEYUP, SDL_KEYDOWN, SDLK_BACKSPACE, SDLK_RETURN,
-	SDLK_KP_ENTER, SDLK_ESCAPE)
+from sdl2 import (SDL_PumpEvents, SDL_StartTextInput, SDL_StopTextInput,
+	SDL_KEYDOWN, SDLK_ESCAPE, SDLK_BACKSPACE, SDLK_RETURN, SDLK_KP_ENTER, SDL_TEXTINPUT)
 
 from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, DELIM_NOT_LAST, DELIM_NOT_FIRST,
 	QUERY_ACTION_UPPERCASE, QUERY_ACTION_HASH)
 import klibs.KLParams as P
 from klibs.KLJSON_Object import JSON_Object
 from klibs.KLUtilities import (absolute_position, pretty_join, sdl_key_code_to_str, now, pump,
-	flush, iterable)
+	flush, iterable, utf8)
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
@@ -309,12 +309,13 @@ def query(query_ob, anonymous=False):
 		invalid_answer_str = template.format(f.range[0], f.range[1])
 
 	# user input loop; exited by breaking
-	input_string = ''  # populated in loop below
+	input_string = u''  # populated in loop below
 	error_string = None
 	user_finished = False
 
 	# Clear event queue and draw query text to screen before entering input loop
 	flush()
+	SDL_StartTextInput()
 	fill()
 	blit(q_text, p.registrations.query, p.locations.query)
 	flip()
@@ -322,59 +323,60 @@ def query(query_ob, anonymous=False):
 	while not user_finished:
 		for event in pump(True):
 
-			# Skip non-keyboard events
-			if event.type != SDL_KEYDOWN:
-				continue
+			if event.type == SDL_KEYDOWN:
 
-			error_string = None # clear error string (if any) on new keypress event
-			ui_request(event.key.keysym)
-			sdl_keysym = event.key.keysym.sym
+				error_string = None # clear error string (if any) on new key event
+				ui_request(event.key.keysym)
+				sdl_keysym = event.key.keysym.sym
 
-			if sdl_keysym == SDLK_ESCAPE:
-				# Esc clears any existing input
-				input_string = ""
+				if sdl_keysym == SDLK_ESCAPE:
+					# Esc clears any existing input
+					input_string = ""
 
-			elif sdl_keysym == SDLK_BACKSPACE:
-				# Backspace removes last character from input
-				input_string = input_string[:-1]
+				elif sdl_keysym == SDLK_BACKSPACE:
+					# Backspace removes last character from input
+					input_string = input_string[:-1]
 
-			elif sdl_keysym in (SDLK_KP_ENTER, SDLK_RETURN):
-				# Enter or Return check if a valid response has been made and end loop if it has
-				if len(input_string) > 0 or query_ob.allow_null is True:
-					response = input_string
-					# If type is 'int' or 'float', make sure input can be converted to that type
-					if f.type == "int":
-						try:
-							response = int(input_string)
-						except ValueError:
-							error_string = "Please respond with an integer."
-					elif f.type == "float":
-						try:
-							response = float(input_string)
-						except ValueError:
-							error_string = "Please respond with a number."
-					# If no errors yet, check input against list of accepted values (if q has one)
-					if not error_string:
-						if accepted_responses:
-							user_finished = response in accepted_responses
-							if not user_finished:
-								error_string = invalid_answer_str
-						elif f.range:
-							user_finished = (f.range[0] <= response <= f.range[1])
-							if not user_finished:
-								error_string = invalid_answer_str
-						else:
-							user_finished = True
-				else:
-					# If no input and allow_null is false, display error
-					error_string = default_strings['no_answer_string']
+				elif sdl_keysym in (SDLK_KP_ENTER, SDLK_RETURN):
+					# Enter or Return check if a valid response has been made and end loop if it has
+					if len(input_string) > 0 or query_ob.allow_null is True:
+						response = input_string
+						# If type is 'int' or 'float', make sure input can be converted to that type
+						if f.type == "int":
+							try:
+								response = int(input_string)
+							except ValueError:
+								error_string = "Please respond with an integer."
+						elif f.type == "float":
+							try:
+								response = float(input_string)
+							except ValueError:
+								error_string = "Please respond with a number."
+						# If no errors yet, check input against list of accepted values (if q has one)
+						if not error_string:
+							if accepted_responses:
+								user_finished = response in accepted_responses
+								if not user_finished:
+									error_string = invalid_answer_str
+							elif f.range:
+								user_finished = (f.range[0] <= response <= f.range[1])
+								if not user_finished:
+									error_string = invalid_answer_str
+							else:
+								user_finished = True
+					else:
+						# If no input and allow_null is false, display error
+						error_string = default_strings['no_answer_string']
 
-			elif sdl_key_code_to_str(sdl_keysym):
-				# If input is not a special key, process and add it to input (if valid)
-				input_string += sdl_key_code_to_str(sdl_keysym)
+			elif event.type == SDL_TEXTINPUT:
+
+				input_string += event.text.text.decode('utf-8')
 				if f.case_sensitive is False:
 					input_string = input_string.lower()
 				input_string = input_string.strip() # remove any trailing whitespace
+			
+			else:
+				continue
 
 			# If any text entered or error message encountered, render text for drawing
 			if error_string:
@@ -398,18 +400,19 @@ def query(query_ob, anonymous=False):
 	# Once a valid response has been made, clear the screen
 	fill()
 	flip()
+	SDL_StopTextInput()
 
 	if f.type == "int":
 		return int(input_string)
 	elif f.type == "str":
 		if f.action == QUERY_ACTION_HASH:
-			return sha1(str(input_string).encode('utf-8')).hexdigest()
+			return sha1(utf8(input_string).encode('utf-8')).hexdigest()
 		elif f.action == QUERY_ACTION_UPPERCASE:
-			return str(input_string).upper()
+			return utf8(input_string).upper()
 		elif query_ob.allow_null and len(input_string) == 0:
 			return None
 		else:
-			return str(input_string)
+			return utf8(input_string)
 	elif f.type == "float":
 		return float(input_string)
 	elif f.type == "bool":

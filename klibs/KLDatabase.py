@@ -586,8 +586,8 @@ class DatabaseManager(EnvAgent):
 				p_id = data_set[0]
 				if p_id != -1:
 					header = self.export_header(p_id)
-					incomplete = len(data_set[1]) != P.trials_per_block * P.blocks_per_experiment
-					file_path = self.filepath_str(p_id, multi_file, incomplete)
+					incomplete = len(data_set[1]) < P.trials_per_block * P.blocks_per_experiment
+					file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
 					with codecs.open(file_path, 'w+', 'utf-8') as out:
 						out.write("\n".join([header, column_names, "\n".join(data_set[1])]))
 					print("    - Participant {0} successfully exported.".format(p_id))
@@ -599,7 +599,7 @@ class DatabaseManager(EnvAgent):
 					p_count += 1
 					combined_data += data_set[1]
 			header = self.export_header()
-			file_path = self.filepath_str(multi_file=False)
+			file_path = self.filepath_str(multi_file=False, base=table, joined=join_tables)
 			with codecs.open(file_path, 'w+', 'utf-8') as out:
 				out.write("\n".join([header, column_names, "\n".join(combined_data)]))
 			print("    - Data for {0} participants successfully exported.".format(p_count))
@@ -643,11 +643,21 @@ class DatabaseManager(EnvAgent):
 		return header
 		
 
-	def filepath_str(self, participant_id=None, multi_file=False, incomplete=False):
+	def filepath_str(self, p_id=None, multi_file=False, base=None, joined=[], incomplete=False):
+
+		# if tables to join or alternate base table specified for export, note this in filename
+		tables = ''
+		if base != None or len(joined):	
+			joined_tables = '+'.join(['']+joined)
+			tables = '[{0}{1}]'.format(base if base != None else '', joined_tables)
+		
 		if multi_file:
 			created_q = "SELECT `created` FROM `participants` WHERE `id` = ?"
-			created = str(self.__master.query(created_q, q_vars=[1], fetch_all=False).fetchone()[0][:10])
-		basename = "p{0}.{1}".format(str(participant_id), created) if multi_file else "{0}_all_trials".format(P.project_name)
+			created = self.__master.query(created_q, q_vars=[1], fetch_all=False).fetchone()[0][:10]
+			basename = "p{0}{1}.{2}".format(str(p_id), tables, created)
+		else:
+			basename = "{0}_all_trials{1}".format(P.project_name, tables)		
+
 		duplicate_count = 0
 		while True:
 			# Generate suffix and see if file already exists with that name. If it does, keep incremeting
@@ -661,7 +671,9 @@ class DatabaseManager(EnvAgent):
 				duplicate_count += 1
 			else:
 				break
+
 		return filepath
+
 
 	def rebuild(self):
 		if not isfile(P.schema_file_path):

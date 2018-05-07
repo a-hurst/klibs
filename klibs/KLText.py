@@ -12,7 +12,7 @@ import numpy as np
 
 from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
 from klibs import P
-from klibs.KLUtilities import deg_to_px, px_to_deg
+from klibs.KLUtilities import deg_to_px, px_to_deg, utf8
 from klibs.KLGraphics import NpS, rgb_to_rgba
 
 
@@ -232,16 +232,9 @@ class TextManager(object):
 		"""
 		
 		stl = style if isinstance(style, TextStyle) else self.styles[style]
-		
-		try:
-			is_unicode = isinstance(text, unicode)
-		except NameError: # 'unicode' doesn't exist in python 3
-			is_unicode = isinstance(text, str)
 
 		if not isinstance(text, bytes):
-			if is_unicode == False:
-				text = str(text)
-			text = text.encode('utf-8')
+			text = utf8(text).encode('utf-8')
 
 		rendering_font = stl.font
 		if max_width != None:

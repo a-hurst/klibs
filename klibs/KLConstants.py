@@ -118,19 +118,19 @@ QUERY_ACTION_UPPERCASE = "uppercase"
 
 # KLDatabase Constants
 PY_FLOAT = 'float'
-PY_STR = 'str'
-PY_BOOL = 'bool'
 PY_INT = 'int'
-PY_BIN = 'binary'
-PY_NUM = 'numeric'
+PY_BOOL = 'bool'
+PY_STR = 'str'
+PY_BIN = 'bytes'
+SQL_NUMERIC = 'numeric'
 SQL_FLOAT = 'float'
 SQL_REAL = 'real'
-SQL_BIN = 'blob'
-SQL_KEY = 'integer key'
 SQL_INT = 'integer'
-SQL_NUMERIC = 'numeric'
-SQL_NULL = 'null'
+SQL_KEY = 'integer key'
+SQL_BOOL = 'boolean'
 SQL_STR = 'text'
+SQL_BIN = 'blob'
+SQL_NULL = 'null'
 SQL_COL_DELIM_STR = "`, `"
 ID = "id"
 DB_SUPPLY_PATH = "s"

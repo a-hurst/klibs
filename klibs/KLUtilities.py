@@ -97,10 +97,10 @@ def bool_to_int(boolean_val):
 def boolean_to_logical(value, convert_integers=False):
 	if convert_integers and value in [0, 1, '0', '1']:
 		value = bool(int(value))
-	logical = str(value).upper()
+	logical = utf8(value).upper()
 	if logical not in ['TRUE', 'FALSE']:
-		logical = None
-	return logical
+		return None
+	return str(logical)
 
 
 def bounded_by(pos, left, right, top, bottom):
@@ -817,6 +817,23 @@ def translate_points(points, delta, flat=False):
 
 def type_str(var):
 	return type(var).__name__
+
+
+def utf8(x):
+	'''A Python 2/3 agnostic function for converting things to unicode strings. Equivalent to
+	unicode() in Python 2 and str() in Python 3.
+	
+	Args:
+		x: The number, string, or other object to convert to unicode.
+	
+	Returns:
+		unicode or str: a unicode string in Python 2, and a regular (unicode) string in Python 3.
+	
+	'''
+	try:
+		return unicode(x)
+	except NameError:
+		return str(x)
 
 
 def smart_sleep(interval, units=TK_MS):

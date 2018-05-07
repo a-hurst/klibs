@@ -143,14 +143,7 @@ class Experiment(EnvAgent):
 				blit(self.tracker_dot, 5, self.el.gaze())
 			except RuntimeError:
 				pass
-		# KLDebug in very early stages and not ready for UnitTest branch of klibs; below code may return later
-		# if P.development_mode and not P.dm_suppress_debug_pane:
-		# 	try:
-		# 		self.debug.print_logs(cli=False)
-		# 	except AttributeError as e:  # potentially gets called once before the Debugger is intialized during init
-		# 		if P.display_initialized:
-		# 			raise
-
+				
 	def insert_practice_block(self, block_nums, trial_counts=None, factor_mask=None):
 		"""
 		Adds one or more practice blocks to the experiment. This function must be called during setup(),

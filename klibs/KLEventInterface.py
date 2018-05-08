@@ -87,7 +87,7 @@ class TrialEventTicket(EnvAgent, NamedObject):
 	@unit.setter
 	def unit(self, val):
 		if val not in [TK_S, TK_MS]:
-			raise TypeError("Property 'unit' must be a valid KLTimeKeeper constant.")
+			raise TypeError("Property 'unit' must be a valid time constant.")
 		self.__unit__ = val
 
 
@@ -445,9 +445,9 @@ class EventManager(EnvAgent):
 		while not self.__poll__(): pass
 
 	def terminate(self, max_wait=1):
-		self.tk.start("terminate")
 		self.clock.terminate()
-		while self.tk.elapsed("terminate") < max_wait:
+		start = time()
+		while (time() - start) < max_wait:
 			sleep(0.05)
 			if not self.clock.is_alive():
 				break

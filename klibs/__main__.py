@@ -179,7 +179,6 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 	from klibs.KLGraphics import display_init
 	from klibs.KLDatabase import DatabaseManager
 	from klibs.KLEventInterface import EventManager
-	from klibs.KLTime import TimeKeeper
 	from klibs.KLText import TextManager
 	from klibs.KLResponseCollectors import ResponseCollector
 	from klibs.KLCommunication import init_messaging, collect_demographics, init_default_textstyles
@@ -258,7 +257,6 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 
 	# create runtime environment
 	env.txtm = TextManager()
-	env.tk = TimeKeeper()
 	env.rc = ResponseCollector()
 	if P.eye_tracking:
 		if no_eyelink is True:

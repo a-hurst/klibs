@@ -3,164 +3,264 @@ __author__ = 'j. mulle, this.impetus@gmail.com'
 
 from time import time
 
-from klibs.KLEnvironment import EnvAgent
-from klibs.KLConstants import TK_S, TK_MS
-
 
 class CountDown(object):
-	duration = 0
-	started = 0
-	paused = False
+
+	"""A timer that counts down to 0 for a given duration. Can be paused, reset, extended,
+	and checked for time remaining or elapsed, making it flexible and useful for many different
+	situations.
+
+	Args:
+		duration(float): The duration in seconds that the timer should count down for.
+		start(bool, optional): Whether to start the countdown immediately upon creation. Defaults
+			to True.
+
+	Attributes:
+		duration(float): The duration that the timer is set to count down for.
+		started(bool): Whether the countdown timer has been started yet.
+		paused(bool): The current pause state of the countdown timer.
+	
+	Raises:
+		ValueError: if the duration specified is not a positive real number.
+
+	"""
+	__started = 0
+	__pause_time = 0.0
+	__flex = 0.0 # for add() and finish() 
+	__paused = False
+	__duration = 0
 
 	def __init__(self, duration, start=True):
 		super(CountDown, self).__init__()
-		if type(duration) not in [int, float]:
-			raise ValueError("Duration must be a positive number.")
-		elif duration <= 0:
-			raise ValueError("Authorization Denied: negative and null duration privileges restricted to user dr_who.")
-		self.duration = float(duration)
+		self.duration = duration
+		self.reset(start)
+
+	def start(self):
+		"""Starts the countdown if it has not started already.
+
+		Raises:
+			RuntimeError: If called after the countdown has already been started.
+
+		"""
+		if not self.started:
+			self.__started = time()
+			self.__paused = False
+		else:
+			err = "Cannot start CountDown that's already started (use reset method instead)."
+			raise RuntimeError(err)
+
+	def counting(self):
+		"""Indicates whether the timer is currently counting down or not.
+
+		Returns:
+			bool: False if the countdown is paused or has finished, otherwise True.
+
+		"""
+		if self.paused:
+			return False
+		else:
+			return self.remaining() != 0
+
+	def reset(self, start=True):
+		"""Resets the countdown so it starts back at the original duration.
+		
+		Args:
+			start(bool, optional): If True, the countdown will immediately start again after
+				resetting. If False, the countdown will be reset into a paused state. Defaults
+				to True.
+				
+		"""
+		self.__started = 0
+		self.__pause_time = 0.0
+		self.__flex = 0.0
+		if start:
+			self.start()
+		else:
+			self.pause()
+
+	def finish(self):
+		"""Ends the countdown by jumping the time remaining directly to zero.
+
+		"""
+		self.__flex += self.remaining()
+
+	def add(self, delta):
+		"""Add an amount of time to (or subtract an amount from) the elapsed time of the countdown.
+		Note that a CountDown's time elapsed is clipped such that it can be no less than zero and 
+		no larger than the timer's set duration: for example, 'self.add(-100)' when 5 seconds has
+		elapsed in the CountDown will only reduce the elapsed time to 0, and 'self.add(100)' when
+		the CountDown's duration is 8 seconds will only increase the elapsed time to 8. 
+		
+		Args:
+			delta(float): The number of seconds to add to the countdown timer. Can be a positive
+				or negative number.
+
+		"""
+		if (self.elapsed() + delta) < 0:
+			# ensure subtraction will never result in negative duration
+			delta = 0 - self.elapsed()
+		elif delta >= self.remaining():
+			# end timer if duration added is greater than time remaining
+			delta = self.remaining()
+		self.__flex += delta
+
+	def pause(self):
+		"""Pauses the countdown if it is not already paused. The countdown can later be resumed
+		with the resume() method. Does nothing if the timer is already paused.
+
+		"""
+		if not self.paused:
+			self.__paused = time()
+
+	def resume(self):
+		"""Unpauses the countdown if it is currently paused. Does nothing if it is not paused.
+
+		"""
+		if self.paused:
+			self.__pause_time += time() - self.__paused
+			self.__paused = False
+
+	def remaining(self):
+		"""Returns the amount of time remaining in the countdown (in seconds). Will return 0 if the
+		countdown has ended.
+
+		"""
+		return self.duration - self.elapsed()
+
+	def elapsed(self):
+		"""Returns the amount of time elapsed in the countdown (in seconds). If the countdown has
+		finished, the value returned will be equal to the countdown duration (e.g. 2.5 for a
+		finished countdown with a duration of 2.5 seconds)
+
+		"""
+		if not self.started:
+			t = self.__flex
+		elif self.paused:
+			t = (self.__paused + self.__flex) - (self.__started + self.__pause_time)
+		else:
+			t = (time() + self.__flex) - (self.__started + self.__pause_time)
+		return t if t < self.duration else self.duration
+
+	@property
+	def started(self):
+		return self.__started is not 0
+
+	@property
+	def paused(self):
+		return self.__paused is not False
+	
+	@property
+	def duration(self):
+		return self.__duration
+	
+	@duration.setter
+	def duration(self, value):
+		try:
+			self.__duration = float(value)
+		except ValueError:
+			raise ValueError("Duration must be a positive real number.")
+		if value <= 0:
+			err = ("Authorization Denied: negative and null duration privileges restricted to "
+				"user dr_who.")
+			raise ValueError(err)
+		
+
+
+class Stopwatch(object):
+
+	"""A timer that counts upwards and can be paused, resumed, and reset, just like a stopwatch.
+
+	Args:
+		start(bool, optional): Whether to start the stopwatch immediately upon creation. Defaults
+			to True.
+
+	Attributes:
+		started(bool): Whether the stopwatch timer has been started yet.
+		paused(bool): The current pause state of the stopwatch timer.
+	
+	"""
+	__started = 0
+	__pause_time = 0.0
+	__flex = 0.0 # for add()
+	__paused = False
+
+	def __init__(self, start=True):
+		super(Stopwatch, self).__init__()
 		if start: self.start()
 
 	def start(self):
-		self.started = time()
+		"""Starts the stopwatch if it has not started already.
 
-	def counting(self):
-		if self.paused is not False:
-			return False
+		Raises:
+			RuntimeError: If called after the stopwatch has already been started.
+
+		"""
+		if self.__started == 0:
+			self.__started = time()
+			self.__paused = False
 		else:
-			return time() - self.started < self.duration
+			err = "Cannot start Stopwatch that's already started (use reset method instead)."
+			raise RuntimeError(err)
 
-	def reset(self):
-		self.start()
-		self.paused = False
+	def reset(self, start=True):
+		"""Resets the stopwatch so it starts back at zero.
+		
+		Args:
+			start(bool, optional): If True, the stopwatch will immediately start again after
+				resetting. If False, the stopwatch will be reset into a paused state. Defaults
+				to True.
 
-	def finish(self):
-		self.started = time() - self.duration
+		"""
+		self.__started = 0
+		self.__pause_time = 0.0
+		self.__flex = 0.0
+		if start:
+			self.start()
+		else:
+			self.pause()
 
-	def add(self, time):
-		self.started += time
+	def add(self, duration):
+		"""Add an amount of time to (or subtract an amount from) the stopwatch timer.
+		
+		Args:
+			duration(float): The number of seconds to add to the stopwatch timer. Can be a positive
+				or negative number.
+
+		"""
+		self.__flex += duration
 
 	def pause(self):
-		self.paused = time()
+		"""Pauses the stopwatch if it is not already paused. The stopwatch can later be resumed
+		with the resume() method. Does nothing if the timer is already paused.
+
+		"""
+		if not self.paused:
+			self.__paused = time()
 
 	def resume(self):
-		self.started += time() - self.paused
-		self.paused = False
+		"""Unpauses the stopwatch if it is currently paused. Does nothing if the timer is not
+		paused.
 
-	def remaining(self):
-		return self.duration - (time() - self.started)
+		"""
+		if self.paused:
+			self.__pause_time += time() - self.__paused
+			self.__paused = False
 
 	def elapsed(self):
-		return time() - self.started
+		"""Returns the amount of time elapsed on the stopwatch (in seconds).
 
-	def unpause(self):
-		self.resume()  # deprecated, maintained for backwards compatibility
-
-
-
-class TimeKeeper(EnvAgent):
-	moments = {}
-	periods = {}
-	mean_moments = {}
-	mean_periods = {}
-	countdowns = {}
-
-	# todo: add units argument as between secondds/ ms
-
-	def __init__(self):
-		super(TimeKeeper, self).__init__()
-		self.log("Instantiated")
-
-	def log(self, label, time_value=None):
-		self.moments[label] = time_value if time_value else time()
-
-	def sample(self, label, time_value=None):
-		if label in self.mean_moments:
-			self.mean_moments[label].append(time_value if time_value else time())
+		"""
+		if self.__started == 0:
+			return self.__flex
+		elif self.paused:
+			return (self.__paused + self.__flex) - (self.__started + self.__pause_time)
 		else:
-			self.mean_moments[label] = [time_value if time_value else time()]
+			return (time() + self.__flex) - (self.__started + self.__pause_time)			
 
-	def sample_start(self, label, time_value=None):
-		sample_index = len(self.mean_periods[label]) - 1 if label in self.mean_periods else 0
-		sample_key = "{0}.{1}".format(label, sample_index )
-		if label in self.mean_periods:
-			self.mean_periods[label].append([time_value if time_value else time(), None])
-		else:
-			self.mean_periods[label] = [[time_value if time_value else time(), None]]
-		return sample_key
+	@property
+	def started(self):
+		return self.__started is not 0
 
-	def sample_stop(self, label, sample_key=None, time_value=None):
-		sample_index = int(sample_key.split(".")[1]) if sample_key is not None else len(self.mean_periods[label]) - 1
-		if self.mean_periods[label][sample_index][1] is not None:
-			raise RuntimeError("Trying to stop a sample that has already finished.")
-		self.mean_periods[label][sample_index][1] = time_value if time_value else time()
-
-	def mean(self, label):
-		try:
-			values = self.mean_periods[label]
-			periods = [key[1] - key[0] for key in self.mean_periods[label]]
-		except KeyError:
-			values = self.mean_moments[label]
-		mean_val = sum(periods) / len(values)
-
-		try:
-			return [mean_val, values, periods ]
-		except NameError:
-			return [values, mean_val]
-
-	def start(self, label, time_value=None):
-		self.periods[label] = [time_value if time_value else time(), None]
-		return self
-
-	def stop(self, label, time_value=None):
-		self.periods[label][1] = time_value if time_value else time()
-		return self
-
-	def period(self, label):
-		try:
-			return self.periods[label][1] - self.periods[label][0]
-		except (KeyError, TypeError):
-			self.stop(label)
-			return self.period(label)
-
-	def read(self, label):
-		label_from_key = label.split(".")
-		try:
-			return self.mean_periods[label_from_key[0]][label_from_key[1]][1]
-		except KeyError:
-			try:
-				return self.moments[label]
-			except KeyError:
-				try:
-					return self.periods[label]
-				except KeyError:
-					raise KeyError("{0} not found in either of TimeKeeper.moments or TimeKeeper.periods".format(label))
-
-	def export(self):
-		output = ["Moments"]
-		for m in self.moments:
-			output.append( "{0}: {1}".format(m, self.moments[m]) )
-		for p in self.periods:
-			times = [self.periods[p][0], self.periods[p][1]]
-			try:
-				times.append(times[1] - times[0])
-			except TypeError:
-				times.append(None)
-			output.append( "{0}: Start = {1}, End = {2}, Duration = {3}".format(p, *times))
-		return "\n".join(output)
-
-	def elapsed(self, label):
-		return time() - self.periods[label][0]
-
-	def countdown(self, duration=None, label=None, start=True, unit=TK_S):
-		if unit == TK_MS:
-			duration *= 0.001
-		if duration is False:
-			try:
-				return self.countdowns[label]
-			except KeyError:
-				raise KeyError("No countdown started by that name. To start a countdown include a duration argument.")
-		countdown = CountDown(duration, start)
-		if label is not None:
-			self.countdowns[label] = countdown
-		return countdown
+	@property
+	def paused(self):
+		return self.__paused is not False 

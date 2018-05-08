@@ -10,7 +10,7 @@ NA = "NA"
 ALL = "*"
 RGBA = "RGBA"
 
-# TimeKeeper Constants
+# Time Constants
 TK_MS = 1 # Use milliseconds
 TK_S = 0 # Use seconds
 

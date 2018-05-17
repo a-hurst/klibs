@@ -13,6 +13,7 @@ RGBA = "RGBA"
 # Time Constants
 TK_MS = 1 # Use milliseconds
 TK_S = 0 # Use seconds
+DATETIME_STAMP = '%Y-%m-%d_%H-%M'
 
 # KLBoundary shape aliases
 RECT_BOUNDARY = "rectangle"
@@ -185,6 +186,3 @@ EVI_CONSTANTS = [
 	EVI_EL_START_REC, EVI_EL_STOP_REC, EVI_SEND_TIME, EVI_CLOCK_SYNC, EVI_CLOCK_RESET,
 	EVI_DEREGISTER_EVENT, EVI_EVENT_SYNC_COMPLETE
 ]
-
-# Misc Constants
-DATETIME_STAMP = '%Y-%m-%d %H:%M:%S'

@@ -175,7 +175,7 @@ def display_init(diagonal_in):
 
 		P.screen_x = display_mode.w
 		P.screen_y = display_mode.h
-		P.screen_c = (P.screen_x / 2, P.screen_y / 2)
+		P.screen_c = (P.screen_x // 2, P.screen_y // 2)
 		P.screen_x_y = (P.screen_x, P.screen_y)
 
 		P.refresh_rate = display_mode.refresh_rate

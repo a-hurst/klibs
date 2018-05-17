@@ -206,7 +206,7 @@ class AudioSample(object):
 		self.array = array('h', raw_sample)
 		self.peak = max(self.array)
 		self.trough = min(self.array)
-		self.mean = sum(self.array) / len(self.array)
+		self.mean = sum(self.array) // len(self.array)
 
 
 class AudioStream(pyaudio.Stream, EnvAgent):
@@ -401,7 +401,7 @@ class AudioCalibrator(EnvAgent):
 			ui_request()
 			peaks.append(self.stream.sample().peak)
 		self.stream.stop()
-		return sum(peaks) / len(peaks)
+		return sum(peaks) / float(len(peaks))
 
 	def get_peak_during(self, period, msg=None):
 		"""Determines the peak loudness value recorded over a given period. Displays a visual

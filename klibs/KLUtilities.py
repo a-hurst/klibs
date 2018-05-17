@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 __author__ = 'jono'
 
-import math
 import os
-import ctypes
-import time
-import datetime
 import re
+import math
+import time
+import ctypes
+import datetime
 import traceback
-import multiprocessing as mp
 from sys import exc_info
-from subprocess import Popen, PIPE
 from math import sin, cos, acos, atan2, radians, pi, degrees, ceil
 
 from sdl2 import (SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents,
@@ -152,6 +150,7 @@ def build_registrations(source_height, source_width):
 def camel_to_snake(string):
 	return re.sub('([a-z0-9])([A-Z])', r'\1_\2', re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)).lower()
 
+
 def canvas_size_from_points(points, flat=False):
 	"""Determines the size of the smallest canvas (e.g. Drawbject surface) required to contain a
 	shape defined by a list of x,y points. 
@@ -180,10 +179,12 @@ def canvas_size_from_points(points, flat=False):
 	h = int(max(y_points) - min(y_points)) + 2
 	return [w, h]
 
+
 def chunk(items, chunk_size):
 	"""Yield successive chunk-sized chunks from items."""
 	for i in range(0, len(items), chunk_size):
 		yield items[i:i+chunk_size]
+
 
 def clip(value, minimum, maximum):
 	"""Restricts a numeric value to within given range.
@@ -203,7 +204,6 @@ def clip(value, minimum, maximum):
 	elif value < minimum:
 		value = minimum
 	return value
-
 
 
 def colored_stdout(string, print_string=True, args=[]):
@@ -240,22 +240,6 @@ def deg_to_px(deg, even=False):
 	else:
 		px = deg * P.ppd
 	return int(px)	# todo: error checking?
-
-
-def equiv(comparator, canonical):
-	equivalencies = {
-		"inch": ["in", "inch"],
-		"inches": ["ins", "inches"],
-		"cm": ["centimeter", "cm"],
-		"cms": ["centimeters", "cms"],
-		"CRT": ["crt", "CRT"],
-		"LCD": ["lcd", "LCD"]
-	}
-
-	if canonical in equivalencies:
-		return comparator in equivalencies[canonical]
-	else:
-		return False
 
 
 def flush():
@@ -400,7 +384,7 @@ def midpoint(p1, p2):
 
 
 def mean(values, as_int=False):
-	mean_val = sum(values) / len(values)
+	mean_val = sum(values) / float(len(values))
 	return mean_val if not as_int else int(mean_val)
 
 
@@ -687,26 +671,6 @@ def show_mouse_cursor():
 	return pump()
 
 
-def safe_flag_string(flags, prefix=None, uc=True):
-	if prefix and type(prefix) is not str:
-		e = "The keyword argument, 'prefix', must be of type 'str' but '{0}' was passed.".format(type(prefix))
-		raise TypeError(e)
-
-	if type(flags) is list:
-		for i in range(0, len(flags)):
-			if uc:
-				flags[i] = flags[i].upper()
-			else:
-				flags[i] = flags[i]
-			if prefix:
-				flags[i] = prefix + "." + flags[i]
-		flag_string = " | ".join(flags)
-
-	else:
-		raise TypeError("The 'flags' argument must be of type 'list' but '{0}' was passed.".format(type(flags)))
-
-	return eval(flag_string)
-
 def scale(coords, canvas_size, target_size=None, scale=True, center=True):
 	"""Scales and/or centers pixel coordinates intended for use at a given resolution to a
 	smaller or larger resolution, maintaining aspect ratio.
@@ -847,7 +811,7 @@ def smart_sleep(interval, units=TK_MS):
 
 
 def acute_angle(vertex, p1, p2):
-	v_p1 = line_segment_len(vertex, p1)
-	v_p2 = line_segment_len(vertex, p2)
+	v_p1 = float(line_segment_len(vertex, p1))
+	v_p2 = float(line_segment_len(vertex, p2))
 	p1_p2 = line_segment_len(p1, p2)
 	return degrees(acos((v_p1**2 + v_p2**2 - p1_p2**2) / (2 * v_p1 * v_p2)))

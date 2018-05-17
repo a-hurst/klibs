@@ -680,7 +680,7 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
 		# determine surface margins based on the rotation and thickness of the line so it doesn't
 		# get cropped at the corners
 		margin = point_pos((0,0), thickness/2.0, -90, rotation)
-		self.margin = map(abs, margin)
+		self.margin = tuple([abs(i) for i in margin])
 		w = abs(self.p1[0] - self.p2[0]) + self.margin[1] * 2
 		h = abs(self.p1[1] - self.p2[1]) + self.margin[0] * 2
 		super(Line, self).__init__(w, h, [thickness, color, STROKE_INNER], fill=None)

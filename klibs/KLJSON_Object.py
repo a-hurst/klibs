@@ -7,7 +7,7 @@ import json
 
 class AttributeDict(dict):
 	'''A Python dictionary that lets you access items like you would object attributes.
-	For example, the AttributeDict d = {'one': 1, 'two': 2}, you could get the value of 'one'
+	For example, for the AttributeDict d = {'one': 1, 'two': 2}, you could get the value of 'one'
 	through either d['one'] or d.one.
 	'''
 	def __getattr__(self, key):

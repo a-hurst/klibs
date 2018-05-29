@@ -9,14 +9,13 @@ import OpenGL.GL as gl
 import numpy as np
 from PIL import Image
 
-from klibs import P
-from klibs.KLUtilities import absolute_position, build_registrations
 from klibs.KLConstants import *
-from .KLNumpySurface import NumpySurface as NpS
+from klibs import P
 
 
 def aggdraw_to_numpy_surface(draw_context):
-	return NpS(aggdraw_to_array(draw_context))
+	from .KLNumpySurface import NumpySurface
+	return NumpySurface(aggdraw_to_array(draw_context))
 
 
 def aggdraw_to_array(draw_obj):
@@ -45,8 +44,9 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 			TypeError: If the 'source' object passed is not one of the accepted types.
 		"""
 		from .KLDraw import Drawbject
+		from .KLNumpySurface import NumpySurface
 		
-		if isinstance(source, NpS):
+		if isinstance(source, NumpySurface):
 			height = source.height
 			width = source.width
 			if source.rendered is None:
@@ -96,9 +96,6 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 		gl.glBindTexture(gl.GL_TEXTURE_2D, t_id)
 		gl.glBegin(gl.GL_QUADS)
 
-		# convert english location strings to x,y coordinates of destination surface
-		if type(location) is str:
-			location = absolute_position(location, P.screen_x_y)
 		# location[0] += P.screen_origin[0]
 		# location[1] += P.screen_origin[1]
 		# define boundaries coordinates of region being blit to
@@ -113,7 +110,7 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 		#          anchor point from 1 to 9, as illustrated in the diagram to the left.
 
 		try:
-			x_offset, y_offset = build_registrations(height, width)[registration]
+			x_offset, y_offset = _build_registrations(height, width)[registration]
 		except IndexError:
 			raise ValueError("Registration must be an integer between 1 and 9 inclusive")
 
@@ -300,3 +297,17 @@ def rgb_to_rgba(rgb):
 		Tuple[r, g, b, a]: A 4-element RGBA tuple.
 	"""
 	return tuple(rgb) if len(rgb) == 4 else tuple([rgb[0], rgb[1], rgb[2], 255])
+
+
+def _build_registrations(source_height, source_width):
+    return ((),
+        (0, -1.0 * source_height),
+        (-1.0 * source_width / 2.0, -1.0 * source_height),
+        (-1.0 * source_width, -1.0 * source_height),
+        (0, -1.0 * source_height / 2.0),
+        (-1.0 * source_width / 2.0, -1.0 * source_height / 2.0),
+        (-1.0 * source_width, -1.0 * source_height / 2.0),
+        (0, 0),
+        (-1.0 * source_width / 2.0, 0),
+        (-1.0 * source_width, 0)
+    )

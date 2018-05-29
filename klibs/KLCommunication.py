@@ -17,8 +17,7 @@ from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, DELIM_NOT_LAST,
 	QUERY_ACTION_UPPERCASE, QUERY_ACTION_HASH)
 import klibs.KLParams as P
 from klibs.KLJSON_Object import JSON_Object
-from klibs.KLUtilities import (absolute_position, pretty_join, sdl_key_code_to_str, now, pump,
-	flush, iterable, utf8)
+from klibs.KLUtilities import pretty_join, now, pump, flush, iterable, utf8
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
@@ -223,10 +222,7 @@ def message(text, style=None, location=None, registration=None, blit_txt=True,
 			try:
 				iter(location)
 			except AttributeError:
-				try:
-					location = absolute_position(location, P.screen_x_y)
-				except ValueError:
-					raise ValueError("Argument 'location' must be a location constant or iterable x,y coordinate pair")
+				raise ValueError("Argument 'location' must be a location constant or iterable x,y coordinate pair")
 			if clear_screen:
 				fill(clear_screen if iterable(clear_screen) else P.default_fill_color)
 			blit(message_surface, registration, location)

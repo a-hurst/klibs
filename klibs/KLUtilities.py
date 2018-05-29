@@ -20,57 +20,9 @@ from sdl2.ext import get_events
 from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
 from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
 
-from klibs.KLConstants import (BL_RIGHT, BL_LEFT, BL_TOP, BL_BOTTOM, BL_TOP_RIGHT, BL_TOP_LEFT,
-	BL_BOTTOM_RIGHT, BL_BOTTOM_LEFT, BL_CENTER, DATETIME_STAMP,
-	DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP, TK_S, TK_MS)
+from klibs.KLConstants import (DATETIME_STAMP, DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP, 
+	TK_S, TK_MS)
 from klibs import P
-
-
-def absolute_position(position, destination):
-	height = None
-	width = None
-	try:  # ie. a numpy array
-		height = destination.shape[0]
-		width = destination.shape[1]
-	except AttributeError:
-		pass
-	if height is None and width is None:
-		try:  # ie. a NumpySurface object
-			height = destination.height
-			width = destination.width
-		except:
-			pass
-	if height is None and width is None:
-		try:
-			iter(destination)
-			if all(type(i) is int for i in [destination[0], destination[1]]):
-				height = destination[1]
-				width = destination[0]
-		except:
-			pass
-	if height is None and width is None:
-		try:
-			height = P.screen_y
-			width = P.screen_x
-		except:
-			raise TypeError("Argument 'destination' invalid; must be [x,y] iterable, numpy.ndarray or klibs.NumpySurface.")
-
-	locations = {
-		BL_CENTER: [width // 2, height // 2],
-		BL_TOP_LEFT: [0, 0],
-		BL_TOP: [width // 2, 0],
-		BL_TOP_RIGHT: [width, 0],
-		BL_LEFT: [0, height // 2],
-		BL_RIGHT: [0, height],
-		BL_BOTTOM_LEFT: [0, height],
-		BL_BOTTOM: [width // 2, height],
-		BL_BOTTOM_RIGHT: [width, height]
-	}
-
-	try:
-		return locations[position]
-	except IndexError:
-		raise ValueError("Invalid position identifier.")
 
 
 def arg_error_str(arg_name, given, expected, kw=True):
@@ -102,49 +54,10 @@ def boolean_to_logical(value, convert_integers=False):
 
 
 def bounded_by(pos, left, right, top, bottom):
-		"""
-
-
-		:param pos:
-		:param left:
-		:param right:
-		:param top:
-		:param bottom:
-		:return: :raise TypeError:
-		"""
-		xpos = int(pos[0])
-		ypos = int(pos[1])
-		# todo: tighten up that series of ifs into one statement
-		if all(type(val) is int for val in (left, right, top, bottom)) and type(pos) is tuple:
-			if xpos > left:
-				if xpos < right:
-					if ypos > top:
-						if ypos < bottom:
-							return True
-						else:
-							return False
-					else:
-						return False
-				else:
-					return False
-			else:
-				return False
-		else:
-			e = "Argument 'pos' must be a tuple, others must be integers."
-			raise TypeError(e)
-
-
-def build_registrations(source_height, source_width):
-	return ((),
-		(0, -1.0 * source_height),
-		(-1.0 * source_width / 2.0, -1.0 * source_height),
-		(-1.0 * source_width, -1.0 * source_height),
-		(0, -1.0 * source_height / 2.0),
-		(-1.0 * source_width / 2.0, -1.0 * source_height / 2.0),
-		(-1.0 * source_width, -1.0 * source_height / 2.0),
-		(0, 0),
-		(-1.0 * source_width / 2.0, 0),
-		(-1.0 * source_width, 0))
+	try:
+		return (left < pos[0] < right and top < pos[1] < bottom)
+	except TypeError:
+		raise TypeError("'pos' must be [x,y] coordinates, other arguments must be numeric.")
 
 
 def camel_to_snake(string):
@@ -233,19 +146,32 @@ def colored_stdout(string, print_string=True, args=[]):
 
 
 def deg_to_px(deg, even=False):
-	# Some things don't draw as expected unless the px value given is even.
-	# If even=True, deg_to_px will round up to nearest multiple of 2.
+	"""Converts degrees of visual angle to pixels, based on the diagonal size of the screen in
+	inches and the viewing distance from the screen (set at launch and with `P.viewing_distance`
+	in the project's params.py file, respectively).
+
+	Args:
+		deg (float): The size in degrees of visual angle to convert to pixels.
+		even (bool, optional): If True, returned value will be rounded to the nearest even number.
+
+	Return:
+		int: The size in pixels corresponding to the given size in degrees.
+
+	"""
 	if even:
 		px = ceil((deg * P.ppd) / 2.0) * 2
 	else:
 		px = deg * P.ppd
-	return int(px)	# todo: error checking?
+	return int(px)
 
 
 def flush():
+	"""Empties the event queue of all unprocessed input events. This should be called before
+	any input-checking loops, to avoid any input events from before the loop being processed.
+	
+	"""
 	pump()
 	SDL_FlushEvents(SDL_FIRSTEVENT, SDL_LASTEVENT)
-	return
 
 
 def full_trace():
@@ -270,6 +196,9 @@ def getinput(*args, **kwargs):
 
 
 def hide_mouse_cursor():
+	"""Hides the mouse cursor if it is currently shown. Otherwise, this function does nothing.
+	
+	"""
 	SDL_ShowCursor(SDL_DISABLE)
 
 
@@ -369,23 +298,46 @@ def list_dimensions(target, dim=0):
 
 
 def log(msg, priority):
-	"""Log an event
-	:param msg: The string to log
-	:param priority: An integer from 1-10 specifying how important the event is, 1 being most critical and 10 being routine. If set to 0 it will always be printed, regardless of what the user sets verbosity to. You probably shouldn't do that.
+	"""Writes a message to a log file (Note: the way logging in KLibs is handled will probably get
+	rewritten soon, so I'd advise against using this).
+
+	Args:
+		msg (:obj:`str`): The message to record to the log file.
+		priority (int): An integer from 1-10 specifying how important the event is, 1 being most
+			critical and 10 being routine. If set to 0 it will always be printed, regardless of
+			what the user sets verbosity to. You probably shouldn't do that.
+
 	"""
 	if priority <= P.verbosity:
 		with open(P.log_file_path, 'a') as log_file:
 			log_file.write(str(priority) + ": " + msg)
-	return True
 
 
 def midpoint(p1, p2):
-	return int((p1[0]+p2[0])/2), int((p1[1]+p2[1])/2)
+	"""Determines the midpoint between two points on a plane (e.g. between two pixels on a screen).
+	
+	Args:
+		p1 (:obj:`Tuple`): The first of the two points.
+		p2 (:obj:`Tuple`): The second of the two points.
+
+	Returns:
 
 
-def mean(values, as_int=False):
-	mean_val = sum(values) / float(len(values))
-	return mean_val if not as_int else int(mean_val)
+	"""
+	return (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2
+
+
+def mean(values):
+	"""Calculates the mean of a list (or other iterable) of numeric values.
+
+	Args:
+		values (:obj:`List`): A List (or other iterable) containing intergers and/or floats.
+	
+	Returns:
+		float: The mean of all values in the 'values' iterable.
+
+	"""
+	return sum(values) / float(len(values))
 
 
 def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
@@ -458,6 +410,25 @@ def peak(v1, v2):
 
 
 def point_pos(origin, amplitude, angle, rotation=0, clockwise=False, return_int=True):
+	"""Determine the location of a point on a 2D surface given an origin point, a distance, and
+	an angle.
+
+	[would benefit from an illustration]
+
+	Args:
+		origin (:obj:`Tuple`): The origin point that the returned point will be relative to.
+		amplitude (int or float): The distance between the origin point and the point to be
+			returned.
+		rotation (float): The angle between the origin point and the point to be returned.
+		clockwise (bool, optional): Whether the rotation value is clockwise or not. Defaults to
+			False.
+		return_int (bool, optional): Whether the returned coordinates should be ints (useful for
+			pixels) or floats (most other use-cases). Defaults to True (i.e. returns ints).
+	
+	Returns:
+		:obj:`Tuple`: A 2-item Tuple containing the (x,y) coordinates of the calculated point.
+	
+	"""
 	try:
 		origin = tuple(origin)
 		angle += rotation
@@ -468,7 +439,7 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False, return_int=
 			x_pos = int(x_pos)
 			y_pos = int(y_pos)
 		return (x_pos, y_pos)
-	except Exception as e:
+	except Exception:
 		err = "point_pos error (start: {0}, amp: {1}, ang: {2}, rot: {3})"
 		print(err.format(origin, amplitude, angle, rotation))
 		raise
@@ -535,7 +506,8 @@ def pump(return_events=False):
 		return get_events()
 
 
-def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap_each=None, prepend=None, before_last=None, each_n=None, after_first=None, append=None):
+def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap_each=None,
+					prepend=None, before_last=None, each_n=None, after_first=None, append=None):
 	"""Automates string combination. Parameters:
 	:param array: A list of strings to be joined
 	:param config: A dict with any of the following keys:
@@ -565,8 +537,6 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap
 	+-------------------+---------------------------------------------------------------------------------------------------+
 	| delimitBehaviour  |      [coming]                                                                                     |
 	+-------------------+---------------------------------------------------------------------------------------------------+
-
-
 
 	"""
 	ws = str()
@@ -625,8 +595,19 @@ def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap
 	return output
 
 
-def px_to_deg(length):	# length = px
-	return float(length / P.ppd)
+def px_to_deg(px):
+	"""Converts pixels to degrees of visual angle, based on the diagonal size of the screen in
+	inches and the viewing distance from the screen (set at launch and with `P.viewing_distance`
+	in the project's params.py file, respectively).
+
+	Args:
+		px (int): The size in pixels to be converted to degrees of visual angle.
+
+	Return:
+		float: The size in degrees corresponding to the given size in pixels.
+
+	"""
+	return float(px) / P.ppd
 
 
 def rotate_points(points, origin, angle, clockwise=True, flat=False):
@@ -667,8 +648,10 @@ def rotate_points(points, origin, angle, clockwise=True, flat=False):
 
 
 def show_mouse_cursor():
+	"""Unhides the mouse cursor if it is currently hidden. Otherwise, this function does nothing.
+
+	"""
 	SDL_ShowCursor(SDL_ENABLE)
-	return pump()
 
 
 def scale(coords, canvas_size, target_size=None, scale=True, center=True):
@@ -721,6 +704,7 @@ def scale(coords, canvas_size, target_size=None, scale=True, center=True):
 		y = y + int(P.screen_y/2 - (target_size[1]/2))
 	return (x,y)
 
+
 def sdl_key_code_to_str(sdl_keysym):
 	key_name = SDL_GetKeyName(sdl_keysym).replace(b"Keypad ", b"")
 	key_name = str(key_name.decode('utf-8')) # for py3k compatibility
@@ -729,7 +713,7 @@ def sdl_key_code_to_str(sdl_keysym):
 	if not any(SDL_GetModState() & mod for mod in [KMOD_CAPS, KMOD_SHIFT]):
 		# if not holding Shift or Caps Lock isn't on, make letter lower case.
 		key_name = key_name.lower()
-	return key_name if len(key_name) == 1 else False  # to cover all keys that aren't alphanumeric or handled here
+	return key_name if len(key_name) == 1 else False # if key is not alphanumeric
 
 
 def snake_to_camel(string):
@@ -780,6 +764,16 @@ def translate_points(points, delta, flat=False):
 
 
 def type_str(var):
+	"""Returns the type name of a variable as a string (e.g. 'int' if the passed variable is
+	an int).
+	
+	Args:
+		var: The variable to determine the type of.
+
+	Returns:
+		str: The name of the passed variable's type.
+
+	"""
 	return type(var).__name__
 
 
@@ -800,6 +794,23 @@ def utf8(x):
 		return str(x)
 
 
+def valid_coords(coords):
+	"""Checks whether a variable is a valid pair of (x,y) coordinates.
+	
+	Args:
+		coords: The variable to check for being a valid pair of coordinates.
+	
+	Returns:
+		bool: True if coords is a two-item iterable (e.g. a List or Tuple) that contains only
+			ints or floats, otherwise False.
+	
+	"""
+	try:
+		return len(coords) == 2 and all([type(i) in [int, float] for i in coords])
+	except TypeError:
+		return False
+
+		
 def smart_sleep(interval, units=TK_MS):
 	from klibs.KLUserInterface import ui_request
 	from time import time

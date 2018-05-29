@@ -1,5 +1,20 @@
 # Define the color lists for different colour spaces, in order to avoid extra dependencies and 
 # performance costs. May switch to just requiring colormath in future.
+"""
+The colorspaces module defines some colour spaces that can be used with the ColorWheel object
+and elsewhere. Alternative colour spaces can be created using the 'colormath' Python module.
+
+Attributes:
+	rgb (:obj:`List`): A list containing an RGB colour spectrum in RGBA format. Luminance is not
+		constant across the colour space, and it is not perceptually uniform (i.e. the distance
+		between two values in the colour space is not always equal to their perceptual distance).
+	const_lum (:obj:`List`): A list containing a constant-luminance CIELUV colour spectrum in RGBA
+		format. The CIELUV colorspace is modeled to be roughly perceptually-uniform, although the
+		uniformity will necessarily vary between monitors and colour calibrations. This is the
+		recommended colour space for most situations.
+
+"""
+
 rgb = []
 for i in range(0, 256):
 	rgb.append((255-i, i ,0, 255))

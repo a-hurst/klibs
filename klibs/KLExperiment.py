@@ -12,8 +12,7 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
-from klibs.KLUtilities import (full_trace, pump, flush, now, list_dimensions,
-	show_mouse_cursor, hide_mouse_cursor)
+from klibs.KLUtilities import full_trace, pump, flush, now, show_mouse_cursor, hide_mouse_cursor
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear
@@ -250,7 +249,7 @@ class Experiment(EnvAgent):
 			try:
 				self.database.commit()
 			except Exception as e:
-				if e.message == "Cannot operate on a closed database.":
+				if str(e) == "Cannot operate on a closed database.":
 					pass
 				else:
 					print("Commit() to self.database failed.")

@@ -2,8 +2,8 @@ __author__ = 'jono'
 
 from time import time
 
-from sdl2 import (SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL, KMOD_GUI,
-	SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
+from sdl2 import (SDL_GetKeyFromName, SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL,
+	KMOD_GUI, SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
 
 from klibs import P
 from klibs.KLUtilities import pump
@@ -30,28 +30,41 @@ def any_key(allow_mouse_click=True):
 				any_key_pressed = True
 
 
-def key_pressed(keycode=None, queue=None):
-	"""Checks an event queue to see if a given key has been pressed. If no keycode is specified,
+def key_pressed(key=None, queue=None):
+	"""Checks an event queue to see if a given key has been pressed. If no key is specified,
 	the function will return True if any key has been pressed. If an event queue is not
 	manually specified, :func:`~klibs.KLUtilities.pump` will be called and the returned event
 	queue will be used.
+	
+	For a comprehensive list of valid key names, see the 'Name' column of the following 
+	table: https://wiki.libsdl.org/StuartPBentley/CombinedKeyTable
+
+	For a comprehensive list of valid SDL keycodes, consult the following table:
+	https://wiki.libsdl.org/SDL_Keycode
 
 	Args:
-		keycode (:obj:`sdl2.SDL_Keycode`, optional): The SDL keycode corresponding to the key
-			to check. 
+		key (str or :obj:`sdl2.SDL_Keycode`, optional): The key name or SDL keycode
+			corresponding to the key to check. If not specified, any keypress will return
+			True.
 		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of SDL_Events to check
 			for valid keypress events.
 
 	Returns:
-		bool: True if key has been pressed, False otherwise.
+		bool: True if key has been pressed, otherwise False.
 
 	Raises:
 		ValueError: If the keycode is anything other than an SDL_Keycode integer or None.
 
 	"""
+	if type(key) is str:
+		keycode = SDL_GetKeyFromName(key.encode('utf8'))
+		if keycode == 0:
+			raise ValueError("'{0}' is not a recognized key name.".format(key))
+	else:
+		keycode = key
 
 	if type(keycode).__name__ not in ['int', 'NoneType']:
-		raise ValueError('keycode must be an SDL Keycode (int) or a NoneType') 
+		raise ValueError("'key' must be a string, an SDL Keycode (int), or None.") 
 	
 	pressed = False
 	if queue == None:

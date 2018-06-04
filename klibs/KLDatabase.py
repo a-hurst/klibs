@@ -277,16 +277,19 @@ class Database(EnvAgent):
 				pass
 			else:
 				self.cursor.execute(u"DELETE from `{0}`".format(table))
-				#self.cursor.execute("UPDATE sqlite_sequence SET (SELECT MAX(col) FROM {0}) WHERE name=`{0}`".format(table))
+				update_q = "UPDATE sqlite_sequence SET (SELECT MAX(col) FROM {0}) WHERE name=`{0}`"
+				#self.cursor.execute(update_q.format(table))
 		self.db.commit()
 
 	def init_entry(self, table_name, instance_name=None, set_current=True):
 		try:
 			if instance_name is None: instance_name = table_name
-			self.__open_entries[instance_name] = EntryTemplate(table_name, self.table_schemas[table_name], instance_name)
+			entry = EntryTemplate(table_name, self.table_schemas[table_name], instance_name)
+			self.__open_entries[instance_name] = entry
 			if set_current: self.current(self.__open_entries[instance_name])
 		except IndexError:
-			raise IndexError("Table {0} not found in the KLDatabase.table_schemas.".format(table_name))
+			msg = "Table '{0}' not found in the current experiment database."
+			raise IndexError(msg.format(table_name))
 
 	def insert(self, data=None, table=None, clear_current=True):
 		if data is None:
@@ -294,8 +297,10 @@ class Database(EnvAgent):
 				data = self.current()
 				if not table:
 					table = data.table_name
-			except RuntimeError:  # exception below is a more informative account of the current problem
-				raise RuntimeError("No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
+			except RuntimeError: # a more informative account of the current problem
+				msg = ("No data to insert; provide insert data or assign a current "
+					"KLEntryTemplate instance.")
+				raise RuntimeError(msg)
 
 		try:
 			self.cursor.execute(data.insert_query())
@@ -391,12 +396,15 @@ class Database(EnvAgent):
 		if not data:
 			try:
 				data = self.current()
-			except RuntimeError:  # exception below is a more informative account of the current problem
-				raise RuntimeError(
-					"No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
+			except RuntimeError: # exception below is a more informative account of the problem
+				msg = ("No data to insert; provide insert data or assign a current "
+					"KLEntryTemplate instance.")
+				raise RuntimeError(msg)
 			if not table: table = data.table_name
 			if not record_id and not data.id:
-				raise RuntimeError("No record to update; no record_id provided or present in KLEntryTemplate instance.")
+				msg = ("No record to update; no record_id provided or present in KLEntryTemplate "
+					"instance.")
+				raise RuntimeError(msg)
 		try:
 			self.cursor.execute(data.update_query(fields))
 			if clear_current and self.current().name == data.name: self.current(False)
@@ -660,8 +668,8 @@ class DatabaseManager(EnvAgent):
 
 		duplicate_count = 0
 		while True:
-			# Generate suffix and see if file already exists with that name. If it does, keep incremeting
-			# the numeric part of the suffix until it doesn't.
+			# Generate suffix and see if file already exists with that name. If it does, keep 
+			# incremeting the numeric part of the suffix until it doesn't.
 			suffix = DATA_EXT
 			if incomplete: suffix = "_incomplete" + suffix
 			if duplicate_count: suffix = "_{0}".format(duplicate_count) + suffix

@@ -2,7 +2,7 @@ __author__ = 'jono'
 
 import abc
 import aggdraw
-from sdl2 import SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP
+from sdl2 import SDL_GetKeyFromName, SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP
 
 from klibs.KLEnvironment import EnvAgent, evm
 from klibs.KLExceptions import TrialException
@@ -11,6 +11,7 @@ from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, R
 	RC_MOUSEDOWN, RC_MOUSEUP, RC_SACCADE, NO_RESPONSE, EL_SACCADE_START, EL_SACCADE_END,
 	TIMEOUT, TK_S, TK_MS, STROKE_INNER)
 from klibs import P
+from klibs.KLKeyMap import KeyMap
 from klibs.KLUtilities import (pump, flush, hide_mouse_cursor, show_mouse_cursor, mouse_pos,
 	full_trace, iterable, angle_between)
 from klibs.KLUserInterface import ui_request
@@ -134,7 +135,7 @@ class KeyPressResponse(ResponseType):
 
 	def __init__(self, rc_start_time):
 		super(KeyPressResponse, self).__init__(rc_start_time, RC_KEYPRESS)
-		self.__key_map__ = None
+		self.__key_map = None
 
 	def collect_response(self, event_queue):
 		if not self.key_map:
@@ -158,16 +159,43 @@ class KeyPressResponse(ResponseType):
 
 	@property
 	def key_map(self):
-		return self.__key_map__
+		"""dict or :obj:`KeyMap`: Specifies which keys are valid response keys, and what the data
+		string for each key should be. Can be provided as a KLibs :obj:`KeyMap` object, or as a
+		dict with the format '{'keyname1': 'label1', 'keyname2': 'label2'}', with key names
+		corresponding to valid SDL key names
+		(see: https://wiki.libsdl.org/StuartPBentley/CombinedKeyTable for a list).
+
+		For example, if you defined the following key_map::
+
+			self.rc.keypress_listener.key_map = {'z': "left", '/': "right"}
+		
+		only the 'z' and '/' keys would be watched for input and they would be recorded as 'left'
+		and 'right' responses, respectively.
+		
+		"""
+		return self.__key_map
 
 	@key_map.setter
-	def key_map(self, key_map_obj):
-		try:
-			key_map_obj.any_key
-		except AttributeError:
-			if key_map_obj is not None:
-				raise TypeError("Argument 'key_map_obj' must be a KLKeyMap object.")
-		self.__key_map__ = key_map_obj
+	def key_map(self, _map):
+
+		if type(_map) is dict:
+			keycodes = []
+			labels = []
+			for key, label in _map.items():
+				if type(key) is str:
+					keycode = SDL_GetKeyFromName(key.encode('utf8'))
+				else:
+					keycode = key
+				if keycode == 0:
+					raise ValueError("'{0}' is not a recognized key name.".format(key))
+				keycodes.append(keycode)
+				labels.append(label)
+			_map = KeyMap('keypress', labels, labels, keycodes)
+
+		elif not isinstance(_map, KeyMap):
+			raise TypeError("'key_map' must be a 'KeyMap' object or a properly-formatted dict.")
+
+		self.__key_map = _map
 		self.clear_responses()
 
 

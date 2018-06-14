@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 """
 TODO: set this up such that all vars are in a dict with a key representing whether the var should
 be included in the user's template of the params file, then autogenerate the template doc. AND the

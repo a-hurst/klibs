@@ -9,7 +9,7 @@ from sdl2 import SDL_GetKeyFromName, SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN
 from klibs.KLEnvironment import EnvAgent, evm
 from klibs.KLExceptions import BoundaryError
 from klibs.KLNamedObject import NamedObject
-from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS, RC_MOUSEDOWN,
+from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS,
 	NO_RESPONSE, TIMEOUT, TK_S, TK_MS)
 from klibs import P
 from klibs.KLKeyMap import KeyMap
@@ -1236,7 +1236,7 @@ class ResponseCollector(EnvAgent):
 
 			# Check all active listeners for responses
 			for l in self.using():
-				q = el_queue if l.eyetracking else e_queue
+				q = el_queue if self.listeners[l].eyetracking else e_queue
 				interrupt = self.listeners[l].collect(q)
 				if interrupt:
 					collecting = False

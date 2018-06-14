@@ -180,7 +180,6 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 	from klibs.KLDatabase import DatabaseManager
 	from klibs.KLEventInterface import EventManager
 	from klibs.KLText import TextManager
-	from klibs.KLResponseCollectors import ResponseCollector
 	from klibs.KLCommunication import init_messaging, collect_demographics, init_default_textstyles
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
@@ -257,7 +256,6 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 
 	# create runtime environment
 	env.txtm = TextManager()
-	env.rc = ResponseCollector()
 	if P.eye_tracking:
 		if no_eyelink is True:
 			P.eye_tracker_available = False

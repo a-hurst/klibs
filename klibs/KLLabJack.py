@@ -1,4 +1,4 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import warnings
 from klibs import P

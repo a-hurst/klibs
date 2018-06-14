@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'j. mulle, this.impetus@gmail.com'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import sys
 from abc import abstractmethod
@@ -21,6 +21,7 @@ from klibs.KLGraphics import KLDraw as kld
 from klibs.KLDatabase import Database
 from klibs.KLUserInterface import any_key
 from klibs.KLAudio import AudioManager
+from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLCommunication import message, query, collect_demographics
 
 
@@ -34,9 +35,8 @@ class Experiment(EnvAgent):
 	def __init__(self):
 		super(Experiment, self).__init__()
 
-		# initialize audio management for the experiment
-		self.audio = AudioManager()
-
+		self.audio = AudioManager() # initialize audio management for the experiment
+		self.rc = ResponseCollector() # add default response collector
 		self.database = self.db # use database from evm
 
 		self.trial_factory = TrialFactory(self)
@@ -121,12 +121,9 @@ class Experiment(EnvAgent):
 			raise tx
 
 	def __log_trial__(self, trial_data, auto_id=True):
-		"""
-		Private method, should not be called by user; use KLExperiment.log()
-		:param trial_data:
-		:param auto_id:
-		"""
+		"""Internal method, logs trial data to database.
 
+		"""
 		if auto_id: trial_data[P.id_field_name] = P.participant_id
 		if self.database.current() is None: self.database.init_entry('trials', "trial_{0}".format(P.trial_number))
 		for attr in trial_data: self.database.log(attr, trial_data[attr])
@@ -161,13 +158,16 @@ class Experiment(EnvAgent):
 		the function will generate a full set of trials based on all possible combination of factors,
 		and will randomly select trial_counts trials from it for each practice block.
 
-		:param block_nums: Numbers in the sequence of blocks at which to append practice blocks.
-		:type block_nums: Iterable of Ints
-		:param trial_counts: Numbers of trials per practice block.
-		:type trial_counts: Iterable of Ints
-		:param factor_mask: Override values for variables specified in independent_variables.py.
-		:type factor_mask: Dict of Lists
-		:raises: TrialException
+		Args:
+			block_nums (:obj:`list` of int): Index numbers at which to insert the blocks.
+			trial_counts (:obj:`list` of int, optional): The numbers of trials to insert for each
+				of the inserted blocks.
+			factor_mask (:obj:`dict` of :obj:`list`, optional): Override values for the variables
+				specified in independent_variables.py.
+
+		Raises:
+			TrialException: If called after the experiment's :meth:`setup` method has run.
+
 		"""
 		if self.blocks:
 			# If setup has passed and trial execution has started, blocks have already been exported
@@ -187,47 +187,6 @@ class Experiment(EnvAgent):
 		for i in range(0, len(block_nums)):
 			self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_mask)
 			P.blocks_per_experiment += 1
-
-	def add_keymap(self, name, ui_labels=None, data_labels=None, sdl_keysyms=None):
-		"""
-		``relocation_planned``
-		A convenience method that creates a :mod:`~klibs.KLKeyMap`. :class:`~klibs.KLKeyMap.KeyMap` instance from
-		supplied information.
-		Equivalent to::
-			P.key_maps['name'] = KLKeyMap.KeyMap(name, ui_labels, data_labels, sdl_keysyms)
-		:param name: Name reference for the keymap (ie. 'response_keys' )
-		:type name: String
-		:param ui_labels: Labels for key mappings for human communication purposes (ie. "z", "/")
-		:type ui_labels: Iterable of Strings
-		:param data_labels: Labels for representing key mappings in a datafile (ie. "RIGHT","LEFT").
-		:type data_labels: Iterable of Strings
-		:param sdl_keysyms: SDL2 keysym values; see :ref:`sdl_keycode_reference` for complete list.
-		:type sdl_keysyms: Iterable of SDL_keysyms
-		:return: :class:`~klibs.KLKeyMap.KeyMap` or Boolean
-		:raises: TypeError
-		"""
-
-		if type(name) is not str:
-			raise TypeError("Argument 'name' must be a string.")
-
-		# register the keymap if one is being passed in and set keyMap = name of the newly registered map
-		if all(type(key_param) in [tuple, str] for key_param in [ui_labels, data_labels, sdl_keysyms]):
-			P.key_maps[name] = KeyMap(name, ui_labels, data_labels, sdl_keysyms)
-
-		#retrieve registered keymap(s) by name
-		if name in P.key_maps:
-			return P.key_maps[name]
-		else:
-			return False
-
-	def config(self):
-		"""
-		``not_implemented``
-		Global configuration of project settings. Slated for future release.
-		"""
-
-		#todo: will be a screen that's shown before anything happens in the program to quickly tweak debug settings
-		pass
 
 	def quit(self):
 		"""Safely exits the program, ensuring data has been saved and any connected EyeLink unit's
@@ -275,12 +234,6 @@ class Experiment(EnvAgent):
 
 		self.audio.shut_down()
 		SDL_Quit()
-
-		# temporary lines added for certain experiments using a log file
-		#try:
-		#	self.log_f.close()
-		#except AttributeError:
-		#	pass
 		self.evm.terminate()
 
 		cso("\n\n<green>*** '{0}' successfully shutdown. ***</green>\n\n".format(P.project_name))

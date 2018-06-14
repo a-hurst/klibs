@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'j. mulle, this.impetus@gmail.com'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import csv

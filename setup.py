@@ -28,10 +28,10 @@ install_packages = ['klibs']
 
 setup(
 	name='KLibs',
-	version='0.7.1a0',
+	version='0.7.2a0',
 	description='A framework for building psychological experiments in Python',
 	author='Jonathan Mulle & Austin Hurst',
-	author_email='this.impetus@gmail.com',
+	author_email='mynameisaustinhurst@gmail.com',
 	url='http://github.com/a-hurst/klibs',
 	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeLink'],
 	include_package_data=True,

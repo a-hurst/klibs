@@ -1,4 +1,4 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 from klibs.KLNamedObject import NamedInventory, NamedObject
 from klibs.KLUtilities import iterable

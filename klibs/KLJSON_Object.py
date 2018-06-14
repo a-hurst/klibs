@@ -1,4 +1,4 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import io
 import re
@@ -7,8 +7,12 @@ import json
 
 class AttributeDict(dict):
 	'''A Python dictionary that lets you access items like you would object attributes.
-	For example, for the AttributeDict d = {'one': 1, 'two': 2}, you could get the value of 'one'
-	through either d['one'] or d.one.
+	For example, for the following AttributeDict::
+	
+		 d = {'one': 1, 'two': 2}
+	
+	you could get the value of 'one' through either d['one'] or d.one.
+	
 	'''
 	def __getattr__(self, key):
 		return self[key]
@@ -21,8 +25,8 @@ class JSON_Object(object):
 	'''A class for importing JSON objects such that you can access their attributes the same way
 	you would a Python object. For example, if you imported a .json file with the following
 	contents:
-
-	:: json
+	
+	.. code-block:: json
 
 		{
 		"study_words": [
@@ -35,22 +39,30 @@ class JSON_Object(object):
 			]
 		}
 
+
 	you could then import and access its contents like this::
 
+		# import the JSON file to a JSON_Object
 		wordbank_path = os.path.join('path', 'to', 'wordbank.json')
 		wordbank = JSON_Object(wordbank_path)
-		print(wordbank.study_words)
+
+		# access the elements of the JSON_Object as object attributes
 		for word in wordbank.study_words:
 			print(word.word, word.syllables, word.type)
+
 
 	Alternatively, you could access the objects' contents like you would a Python dictonary::
 
 		for word in wordbank['foil_words']:
 			print(word['word'], word['syllables'], word['type'])
 	
+
 	Note that all objects and variable names in the imported JSON file must be valid Python
 	object attribute names (i.e. no spaces, periods, special characters, etc.), and will result
 	in a ValueError during import if an invalid attribute name is encountered.
+
+	Args:
+		json_file_path (:obj:`str`): The path of the JSON file to import.
 
 	'''
 

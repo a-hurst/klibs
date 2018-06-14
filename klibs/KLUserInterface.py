@@ -1,4 +1,4 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 from time import time
 
@@ -118,7 +118,8 @@ def ui_request(key_press=None, execute=True, queue=None):
 	"""Checks keyboard input for interface commands, which currently include:
 	
 	- Quit (Ctrl/Command-Q): Quit the experiment runtime
-	- Calibrate EyeLink (Ctrl/Command-C): Enter setup mode for the EyeLink eye tracker,
+
+	- Calibrate EyeLink (Ctrl/Command-C): Enter setup mode for the EyeLink eye tracker, 
 	if eye tracking is enabled for the experiment and not using TryLink simulation.
 	
 	If no event queue from :func:`~klibs.KLUtilities.pump` and no keypress event(s) are
@@ -129,20 +130,21 @@ def ui_request(key_press=None, execute=True, queue=None):
 	checking occurs, to ensure that you can quit your experiment or recalibrate your eye
 	tracker during those periods. This function is automatically called by other functions that
 	process keyboard/mouse input, such as :func:`any_key` and :func:`key_pressed`, so you will
-	not need to call it yourself in places where one of them is already being called.
+	not need to call it yourself in places where one of them is already being called. 
 	In addition, the :obj:`~klibs.KLResponseCollectors.ResponseCollector` collect method also
 	calls this function every loop, meaning that you do not need to include it when writing
 	ResponseCollector callbacks.
+
 	Args:
 		key_press (:obj:`sdl2.SDL_Keycode` or :obj:`List`, optional): A keycode or list of
 			keycodes to check for valid UI commands.
-		execute (bool, optional): If True, valid UI commands will be executed immediately.
+		execute (bool, optional): If True, valid UI commands will be executed immediately. 
 			Defaults to True.
 		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of SDL Events to check
 			for valid UI commands.
 		
 	Returns:
-		str or bool: "quit" if a Quit request encountered, "el_calibrate" if a Calibrate
+		str or bool: "quit" if a Quit request encountered, "el_calibrate" if a Calibrate 
 			EyeLink request encountered, otherwise False.
 	"""
 	if queue:

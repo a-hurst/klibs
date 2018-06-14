@@ -16,6 +16,7 @@ import sys
 import os
 import shlex
 import pkg_resources
+import sphinx_readable_theme
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -44,6 +45,7 @@ extensions = [
 ]
 
 napoleon_google_docstring = True
+autodoc_member_order = 'bysource'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -60,9 +62,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'KLibs'
-copyright = u'2015, Jonathan Mulle'
-author = u'Jonathan Mulle'
+project = u'klibs'
+copyright = u'2018, Austin Hurst & Jonathan Mulle'
+author = u'Austin Hurst & Jonathan Mulle'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -123,7 +125,8 @@ todo_include_todos = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'readable'
+html_theme_path = [sphinx_readable_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

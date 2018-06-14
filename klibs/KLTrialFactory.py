@@ -1,4 +1,4 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import sys
 import random
@@ -149,21 +149,28 @@ class TrialFactory(object):
 		for i in range(0, len(trials), trial_count):
 			blocks.append(trials[i:i + trial_count])
 		return blocks
+	
+	def __load_ind_vars(self, path):
+		set_name = "{0}_ind_vars".format(P.project_name)
+		try:
+			var_set = load_source("*", path).__dict__[set_name]
+			factors = var_set.to_dict()
+		except KeyError:
+			err = 'Unable to find IndependentVariableSet in independent_vars.py.'
+			raise RuntimeError(err)
+		return factors
 
 	def generate(self, exp_factors=None):
 		if not exp_factors:
-			set_name = "{0}_ind_vars".format(P.project_name)
-			try:
-				if P.dm_ignore_local_overrides:
-					raise RuntimeError("Ignoring local overrides")
-				sys.path.append(P.ind_vars_file_local_path)
-				var_set = load_source("*", P.ind_vars_file_local_path).__dict__[set_name]
-				factors = var_set.to_dict()
-			except (IOError, RuntimeError):
-				var_set = load_source("*", P.ind_vars_file_path).__dict__[set_name]
-				factors = var_set.to_dict()
-		else:
-			factors = exp_factors.to_dict()
+			factors = self.__load_ind_vars(P.ind_vars_file_path)
+			if not P.dm_ignore_local_overrides:
+				try:
+					sys.path.append(P.ind_vars_file_local_path)
+					local_factors = self.__load_ind_vars(P.ind_vars_file_local_path)
+					factors.update(local_factors)
+				except IOError:
+					pass
+				
 
 		# Create alphabetically-sorted ordered dict from factors
 		self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))

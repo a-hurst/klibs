@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'j. mulle, this.impetus@gmail.com'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import re
@@ -151,14 +151,14 @@ def init_messaging():
 
 def message(text, style=None, location=None, registration=None, blit_txt=True,
 			flip_screen=False, clear_screen=False, align="left", wrap_width=None):
-	"""Renders a string of text using a given TextStyle, and optionally draws it to the display.
+	r"""Renders a string of text using a given TextStyle, and optionally draws it to the display.
 
 	Args:
 		text (str): The string of text to be rendered.
-		style (str, optional): The name of the :class:`~klibs.KLTextManager.TextStyle` to be used.
+		style (str, optional): The name of the :class:`~klibs.KLTextManager.TextStyle` to be used. 
 			If none provided, defaults to the 'default' TextStyle.
 		blit_txt (bool, optional): If True, the rendered text is drawn to the display buffer at
-			the location and registration specfied using :func:`~klibs.KLGraphics.blit`.
+			the location and registration specfied using :func:`~klibs.KLGraphics.blit`. 
 			Defaults to True.
 		registration (int, optional): An integer from 1 to 9 indicating which location on the
 			surface will be aligned to the location value (see manual for more info). Only

@@ -33,7 +33,6 @@ KLD_MOVE = "move"
 RC_AUDIO = 'audio_listener'
 RC_KEYPRESS = 'keypress_listener'
 RC_COLORSELECT = 'color_listener'
-RC_MOUSEDOWN = 'mousedown_listener'
 RC_DRAW = 'draw_listener'
 NO_RESPONSE = "NO_RESPONSE"
 TIMEOUT = -1

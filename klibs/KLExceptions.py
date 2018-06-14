@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 class NullColumn(Exception):
 	def __init__(self, msg):

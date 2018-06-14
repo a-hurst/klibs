@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import re

@@ -1,4 +1,4 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 """This module provides an object type for mapping different SDL Keycodes to human-readable names.
 At one point in time, it was used for creating global keymaps that mapped different letters/symbols

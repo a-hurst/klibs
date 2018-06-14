@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'j. mulle, this.impetus@gmail.com'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 from time import time
 from math import sqrt, atan, degrees
@@ -31,7 +31,7 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 		avoid performance issues resulting from the extra overhead.
 
 		Args:
-			source (:obj:`NumpySurface`|:obj:`Drawbject`|:obj:`numpy.ndarray`|
+			source (:obj:`NumpySurface` | :obj:`Drawbject` | :obj:`numpy.ndarray` | 
 				:obj:`Pillow.Image`): Image data to be buffered.
 			registration (int): An integer from 1 to 9 indicating which location on the
 				surface will be aligned to the location value (see manual for more info).

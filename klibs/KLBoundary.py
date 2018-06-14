@@ -1,4 +1,4 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import abc
 from collections import OrderedDict
@@ -97,7 +97,7 @@ class BoundaryInspector(object):
 			raise BoundaryError("Boundary '{0}' is not active for searching.".format(label))
 		return self.boundaries[label].within(p)
 
-	def within_boundaries(self, p, labels=None):
+	def which_boundary(self, p, labels=None):
 		"""Determines whether a given point is within any of the active boundaries, or alteratively
 		whether it is within any of a list of specific boundaries. Unlike :meth:`within_boundary`,
 		which returns either True or False, this method returns either the label of the boundary
@@ -201,6 +201,14 @@ class BoundaryInspector(object):
 		if not iterable(labels): labels = [labels]
 		for label in labels:
 			self.boundaries[label].active = True
+
+	@property
+	def active_boundaries(self):
+		active = []
+		for label in self.boundaries.keys():
+			if self.boundaries[label].active:
+				active.append(label)
+		return active
 
 
 class Boundary(object):

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 
 # Aliases for UI convenience
@@ -30,14 +30,11 @@ KLD_PATH = "path"
 KLD_MOVE = "move"
 
 # ResponseCollector Constants
-RC_AUDIO = 'audio'
-RC_KEYPRESS = 'keypress'
-RC_COLORSELECT = 'color_selection'
-RC_MOUSEDOWN = 'mousedown'
-RC_MOUSEUP = 'mouseup'
-RC_SACCADE = 'saccade'
-RC_FIXATION = 'fixation'
-RC_DRAW = 'draw'
+RC_AUDIO = 'audio_listener'
+RC_KEYPRESS = 'keypress_listener'
+RC_COLORSELECT = 'color_listener'
+RC_MOUSEDOWN = 'mousedown_listener'
+RC_DRAW = 'draw_listener'
 NO_RESPONSE = "NO_RESPONSE"
 TIMEOUT = -1
 

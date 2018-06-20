@@ -11,19 +11,7 @@ commit = sub.check_output(cmd).rstrip(b'\n')
 with open('klibs/resources/current_commit.txt', 'wb+') as f:
 	f.write(commit)
 	
-# Remove old lib folder if present
-old_lib = '/usr/local/lib/klibs'
-if os.path.isdir(old_lib):
-	try:
-		shutil.rmtree(old_lib)
-	except:
-		try:
-			os.remove(old_lib)
-		except:
-			print("/nUnable to remove old lib folder at {0}. You can remove it manually "
-				  "using 'sudo rm -rf {0}'\n".format(old_lib))
 	
-
 install_packages = ['klibs']
 
 setup(
@@ -40,7 +28,7 @@ setup(
 	install_requires=[
 		'numpy>=1.8.0rc1', 
 		'pysdl2>=0.9.0',
-		'Pillow>=3.0.0',
+		'Pillow>=3.0.0,!=5.1.0',
 		'aggdraw>1.2.0',
 		'PyOpenGL>=3.1.0',
 		'PyAudio>=0.2.9'

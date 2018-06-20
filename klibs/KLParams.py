@@ -163,12 +163,9 @@ logo_file_path = None
 
 anonymous_username = None
 random_seed = None
-key_maps = None
 
 
 def init_project():
-	from klibs.KLKeyMap import KeyMap
-	global key_maps # ? (should global keymaps be a thing?)
 
 	global data_dir
 	global incomplete_data_dir
@@ -200,9 +197,6 @@ def init_project():
 
 	global initialized
 
-
-	key_maps = {"*": KeyMap("*", [], [], [])} # ?
-	key_maps["*"].any_key = True # ?
 
 	# file names
 	database_filename = str(project_name) + DB_EXT

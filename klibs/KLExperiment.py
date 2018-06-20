@@ -46,10 +46,8 @@ class Experiment(EnvAgent):
 
 
 	def __execute_experiment__(self, *args, **kwargs):
-		"""
-		Private method, launches and manages the experiment after KLExperiment object's run() method is called.
-		:param args:
-		:param kwargs:
+		"""For internal use, actually runs the blocks/trials of the experiment in sequence.
+
 		"""
 
 		if not self.blocks:
@@ -240,10 +238,9 @@ class Experiment(EnvAgent):
 		sys.exit()
 
 	def run(self, *args, **kwargs):
-		"""
-		Executes the experiment. Experimenters should use this method to launch their program.
-		:param args:
-		:param kwargs:
+		"""The method that gets run by 'klibs run' after the runtime environment is created. Runs
+		the actual experiment.
+
 		"""
 
 		if not P.development_mode:

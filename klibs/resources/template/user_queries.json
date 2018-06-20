@@ -2,6 +2,7 @@
     "default_strings": {
       "answer_not_supplied": "Please provide an answer.",
       "invalid_answer": "Your answer must be one of the following: {0}",
+      "out_of_range": "Your answer must be a number between {0} and {1}, inclusive.",
       "block_break": "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
     },
     "demographic": [
@@ -13,23 +14,8 @@
             "allow_null": false,
             "format": {
                 "type": "str",
-                "styles": {
-                    "query": "default",
-                    "input": "default",
-                    "error": "alert"
-                },
-                "positions": {
-                    "locations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    },
-                    "registrations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    }
-                },
+                "styles": "default",
+                "positions": "default",
                 "password": true,
                 "range": null,
                 "case_sensitive": true,
@@ -47,23 +33,8 @@
             "allow_null": false,
             "format": {
                 "type": "str",
-                "styles": {
-                    "query": "default",
-                    "input": "default",
-                    "error": "alert"
-                },
-                 "positions": {
-                    "locations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    },
-                    "registrations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    }
-                },
+                "styles": "default",
+                "positions": "default",
                 "password": false,
                 "range": null,
                 "case_sensitive": false,
@@ -81,23 +52,8 @@
             "allow_null": false,
             "format": {
                 "type": "str",
-                "styles": {
-                    "query": "default",
-                    "input": "default",
-                    "error": "alert"
-                },
-                "positions": {
-                    "locations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    },
-                    "registrations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    }
-                },
+                "styles": "default",
+                "positions": "default",
                 "password": false,
                 "range": null,
                 "case_sensitive": false,
@@ -115,23 +71,8 @@
             "allow_null": false,
             "format": {
                 "type": "int",
-                "styles": {
-                    "query": "default",
-                    "input": "default",
-                    "error": "alert"
-                },
-                "positions": {
-                    "locations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    },
-                    "registrations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    }
-                },
+                "styles": "default",
+                "positions": "default",
                 "password": false,
                 "range": [0, 125],
                 "case_sensitive": null,

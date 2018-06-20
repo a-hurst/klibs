@@ -3,8 +3,6 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 
 # Aliases for UI convenience
-INCH = "in"
-CM = "cm"
 TAB = "\t"
 NA = "NA"
 ALL = "*"
@@ -100,13 +98,10 @@ FACTORS_EXT = "_independent_variables.py"
 PARAMS_EXT = "_params.py"
 MESSSAGING_EXT = "_messaging.csv"
 
-# KLText & pretty_join Constants
+# KLText Constants
 TEXT_PT = "pt"
 TEXT_PX = "px"
 TEXT_MULTIPLE = "*"
-DELIM_WRAP = "wrap"
-DELIM_NOT_LAST = "not_last"
-DELIM_NOT_FIRST = "not_first"
 
 # KLCommunication Constants (for query function)
 AUTO_POS = "auto"

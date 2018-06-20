@@ -20,8 +20,7 @@ from sdl2.ext import get_events
 from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
 from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
 
-from klibs.KLConstants import (DATETIME_STAMP, DELIM_NOT_FIRST, DELIM_NOT_LAST, DELIM_WRAP, 
-	TK_S, TK_MS)
+from klibs.KLConstants import DATETIME_STAMP, TK_S, TK_MS
 from klibs import P
 
 
@@ -505,94 +504,46 @@ def pump(return_events=False):
 	if return_events:
 		return get_events()
 
-
-def pretty_join(array, whitespace=1, delimiter="'", delimit_behaviors=None, wrap_each=None,
-					prepend=None, before_last=None, each_n=None, after_first=None, append=None):
-	"""Automates string combination. Parameters:
-	:param array: A list of strings to be joined
-	:param config: A dict with any of the following keys:
-
-	**Config Keys**
-
-	+-------------------+---------------------------------------------------------------------------------------------------+
-	| **Key**           |     **Description**                                                                               |
-	+-------------------+---------------------------------------------------------------------------------------------------+
-	| prepend           |      [coming]                                                                                     |
-	+-------------------+---------------------------------------------------------------------------------------------------+
-	| afterFirst        |      [coming]                                                                                     |
-	+-------------------+---------------------------------------------------------------------------------------------------+
-	| beforeLast        |      [coming]                                                                                     |
-	+-------------------+---------------------------------------------------------------------------------------------------+
-	| eachN             |      [coming]                                                                                     |
-	+-------------------+---------------------------------------------------------------------------------------------------+
-	| whitespace        | Whitespace to place between elements. Should be a positive integer, but can be a string if the    |
-	|                   | number is smaller than three and greater than zero. May also be the string None or False, but     |
-	|                   | you should probably just not set it if that's what you want.                                      |
-	+-------------------+---------------------------------------------------------------------------------------------------+
-	| append            |      [coming]                                                                                     |
-	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimiter         |      [coming]                                                                                     |
-	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimitBehavior   |      [coming]                                                                                     |
-	+-------------------+---------------------------------------------------------------------------------------------------+
-	| delimitBehaviour  |      [coming]                                                                                     |
-	+-------------------+---------------------------------------------------------------------------------------------------+
-
+def pretty_list(items, sep=',', space=' ', before_last='or', brackets='[]', pad=True):
+	"""Takes an iterable (e.g. a :obj:`List`) and creates a nicely-formatted string from its
+	contents. Useful for creating a list of possible options or responses to show to participants.
+	
+	For example, the :obj:`tuple` ``(1, 2, 'a', 'b')`` would be outputted as ``[ 1, 2, a, or b ]``
+	using the default settings.
+	
+	Args:
+		sep (str, optional): The character that separates elements in the list. Defaults to comma.
+		space (str, optional): The space between elements of the list. Defaults to a single space.
+		before_last (str, optional): A string to add before the last item of the list. Defaults to
+			'or'.
+		brackets (str, optional): A string containing the characters to use for brackets around
+			the list, e.g. '[]' or '<>'. If empty, no brackets will be used. Defaults to '[]'.
+		pad (bool, optional): Whether to put a space between the list items and the containing
+			brackets. Defaults to True.
+	
+	Returns:
+		A formatted string.
+	
 	"""
-	ws = str()
-	for n in range(whitespace):
-		ws += ' '
-	whitespace = ws
-
-	output = ''
-	if prepend is not None:
-		output = prepend
-	for n in range(len(array)):
-		#if after first iteration, print whitespace
-		if n > 1:
-			output += whitespace
-		#if beforeLast is set, print it and add whitespace
-		if (n == (len(array) - 1)) and before_last is not None:
-			output += before_last + whitespace
-		# if eachN is set and the iterator is divisible by N, print an eachN and add whitespace
-		if each_n is tuple:
-			if len(each_n) == 2:
-				if type(each_n[0]) is int:
-					if n % each_n == 0:
-						output += str(each_n[1]) + whitespace
-				else:
-					log_str = "Klib.prettyJoin() config parameter 'eachN[0]' must be an int, '{0}' {1} passed. {2}"
-					print(log_str.format(each_n, type(each_n, 10)))
-			else:
-				raise ValueError("Argument 'each_n' must have length 2.")
-		elif each_n is not None:
-			raise TypeError("Argument 'each_n' must be a tuple of length 2.")
-
-		# if delimiter is set to default or wrap, print a delimiter before the array item
-		if DELIM_WRAP in delimit_behaviors:
-			output += delimiter
-
-		# finally print the array item
-		if wrap_each:
-			output += wrap_each + str(array[n]) + wrap_each
-		else:
-			output += str(array[n])
-		if n == 1 and DELIM_NOT_FIRST in delimit_behaviors:
-			output += whitespace
-		elif n == len(array) - 1 and DELIM_NOT_LAST in delimit_behaviors:
-			pass
-		elif n == len(array) - 2 and DELIM_NOT_LAST in delimit_behaviors:
-			output += delimiter
-		else:
-			output += delimiter + whitespace
-
-		# if after_first is set, print it and add whitespace
-		if (n == 0) and (after_first is not None):
-			output += after_first + whitespace
-	if append is not None:
-		output += append
-
-	return output
+	
+	items = [str(item) for item in items]
+ 
+	if len(items) > 1:
+		
+		if before_last:
+			items[-1] = before_last + space + items[-1]
+		delim = space if len(items) == 2 and before_last else (sep + space)
+		joined = delim.join(items)
+	
+	else:
+		joined = ''.join(items)
+	
+	if brackets:
+		prepend = brackets[0]+space if pad else brackets[0]
+		append = space+brackets[1] if pad else brackets[1]
+		return prepend+joined+append
+	else:
+		return joined
 
 
 def px_to_deg(px):

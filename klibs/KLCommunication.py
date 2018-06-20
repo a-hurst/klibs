@@ -13,11 +13,11 @@ from sqlite3 import IntegrityError
 from sdl2 import (SDL_PumpEvents, SDL_StartTextInput, SDL_StopTextInput,
 	SDL_KEYDOWN, SDLK_ESCAPE, SDLK_BACKSPACE, SDLK_RETURN, SDLK_KP_ENTER, SDL_TEXTINPUT)
 
-from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, DELIM_NOT_LAST, DELIM_NOT_FIRST,
-	QUERY_ACTION_UPPERCASE, QUERY_ACTION_HASH)
+from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, QUERY_ACTION_UPPERCASE,
+	QUERY_ACTION_HASH)
 import klibs.KLParams as P
-from klibs.KLJSON_Object import JSON_Object
-from klibs.KLUtilities import pretty_join, now, pump, flush, iterable, utf8
+from klibs.KLJSON_Object import JSON_Object, AttributeDict
+from klibs.KLUtilities import pretty_list, now, pump, flush, iterable, utf8
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
@@ -272,6 +272,18 @@ def query(query_ob, anonymous=False):
 		err = "Invalid data type for query '{0}': {1}".format(query_ob.title, f.type)
 		raise ValueError(err)
 	
+	# Set defaults for styles and positioning if not specified
+	if f.styles == 'default':
+		f.styles = AttributeDict({'query': 'default', 'input': 'default', 'error': 'alert'})
+
+	locations = AttributeDict({'query': AUTO_POS, 'input': AUTO_POS, 'error': AUTO_POS})
+	registrations = AttributeDict({'query': AUTO_POS, 'input': AUTO_POS, 'error': AUTO_POS})
+	if f.positions == 'default':
+		f.positions = AttributeDict({'locations': locations, 'registrations': registrations})
+	else:
+		if f.positions.locations == 'default': f.positions.locations = locations
+		if f.positions.registrations == 'default': f.positions.registrations = registrations
+
 	q_text = message(query_ob.query, f.styles.query, align='center', blit_txt=False)
 
 	# address automatic positioning
@@ -279,19 +291,18 @@ def query(query_ob, anonymous=False):
 	if p.locations.query == AUTO_POS:
 		p.locations.query = [P.screen_c[0], int(0.1 * P.screen_y)]
 		p.registrations.query = BL_CENTER
-	if p.locations.input == AUTO_POS:
-		v_pad = q_text.height + 2 * txtm.styles[f.styles.query].line_height
-		p.locations.input = [P.screen_c[0], p.locations.query[1] + v_pad]
-		p.registrations.input = BL_CENTER
+	for k in ['input', 'error']:
+		if p.locations[k] == AUTO_POS:
+			v_pad = q_text.height + 2 * txtm.styles[f.styles.query].line_height
+			p.locations[k] = [P.screen_c[0], p.locations.query[1] + v_pad]
+			p.registrations[k] = BL_CENTER
 
 	# Create an informative error message for invalid responses
 	accepted_responses = query_ob.accepted  # for code readability
 	if accepted_responses:
 		try:
 			iter(accepted_responses)
-			accepted_str = pretty_join(
-				accepted_responses, delimiter=",", delimit_behaviors=[DELIM_NOT_LAST],
-				wrap_each="", before_last='or', prepend='[ ', append=' ]')
+			accepted_str = pretty_list(accepted_responses)
 			invalid_answer_str = default_strings['invalid_answer'].format(accepted_str)
 		except:
 			raise TypeError("The 'accepted' key of a question must be a list of values.")
@@ -301,7 +312,10 @@ def query(query_ob, anonymous=False):
 		elif isinstance(f.range, list) == False or len(f.range) != 2:
 			raise TypeError("Query ranges must be two-item lists, containing an upper bound "
 				"and a lower bound.")
-		template = "Your answer must be a number between {0} and {1}, inclusive."
+		try:
+			template = default_strings['out_of_range']
+		except KeyError:
+			template = "Your answer must be a number between {0} and {1}, inclusive."
 		invalid_answer_str = template.format(f.range[0], f.range[1])
 
 	# user input loop; exited by breaking
@@ -362,7 +376,7 @@ def query(query_ob, anonymous=False):
 								user_finished = True
 					else:
 						# If no input and allow_null is false, display error
-						error_string = default_strings['no_answer_string']
+						error_string = default_strings['answer_not_supplied']
 
 			elif event.type == SDL_TEXTINPUT:
 
@@ -390,7 +404,9 @@ def query(query_ob, anonymous=False):
 			fill()
 			blit(q_text, p.registrations.query, p.locations.query)
 			if rendered_input:
-				blit(rendered_input, p.registrations.input, p.locations.input)
+				loc = p.locations.error if error_string else p.locations.input
+				reg = p.registrations.error if error_string else p.registrations.input
+				blit(rendered_input, reg, loc)
 			flip()
 
 	# Once a valid response has been made, clear the screen

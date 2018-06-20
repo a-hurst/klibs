@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'j. mulle, this.impetus@gmail.com'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import abc
 import time
@@ -39,12 +39,10 @@ if PYLINK_AVAILABLE:
 
 
 	class EyeLinkExt(EyeLink, EnvAgent, BoundaryInspector):
-		__anonymous_boundaries__ = 0
 		__gaze_boundaries__ = {}
 		__eye_used__ = None
 		custom_display = None
 		version = None
-		dc_width = None  # ie. drift-correct width
 		edf_filename = None
 		unresolved_exceptions = 0
 		start_time = [None, None]
@@ -57,7 +55,7 @@ if PYLINK_AVAILABLE:
 				try:
 					EyeLink.__init__(self)
 				except RuntimeError as e:
-					if "Could not connect" in e.message:
+					if "Could not connect" in str(e):
 						print("! If the EyeLink is on, ready, & connected, try turning off "
 							"the Wi-Fi on this machine or restarting the EyeLink PC.\n")
 					raise e
@@ -155,34 +153,34 @@ if PYLINK_AVAILABLE:
 		def clear_queue(self):
 			self.resetData()
 
-		def drift_correct(self, location=None, boundary=None, el_draw_fixation=EL_TRUE, samples=EL_TRUE, fill_color=None, target_img=None):
+		def drift_correct(self, location=None, boundary=None, el_draw_fixation=EL_TRUE, fill_color=None, target_img=None):
 			"""
 			:param location:
 			:param el_draw_fixation:
-			:param samples:
 			:return: :raise ValueError:
 			"""
 			hide_mouse_cursor()
 
 			location = P.screen_c if location is None else location
 			if not iterable(location):
-				raise ValueError("Argument 'location' invalid; expected coordinate tuple or boundary label.")
+				raise ValueError("'location' must be a tuple of pixel coordinates.")
 
-			if not boundary:
-				boundary = "drift_correct"
-
-			#todo: learn about fucking inflectors
 			el_draw_fixation = EL_TRUE if el_draw_fixation in [EL_TRUE, True] else EL_FALSE
-			samples = EL_TRUE if samples in [EL_TRUE, True] else EL_FALSE
+			target_img = drift_correct_target() if target_img is None else target_img
 
 			try:
-				if el_draw_fixation == EL_TRUE:
+				while True:
+					if el_draw_fixation == EL_TRUE:
+						fill(P.default_fill_color if not fill_color else fill_color)
+						blit(target_img, 5, location)
+						flip()
+					ret = self.doDriftCorrect(location[0], location[1], el_draw_fixation, EL_TRUE)
+					if ret != 27: # 27 means we hit Esc to enter calibration, so redo drift correct
+						break
+				if el_draw_fixation:
 					fill(P.default_fill_color if not fill_color else fill_color)
-					blit(drift_correct_target() if target_img is None else target_img, 5, location)
 					flip()
-				self.doDriftCorrect(location[0], location[1], el_draw_fixation, samples)
-				clear()
-				self.applyDriftCorrect()
+				return self.applyDriftCorrect()
 			except RuntimeError:
 				try:
 					self.setOfflineMode()
@@ -193,7 +191,7 @@ if PYLINK_AVAILABLE:
 						print(full_trace())
 						self.unresolved_exceptions = 0
 						raise TrialException("EyeLink not ready.")
-				return self.drift_correct()
+				return self.drift_correct(location, boundary, el_draw_fixation, fill_color, target_img)
 
 		def fixated_boundary(self, label, valid_events=EL_FIXATION_START, event_queue=None, report=EL_TIME_START,
 							 inspect=None, return_queue=False):
@@ -299,7 +297,7 @@ if PYLINK_AVAILABLE:
 
 		def now(self, unit=TK_MS):
 			time = self.trackerTime()
-			return time if unit == TK_MS else time * 0.001
+			return time * 0.001 if unit == TK_S else time
 
 		def saccade_to_boundary(self, label, event_queue=None, report=EL_TIME_END, return_queue=False):
 			"""
@@ -361,7 +359,7 @@ if PYLINK_AVAILABLE:
 			:param return_queue:
 			:return:
 			"""
-			if isinstance(doi, basestring): 
+			if not iterable(doi): 
 				doi = [doi] # if direction of interest is a string, make it a list
 				
 			for direction in doi:
@@ -386,8 +384,6 @@ if PYLINK_AVAILABLE:
 			return self.__current_sample__
 
 		def setup(self):
-			self.dc_width = P.screen_y // 60
-			self.add_boundary("drift_correct", [P.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
 			try:
 				self.custom_display = ELCustomDisplay()
 			except Exception as e:
@@ -495,9 +491,6 @@ if PYLINK_AVAILABLE:
 		# Everything from here down are legacy functions that wrap newer counterparts with different names for
 		# backwards compatibility
 
-		def shut_down_eyelink(self):
-			self.shut_down()
-
 		# re: all "gaze_boundary" methods: Refactored boundary behavior to a mixin (KLMixins)
 		def fetch_gaze_boundary(self, label):
 			return self.boundaries[label]
@@ -509,8 +502,6 @@ if PYLINK_AVAILABLE:
 				__bounds = label
 				name = bounds
 				bounds = __bounds
-			if name is None:
-				name = "anonymous_{0}".format(self.__anonymous_boundaries__)
 
 			if shape not in [RECT_BOUNDARY, CIRCLE_BOUNDARY]:
 				raise ValueError(
@@ -522,10 +513,6 @@ if PYLINK_AVAILABLE:
 		def clear_gaze_boundaries(self):
 			# legacy function
 			self.clear_boundaries()
-			self.dc_width = P.screen_y // 60
-			dc_tl = [P.screen_x // 2 - self.dc_width // 2, P.screen_y // 2 - self.dc_width // 2]
-			dc_br = [P.screen_x // 2 + self.dc_width // 2, P.screen_y // 2 + self.dc_width // 2]
-			self.add_boundary("drift_correct", [dc_tl, dc_br], RECT_BOUNDARY)
 
 
 		def draw_gaze_boundary(self, label="*", blit=True):

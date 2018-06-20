@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
-__author__ = 'j. mulle, this.impetus@gmail.com'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EyeLinkError
-from klibs.KLConstants import (CIRCLE_BOUNDARY, RECT_BOUNDARY, EL_NO_EYES, EL_MOCK_EVENT, EL_TRUE,
-	EL_GAZE_POS, EL_SACCADE_END, EL_SACCADE_START, EL_FIXATION_END, EL_ALL_EVENTS, EL_TIME_START,
-	TK_S, TK_MS)
+from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
+	EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
+	EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
+	EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_AVG_GAZE, EL_TIME_START, EL_TIME_END,
+	EL_MOCK_EVENT, EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
+	TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 from klibs import P
 from klibs.KLUtilities import (angle_between, iterable, mouse_pos, show_mouse_cursor,
 	hide_mouse_cursor, pump)
-from klibs.KLBoundary import BoundaryInspector
+from klibs.KLBoundary import BoundaryInspector, CircleBoundary
 from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLUserInterface import ui_request
@@ -20,11 +23,9 @@ import abc
 
 
 class TryLink(EnvAgent, BoundaryInspector):
-	__anonymous_boundaries__ = 0
 	__gaze_boundaries__ = {}
 	custom_display = None
 	version = "TryLink"
-	dc_width = None  # ie. drift-correct width
 	edf_filename = None
 	unresolved_exceptions = 0
 	start_time = [None, None]
@@ -90,10 +91,8 @@ class TryLink(EnvAgent, BoundaryInspector):
 		"""
 		location = P.screen_c if location is None else location
 		if not iterable(location):
-			raise ValueError("Argument 'location' invalid; expected coordinate tuple or boundary label.")
-
-		if boundary is None:
-			boundary = "drift_correct"
+			raise ValueError("'location' must be a tuple of pixel coordinates.")
+		dc_boundary = CircleBoundary('drift_correct', location, P.screen_y // 120)
 
 		show_mouse_cursor()
 		while True:
@@ -106,8 +105,11 @@ class TryLink(EnvAgent, BoundaryInspector):
 			else:
 				SDL_Delay(2) # required for pump() to reliably return mousebuttondown events
 			for e in event_queue:
-				if e.type == SDL_MOUSEBUTTONDOWN and super(TryLink, self).within_boundary(boundary, [e.button.x, e.button.y]):
+				if e.type == SDL_MOUSEBUTTONDOWN and dc_boundary.within([e.button.x, e.button.y]):
 					hide_mouse_cursor()
+					if el_draw_fixation == EL_TRUE:
+						fill(P.default_fill_color if not fill_color else fill_color)
+						flip()
 					return 0
 
 	def fixated_boundary(self, label, valid_events=None, inspect=EL_FIXATION_END, event_queue=None, report=None,
@@ -241,10 +243,9 @@ class TryLink(EnvAgent, BoundaryInspector):
 
 	def now(self, unit=TK_MS):
 		time = float(SDL_GetTicks())
-		return time if unit == TK_MS else time * 0.001
+		return time * 0.001 if unit == TK_S else time
 
-	def saccade_to_boundary(self, label, valid_events=None, event_queue=None,
-							report=None, inspect=None, return_queue=False):
+	def saccade_to_boundary(self, label, event_queue=None, report=EL_TIME_END, return_queue=False):
 		"""
 		Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
 		In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
@@ -260,7 +261,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 			return sacc_start_time if not return_queue else [sacc_start_time, event_queue]
 		return False
 
-	def saccade_from_boundary(self, label, inspect=EL_SACCADE_START, event_queue=None, return_queue=False):
+	def saccade_from_boundary(self, label, event_queue=None, report=EL_TIME_END, return_queue=False):
 		"""
 		Immediately returns from passed or fetched event queue the first saccade_end event in passed boundary.
 		In the case of sharing an event queue, poll_events allows for retrieving eyelink events that are otherwise
@@ -288,7 +289,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 		:param return_queue:
 		:return:
 		"""
-		if isinstance(doi, basestring): 
+		if not iterable(doi): 
 			doi = [doi] # if direction of interest is a string, make it a list
 			
 		for direction in doi:
@@ -311,8 +312,6 @@ class TryLink(EnvAgent, BoundaryInspector):
 		return self.__current_sample__
 
 	def setup(self):
-		self.dc_width = P.screen_y // 60
-		self.add_boundary("drift_correct", [P.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
 		self.calibrate()
 		self.initialized = True
 

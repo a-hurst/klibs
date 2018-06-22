@@ -73,7 +73,7 @@ default_color = (255, 255, 255, 255)
 default_alert_color = (236, 88, 64, 255)
 default_font_size = 28
 default_font_unit = 'pt'
-default_font_name = 'Frutiger' #TODO: find a new default font
+default_font_name = 'Hind-Medium'
 
 # Display defaults (user-defined)
 view_distance = 57  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen

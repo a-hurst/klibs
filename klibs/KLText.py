@@ -6,7 +6,7 @@ import ctypes
 from ctypes import byref, c_int
 
 from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_Blended,
-	TTF_SizeUTF8, TTF_GlyphMetrics)
+	TTF_SizeUTF8, TTF_GlyphMetrics, TTF_FontHeight, TTF_FontLineSkip)
 from sdl2 import SDL_Color
 import numpy as np
 
@@ -129,7 +129,7 @@ class TextManager(object):
 	def __init__(self):
 		self.add_font("Anonymous Pro", filename="AnonymousPro")
 		self.add_font("Roboto-Medium")
-		self.add_font("Frutiger")
+		self.add_font("Hind-Medium")
 		self.add_font(P.default_font_name)
 		self.default_color = P.default_color
 		TTF_Init()

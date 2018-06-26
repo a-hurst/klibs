@@ -12,6 +12,7 @@ try:
 	from klibs.KLExceptions import DatabaseException
 	from klibs.KLUtilities import colored_stdout as cso
 	from klibs.KLUtilities import getinput
+	from klibs import P
 except:
 	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m\n\nStack Trace:")
 	exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -133,7 +134,8 @@ def create(name, path):
 			"<purple>N</purple><green_d>o, or</green_d> "
 			"<purple>Q</purple><green_d>uit: </green_d>", False
         )
-		response = getinput(query)[0].lower()
+		response = getinput(query).lower()
+		response = response[0] if len(response) > 1 else response
 		if response == "y":
 			verified = True
 		elif response == "n":
@@ -203,10 +205,12 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 		while True:
 			query = cso(
 				"<green_d>You can</green_d> "
-				"<purple>(c)</purple><green_d>reate them automatically or view a "
-				"<purple>(r)</purple><green_d>eport on the missing directories: </green_d>", False
+				"<purple>(c)</purple><green_d>reate them automatically, view a "
+				"<purple>(r)</purple><green_d>eport on the missing directories, or "
+				"<purple>(q)</purple><green_d>uit klibs: </green_d>", False
 			)
-			action = getinput(query).lower()[0]
+			action = getinput(query).lower()
+			action = action[0] if len(action) > 1 else action # only check first letter of input
 			if action == "r":
 				cso("<green_d>The following expected directories were not found:</green_d>")
 				for md in missing_dirs:
@@ -214,6 +218,10 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 			elif action == "c":
 				ensure_directory_structure(dir_structure, path, create_missing=True)
 				break
+			elif action == "q":
+				sys.exit()
+			else:
+				cso("\n<red>Please enter a valid response.</red>")
 
 	# set initial param values for project's context
 	P.setup(project_name, seed)
@@ -225,8 +233,13 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 	P.condition = condition
 
 	# import params defined in project's local params file in ExpAssets/Config
-	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
-		setattr(P, k, v)
+	try:
+		for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
+			setattr(P, k, v)
+	except IOError:
+		err("Unable to locate the experiment's '_params.py' file. Please ensure that this "
+			"file exists, and that the name of the experiment folder matches the name of the "
+			"Experiment class defined in 'experiment.py'.")
 
 	# if a local params file exists, do the same:
 	if os.path.exists(P.params_local_file_path) and not P.dm_ignore_local_overrides:
@@ -244,14 +257,11 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 				"Please relaunch the experiment.".format(P.condition, cond_list))
 
 	# set some basic global Params
-	#P.verbose_mode = verbose
 	if devmode:
 		P.development_mode = True
 		P.collect_demographics = False
 	if not P.labjack_available:
 		P.labjacking = False
-	#if not show_debug_pane:
-	#	P.dm_suppress_debug_pane = True
 	#TODO: check if current commit matches experiment.py and warn user if not
 
 	# create runtime environment
@@ -419,6 +429,10 @@ def update(branch='default'):
 def cli(): 
 
 	sys.dont_write_bytecode = True # suppress creation of useless .pyc files
+
+	term_type = os.getenv('TERM') # make sure the terminal supports colour before enabling cso
+	if term_type and 'color' in term_type:
+		P.color_output = True
 
 	class CustomHelpFormatter(argparse.HelpFormatter):
 		# default argparse help formatting is kind of a mess, so we override some things

@@ -176,6 +176,9 @@ def display_init(diagonal_in):
 		P.screen_x_y = (P.screen_x, P.screen_y)
 
 		P.refresh_rate = display_mode.refresh_rate
+		if P.refresh_rate == 0:
+			P.refresh_rate = 60.0
+			print("\tWarning: Unable to detect your monitor's refresh rate, defaulting to 60Hz.")
 		P.refresh_time = 1000.0 / P.refresh_rate
 
 		#TODO: figure out what's actually needed for multi-monitor support

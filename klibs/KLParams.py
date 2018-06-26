@@ -47,6 +47,7 @@ blocks_per_experiment = 0
 conditions = []
 table_defaults = {} # default column values for db tables when using EntryTemplate
 run_practice_blocks = True # (not implemented in klibs itself)
+color_output = False # whether cso() outputs colorized text or not
 
 # Eye Tracking Settings
 eye_tracking = False

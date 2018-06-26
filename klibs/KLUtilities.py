@@ -60,7 +60,8 @@ def bounded_by(pos, left, right, top, bottom):
 
 
 def camel_to_snake(string):
-	return re.sub('([a-z0-9])([A-Z])', r'\1_\2', re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)).lower()
+	s = re.sub('([a-z0-9])([A-Z])', r'\1_\2', re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string))
+	return s.lower()
 
 
 def canvas_size_from_points(points, flat=False):
@@ -135,9 +136,9 @@ def colored_stdout(string, print_string=True, args=[]):
 			"<bold>": '\033[1m'
 	}
 	for c in colors:
-		string = string.replace(c, colors[c])
+		string = string.replace(c, colors[c] if P.color_output else '')
 	original_color = "\033[0m"
-	string =  end_col.sub(original_color, string)
+	string =  end_col.sub(original_color if P.color_output else '', string)
 	if print_string:
 		print(string)
 	else:
@@ -231,6 +232,19 @@ def interpolated_path_len(points):
 
 
 def iterable(obj, exclude_strings=True):
+	"""Determines whether a variable is iterable (i.e. whether it can be iterated over in a
+	'for' loop, such as a :obj:`List` or :obj:`Tuple`).
+
+	Args:
+		obj: The object to check the iterability of.
+		exclude_strings (bool, optional): If True, this function will return False for strings,
+			which are otherwise considered iterable in Python. Defualts to True.
+
+	Returns:
+		True if the given object is iterable (and not a string, if exclude_strings is True),
+		otherwise False.
+
+	"""
 	if exclude_strings:
 		return hasattr(obj, '__iter__') and not isinstance(obj, str)
 	else:
@@ -674,7 +688,7 @@ def snake_to_camel(string):
 
 def snake_to_title(string):
 	words = string.split('_')
-	return words[0] + "".join(x.title() for x in words)
+	return "".join(x.title() for x in words)
 
 
 def str_pad(string, str_len, pad_char=" ", pad_dir="r"):
@@ -773,6 +787,10 @@ def smart_sleep(interval, units=TK_MS):
 
 
 def acute_angle(vertex, p1, p2):
+	# this is poorly named: acute angle is any angle under 90 degrees, but this function
+	# calculates the angle between the two lines (vertex -> p1) and (vertex -> p2).
+	# Currently only used once in TraceLab, so can probably rename. Docs would benefit from
+	# an illustration.
 	v_p1 = float(line_segment_len(vertex, p1))
 	v_p2 = float(line_segment_len(vertex, p2))
 	p1_p2 = line_segment_len(p1, p2)

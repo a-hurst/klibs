@@ -51,9 +51,15 @@ class AudioManager(object):
 			sdl2.SDL_Init(sdl2.SDL_INIT_AUDIO)
 			sdl2.sdlmixer.Mix_OpenAudio(44100, sdl2.sdlmixer.MIX_DEFAULT_FORMAT, 2, 1024)
 		if PYAUDIO_AVAILABLE:
-			self.input = pyaudio.PyAudio()
-			self.device_name = str(self.input.get_default_input_device_info()['name'])
-			self.stream = AudioStream(self.input)
+			try:
+				self.input = pyaudio.PyAudio()
+				self.device_name = self.input.get_default_input_device_info()['name']
+				self.stream = AudioStream(self.input)
+			except IOError:
+				print("Warning: Could not find a valid audio input device, audio input will "
+					"not be available.")
+				self.input = None
+				self.stream = None
 		else:
 			print("\t* Warning: PyAudio library not found; audio input will not be available.")
 			self.input = None
@@ -86,20 +92,21 @@ class AudioManager(object):
 		except IOError:
 			self.input.terminate()
 			self.input = pyaudio.PyAudio()
-			default_device_name = str(self.input.get_default_input_device_info()['name'])
+			default_device_name = self.input.get_default_input_device_info()['name']
 			if default_device_name != self.device_name:
 				raise RuntimeError('Audio input device disconnected mid-experiment.')
 			self.stream = AudioStream(self.input)
 			return True
 
 	def shut_down(self):
-		try:
-			if not self.stream.is_stopped():
-				self.stream.stop()
-			self.stream.close()
-		except IOError:
-			pass
-		self.input.terminate()
+		if self.input:
+			try:
+				if not self.stream.is_stopped():
+					self.stream.stop()
+				self.stream.close()
+			except IOError:
+				pass
+			self.input.terminate()
 
 
 # Note AudioClip is an adaption of code originally written by mike lawrence (github.com/mike-lawrence)

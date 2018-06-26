@@ -442,7 +442,7 @@ class DatabaseManager(EnvAgent):
 			self.__current = self.__master
 			
 	def __catch_db_not_found__(self):
-		cso("<green_d>No database file was present at '{0}'.</green_d>", args=[P.database_path])
+		cso("\n<green_d>No database file was present at '{0}'.</green_d>", args=[P.database_path])
 		err_string = cso(
 			"<green_d>You can</green_d> "
 			"<purple>(c)</purple><green_d>reate it,</green_d> "
@@ -451,9 +451,12 @@ class DatabaseManager(EnvAgent):
 		)
 		db_action = ArgumentParser()
 		db_action.add_argument('action', type=str, choices=['c', 's', 'q'])
-		action = db_action.parse_args([getinput(err_string).lower()[0]]).action
+		response = getinput(err_string).lower()
+		response = response[0] if len(response) > 1 else response
+		action = db_action.parse_args([response]).action
 
 		if action == DB_SUPPLY_PATH:
+			# TODO: error checking for this
 			P.database_path = getinput(cso("<green_d>Great. Where might it be?</green_d>", False))
 			self.__load_master__()
 		elif action == DB_CREATE:

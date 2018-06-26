@@ -69,19 +69,28 @@ def collect_demographics(anonymous=False):
 	# collect a response and handle errors for each question
 	for q in user_queries.demographic:
 		if q.active:
-			# todo: identify errors pertaining to fields where unique values are required; optionally retry the question
-			db.log(q.database_field, query(q, anonymous=anonymous))
+			# if querying unique identifier, make sure it doesn't already exist in db
+			if q.database_field == P.unique_identifier:
+				existing = db.query("SELECT `{0}` FROM `participants`".format(q.database_field))
+				while True:
+					value = query(q, anonymous=anonymous)
+					if value in [val[0] for val in existing]:
+						err = ("A participant with that ID already exists!\n"
+								"Please try a different identifier.")
+						fill()
+						blit(message(err, "alert", align='center', blit_txt=False), 5, P.screen_c)
+						flip()
+						any_key()
+					else:
+						break
+			else:
+				value = query(q, anonymous=anonymous)
+			db.log(q.database_field, value)
 
 	# typical use; P.collect_demographics is True and called automatically by klibs
 	if not P.demographics_collected:
-		try:
-			P.participant_id = db.insert()
-			P.p_id = P.participant_id
-		except IntegrityError:
-			# todo: this will generally be a correct error message but in fact is a blanket catch-all for UNIQUE conflicts
-			message("That user already exists. Please try again.", location=P.screen_c, registration=5, clear_screen=True, flip_screen=True)
-			any_key()
-			return collect_demographics(anonymous)
+		P.participant_id = db.insert()
+		P.p_id = P.participant_id
 		P.demographics_collected = True
 	else:
 		#  The context for this is: collect_demographics is set to false but then explicitly called later

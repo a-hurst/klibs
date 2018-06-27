@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+import os
 from time import time
 from math import sqrt, atan, degrees
 
@@ -162,7 +163,10 @@ def display_init(diagonal_in):
 				13-inch MacBook Pro).
 
 		"""
-
+		if os.name == 'nt':
+			# set video driver explicitly on Windows to avoid misdetection problems
+			os.environ['SDL_VIDEODRIVER'] = 'windows'
+			
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()

@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 
 # Aliases for UI convenience
-INCH = "in"
-CM = "cm"
 TAB = "\t"
 NA = "NA"
 ALL = "*"
 RGBA = "RGBA"
 
-# TimeKeeper Constants
+# Time Constants
 TK_MS = 1 # Use milliseconds
 TK_S = 0 # Use seconds
+DATETIME_STAMP = '%Y-%m-%d_%H-%M'
 
 # KLBoundary shape aliases
 RECT_BOUNDARY = "rectangle"
@@ -29,14 +28,10 @@ KLD_PATH = "path"
 KLD_MOVE = "move"
 
 # ResponseCollector Constants
-RC_AUDIO = 'audio'
-RC_KEYPRESS = 'keypress'
-RC_COLORSELECT = 'color_selection'
-RC_MOUSEDOWN = 'mousedown'
-RC_MOUSEUP = 'mouseup'
-RC_SACCADE = 'saccade'
-RC_FIXATION = 'fixation'
-RC_DRAW = 'draw'
+RC_AUDIO = 'audio_listener'
+RC_KEYPRESS = 'keypress_listener'
+RC_COLORSELECT = 'color_listener'
+RC_DRAW = 'draw_listener'
 NO_RESPONSE = "NO_RESPONSE"
 TIMEOUT = -1
 
@@ -103,13 +98,10 @@ FACTORS_EXT = "_independent_variables.py"
 PARAMS_EXT = "_params.py"
 MESSSAGING_EXT = "_messaging.csv"
 
-# KLText & pretty_join Constants
-TEXT_PX = "PX"
+# KLText Constants
+TEXT_PT = "pt"
+TEXT_PX = "px"
 TEXT_MULTIPLE = "*"
-TEXT_PT = "PT"
-DELIM_WRAP = "wrap"
-DELIM_NOT_LAST = "not_last"
-DELIM_NOT_FIRST = "not_first"
 
 # KLCommunication Constants (for query function)
 AUTO_POS = "auto"
@@ -118,19 +110,19 @@ QUERY_ACTION_UPPERCASE = "uppercase"
 
 # KLDatabase Constants
 PY_FLOAT = 'float'
-PY_STR = 'str'
-PY_BOOL = 'bool'
 PY_INT = 'int'
-PY_BIN = 'binary'
-PY_NUM = 'numeric'
+PY_BOOL = 'bool'
+PY_STR = 'str'
+PY_BIN = 'bytes'
+SQL_NUMERIC = 'numeric'
 SQL_FLOAT = 'float'
 SQL_REAL = 'real'
-SQL_BIN = 'blob'
-SQL_KEY = 'integer key'
 SQL_INT = 'integer'
-SQL_NUMERIC = 'numeric'
-SQL_NULL = 'null'
+SQL_KEY = 'integer key'
+SQL_BOOL = 'boolean'
 SQL_STR = 'text'
+SQL_BIN = 'blob'
+SQL_NULL = 'null'
 SQL_COL_DELIM_STR = "`, `"
 ID = "id"
 DB_SUPPLY_PATH = "s"
@@ -146,14 +138,6 @@ TBL_PARTICIPANTS = "participants"
 TBL_EVENTS = "events"
 TBL_TRIALS = "trials"
 TBL_LOGS = "logs"
-
-# SDL2 keycodes for modifier keys (used for ui_request and other functions)
-MOD_KEYS = {
-	"Left Shift": 1, "Right Shift": 2,
-	"Left Ctrl": 64, "Right Ctrl": 128,
-	"Left Alt": 256, "Right Alt": 512,
-	"Left Command": 1024, "Right Command": 2048
-}
 
 # AudioResponse Constants
 AR_CHUNK_SIZE = 1024
@@ -193,6 +177,3 @@ EVI_CONSTANTS = [
 	EVI_EL_START_REC, EVI_EL_STOP_REC, EVI_SEND_TIME, EVI_CLOCK_SYNC, EVI_CLOCK_RESET,
 	EVI_DEREGISTER_EVENT, EVI_EVENT_SYNC_COMPLETE
 ]
-
-# Misc Constants
-DATETIME_STAMP = '%Y-%m-%d %H:%M:%S'

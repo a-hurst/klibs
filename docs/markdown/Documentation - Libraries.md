@@ -53,7 +53,7 @@ KLDraw is a library for drawing stimuli, and contains a number of functions to c
 
 KLEnvironment is for internal use only, and serves to make instances of important classes globally accessable across a KLibs environment. 
 
-It imports an EventManager instance, an Experiment instance, a Database instance, a TextManager instance, a TimeKeeper instance, a ResponseCollector instance, and an EyeLink instance (if the `P.eyetracking` variable is set to 'True'). Consequently, none of the above classes should ever need to be imported manually.
+It imports an EventManager instance, an Experiment instance, a DatabaseManager instance, a TextManager instance, a ResponseCollector instance, and an EyeLink instance (if the `P.eyetracking` variable is set to 'True'). Consequently, none of the above classes should ever need to be imported manually.
 
 ### KLEventInterface
 

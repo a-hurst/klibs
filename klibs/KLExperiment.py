@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-__author__ = 'j. mulle, this.impetus@gmail.com'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
+import sys
 from abc import abstractmethod
 from os import mkdir
 from os.path import join
@@ -11,8 +12,7 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
-from klibs.KLUtilities import (full_trace, pump, flush, now, list_dimensions, force_quit,
-	show_mouse_cursor, hide_mouse_cursor)
+from klibs.KLUtilities import full_trace, pump, flush, now, show_mouse_cursor, hide_mouse_cursor
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear
@@ -21,6 +21,7 @@ from klibs.KLGraphics import KLDraw as kld
 from klibs.KLDatabase import Database
 from klibs.KLUserInterface import any_key
 from klibs.KLAudio import AudioManager
+from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLCommunication import message, query, collect_demographics
 
 
@@ -34,9 +35,8 @@ class Experiment(EnvAgent):
 	def __init__(self):
 		super(Experiment, self).__init__()
 
-		# initialize audio management for the experiment
-		self.audio = AudioManager()
-
+		self.audio = AudioManager() # initialize audio management for the experiment
+		self.rc = ResponseCollector() # add default response collector
 		self.database = self.db # use database from evm
 
 		self.trial_factory = TrialFactory(self)
@@ -46,10 +46,8 @@ class Experiment(EnvAgent):
 
 
 	def __execute_experiment__(self, *args, **kwargs):
-		"""
-		Private method, launches and manages the experiment after KLExperiment object's run() method is called.
-		:param args:
-		:param kwargs:
+		"""For internal use, actually runs the blocks/trials of the experiment in sequence.
+
 		"""
 
 		if not self.blocks:
@@ -79,14 +77,14 @@ class Experiment(EnvAgent):
 
 	def __trial__(self, trial, practice):
 		"""
-		Private method; manages a trial. Expected \*args = [trial_number, [practicing, param_1,...param_n]]
+		Private method; manages a trial.
 		"""
 		pump()
 
 		# At start of every trial, before setup_response_collector or trial_prep are run, retrieve
 		# the values of the independent variables (factors) for that trial (as generated earlier by
 		# TrialFactory) and set them as attributes of the experiment object.
-		factors = self.trial_factory.exp_factors.keys()
+		factors = list(self.trial_factory.exp_factors.keys())
 		for iv in factors:
 			iv_value = trial[factors.index(iv)]
 			setattr(self, iv, iv_value)
@@ -121,12 +119,9 @@ class Experiment(EnvAgent):
 			raise tx
 
 	def __log_trial__(self, trial_data, auto_id=True):
-		"""
-		Private method, should not be called by user; use KLExperiment.log()
-		:param trial_data:
-		:param auto_id:
-		"""
+		"""Internal method, logs trial data to database.
 
+		"""
 		if auto_id: trial_data[P.id_field_name] = P.participant_id
 		if self.database.current() is None: self.database.init_entry('trials', "trial_{0}".format(P.trial_number))
 		for attr in trial_data: self.database.log(attr, trial_data[attr])
@@ -142,14 +137,7 @@ class Experiment(EnvAgent):
 				blit(self.tracker_dot, 5, self.el.gaze())
 			except RuntimeError:
 				pass
-		# KLDebug in very early stages and not ready for UnitTest branch of klibs; below code may return later
-		# if P.development_mode and not P.dm_suppress_debug_pane:
-		# 	try:
-		# 		self.debug.print_logs(cli=False)
-		# 	except AttributeError as e:  # potentially gets called once before the Debugger is intialized during init
-		# 		if P.display_initialized:
-		# 			raise
-
+				
 	def insert_practice_block(self, block_nums, trial_counts=None, factor_mask=None):
 		"""
 		Adds one or more practice blocks to the experiment. This function must be called during setup(),
@@ -168,13 +156,16 @@ class Experiment(EnvAgent):
 		the function will generate a full set of trials based on all possible combination of factors,
 		and will randomly select trial_counts trials from it for each practice block.
 
-		:param block_nums: Numbers in the sequence of blocks at which to append practice blocks.
-		:type block_nums: Iterable of Ints
-		:param trial_counts: Numbers of trials per practice block.
-		:type trial_counts: Iterable of Ints
-		:param factor_mask: Override values for variables specified in independent_variables.py.
-		:type factor_mask: Dict of Lists
-		:raises: TrialException
+		Args:
+			block_nums (:obj:`list` of int): Index numbers at which to insert the blocks.
+			trial_counts (:obj:`list` of int, optional): The numbers of trials to insert for each
+				of the inserted blocks.
+			factor_mask (:obj:`dict` of :obj:`list`, optional): Override values for the variables
+				specified in independent_variables.py.
+
+		Raises:
+			TrialException: If called after the experiment's :meth:`setup` method has run.
+
 		"""
 		if self.blocks:
 			# If setup has passed and trial execution has started, blocks have already been exported
@@ -195,55 +186,15 @@ class Experiment(EnvAgent):
 			self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_mask)
 			P.blocks_per_experiment += 1
 
-	def add_keymap(self, name, ui_labels=None, data_labels=None, sdl_keysyms=None):
-		"""
-		``relocation_planned``
-		A convenience method that creates a :mod:`~klibs.KLKeyMap`.\ :class:`~klibs.KLKeyMap.KeyMap` instance from
-		supplied information.
-		Equivalent to::
-			P.key_maps['name'] = KLKeyMap.KeyMap(name, ui_labels, data_labels, sdl_keysyms)
-		:param name: Name reference for the keymap (ie. 'response_keys' )
-		:type name: String
-		:param ui_labels: Labels for key mappings for human communication purposes (ie. "z", "/")
-		:type ui_labels: Iterable of Strings
-		:param data_labels: Labels for representing key mappings in a datafile (ie. "RIGHT","LEFT").
-		:type data_labels: Iterable of Strings
-		:param sdl_keysyms: SDL2 keysym values; see :ref:`sdl_keycode_reference` for complete list.
-		:type sdl_keysyms: Iterable of SDL_keysyms
-		:return: :class:`~klibs.KLKeyMap.KeyMap` or Boolean
-		:raises: TypeError
-		"""
-
-		if type(name) is not str:
-			raise TypeError("Argument 'name' must be a string.")
-
-		# register the keymap if one is being passed in and set keyMap = name of the newly registered map
-		if all(type(key_param) in [tuple, str] for key_param in [ui_labels, data_labels, sdl_keysyms]):
-			P.key_maps[name] = KeyMap(name, ui_labels, data_labels, sdl_keysyms)
-
-		#retrieve registered keymap(s) by name
-		if name in P.key_maps:
-			return P.key_maps[name]
-		else:
-			return False
-
-	def config(self):
-		"""
-		``not_implemented``
-		Global configuration of project settings. Slated for future release.
-		"""
-
-		#todo: will be a screen that's shown before anything happens in the program to quickly tweak debug settings
-		pass
-
 	def quit(self):
+		"""Safely exits the program, ensuring data has been saved and any connected EyeLink unit's
+		recording is stopped. This, not Python's sys.exit(), should be used to exit an experiment.
+
 		"""
-		Safely exits the program, ensuring data has been saved and that any connected EyeLink unit's recording is
-		stopped. This, not Python's exit()
-		should be used to exit an experiment.
-		"""
+		#TODO: this needs hella cleanup, so much commented-out and messy code
+
 		if P.verbose_mode:
-			print full_trace()
+			print(full_trace())
 
 		#try:
 		#	if not self.evm.events_dumped:
@@ -255,18 +206,14 @@ class Experiment(EnvAgent):
 			try:
 				self.database.commit()
 			except Exception as e:
-				if e.message == "Cannot operate on a closed database.":
+				if str(e) == "Cannot operate on a closed database.":
 					pass
 				else:
-					print "Commit() to self.database failed."
+					print("Commit() to self.database failed.")
 					raise e
-			try:
-				self.database.close()
-			except Exception as e:  # TODO: Determine exception tpye
-				print "Database.close() unsuccessful."
-				raise e
+			self.database.close()
 		except Exception:
-			print full_trace()
+			print(full_trace())
 
 		if P.eye_tracking and P.eye_tracker_available:	
 			try:
@@ -274,35 +221,26 @@ class Experiment(EnvAgent):
 			except:
 				print("EyeLink.stopRecording() unsuccessful.")
 				cso("<red>****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******</red>")
+				
+		#Commented out until LabJack integration is reimplemented/reconsidered
+		#if P.labjacking and P.labjack_available:
+		#	try:
+		#		lj.shut_down()
+		#	except:
+		#		print("LabJack.shutdown() unsuccessful.")
+		#		cso("<red>****** DISCONNECT & RECONNECT LABJACK PLEASE & THANKS! *******</red>")
 
-		if P.labjacking and P.labjack_available:
-			try:
-				lj.shut_down()
-			except:
-				print("LabJack.shutdown() unsuccessful.")
-				cso("<red>****** DISCONNECT & RECONNECT LABJACK PLEASE & THANKS! *******</red>")
-
+		self.audio.shut_down()
 		SDL_Quit()
-
-		# temporary lines added for certain experiments using a log file
-		#try:
-		#	self.log_f.close()
-		#except AttributeError:
-		#	pass
-
-		try:
-			self.evm.terminate()
-		except RuntimeError:
-			force_quit()
+		self.evm.terminate()
 
 		cso("\n\n<green>*** '{0}' successfully shutdown. ***</green>\n\n".format(P.project_name))
-		exit()
+		sys.exit()
 
 	def run(self, *args, **kwargs):
-		"""
-		Executes the experiment. Experimenters should use this method to launch their program.
-		:param args:
-		:param kwargs:
+		"""The method that gets run by 'klibs run' after the runtime environment is created. Runs
+		the actual experiment.
+
 		"""
 
 		if not P.development_mode:
@@ -318,15 +256,17 @@ class Experiment(EnvAgent):
 		try:
 			self.__execute_experiment__(*args, **kwargs)
 		except RuntimeError:
-			force_quit()
+			print(full_trace())
 
 		self.quit()
 
 	def show_logo(self):
+		logo = NpS(P.logo_file_path)
 		flush()
-		fill()
-		blit(NpS(P.logo_file_path), 5, P.screen_c)
-		flip()
+		for i in (1, 2):
+			fill()
+			blit(logo, 5, P.screen_c)
+			flip()
 		any_key()
 
 

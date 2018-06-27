@@ -1,7 +1,6 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import collections
-import copy
 
 
 class NamedObject(object):

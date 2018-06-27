@@ -1,4 +1,4 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import sys
 import random
@@ -15,6 +15,7 @@ from klibs.KLIndependentVariable import IndependentVariableSet
 
 
 class BlockIterator(object):
+
 	def __init__(self, blocks):
 		self.blocks = blocks
 		self.practice_blocks = []
@@ -32,7 +33,7 @@ class BlockIterator(object):
 
 	def __setitem__(self, i, x):
 		self.blocks[i] = x
-
+	
 	def insert(self, index, block, practice):
 		if self.i <= index:
 			if practice:
@@ -40,9 +41,13 @@ class BlockIterator(object):
 			self.blocks.insert(index, block)
 			self.length = len(self.blocks)
 		else:
-			raise ValueError("Can't insert block at index {0}; it has already passed.".format(index))
+			insert_err = "Can't insert block at index {0}; it has already passed."
+			raise ValueError(insert_err.format(index))
 
-	def next(self):
+	def next(self): # alias for python2
+		return self.__next__()
+
+	def __next__(self):
 		if self.i >= self.length:
 			self.i = 0 # reset index so we can iterate over it again
 			raise StopIteration
@@ -50,7 +55,6 @@ class BlockIterator(object):
 			self.i += 1
 			trials = TrialIterator(self.blocks[self.i - 1])
 			trials.practice = self.i - 1 in self.practice_blocks
-
 			return trials
 
 
@@ -62,7 +66,7 @@ class TrialIterator(BlockIterator):
 		self.i = 0
 		self.__practice = False
 
-	def next(self):
+	def __next__(self):
 		if self.i >= self.length:
 			self.i = 0
 			raise StopIteration
@@ -97,7 +101,7 @@ class TrialFactory(object):
 		self.trial_generator = trial_generator
 
 	def __generate_trials__(self, factors=None, block_count=None, trial_count=None):
-		#  by default just process self.exp_parameters, but, if a well-formatted factor list is passed, use that
+		# if a well-formatted factor list is passed, use that instead of self.exp_factors
 		if factors is None:
 			factors = self.exp_factors
 
@@ -107,7 +111,7 @@ class TrialFactory(object):
 
 		trial_tuples = list(product(*[factor[1][:] for factor in factor_list]))
 		if len(trial_tuples) == 0: trial_tuples = [ [] ]
-		# convert each trial tuple to list and insert at the front of it a boolean indicating if it is a practice trial
+		# convert each trial tuple to a list
 		trial_set = []
 		for t in trial_tuples:
 			trial_set.append( list(t) )
@@ -116,7 +120,7 @@ class TrialFactory(object):
 		trials = copy(trial_set)
 		random.shuffle(trials)
 
-		# Generate one complete set of trials in which no values are supplied for trial & block length
+		# Generate one complete set of trials based on given factors
 		if block_count is None:
 			block_count = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
 		if trial_count is None:
@@ -145,26 +149,28 @@ class TrialFactory(object):
 		for i in range(0, len(trials), trial_count):
 			blocks.append(trials[i:i + trial_count])
 		return blocks
+	
+	def __load_ind_vars(self, path):
+		set_name = "{0}_ind_vars".format(P.project_name)
+		try:
+			var_set = load_source("*", path).__dict__[set_name]
+			factors = var_set.to_dict()
+		except KeyError:
+			err = 'Unable to find IndependentVariableSet in independent_vars.py.'
+			raise RuntimeError(err)
+		return factors
 
 	def generate(self, exp_factors=None):
 		if not exp_factors:
-			try:
-				if P.dm_ignore_local_overrides:
-					raise RuntimeError("Ignoring local overrides")
-				sys.path.append(P.ind_vars_file_local_path)
-				for k, v in load_source("*", P.ind_vars_file_local_path).__dict__.iteritems():
-					try:
-						factors = v.to_dict()
-					except (AttributeError, TypeError):
-						pass
-			except (IOError, RuntimeError):
-				for k, v in load_source("*", P.ind_vars_file_path).__dict__.iteritems():
-					try:
-						factors = v.to_dict()
-					except (AttributeError, TypeError):
-						pass
-		else:
-			factors = exp_factors.to_dict()
+			factors = self.__load_ind_vars(P.ind_vars_file_path)
+			if not P.dm_ignore_local_overrides:
+				try:
+					sys.path.append(P.ind_vars_file_local_path)
+					local_factors = self.__load_ind_vars(P.ind_vars_file_local_path)
+					factors.update(local_factors)
+				except IOError:
+					pass
+				
 
 		# Create alphabetically-sorted ordered dict from factors
 		self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
@@ -213,9 +219,10 @@ class TrialFactory(object):
 			factors = None
 
 		block = self.__generate_trials__(factors, 1, trial_count)
-		self.blocks.insert(block_num - 1, block[0], practice)  # there is no "zero" block from the UI/UX perspective
+		# there is no "zero" block from the UI/UX perspective, so adjust insertion accordingly
+		self.blocks.insert(block_num - 1, block[0], practice)
 
- 	def define_trial(self, rule, quantity):
+	def define_trial(self, rule, quantity):
 		pass
 
 	def num_values(self, factor):
@@ -235,7 +242,8 @@ class TrialFactory(object):
 		if not exists(P.local_dir):
 			makedirs(P.local_dir)
 		with open(join(P.local_dir, "TrialFactory_dump.txt"), "w") as log_f:
-			log_f.write("Blocks: {0}, Trials: {1}\n\n".format(P.blocks_per_experiment, P.trials_per_block))
+			log_f.write("Blocks: {0}, ".format(P.blocks_per_experiment))
+			log_f.write("Trials: {0}\n\n".format(P.trials_per_block))
 			log_f.write("*****************************************\n")
 			log_f.write("*                Factors                *\n")
 			log_f.write("*****************************************\n\n")

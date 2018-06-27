@@ -32,7 +32,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		self.drawer = None # aggdraw Draw with self.img as context
 		self.title = None
 
-		self.txtm.add_style("el_setup", 24, P.default_color, font_label="Frutiger")
+		self.txtm.add_style("el_setup", "20px", P.default_color, font_label="Hind-Medium")
 		self.dc_target = drift_correct_target()
 
 		pylink.EyeLinkCustomDisplay.__init__(self)
@@ -131,7 +131,9 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		for event in pump(True):
 			if event.type == sdl2.SDL_KEYDOWN:
 				keysym = event.key.keysym
-				ui_request(keysym)
+				if not self.el.quitting:  
+					# don't process quit requests while already quitting
+					ui_request(keysym)
 				try:
 					key = self.pylink_keycodes[keysym.sym]
 				except KeyError:
@@ -154,7 +156,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		return ((x, y), b)
 
 	def alert_printf(self, message):
-		print "EyeLink Alert: {0}".format(message)
+		print("EyeLink Alert: {0}".format(message))
 
 	def setup_image_display(self, width, height):
 		'''Sets camera image to the provided size, returns 1 on success.'''

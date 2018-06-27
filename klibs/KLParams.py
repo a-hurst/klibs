@@ -1,22 +1,23 @@
 # -*- coding: utf-8 -*-
+__author__ = 'Jonathan Mulle & Austin Hurst'
 """
-TODO: set this up such that all vars are in a dict with a key representing whether the var should be included in the
-user's template of the params file, then autogenerate the template doc. AND the runtime params from that dict
+TODO: set this up such that all vars are in a dict with a key representing whether the var should
+be included in the user's template of the params file, then autogenerate the template doc. AND the
+runtime params from that dict (this was Jon's idea, is it worth the effort / likely API breaking?)
 """
 
-author = 'jono'
-
+import sys
 import logging, time, tempfile
 from random import seed
 from datetime import datetime
-from os import makedirs
-from os.path import exists, join
+from os import makedirs, environ
+from os.path import exists, join, expanduser
 from pkg_resources import resource_filename, resource_string
 
-from klibs.KLConstants import *
+from klibs.KLConstants import (TAB, DATETIME_STAMP, DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
+	FACTORS_EXT, PARAMS_EXT, MESSSAGING_EXT, BACK_EXT)
 
-
-klibs_commit = resource_string('klibs', 'resources/current_commit.txt')
+klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
 
 # Runtime Variables
 participant_id = None
@@ -33,6 +34,7 @@ demographics_collected = False
 in_trial = False
 paused = False # (not implemented)
 practicing = False # True if during practice block
+condition = None
 
 # Experiment Attributes
 collect_demographics = True
@@ -42,8 +44,10 @@ multi_session_project = False
 multi_user = False # creates temp copy of db that gets merged into master at end
 trials_per_block = 0
 blocks_per_experiment = 0
+conditions = []
 table_defaults = {} # default column values for db tables when using EntryTemplate
 run_practice_blocks = True # (not implemented in klibs itself)
+color_output = False # whether cso() outputs colorized text or not
 
 # Eye Tracking Settings
 eye_tracking = False
@@ -61,18 +65,23 @@ saccadic_motion_threshold = 0.15
 labjack_available = False
 labjacking = False
 
+# Slack Messaging Settings
+slack_messaging = False
+
 # Aesthetic Defaults
 default_fill_color = (45, 45, 45, 255)
 default_color = (255, 255, 255, 255)
 default_alert_color = (236, 88, 64, 255)
-default_font_size = "28pt"
-default_font_name = 'Frutiger' #TODO: find a new default font
+default_font_size = 28
+default_font_unit = 'pt'
+default_font_name = 'Hind-Medium'
 
 # Display defaults (user-defined)
 view_distance = 57  # in centimeters, 57m = in 1deg of visual angle per horizontal cm of screen
 additional_displays = [] # (not implemented)
 screen_origin = (0,0)  # (not implemented) always (0,0) unless multiple displays in use
 blit_flip_x = False
+ignore_points_at = [] # For ignoring problematic pixel coordinates when using DrawResponse
 
 # Display defaults (defined automatically on launch in KLGrapics.display_init())
 ppi = 0  # pixels-per-inch
@@ -100,7 +109,7 @@ default_participant_fields_sf = [["userhash", "participant"], "random_seed", "se
 default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
 
 # Development mode & associated switches
-development_mode = False  # when True, skips collect_demographics & prints various details to screen
+development_mode = False # when True, skips collect_demographics & prints various details to screen
 dm_trial_show_mouse = True
 dm_auto_threshold = True # for audio responses
 dm_ignore_local_overrides = False
@@ -119,14 +128,6 @@ verbosity = -1
 # default strings for communicating with participant (is this still useful?)
 no_answer_string = None
 invalid_answer_string = None
-block_break_message = "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
-
-# Font folder info
-exp_font_dir = "ExpAssets/Resources/font"
-sys_font_dir = "/Library/Fonts" # Should be updated to be cross-platform
-user_font_dir = "~/Library/Fonts"
-klibs_font_dir = resource_filename('klibs', 'resources/font')
-font_dirs = [exp_font_dir, sys_font_dir, user_font_dir, klibs_font_dir]
 
 # Default Paths & Filenames (filled in by setup() and init_project() below)
 project_name = None
@@ -163,16 +164,10 @@ logo_file_path = None
 
 anonymous_username = None
 random_seed = None
-key_maps = None
 
 
 def init_project():
-	from klibs.KLKeyMap import KeyMap
-	global key_maps # ? (should global keymaps be a thing?)
-	# todo: write checks in these setters to not overwrite paths that don't include asset_paths (ie. arbitrarily set)
-	global project_name
-	global asset_dir
-	global config_dir
+
 	global data_dir
 	global incomplete_data_dir
 	global edf_dir
@@ -180,6 +175,7 @@ def init_project():
 	global local_dir
 	global logs_dir
 	global versions_dir
+	global font_dirs
 	
 	global database_filename
 	global database_path
@@ -201,9 +197,6 @@ def init_project():
 	global user_queries_file_path
 
 	global initialized
-
-	key_maps = {"*": KeyMap("*", [], [], [])} # ?
-	key_maps["*"].any_key = True # ?
 
 
 	# file names
@@ -235,7 +228,14 @@ def init_project():
 	versions_dir = join(asset_dir, ".versions")
 	logs_dir = join(local_dir, "logs")
 
-	for path in [local_dir, logs_dir, versions_dir, edf_dir, data_dir, incomplete_data_dir, incomplete_edf_dir]:
+	# Font folder info
+	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
+
+	project_structure = [
+		local_dir, logs_dir, versions_dir, edf_dir, data_dir,
+		incomplete_data_dir, incomplete_edf_dir
+	]
+	for path in project_structure:
 		if not exists(path):
 			try:
 				makedirs(path)
@@ -245,10 +245,11 @@ def init_project():
 	initialized = True
 	return True
 
-def setup(project_name_str, manual_seed=None):
+def setup(project_name_str, seed_value=None):
 	global project_name
-	global asset_dir
+	global random_seed
 	global anonymous_username
+	global asset_dir
 	global exp_font_dir
 	global image_dir
 	global code_dir
@@ -256,12 +257,10 @@ def setup(project_name_str, manual_seed=None):
 	global resources_dir
 	global logo_file_path
 
-
-	anonymous_username = "demo_user_{0}".format(datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP))
-
-	#  seed the experiment with either a passed random_seed or else the current unix time
-
-	random_seed = manual_seed if manual_seed != None else time.time()
+	timestamp = datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP)
+	anonymous_username = "demo_user_{0}".format(timestamp)
+	random_seed = seed_value
+	
 	seed(random_seed)
 	project_name = project_name_str
 	asset_dir = "ExpAssets"

@@ -2,34 +2,20 @@
     "default_strings": {
       "answer_not_supplied": "Please provide an answer.",
       "invalid_answer": "Your answer must be one of the following: {0}",
+      "out_of_range": "Your answer must be a number between {0} and {1}, inclusive.",
       "block_break": "Whew! You've completed block {0} of {1}. When you're ready to continue, press any key."
     },
     "demographic": [
         {
             "title": "name",
             "database_field": "userhash",
-            "query": "What is your full name, banner number or e-mail address? \nYour answer will be encrypted and cannot be read later.",
+            "query": "What is your full name, banner number or e-mail address?\nYour answer will be encrypted and cannot be read later.",
             "accepted": null,
             "allow_null": false,
             "format": {
                 "type": "str",
-                "styles": {
-                    "query": "default",
-                    "input": "default",
-                    "error": "alert"
-                },
-                "positions": {
-                    "locations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    },
-                    "registrations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    }
-                },
+                "styles": "default",
+                "positions": "default",
                 "password": true,
                 "range": null,
                 "case_sensitive": true,
@@ -40,63 +26,34 @@
             "active": true
         },
         {
-            "title": "sex",
-            "database_field": "sex",
-            "query": "What is your sex? \nAnswer with:  (m)ale,(f)emale",
-            "accepted": ["m", "f"],
+            "title": "gender",
+            "database_field": "gender",
+            "query": "What is your gender?\nAnswer with: (m)ale, (f)emale, or (n)on-binary",
+            "accepted": ["m", "f", "n"],
             "allow_null": false,
             "format": {
                 "type": "str",
-                "styles": {
-                    "query": "default",
-                    "input": "default",
-                    "error": "alert"
-                },
-                 "positions": {
-                    "locations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    },
-                    "registrations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    }
-                },
+                "styles": "default",
+                "positions": "default",
                 "password": false,
                 "range": null,
                 "case_sensitive": false,
                 "accept_as_true": null,
                 "action": null
             },
-            "anonymous_value": "EVAL: 'm' if now() % 2 > 0  else 'f'",
+            "anonymous_value": "n",
             "active": true
         },
         {
             "title": "handedness",
             "database_field": "handedness",
-            "query": "Are right-handed, left-handed or ambidextrous? \nAnswer with (r)ight, (l)eft or (a)mbidextrous.",
+            "query": "Are you right-handed, left-handed or ambidextrous?\nAnswer with: (r)ight, (l)eft, or (a)mbidextrous",
             "accepted": ["r", "l", "a"],
+            "allow_null": false,
             "format": {
                 "type": "str",
-                "styles": {
-                    "query": "default",
-                    "input": "default",
-                    "error": "alert"
-                },
-                "positions": {
-                    "locations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    },
-                    "registrations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    }
-                },
+                "styles": "default",
+                "positions": "default",
                 "password": false,
                 "range": null,
                 "case_sensitive": false,
@@ -114,30 +71,15 @@
             "allow_null": false,
             "format": {
                 "type": "int",
-                "styles": {
-                    "query": "default",
-                    "input": "default",
-                    "error": "alert"
-                },
-                "positions": {
-                    "locations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    },
-                    "registrations": {
-                        "query": "auto",
-                        "input": "auto",
-                        "error": "auto"
-                    }
-                },
+                "styles": "default",
+                "positions": "default",
                 "password": false,
                 "range": [0, 125],
                 "case_sensitive": null,
                 "accept_as_true": null,
                 "action": null
             },
-            "anonymous_value": 1,
+            "anonymous_value": -1,
             "active": true
         }
     ],

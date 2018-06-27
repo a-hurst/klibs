@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 class NullColumn(Exception):
 	def __init__(self, msg):
@@ -16,13 +16,6 @@ class DatabaseException(Exception):
 		return self.message
 
 class TrialException(Exception):
-	def __init__(self, msg):
-		self.message = msg
-
-	def __str__(self):
-		return self.message
-
-class GazeBoundaryError(Exception):
 	def __init__(self, msg):
 		self.message = msg
 

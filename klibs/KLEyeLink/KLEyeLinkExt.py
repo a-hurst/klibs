@@ -2,22 +2,25 @@
 __author__ = 'j. mulle, this.impetus@gmail.com'
 
 import abc
+import time
 from os.path import join
 from klibs.KLEyeLink import PYLINK_AVAILABLE
 
 if PYLINK_AVAILABLE:
 	from pylink import (EyeLink, openGraphicsEx, flushGetkeyQueue, pumpDelay,
-		beginRealTimeMode, endRealTimeMode)
+		beginRealTimeMode, endRealTimeMode, msecDelay)
 
-	from klibs.KLExceptions import *
+	from klibs.KLExceptions import TrialException, EyeLinkError
 	from klibs.KLEnvironment import EnvAgent
 	from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
-		EL_SACCADE_START, EL_SACCADE_END, EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_ALL,
-		EL_BLINK_START, EL_BLINK_END, EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_AVG_GAZE,
-		EL_TIME_START, EL_TIME_END, EL_MOCK_EVENT, EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
+		EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
+		EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
+		EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_AVG_GAZE, EL_TIME_START, EL_TIME_END,
+		EL_MOCK_EVENT, EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
 		TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 	from klibs import P
 	from klibs.KLUtilities import full_trace, iterable, hide_mouse_cursor, mouse_pos, now
+	from klibs.KLUtilities import colored_stdout as cso
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLGraphics import blit, fill, flip, clear
 	from klibs.KLGraphics.KLDraw import Rectangle, drift_correct_target
@@ -39,23 +42,25 @@ if PYLINK_AVAILABLE:
 		__anonymous_boundaries__ = 0
 		__gaze_boundaries__ = {}
 		__eye_used__ = None
-		gaze_dot = None
-		experiment = None
 		custom_display = None
 		version = None
 		dc_width = None  # ie. drift-correct width
 		edf_filename = None
 		unresolved_exceptions = 0
 		start_time = [None, None]
-		draw_gaze = False
+		initialized = False
+		quitting = False
 
 		def __init__(self):
 			if P.eye_tracker_available:
+				print("")
 				try:
 					EyeLink.__init__(self)
 				except RuntimeError as e:
-					if e.message == "Could not connect to tracker at 100.1.1.1":
-						print "Could not connect to tracker at 100.1.1.1. If EyeLink machine is on, ready & connected try turning off the wifi on this machine."
+					if "Could not connect" in e.message:
+						print("! If the EyeLink is on, ready, & connected, try turning off "
+							"the Wi-Fi on this machine or restarting the EyeLink PC.\n")
+					raise e
 			EnvAgent.__init__(self)
 			BoundaryInspector.__init__(self)
 			self.__current_sample__ = False
@@ -63,7 +68,8 @@ if PYLINK_AVAILABLE:
 		def __get_edf_name(self):
 			# EDFs require DOS-style short file names so we need to make sure name <= 8 chars
 			max_name_chars = 8 - (len(str(P.participant_id)) + 2)
-			project_name_abbrev = P.project_name[:max_name_chars-1]
+			proj_name = P.project_name.replace("_", "") # remove underscores for max info density
+			project_name_abbrev = proj_name[:max_name_chars]
 			return "p{0}_{1}.EDF".format(P.participant_id, project_name_abbrev)
 
 		def __eye__(self):
@@ -183,8 +189,8 @@ if PYLINK_AVAILABLE:
 				except RuntimeError:
 					self.unresolved_exceptions += 1
 					if self.unresolved_exceptions > 5:
-						print "\n\033[91m*** Fatal Error: Unresolvable EyeLink Error ***\033[0m"
-						print full_trace()
+						cso("\n<red>*** Fatal Error: Unresolvable EyeLink Error ***</red>")
+						print(full_trace())
 						self.unresolved_exceptions = 0
 						raise TrialException("EyeLink not ready.")
 				return self.drift_correct()
@@ -385,7 +391,7 @@ if PYLINK_AVAILABLE:
 			try:
 				self.custom_display = ELCustomDisplay()
 			except Exception as e:
-				print e
+				print(e)
 				raise e
 
 			self.version = self.getTrackerVersion()
@@ -404,6 +410,7 @@ if PYLINK_AVAILABLE:
 			self.setMotionThreshold(P.saccadic_motion_threshold)
 			self.calibrate()
 			beginRealTimeMode(10)
+			self.initialized = True
 
 		def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 			self.start_time = [now(), None]
@@ -430,9 +437,11 @@ if PYLINK_AVAILABLE:
 				pass
 
 		def shut_down(self):
+			self.quitting = True
 			if self.isRecording() == 0:
 				self.stopRecording()
 			self.setOfflineMode()
+			msecDelay(500)
 			self.closeDataFile()
 			self.receiveDataFile(self.edf_filename, join(P.edf_dir, self.edf_filename))
 			return self.close()
@@ -516,7 +525,7 @@ if PYLINK_AVAILABLE:
 			self.dc_width = P.screen_y // 60
 			dc_tl = [P.screen_x // 2 - self.dc_width // 2, P.screen_y // 2 - self.dc_width // 2]
 			dc_br = [P.screen_x // 2 + self.dc_width // 2, P.screen_y // 2 + self.dc_width // 2]
-			self.add_boundary("drift_correct", [dc_tl, dc_br])
+			self.add_boundary("drift_correct", [dc_tl, dc_br], RECT_BOUNDARY)
 
 
 		def draw_gaze_boundary(self, label="*", blit=True):

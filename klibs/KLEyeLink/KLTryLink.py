@@ -14,7 +14,7 @@ from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLUserInterface import ui_request
 
-from sdl2 import SDL_MOUSEBUTTONDOWN, SDL_GetTicks
+from sdl2 import SDL_MOUSEBUTTONDOWN, SDL_GetTicks, SDL_Delay
 from math import atan2, radians
 import abc
 
@@ -22,12 +22,14 @@ import abc
 class TryLink(EnvAgent, BoundaryInspector):
 	__anonymous_boundaries__ = 0
 	__gaze_boundaries__ = {}
-	experiment = None
 	custom_display = None
+	version = "TryLink"
 	dc_width = None  # ie. drift-correct width
 	edf_filename = None
 	unresolved_exceptions = 0
 	start_time = [None, None]
+	initialized = False
+	quitting = False
 	__recording__ = False
 	__eye_used__ = None
 	last_mouse_pos = None
@@ -98,16 +100,15 @@ class TryLink(EnvAgent, BoundaryInspector):
 			event_queue = pump(True)
 			ui_request(queue=event_queue)
 			if el_draw_fixation == EL_TRUE:
-					fill(P.default_fill_color if not fill_color else fill_color)
-					blit(drift_correct_target() if target_img is None else target_img, 5, location)
-					flip()
+				fill(P.default_fill_color if not fill_color else fill_color)
+				blit(drift_correct_target() if target_img is None else target_img, 5, location)
+				flip()
+			else:
+				SDL_Delay(2) # required for pump() to reliably return mousebuttondown events
 			for e in event_queue:
 				if e.type == SDL_MOUSEBUTTONDOWN and super(TryLink, self).within_boundary(boundary, [e.button.x, e.button.y]):
 					hide_mouse_cursor()
 					return 0
-					# fixated = self.within_boundary(boundary, EL_MOCK_EVENT, event_queue=event_queue)
-					# if clicked:
-					# 	return fixated
 
 	def fixated_boundary(self, label, valid_events=None, inspect=EL_FIXATION_END, event_queue=None, report=None,
 						 return_queue=False):
@@ -213,11 +214,12 @@ class TryLink(EnvAgent, BoundaryInspector):
 								continue
 							if d_type == EL_SACCADE_END:
 								if P.development_mode:
-									print "saccade: {0},{1} to {2},{3}".format(e_first.x-e_first.xrel, e_first.y-e_first.yrel, e.x, e.y)
+									msg = "saccade: {0},{1} to {2},{3}"
+									print(msg.format(e_first.x-e_first.xrel, e_first.y-e_first.yrel, e.x, e.y))
 								queue.append(MouseEvent(start_event=e_first, end_event=e, el_type=EL_SACCADE_END))
 							elif d_type == EL_FIXATION_END:
 								if P.development_mode:
-									print "fixation: {0}".format(e_next.timestamp-e.timestamp)
+									print("fixation: {0}".format(e_next.timestamp-e.timestamp))
 								queue.append(MouseEvent(start_event=e, end_event=e_next, el_type=EL_FIXATION_END))
 						
 
@@ -311,7 +313,8 @@ class TryLink(EnvAgent, BoundaryInspector):
 	def setup(self):
 		self.dc_width = P.screen_y // 60
 		self.add_boundary("drift_correct", [P.screen_c, self.dc_width // 2], CIRCLE_BOUNDARY)
-		return self.calibrate()
+		self.calibrate()
+		self.initialized = True
 
 	def start(self, trial_number, samples=EL_TRUE, events=EL_TRUE, link_samples=EL_TRUE, link_events=EL_TRUE):
 		self.__recording__ = True
@@ -345,7 +348,7 @@ class TryLink(EnvAgent, BoundaryInspector):
 		"""
 		result = self.__within_boundary__(label, self.sample())
 		return result if not return_queue else [result, event_queue]
-
+	
 	@abc.abstractmethod
 	def listen(self, **kwargs):
 		pass

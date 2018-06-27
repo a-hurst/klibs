@@ -1,4 +1,4 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 from copy import copy
 
@@ -8,7 +8,7 @@ from PIL import ImageOps
 import aggdraw
 
 from klibs.KLConstants import NS_BACKGROUND, NS_FOREGROUND, BL_TOP_RIGHT, BL_TOP_LEFT
-from klibs.KLUtilities import absolute_position, build_registrations, pump
+from klibs.KLGraphics import _build_registrations
 
 
 """
@@ -203,7 +203,7 @@ class NumpySurface(object):
 			px = self.render()
 		px_count = px.shape[0] * px.shape[1]
 		new_px = px.reshape((px_count,4))
-		print new_px.shape
+		print(new_px.shape)
 
 	def blit(self, source, layer=NS_FOREGROUND, registration=7, location=(0, 0), behavior=None):
 		# todo: implement layer logic here
@@ -228,11 +228,7 @@ class NumpySurface(object):
 		source_height = source.shape[0]
 		source_width = source.shape[1]
 
-		# convert english location strings to x,y coordinates of destination surface
-		if type(location) is str:
-			location = absolute_position(location, self)
-
-		registration = build_registrations(source_height, source_width)[registration]
+		registration = _build_registrations(source_height, source_width)[registration]
 		location = (int(location[0] + registration[0]), int(location[1] + registration[1]))
 
 		# don't attempt the blit if source can't fit
@@ -276,7 +272,7 @@ class NumpySurface(object):
 				scaled_image = layer_image.resize(size, Image.ANTIALIAS)
 				self.foreground = np.asarray(scaled_image)
 			except AttributeError as e:
-				if e.message != "'NoneType' object has no attribute '__array_interface__'":
+				if str(e) != "'NoneType' object has no attribute '__array_interface__'":
 					raise e
 			except TypeError:
 				pass
@@ -308,7 +304,7 @@ class NumpySurface(object):
 				scaled_image = layer_image.Image.rotate(angle, Image.ANTIALIAS)
 				self.foreground = np.asarray(scaled_image)
 			except AttributeError as e:
-				if e.message != "'NoneType' object has no attribute '__array_interface__'":
+				if str(e) != "'NoneType' object has no attribute '__array_interface__'":
 					raise e
 			except TypeError:
 				pass
@@ -430,7 +426,7 @@ class NumpySurface(object):
 					iter(location)
 					location = [location[0], location[1]]
 				except AttributeError:
-					print "Argument 'location' must be iterable set of polar coordinates."
+					print("Argument 'location' must be iterable set of polar coordinates.")
 				new_pos = [0, 0]
 				mask_x1 = 0
 				mask_x2 = 0
@@ -484,7 +480,6 @@ class NumpySurface(object):
 			fg_x2 = alpha_map.shape[1] + location[0]
 			fg_y1 = location[1]
 			fg_y2 = alpha_map.shape[0] + location[1]
-			pump()
 			flat_map = alpha_map.flatten()
 			flat_fg = self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3].flatten()
 			zipped_arrays = zip(flat_map, flat_fg)

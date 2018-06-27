@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
-__author__ = 'j. mulle, this.impetus@gmail.com'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import csv
 import abc
 from time import time, sleep
 import multiprocessing as mp
-from Queue import Queue
-from os import kill
-
 try:
-	from signal import SIGKILL
-except:
-	pass
+	from Queue import Queue # python 2
+except ImportError:
+	from queue import Queue # python 3
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import EventError
-from klibs.KLNamedObject import *
+from klibs.KLNamedObject import NamedObject, NamedInventory, CachedInventory
 from klibs.KLConstants import (TK_S, TK_MS, TBL_EVENTS, EVI_CONSTANTS, EVI_DEREGISTER_EVENT,
 	EVI_SEND_TIME, EVI_CLOCK_RESET, EVI_TRIAL_START, EVI_TRIAL_STOP, EVI_EXP_END)
 from klibs import P
-from klibs.KLUtilities import pump, threaded
+from klibs.KLUtilities import pump
 from klibs.KLUserInterface import ui_request
 
 
@@ -50,7 +47,7 @@ class TrialEventTicket(EnvAgent, NamedObject):
 		self.created = time()
 
 	def __str__(self):
-		return "<klibs.KLEventInterface.EventTicket, ('{0}': {1}, at {3})".format(self.label, self.onset, self.data, hex(id(self)))
+		return "<klibs.KLEventInterface.EventTicket, ('{0}': {1} at {2})>".format(self.label, self.onset, hex(id(self)))
 
 	def issue(self, trial_time):
 		self.issued = True
@@ -94,7 +91,7 @@ class TrialEventTicket(EnvAgent, NamedObject):
 	@unit.setter
 	def unit(self, val):
 		if val not in [TK_S, TK_MS]:
-			raise TypeError("Property 'unit' must be a valid KLTimeKeeper constant.")
+			raise TypeError("Property 'unit' must be a valid time constant.")
 		self.__unit__ = val
 
 
@@ -268,8 +265,8 @@ class EventManager(EnvAgent):
 		self.trial_events = CachedInventory()
 		self.pipe, child = mp.Pipe()
 		self.clock_sync_queue = mp.Queue()
-		self.clock = __event_clock__(child, self.clock_sync_queue)
-		self.clock_p_id = self.clock.pid
+		self.clock = mp.Process(target=__event_clock__, args=(child, self.clock_sync_queue))
+		self.clock.start()
 
 	def __poll__(self):
 		"""
@@ -318,7 +315,7 @@ class EventManager(EnvAgent):
 		e = self.queued_tickets if events else False
 		s = self.stages if stages else False
 		self.pipe.send([e, s])
-		for e in self.queued_tickets:
+		for e in list(self.queued_tickets):
 			self.issued_tickets.add(self.queued_tickets.pop(e))
 
 	def after(self, label, pump_events=False):
@@ -386,7 +383,7 @@ class EventManager(EnvAgent):
 				try:
 					self.db.insert(cache[e].dump(), TBL_EVENTS, False)
 				except RuntimeError:
-					print "Event Table not found; if this is an old KLIBs experiment, consider updating the SQL schema to the new standard."
+					print("'events' table not found, skipping event dumping...")
 					break
 		self.events_dumped = True
 
@@ -406,7 +403,7 @@ class EventManager(EnvAgent):
 						continue
 				except IndexError:
 					pass
-				self.queud_events.add(DataEvent(*row))
+				self.queued_events.add(DataEvent(*row))
 
 	def log_trial_event(self, label, time_stamp, trial_time, data=None, eyelink_time=None, sdl_event_code=None):
 		"""
@@ -443,9 +440,9 @@ class EventManager(EnvAgent):
 			self.exp.labjack.log_data_event(eeg_send)
 
 		if P.verbose_mode and edf:
-			print "\t\033[94mEvent (\033[92mEDF\033[94m): \033[0m{0}".format(edf_send)
+			print("\t\033[94mEvent (\033[92mEDF\033[94m): \033[0m{0}".format(edf_send))
 		if P.verbose_mode and eeg:
-			print "\t\033[94mEvent (\033[92mEEG\033[94m): \033[0m{0}".format(eeg_send)
+			print("\t\033[94mEvent (\033[92mEEG\033[94m): \033[0m{0}".format(eeg_send))
 
 	def registered(self, label):
 		"""
@@ -532,12 +529,14 @@ class EventManager(EnvAgent):
 		while not self.__poll__(): pass
 
 	def terminate(self, max_wait=1):
-		self.tk.start("terminate")
-		self.register_ticket(EVI_EXP_END)
-		while self.tk.elapsed("terminate") < max_wait:
-			pump()
+		self.clock.terminate()
+		start = time()
+		while (time() - start) < max_wait:
+			sleep(0.05)
+			if not self.clock.is_alive():
+				break
 		if self.clock.is_alive():
-			kill(self.clock.p.pid, SIGKILL)
+			raise RuntimeError("Unable to terminate clock process")
 
 	def until(self, label):
 		self.__sync_tickets__()
@@ -600,7 +599,7 @@ class EventManager(EnvAgent):
 
 	def debug_list_tickets(self):
 		for e in self.queued_tickets:
-			print e
+			print(e)
 
 # def deregister(self, label):
 	# 	"""
@@ -662,7 +661,6 @@ class EventManager(EnvAgent):
 	# 		self.write(message, True, False)
 
 
-@threaded
 def __event_clock__(pipe, queue):
 	start = time()
 	events = []

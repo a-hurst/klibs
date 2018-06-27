@@ -23,8 +23,9 @@ labjacking = False
 #########################################
 default_fill_color = (45, 45, 45, 255)
 default_color = (255, 255, 255, 255)
-default_font_size = 28
-default_font_name = 'Frutiger'
+default_font_size = 23
+default_font_unit = 'px'
+default_font_name = 'Hind-Medium'
 
 #########################################
 # EyeLink Settings
@@ -57,8 +58,8 @@ dm_show_gaze_dot = True
 #########################################
 primary_table = "trials"
 unique_identifier = "userhash"
-default_participant_fields = [[unique_identifier, "participant"], "sex", "age", "handedness"]
-default_participant_fields_sf = [[unique_identifier, "participant"], "random_seed", "sex", "age", "handedness"]
+default_participant_fields = [[unique_identifier, "participant"], "gender", "age", "handedness"]
+default_participant_fields_sf = [[unique_identifier, "participant"], "random_seed", "gender", "age", "handedness"]
 
 #########################################
 # PROJECT-SPECIFIC VARS

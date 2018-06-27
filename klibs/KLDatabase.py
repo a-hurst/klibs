@@ -1,5 +1,6 @@
-__author__ = 'jono'
+__author__ = 'Jonathan Mulle & Austin Hurst'
 
+import codecs
 import shutil
 import sqlite3
 from itertools import chain
@@ -10,23 +11,69 @@ from argparse import ArgumentParser
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import DatabaseException
 from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_DELIM_STR,
-	SQL_NUMERIC, SQL_INT, SQL_FLOAT, SQL_BIN, SQL_STR, SQL_KEY, SQL_REAL, SQL_NULL, 
-	PY_NUM, PY_INT, PY_FLOAT, PY_BIN, PY_STR, QUERY_SEL, TAB, ID, DATA_EXT)
+	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR, SQL_BIN, SQL_KEY, SQL_NULL,
+	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID, DATA_EXT)
 from klibs import P
 from klibs.KLUtilities import (full_trace, type_str, iterable, bool_to_int, boolean_to_logical,
-	snake_to_camel, unicode_to_str)
+	snake_to_camel, getinput, utf8)
 from klibs.KLUtilities import colored_stdout as cso
-#TODO: replace all manual usage of colour output with cso
+
+
+def _convert_to_query_format(value, col_name, col_type):
+	'''A convenience function for converting Python variables to sqlite column types so
+	they can then be used in SQL INSERT statements using Python's str.format() method. For
+	internal KLibs use.
+
+	Args:
+		value: The Python value to convert.
+		colname(str): The name of the database column the value will be inserted into.
+		coltype(str): A string indicating the Python type to convert the value to before
+			formatting for query use. Must be one of 'str', 'int', 'float', or 'bool'.
+
+	Returns:
+		str: the SQL query-formatted value.
+
+	Raises:
+		ValueError: if the value cannot be coerced to the given data type, or if an invalid
+			data type is given.
+
+	'''
+
+	err_str = "'{0}' could not be coerced to {1} for insertion into column {2}"
+	
+	if value is None:
+		return SQL_NULL
+
+	try:
+		if col_type == PY_BOOL:
+			# convert to int because sqlite3 has no native boolean type
+			if utf8(value).lower() in ['true', '1']: value = '1'
+			elif utf8(value).lower() in ['false', '0']: value = '0'
+			else: raise TypeError
+		elif col_type == PY_FLOAT:
+			value = str(float(value))
+		elif col_type == PY_INT:
+			value = str(int(value))
+		elif col_type == PY_STR:
+			if utf8(value).lower() in ['true', 'false']:
+				value = utf8(value).upper() # convert true/false to uppercase for R
+			value = u"'{0}'".format(utf8(value))
+		elif col_type == PY_BIN:
+			raise NotImplementedError("SQL blob insertion is not yet supported.")
+		else:
+			type_err = "'{0}' is not a valid EntryTemplate data type."
+			raise ValueError(type_err.format(col_type))
+
+	except TypeError:
+		# if value can't be converted to column type, raise an exception
+		value = utf8(value).encode('utf-8') # ensure value is ascii for exception message
+		raise ValueError(err_str.format(value, col_name, col_type))
+	
+	return value
+
 
 
 class EntryTemplate(object):
-	null_field = "DELETE_THIS_FIELD"
-	sql_field_delimiter = "`,`"
-	table_name = None
-	name = None
-	schema = None
-	data = None
-	id = None
 
 	def __init__(self, table_name, table_schema, instance_name):
 		self.schema = table_schema
@@ -35,7 +82,8 @@ class EntryTemplate(object):
 		self.data = [None] * len(table_schema)  # create an empty tuple of appropriate length
 
 	def __str__(self):
-		return "<klibs.KLDatabase.KLEntryTemplate[{0}, {1}] object at {2}>".format(self.table_name, self.name, hex(id(self)))
+		s = "<klibs.KLDatabase.KLEntryTemplate[{0}, {1}] object at {2}>"
+		return s.format(self.table_name, self.name, hex(id(self)))
 
 	def pr_schema(self):
 		schema_str = "\t\t{\n"
@@ -44,7 +92,7 @@ class EntryTemplate(object):
 		schema_str += "\t\t}"
 		return schema_str
 
-		#TODO: build logic for update statements as well (as against only insert statements)
+	#TODO: build logic for update statements as well (as against only insert statements)
 	def update_query(self, fields):
 		query = "UPDATE {0} SET ".format(self.table_name)
 		insert_template = []
@@ -57,7 +105,8 @@ class EntryTemplate(object):
 			except TypeError:  # ie. if fields is None update every field
 				pass
 			if self.data[self.index_of(col_name)] in [SQL_NULL, None]:
-				if not self.allow_null(col_name): raise ValueError("Column '{0}' may not be null.".format(column))
+				if not self.allow_null(col_name):
+					raise ValueError("Column '{0}' may not be null.".format(column))
 				self.data[self.index_of(col_name)] = SQL_NULL
 			else:
 				col_value = self.data[self.index_of(col_name)]
@@ -65,32 +114,35 @@ class EntryTemplate(object):
 
 		return ", ".join(insert_template)
 
+
 	def insert_query(self):
+
 		insert_template = [SQL_NULL, ] * len(self.schema)
+		query_template = u"INSERT INTO `{0}` ({1}) VALUES ({2})"
 
 		for column in self.schema:
-			if self.data[self.index_of(column[0])] == SQL_NULL or self.data[self.index_of(column[0])] is None:
-				if self.allow_null(column[0]):
-					insert_template[self.index_of(column[0])] = SQL_NULL
-					self.data[self.index_of(column[0])] = SQL_NULL
-				elif column[0] == ID:
+			col_name = column[0]
+			if self.data[self.index_of(col_name)] in [SQL_NULL, None]:
+				if self.allow_null(col_name):
+					insert_template[self.index_of(col_name)] = SQL_NULL
+					self.data[self.index_of(col_name)] = SQL_NULL
+				elif col_name == ID:
 					self.data[0] = SQL_NULL
 					insert_template[0] = SQL_NULL
 				elif self.table_name in P.table_defaults:
 					for i in P.table_defaults[self.table_name]:
-						if i[0] == column[0]:
-							insert_template[self.index_of(column[0])] = str(i[1])
+						if i[0] == col_name:
+							insert_template[self.index_of(col_name)] = utf8(i[1])
 				else:
-					print self.data
-					raise ValueError("Column '{0}' may not be null.".format(column))
+					print(self.data)
+					raise ValueError("Column '{0}' may not be null.".format(col_name))
 			else:
-				insert_template[self.index_of(column[0])] = column[0]
-		values = ",".join(filter(lambda column: column != SQL_NULL, [str(i) for i in self.data]))
-		columns = "`{0}`".format(SQL_COL_DELIM_STR.join(filter(lambda column: column != SQL_NULL, insert_template)))
+				insert_template[self.index_of(col_name)] = col_name
 
-		query_string = "INSERT INTO `{0}` ({1}) VALUES ({2})".format(self.table_name, columns, values)
+		values = u",".join([utf8(i) for i in self.data if i != SQL_NULL])
+		columns = u",".join([i for i in insert_template if i != SQL_NULL])
+		return query_template.format(self.table_name, columns, values)
 
-		return query_string
 
 	def index_of(self, field):
 		index = 0
@@ -115,30 +167,16 @@ class EntryTemplate(object):
 		raise IndexError("Field '{0}' not found in table '{1}'".format(field, self.table_name))
 
 	def log(self, field, value):
-		try:
-			value = str(bool_to_int(value))
-		except ValueError:
-			if self.type_of(field) == PY_FLOAT:
-				try:
-					value = float(value)
-				except TypeError:
-					e_str = "Expected 'float' for column '{0}'; got '{1}' of type {2}".format(field, value, type(value))
-					raise ValueError(e_str)
-			else:
-				value = str(value)
-			if self.type_of(field) == PY_STR:
-				value = "'{0}'".format(value)
-			if value is None:
-				value = SQL_NULL
-
-		self.data[self.index_of(field)] = value
+		formatted_value = _convert_to_query_format(value, field, self.type_of(field))
+		self.data[self.index_of(field)] = formatted_value
 
 	def report(self):
-		print self.schema
+		print(self.schema)
 
 
-# TODO: create a "logical" column type when schema-streama comes along & handling therewith in Database
-# TODO: look for required tables and columns explicitly and give informative error if absent (ie. participants, created)
+
+# TODO: look for required tables and columns explicitly and give informative error if absent
+# (ie. participants, created)
 class Database(EnvAgent):
 
 	__default_table = None
@@ -150,19 +188,21 @@ class Database(EnvAgent):
 	table_schemas = None
 
 	def __init__(self, path):
-		super(EnvAgent, self).__init__()
-		self.db = sqlite3.connect(path)
+		super(Database, self).__init__()
+		self.db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
+		self.db.text_factory = sqlite3.OptimizedUnicode
 		self.cursor = self.db.cursor()
 		self.__open_entries = {}
 		if len(self._tables()) == 0:
 			if isfile(P.schema_file_path):
 				self._deploy_schema(P.schema_file_path)
 			else:
-				raise RuntimeError("Database exists but no tables were found and no table schema were provided.")
+				print("\nError: No SQL schema found at '{0}'. Please make sure there is a valid "
+					"schema file at this location and try again.\n".format(P.schema_file_path))
+				raise RuntimeError("Database schema could not be found.")
 		self.build_table_schemas()
 
 	def _tables(self):
-		# TODO: I changed tableCount to tableList and made it an attribute as it seems to be used in rebuild. Verify this.
 		self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
 		self.table_list = self.cursor.fetchall()
 		return self.table_list
@@ -171,13 +211,13 @@ class Database(EnvAgent):
 		if table_list is None:
 			table_list = self._tables()
 		for n in table_list:
-			if str(n[0]) != "sqlite_sequence":
-				self.cursor.execute("DROP TABLE `{0}`".format(str(n[0])))
+			if n[0] != "sqlite_sequence":
+				self.cursor.execute(u"DROP TABLE `{0}`".format(n[0]))
 		self.db.commit()
 
 	def _deploy_schema(self, schema):
-		f = open(schema, 'rt')
-		self.cursor.executescript(f.read())
+		with codecs.open(schema, 'r', 'utf-8') as f:
+			self.cursor.executescript(f.read())
 		
 	def build_table_schemas(self):
 		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
@@ -197,14 +237,15 @@ class Database(EnvAgent):
 						col_type = PY_BIN
 					elif col[2].lower() in (SQL_INT, SQL_KEY):
 						col_type = PY_INT
-					elif col[2].lower() in (SQL_FLOAT, SQL_REAL):
+					elif col[2].lower() in (SQL_FLOAT, SQL_REAL, SQL_NUMERIC):
 						col_type = PY_FLOAT
-					elif col[2].lower() == SQL_NUMERIC:
-						 col_type = PY_NUM
+					elif col[2].lower() == SQL_BOOL:
+						 col_type = PY_BOOL
 					else:
-						raise ValueError("Invalid or unsupported type ({0}) for {1}.{2}'".format(col[2], table, col[1]))
+						err_str = "Invalid or unsupported type ({0}) for {1}.{2}'"
+						raise ValueError(err_str.format(col[2], table, col[1]))
 					allow_null = col[3] == 0
-					table_cols.append([str(col[1]), {'type': col_type, 'allow_null': allow_null}])
+					table_cols.append([col[1], {'type': col_type, 'allow_null': allow_null}])
 				tables[table] = table_cols
 		self.table_schemas = tables
 		return True
@@ -223,28 +264,32 @@ class Database(EnvAgent):
 			return instance
 
 	def exists(self, table, column, value):
-		return len(self.query("SELECT * FROM `?` WHERE `?` = ?", QUERY_SEL, q_vars=[table, column, value])) > 0
+		q = "SELECT * FROM `?` WHERE `?` = ?"
+		return len(self.query(q, QUERY_SEL, q_vars=[table, column, value])) > 0
 
 	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
 
 	def flush(self):
 		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
 		for tableTuple in self.cursor.fetchall():
-			table = str(tableTuple[0])  # str() necessary b/c tableTuple[0] is in unicode
+			table = tableTuple[0]
 			if table == "sqlite_sequence":
 				pass
 			else:
-				self.cursor.execute("DELETE from `{0}`".format(table))
-				#self.cursor.execute("UPDATE sqlite_sequence SET (SELECT MAX(col) FROM {0}) WHERE name=`{0}`".format(table))
+				self.cursor.execute(u"DELETE from `{0}`".format(table))
+				update_q = "UPDATE sqlite_sequence SET (SELECT MAX(col) FROM {0}) WHERE name=`{0}`"
+				#self.cursor.execute(update_q.format(table))
 		self.db.commit()
 
 	def init_entry(self, table_name, instance_name=None, set_current=True):
 		try:
 			if instance_name is None: instance_name = table_name
-			self.__open_entries[instance_name] = EntryTemplate(table_name, self.table_schemas[table_name], instance_name)
+			entry = EntryTemplate(table_name, self.table_schemas[table_name], instance_name)
+			self.__open_entries[instance_name] = entry
 			if set_current: self.current(self.__open_entries[instance_name])
 		except IndexError:
-			raise IndexError("Table {0} not found in the KLDatabase.table_schemas.".format(table_name))
+			msg = "Table '{0}' not found in the current experiment database."
+			raise IndexError(msg.format(table_name))
 
 	def insert(self, data=None, table=None, clear_current=True):
 		if data is None:
@@ -252,8 +297,10 @@ class Database(EnvAgent):
 				data = self.current()
 				if not table:
 					table = data.table_name
-			except RuntimeError:  # exception below is a more informative account of the current problem
-				raise RuntimeError("No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
+			except RuntimeError: # a more informative account of the current problem
+				msg = ("No data to insert; provide insert data or assign a current "
+					"KLEntryTemplate instance.")
+				raise RuntimeError(msg)
 
 		try:
 			self.cursor.execute(data.insert_query())
@@ -265,28 +312,27 @@ class Database(EnvAgent):
 				# when insert() is directly used to add data to a table in the db, and that table
 				# doesn't exist, KLibs crashes hard with an IOError: Broken Pipe. Need to add proper
 				# and informative error handling for this.
-				print "Error: unable to write data to database."
+				print("Error: unable to write data to database.")
 				raise e
 		except sqlite3.OperationalError:
-			print full_trace()
-			print "\n\n"
-			print "Tried to match the following:\n\n{0}\n\nwith\n\n{1}".format(self.table_schemas[table], data.insert_query())
+			err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
+			print(full_trace())
+			print(err.format(self.table_schemas[table], data.insert_query()))
 			self.exp.quit()
 		self.db.commit()
 		return self.cursor.lastrowid
 
 	def is_unique(self, table, column, value):
-		return len(self.query("SELECT * FROM `?` WHERE `?` = ?", q_vars=[table, column, value])) == 0
+		q = "SELECT * FROM `?` WHERE `?` = ?"
+		return len(self.query(q, q_vars=[table, column, value])) == 0
 
 	def last_id_from(self, table):
 		if not table in self.table_schemas:
 			raise ValueError("Table '{0}' not found in current database".format(table))
-		# dunno why, but this does NOT work if the format statement isn't used in place of a proper SQL var
-		return self.query("SELECT max({0}) from `{1}` WHERE `participant_id`={2}".format('id', table, P.participant_id))[0][0]
+		q = "SELECT max({0}) from `{1}` WHERE `participant_id`={2}"
+		return self.query(q.format('id', table, P.participant_id))[0][0]
 
 	def log(self, field, value, instance=None, set_to_current=True):
-		# convert boolean strings/boolean literals to uppercase boolean strings for R
-		if boolean_to_logical(value): value = boolean_to_logical(value)
 		try:
 			instance.log(field, value)
 		except AttributeError:
@@ -307,7 +353,7 @@ class Database(EnvAgent):
 		if query_type != QUERY_SEL: self.db.commit()
 		if return_result:
 			if fetch_all:
-				return unicode_to_str(result.fetchall())
+				return result.fetchall()
 			else:
 				return result
 		return True
@@ -318,38 +364,29 @@ class Database(EnvAgent):
 		try:
 			template = self.table_schemas[table]
 		except KeyError:
-			raise RuntimeError("Table not found; provide table reference or ensure KLDatabase.default_table is set.")
-		columns = []
+			err = "No table for query specified, and no default table set."
+			raise RuntimeError(err)
 		values = []
+		columns = []
 		if template[0][0] == 'id':
 			template = template[1:]
 		try:
 			for column in template:
 				column_index = template.index(column)
 				try:
-					data_value = data[column_index]
+					value = data[column_index]
 				except KeyError:
-					data_value = data[column[0]]
-				if boolean_to_logical(data_value): data_value = boolean_to_logical(data_value)
-				if type_str(data_value) == column[1]['type']:
-					if column[1]['type'] in (PY_INT, PY_FLOAT):
-						data_value =  str(data_value)
-					else:
-						data_value = "'{0}'".format(data_value)
-				elif column[1]['type'] == PY_NUM and isinstance(data_value, (int, long, float, complex)):
-					data_value = str(data_value)
-				else:
-					error_data = [column[1]['type'], column[0], type_str(data_value), data_value]
-					raise TypeError("Expected '{0}' for column '{1}', got '{2}' ({3}).".format(*error_data))
-				values.append(data_value)
+					value = data[column[0]]
+				formatted_value = _convert_to_query_format(value, column[0], column[1]['type'])
+				values.append(formatted_value)
 				columns.append(column[0])
 			if column_index + 1 > len(data):
 				raise ValueError('Cannot map data to table: more data elements than columns.')
 		except IndexError:
 			raise AttributeError('Cannot map data to table: fewer data elements than columns.')
-		columns_str = ",".join(columns)
-		values_str = ",".join(values)
-		return "INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
+		columns_str = u",".join(columns)
+		values_str = u",".join(values)
+		return u"INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
 			
 	def test_data(self, table):
 		# TODO: allow rules per column such as length
@@ -359,12 +396,15 @@ class Database(EnvAgent):
 		if not data:
 			try:
 				data = self.current()
-			except RuntimeError:  # exception below is a more informative account of the current problem
-				raise RuntimeError(
-					"No data to insert; provide insert data or assign a current KLEntryTemplate instance.")
+			except RuntimeError: # exception below is a more informative account of the problem
+				msg = ("No data to insert; provide insert data or assign a current "
+					"KLEntryTemplate instance.")
+				raise RuntimeError(msg)
 			if not table: table = data.table_name
 			if not record_id and not data.id:
-				raise RuntimeError("No record to update; no record_id provided or present in KLEntryTemplate instance.")
+				msg = ("No record to update; no record_id provided or present in KLEntryTemplate "
+					"instance.")
+				raise RuntimeError(msg)
 		try:
 			self.cursor.execute(data.update_query(fields))
 			if clear_current and self.current().name == data.name: self.current(False)
@@ -389,10 +429,11 @@ class DatabaseManager(EnvAgent):
 	__current = None
 	
 	def __init__(self):
-		super(EnvAgent, self).__init__()
+		super(DatabaseManager, self).__init__()
+		self.__set_type_conversions()
 		self.__load_master__()
 		if P.multi_user:
-			print(P.database_local_path)
+			print("Local database: {0}".format(P.database_local_path))
 			shutil.copy(P.database_path, P.database_local_path)
 			self.__local = Database(P.database_local_path)
 			self.__local.flush()
@@ -401,7 +442,7 @@ class DatabaseManager(EnvAgent):
 			self.__current = self.__master
 			
 	def __catch_db_not_found__(self):
-		cso("<green_d>No database file was present at '{0}'.</green_d>", args=[P.database_path])
+		cso("\n<green_d>No database file was present at '{0}'.</green_d>", args=[P.database_path])
 		err_string = cso(
 			"<green_d>You can</green_d> "
 			"<purple>(c)</purple><green_d>reate it,</green_d> "
@@ -410,10 +451,13 @@ class DatabaseManager(EnvAgent):
 		)
 		db_action = ArgumentParser()
 		db_action.add_argument('action', type=str, choices=['c', 's', 'q'])
-		action = db_action.parse_args([raw_input(err_string).lower()[0]]).action
+		response = getinput(err_string).lower()
+		response = response[0] if len(response) > 1 else response
+		action = db_action.parse_args([response]).action
 
 		if action == DB_SUPPLY_PATH:
-			P.database_path = raw_input(cso("<green_d>Great. Where might it be?</green_d>", False))
+			# TODO: error checking for this
+			P.database_path = getinput(cso("<green_d>Great. Where might it be?</green_d>", False))
 			self.__load_master__()
 		elif action == DB_CREATE:
 			open(P.database_path, "a").close()
@@ -435,6 +479,14 @@ class DatabaseManager(EnvAgent):
 		remove(P.database_path)
 		rename(P.database_backup_path, P.database_path)
 	
+	def __set_type_conversions(self, export=False):
+		if export:
+			sqlite3.register_converter("boolean", lambda x: str(bool(int(x))).upper())
+			sqlite3.register_converter("BOOLEAN", lambda x: str(bool(int(x))).upper())
+		else:
+			sqlite3.register_converter("boolean", lambda x: bool(int(x)))
+			sqlite3.register_converter("BOOLEAN", lambda x: bool(int(x)))
+
 	def write_local_to_master(self):
 		attach_q = 'ATTACH `{0}` AS master'.format(P.database_path)
 		self.__local.cursor.execute(attach_q)
@@ -459,8 +511,8 @@ class DatabaseManager(EnvAgent):
 		
 		col_data = columns
 		for colname in sub.keys():
-			col_data.replace(colname, "`{0}`".format(sub[colname]))
-		
+			col_data = col_data.replace(colname, "\'{0}\'".format(sub[colname]))
+			
 		q = "INSERT INTO master.{0} ({1}) SELECT {2} FROM {0}".format(table, columns, col_data)
 		self.__local.cursor.execute(q)
 	
@@ -483,8 +535,8 @@ class DatabaseManager(EnvAgent):
 			self.__local.db.close()
 
 	def collect_export_data(self, multi_file=True,  join_tables=[]):
-		participant_ids = self.__master.query("SELECT `id`, `{0}` FROM `participants`".format(P.unique_identifier))
-		participant_ids.insert(0, (-1,))  # for test data collected before anonymous_user added to collect_demographics()
+		uid = P.unique_identifier
+		participant_ids = self.__master.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
 		default_fields = P.default_participant_fields if multi_file else P.default_participant_fields_sf
 
 		t_cols = []
@@ -501,7 +553,7 @@ class DatabaseManager(EnvAgent):
 			wc_count = 0
 			q_wildcards = []
 			q_vars = []
-			cols = p_cols + t_cols if p[0] != -1 else t_cols
+			cols = p_cols + t_cols
 			for c in cols:
 				if not iterable(c):
 					q_vars.append(c)
@@ -511,16 +563,16 @@ class DatabaseManager(EnvAgent):
 					q_vars += c
 					q_wildcards.append("`{"+str(wc_count)+"}` AS `{"+ str(wc_count + 1)+"}`")
 					wc_count += 2
-			q = "SELECT " + ",".join(q_wildcards) + " FROM `{0}` ".format(P.primary_table)
-			for t in ['participants'] + join_tables if p[0] != -1 else join_tables:
+			primary_t = P.primary_table
+			q = "SELECT " + ",".join(q_wildcards) + " FROM `{0}` ".format(primary_t)
+			for t in ['participants'] + join_tables:
 				key = 'id' if t == 'participants' else 'participant_id'
-				q += " JOIN {0} ON `{1}`.`participant_id` = `{0}`.`{2}` ".format(t, P.primary_table, key)
-			q += " WHERE `{0}`.`participant_id` = ?".format(P.primary_table)
+				q += " JOIN {0} ON `{1}`.`participant_id` = `{0}`.`{2}` ".format(t, primary_t, key)
+			q += " WHERE `{0}`.`participant_id` = ?".format(primary_t)
 			q = q.format(*q_vars)
 			p_data = []
 			for trial in self.__master.query(q, q_vars=tuple([p[0]])):
-				row_str = TAB.join(str(col) for col in trial)
-				if p[0] == -1: row_str = TAB.join([P.default_demo_participant_str, row_str])
+				row_str = TAB.join(utf8(col) for col in trial)
 				p_data.append(row_str)
 			data.append([p[0], p_data])
 		return data
@@ -535,6 +587,7 @@ class DatabaseManager(EnvAgent):
 			join_tables = join_tables[0].split(",")
 		except TypeError:
 			join_tables = []
+		self.__set_type_conversions(export=True)
 		column_names = self.build_column_header(multi_file, join_tables)
 		data = self.collect_export_data(multi_file, join_tables)
 
@@ -544,11 +597,10 @@ class DatabaseManager(EnvAgent):
 				p_id = data_set[0]
 				if p_id != -1:
 					header = self.export_header(p_id)
-					incomplete = len(data_set[1]) != P.trials_per_block * P.blocks_per_experiment
-					file_path = self.filepath_str(p_id, multi_file, incomplete)
-					data_file = open(file_path, "w+")
-					data_file.write("\n".join([header, column_names, "\n".join(data_set[1])]))
-					data_file.close()
+					incomplete = len(data_set[1]) < P.trials_per_block * P.blocks_per_experiment
+					file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
+					with codecs.open(file_path, 'w+', 'utf-8') as out:
+						out.write("\n".join([header, column_names, "\n".join(data_set[1])]))
 					print("    - Participant {0} successfully exported.".format(p_id))
 		else:
 			combined_data = []
@@ -558,18 +610,29 @@ class DatabaseManager(EnvAgent):
 					p_count += 1
 					combined_data += data_set[1]
 			header = self.export_header()
-			file_path = self.filepath_str(multi_file=False)
-			data_file = open(file_path, "w+")
-			data_file.write("\n".join([header, column_names, "\n".join(combined_data)]))
-			data_file.close()
+			file_path = self.filepath_str(multi_file=False, base=table, joined=join_tables)
+			with codecs.open(file_path, 'w+', 'utf-8') as out:
+				out.write("\n".join([header, column_names, "\n".join(combined_data)]))
 			print("    - Data for {0} participants successfully exported.".format(p_count))
 		print("") # newline between export info and next prompt for aesthetics' sake
 
 
 	def export_header(self, user_id=None):
-		#TODO: make header info reflect info when participant was run, instead of just current settings which
-		# is somewhat misleading (add runtime_info table)
-		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", P.klibs_commit]]
+		#TODO: make header info reflect info when participant was run, instead of just current
+		# settings which is somewhat misleading (add runtime_info table)
+		
+		if user_id:
+			commit_q = "SELECT `klibs_commit` FROM `participants` WHERE `id` = ?"
+			klibs_commit = self.__master.query(commit_q, q_vars=[user_id])[0][0]
+		else:
+			# if doing multifile export, only append commit if all data collected with same one
+			commits = self.__master.query("SELECT DISTINCT `klibs_commit` FROM `participants`")
+			if len(commits) > 1:
+				klibs_commit = "(multiple)"
+			else:
+				klibs_commit = commits[0][0]
+
+		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", klibs_commit]]
 		eyelink_vars = ["EYELINK SETTINGS",
 						["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
 						["Saccadic Acceleration Threshold", P.saccadic_acceleration_threshold],
@@ -577,7 +640,7 @@ class DatabaseManager(EnvAgent):
 		exp_vars 	 = ["EXPERIMENT SETTINGS",
 						["Trials Per Block", P.trials_per_block],
 						["Blocks Per Experiment", P.blocks_per_experiment]]
-		
+
 		header = ""
 		header_info = [klibs_vars, exp_vars]
 		if P.eye_tracking and P.eye_tracker_available:
@@ -591,15 +654,25 @@ class DatabaseManager(EnvAgent):
 		return header
 		
 
-	def filepath_str(self, participant_id=None, multi_file=False, incomplete=False):
+	def filepath_str(self, p_id=None, multi_file=False, base=None, joined=[], incomplete=False):
+
+		# if tables to join or alternate base table specified for export, note this in filename
+		tables = ''
+		if base != None or len(joined):	
+			joined_tables = '+'.join(['']+joined)
+			tables = '[{0}{1}]'.format(base if base != None else '', joined_tables)
+		
 		if multi_file:
 			created_q = "SELECT `created` FROM `participants` WHERE `id` = ?"
-			created = str(self.__master.query(created_q, q_vars=[1], fetch_all=False).fetchone()[0][:10])
-		basename = "p{0}.{1}".format(str(participant_id), created) if multi_file else "{0}_all_trials".format(P.project_name)
+			created = self.__master.query(created_q, q_vars=[1], fetch_all=False).fetchone()[0][:10]
+			basename = "p{0}{1}.{2}".format(str(p_id), tables, created)
+		else:
+			basename = "{0}_all_trials{1}".format(P.project_name, tables)		
+
 		duplicate_count = 0
 		while True:
-			# Generate suffix and see if file already exists with that name. If it does, keep incremeting
-			# the numeric part of the suffix until it doesn't.
+			# Generate suffix and see if file already exists with that name. If it does, keep 
+			# incremeting the numeric part of the suffix until it doesn't.
 			suffix = DATA_EXT
 			if incomplete: suffix = "_incomplete" + suffix
 			if duplicate_count: suffix = "_{0}".format(duplicate_count) + suffix
@@ -609,7 +682,9 @@ class DatabaseManager(EnvAgent):
 				duplicate_count += 1
 			else:
 				break
+
 		return filepath
+
 
 	def rebuild(self):
 		if not isfile(P.schema_file_path):

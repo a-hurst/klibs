@@ -1,12 +1,11 @@
+# -*- coding: utf-8 -*-
+
 __author__ = "EXPERIMENTER_NAME"
 
 import klibs
 from klibs import P
 
 class PROJECT_NAME(klibs.Experiment):
-
-	def __init__(self, *args, **kwargs):
-		super(PROJECT_NAME, self).__init__(*args, **kwargs)
 
 	def setup(self):
 		pass

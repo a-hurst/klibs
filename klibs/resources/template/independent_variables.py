@@ -1,5 +1,7 @@
-__author__ = "EXPERIMENTER_NAME"
 from klibs.KLIndependentVariable import IndependentVariableSet
+
+PROJECT_NAME_ind_vars = IndependentVariableSet()
+
 """
 *** SAMPLE CONFIGURATION - REMOVE AFTER FINISHING REAL CONFIG ***
 

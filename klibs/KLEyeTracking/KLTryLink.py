@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-from klibs.KLExceptions import EyeLinkError
+from klibs.KLExceptions import EyeTrackerError
 from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
 	EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
 	EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
@@ -345,7 +345,7 @@ class TryLink(EyeTracker):
 			The (x, y) gaze coordinates for the event.
 
 		Raises:
-			EyeLinkError: If asked to inspect the end gaze or average gaze for an eye event that
+			EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
 				lacks that attribute (e.g. ``EL_AVG_GAZE`` for a ``EL_SACCADE_END`` event).
 
 		"""
@@ -361,7 +361,8 @@ class TryLink(EyeTracker):
 					coords = event.avg_gaze
 			except AttributeError:
 				typename = self.get_event_name(event.type)
-				raise EyeLinkError("Cannot inspect {0} for {1} events.".format(inspect, typename))
+				err = "Cannot inspect {0} for {1} events."
+				raise EyeTrackerError(err.format(inspect, typename))
 
 		return coords
 
@@ -380,7 +381,7 @@ class TryLink(EyeTracker):
 			The timestamp for the start or end of the event.
 
 		Raises:
-			EyeLinkError: If asked to report the end timestamp for an eye event that only has
+			EyeTrackerError: If asked to report the end timestamp for an eye event that only has
 				a start timestamp (e.g. ``EL_FIXATION_START``).
 
 		"""
@@ -391,7 +392,8 @@ class TryLink(EyeTracker):
 				return event.start_time if report == EL_TIME_START else event.end_time
 			except AttributeError:
 				typename = self.get_event_name(event.type)
-				raise EyeLinkError("Cannot report {0} for {1} events.".format(report, typename))
+				err = "Cannot report {0} for {1} events."
+				raise EyeTrackerError(err.format(report, typename))
 
 
 	@property

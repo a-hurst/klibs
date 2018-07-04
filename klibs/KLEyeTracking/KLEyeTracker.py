@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-from klibs.KLExceptions import TrialException, EyeLinkError
+from klibs.KLExceptions import TrialException, EyeTrackerError
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
     EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
@@ -114,7 +114,7 @@ class EyeTracker(EnvAgent, BoundaryInspector):
         if e_type != EL_SACCADE_END:
             typename = self.get_event_name(e_type)
             err = "Only saccade end events can be used for boundary exit tests ({0} given)"
-            raise EyeLinkError(err.format(typename))
+            raise EyeTrackerError(err.format(typename))
 
         timestamp = self.get_event_timestamp(event, report)
         start_gaze = self.get_event_gaze(event, EL_GAZE_START)
@@ -145,7 +145,7 @@ class EyeTracker(EnvAgent, BoundaryInspector):
         if e_type != EL_SACCADE_END:
             typename = self.get_event_name(e_type)
             err = "Only saccade end events can be used for saccade direction tests ({0} given)"
-            raise EyeLinkError(err.format(typename))
+            raise EyeTrackerError(err.format(typename))
             
         sxp, syp = self.get_event_gaze(event, EL_GAZE_START)
         exp, eyp = self.get_event_gaze(event, EL_GAZE_END)
@@ -651,7 +651,7 @@ class EyeTracker(EnvAgent, BoundaryInspector):
             The (x, y) gaze coordinates for the event.
 
         Raises:
-            EyeLinkError: If asked to inspect the end gaze or average gaze for an eye event that
+            EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
                 lacks that attribute (e.g. ``EL_AVG_GAZE`` for a ``EL_SACCADE_END`` event).
 
         """
@@ -672,7 +672,7 @@ class EyeTracker(EnvAgent, BoundaryInspector):
             The timestamp for the start or end of the event.
 
         Raises:
-            EyeLinkError: If asked to report the end timestamp for an eye event that only has
+            EyeTrackerError: If asked to report the end timestamp for an eye event that only has
                 a start timestamp (e.g. ``EL_FIXATION_START``).
 
         """

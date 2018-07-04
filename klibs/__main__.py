@@ -261,9 +261,9 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 			P.eye_tracker_available = False
 		if P.development_mode and P.dm_show_gaze_dot:
 			P.show_gaze_dot = True
-		from klibs import KLEyeLink # needs to be imported after params are read in
+		from klibs import KLEyeTracking # needs to be imported after params are read in
 		try:
-			env.el = KLEyeLink.EyeLinkExt()
+			env.el = KLEyeTracking.Tracker()
 		except RuntimeError:
 			sys.exit()
 	try:

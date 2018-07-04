@@ -447,18 +447,18 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False, return_int=
 def pump(return_events=False):
 
 	"""Pumps the SDL2 event queue and appends its contents to the EventManager log.
-	 The SDL2 event queue contains SDL_Event objects representing keypresses, mouse
-	 movements, mouse clicks, and other input events that have occured since last
-	 check.
+	The SDL2 event queue contains SDL_Event objects representing keypresses, mouse
+	movements, mouse clicks, and other input events that have occured since last
+	check.
 
-	 Pumping the SDL2 event queue clears its contents, so be careful of calling it
-	 (or functions that call it implicitly) multiple times in the same loop, as it
-	 may result in unexpected problems watching for input (e.g if you have two
-	 functions checking for mouse clicks within two different boundaries and both
-	 call pump(), the second one will only return True if a click within that boundary
-	 occurred within the sub-millisecond interval between the first and second functions.)
-	 To avoid these problems, you can manually fetch the queue once per loop and pass its
-	 contents to each of the functions in the loop inspecting user input.
+	Pumping the SDL2 event queue clears its contents, so be careful of calling it
+	(or functions that call it implicitly) multiple times in the same loop, as it
+	may result in unexpected problems watching for input (e.g if you have two
+	functions checking for mouse clicks within two different boundaries and both
+	call pump(), the second one will only return True if a click within that boundary
+	occurred within the sub-millisecond interval between the first and second functions.)
+	To avoid these problems, you can manually fetch the queue once per loop and pass its
+	contents to each of the functions in the loop inspecting user input.
 
 	Args:
 		return_events (bool): If true, returns the contents of the SDL2 event queue.
@@ -481,28 +481,12 @@ def pump(return_events=False):
 		evm.log_trial_event(*event)
 
 		if success == 0: raise RuntimeError(SDL_GetError())
-	# except AttributeError:
-	#	pass  # for when called before evm initialized
-	SDL_PumpEvents()
 
-	# If we are using TryLink, check the SDL event queue after every pump and append any
-	# mouse motion events to the TryLink event queue, where they can be used as a stand-in
-	# for saccades.
-	from klibs.KLEnvironment import el
-	from klibs.KLEyeLink.KLTryLink import TryLink
-	if isinstance(el, TryLink):
-		while el.recording:
-			evarray = (SDL_Event * 10)()
-			ptr = ctypes.cast(evarray, ctypes.POINTER(SDL_Event))
-			ret = SDL_PeepEvents(ptr, 10, SDL_GETEVENT, SDL_MOUSEMOTION, SDL_MOUSEMOTION)
-			if ret <= 0:
-				break
-			el.mouse_event_queue += list(evarray)[:ret]
-			if ret < 10:
-				break
+	SDL_PumpEvents()
 
 	if return_events:
 		return get_events()
+
 
 def pretty_list(items, sep=',', space=' ', before_last='or', brackets='[]', pad=True):
 	"""Takes an iterable (e.g. a :obj:`List`) and creates a nicely-formatted string from its
@@ -674,7 +658,7 @@ def snake_to_camel(string):
 
 def snake_to_title(string):
 	words = string.split('_')
-	return words[0] + "".join(x.title() for x in words)
+	return "".join(x.title() for x in words)
 
 
 def str_pad(string, str_len, pad_char=" ", pad_dir="r"):

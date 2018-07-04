@@ -1,8 +1,0 @@
-KLEyeLink
-*********
-.. toctree::
-	:maxdepth: 2
-	:glob:
-
-	KLEyeLink/*
-		

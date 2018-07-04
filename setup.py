@@ -21,7 +21,7 @@ setup(
 	author='Jonathan Mulle & Austin Hurst',
 	author_email='mynameisaustinhurst@gmail.com',
 	url='http://github.com/a-hurst/klibs',
-	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeLink'],
+	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeTracking'],
 	include_package_data=True,
 	entry_points = {'console_scripts': ['klibs = klibs.__main__:cli']},
 	python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*',

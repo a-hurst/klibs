@@ -35,7 +35,7 @@ RC_DRAW = 'draw_listener'
 NO_RESPONSE = "NO_RESPONSE"
 TIMEOUT = -1
 
-# KLEyeLink constants for writing readable EyeLink code
+# KLEyeTracking constants for writing readable eye tracking code
 EL_LEFT_EYE = 0
 EL_RIGHT_EYE = 1
 EL_BOTH_EYES = 2
@@ -46,14 +46,13 @@ EL_FALSE = 0
 EYELINK_I = 1
 EYELINK_II = 2
 EYELINK_1000 = 3
-# Variables indicating what to return from KLEyeLink functions
-EL_GAZE_START = "gaze_start"
-EL_GAZE_END = "gaze_end"
-EL_AVG_GAZE = "average_gaze"
-EL_TIME_START = "time_start"
-EL_TIME_END = "time_end"
-# KLEyeLink event types
-EL_MOCK_EVENT = -1
+# Variables indicating what to return from KLEyeTracking functions
+EL_GAZE_START = "start gaze"
+EL_GAZE_END = "end gaze"
+EL_AVG_GAZE = "average gaze"
+EL_TIME_START = "start time"
+EL_TIME_END = "end time"
+# KLEyeTracking event types
 EL_GAZE_POS = 200
 EL_BLINK_START = 3
 EL_BLINK_END = 4
@@ -66,9 +65,9 @@ EL_SACCADE_START = 5
 EL_SACCADE_END = 6
 EL_SACCADE_BOTH = [5, 6]
 EL_ALL_EVENTS = [
-	EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_BOTH, EL_FIXATION_UPDATE, EL_FIXATION_ALL,
-	EL_SACCADE_START, EL_SACCADE_END, EL_SACCADE_BOTH,
-	EL_BLINK_START, EL_BLINK_END
+	EL_BLINK_START, EL_BLINK_END,
+	EL_SACCADE_START, EL_SACCADE_END,
+	EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_UPDATE
 ]
 
 # KLNumpySurface Constants

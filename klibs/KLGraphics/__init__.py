@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
+__all__ = ['fill', 'blit', 'flip', 'clear']
 
 import os
 from time import time
@@ -12,6 +13,7 @@ from PIL import Image
 
 from klibs.KLConstants import *
 from klibs import P
+from klibs.KLTime import precise_time
 
 
 def aggdraw_to_numpy_surface(draw_context):
@@ -31,9 +33,11 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 		function, thus it is recommended to render beforehand whenever possible to
 		avoid performance issues resulting from the extra overhead.
 
+		Valid source content types include :obj:`NumpySurface` objects, :obj:`Drawbject` shapes,
+		and :obj:`numpy.ndarray` or :obj:`Pillow.Image` objects in RGBA format.
+
 		Args:
-			source (:obj:`NumpySurface` | :obj:`Drawbject` | :obj:`numpy.ndarray` | 
-				:obj:`Pillow.Image`): Image data to be buffered.
+			source: Image data to draw to the display buffer.
 			registration (int): An integer from 1 to 9 indicating which location on the
 				surface will be aligned to the location value (see manual for more info).
 			location(tuple(int,int)): A tuple of x,y pixel coordinates indicating where to
@@ -43,6 +47,7 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 		
 		Raises:
 			TypeError: If the 'source' object passed is not one of the accepted types.
+
 		"""
 		from .KLDraw import Drawbject
 		from .KLNumpySurface import NumpySurface
@@ -283,9 +288,9 @@ def flip():
 	# 100ms in some cases). Since this is obviously a problem for timing-sensitive research, we
 	# time how long each flip takes, and print a warning whenever it takes longer than expected
 	# (with a threshold of 1ms).
-	flip_start = time()
+	flip_start = precise_time()
 	sdl2.SDL_GL_SwapWindow(window)
-	flip_time = (time() - flip_start) * 1000 # convert to ms
+	flip_time = (precise_time() - flip_start) * 1000 # convert to ms
 	if P.development_mode:
 		if flip_time > (P.refresh_time + 1):
 			warn = "Warning: Screen refresh took {0} ms (expected {1} ms)"

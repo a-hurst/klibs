@@ -482,21 +482,6 @@ def pump(return_events=False):
 		value is None.
 
 	"""
-	from klibs.KLEnvironment import evm
-	while not evm.clock_sync_queue.empty():
-		event = evm.clock_sync_queue.get()
-		# put event into the SDL event queue
-		sdl_event = SDL_Event()
-		sdl_event.type = SDL_RegisterEvents(1)
-		success = SDL_PushEvent(sdl_event)
-
-		# store the event (along with it's data) in the EventManager's log
-		event.append(sdl_event.type)
-		evm.log_trial_event(*event)
-
-		if success == 0: raise RuntimeError(SDL_GetError())
-	# except AttributeError:
-	#	pass  # for when called before evm initialized
 	SDL_PumpEvents()
 
 	# If we are using TryLink, check the SDL event queue after every pump and append any
@@ -778,11 +763,11 @@ def valid_coords(coords):
 		
 def smart_sleep(interval, units=TK_MS):
 	from klibs.KLUserInterface import ui_request
-	from time import time
+	from klibs.KLTime import precise_time
 	if units == TK_MS:
 		interval *= .001
-	start = time()
-	while time() - start < interval:
+	start = precise_time()
+	while precise_time() - start < interval:
 		ui_request()
 
 

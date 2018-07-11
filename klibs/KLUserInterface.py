@@ -1,11 +1,10 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-from time import time
-
 from sdl2 import (SDL_GetKeyFromName, SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL,
 	KMOD_GUI, SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
 
 from klibs import P
+from klibs.KLTime import precise_time as time
 from klibs.KLUtilities import pump
 
 
@@ -120,7 +119,7 @@ def ui_request(key_press=None, execute=True, queue=None):
 	- Quit (Ctrl/Command-Q): Quit the experiment runtime
 
 	- Calibrate EyeLink (Ctrl/Command-C): Enter setup mode for the EyeLink eye tracker, 
-	if eye tracking is enabled for the experiment and not using TryLink simulation.
+	  if eye tracking is enabled for the experiment and not using TryLink simulation.
 	
 	If no event queue from :func:`~klibs.KLUtilities.pump` and no keypress event(s) are
 	supplied to this function, the current contents of the SDL2 event queue will be fetched

@@ -16,7 +16,7 @@ install_packages = ['klibs']
 
 setup(
 	name='KLibs',
-	version='0.7.2a0',
+	version='0.7.3a0',
 	description='A framework for building psychological experiments in Python',
 	author='Jonathan Mulle & Austin Hurst',
 	author_email='mynameisaustinhurst@gmail.com',

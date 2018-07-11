@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+import os
 import sys
 from abc import abstractmethod
-from os import mkdir
 from os.path import join
 from shutil import copyfile, copytree
-from sdl2 import SDL_Quit
+
+import sdl2
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
@@ -69,7 +70,6 @@ class Experiment(EnvAgent):
 				except TrialException:
 					block.recycle()
 					P.recycle_count += 1
-					# self.evm.send('trial_recycled')
 					self.database.current(False)
 					clear()
 				self.rc.reset()
@@ -192,15 +192,8 @@ class Experiment(EnvAgent):
 
 		"""
 		#TODO: this needs hella cleanup, so much commented-out and messy code
-
 		if P.verbose_mode:
 			print(full_trace())
-
-		#try:
-		#	if not self.evm.events_dumped:
-		#		self.evm.dump_events()
-		#except:
-		#	pass
 
 		try:
 			try:
@@ -231,11 +224,11 @@ class Experiment(EnvAgent):
 		#		cso("<red>****** DISCONNECT & RECONNECT LABJACK PLEASE & THANKS! *******</red>")
 
 		self.audio.shut_down()
-		SDL_Quit()
-		self.evm.terminate()
+		sdl2.ext.quit()
 
 		cso("\n\n<green>*** '{0}' successfully shutdown. ***</green>\n\n".format(P.project_name))
-		sys.exit()
+		os._exit(1)
+
 
 	def run(self, *args, **kwargs):
 		"""The method that gets run by 'klibs run' after the runtime environment is created. Runs
@@ -245,7 +238,7 @@ class Experiment(EnvAgent):
 
 		if not P.development_mode:
 			version_dir = join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))
-			mkdir(version_dir)
+			os.mkdir(version_dir)
 			copyfile("experiment.py", join(version_dir, "experiment.py"))
 			copytree(P.config_dir, join(version_dir, "Config"))
 

@@ -312,7 +312,6 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 			traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]) + 
 			traceback.format_tb(sys.exc_info()[2])
 		))
-		env.evm.terminate()
 		sys.exit()
 
 

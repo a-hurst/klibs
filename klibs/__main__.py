@@ -76,7 +76,7 @@ def create(name, path):
 		"ExpAssets": {
 			".versions": None,
 			"Config": None,
-			"Resources": {"code": None, "font": None, "image": None},
+			"Resources": {"audio": None, "code": None, "font": None, "image": None},
 			"Local": {"logs": None},
 			"Data": {"incomplete": None},
 			"EDF": {"incomplete": None} }
@@ -192,7 +192,7 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 		"ExpAssets": {
 			".versions": None,
 			"Config": None,
-			"Resources": {"code": None, "font": None, "image": None},
+			"Resources": {"audio": None, "code": None, "font": None, "image": None},
 			"Local": {"logs": None},
 			"Data": {"incomplete": None},
 			"EDF": {"incomplete": None}}

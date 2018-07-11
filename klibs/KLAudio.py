@@ -3,17 +3,17 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import sys
-import warnings
 import math
 import time
+import ctypes
+from ctypes import c_uint, c_ubyte
 from array import array
 
-with warnings.catch_warnings():
-	warnings.simplefilter("ignore")
-	import sdl2.ext
-	from sdl2 import SDLK_c, SDLK_v
-	from sdl2.sdlmixer import (Mix_LoadWAV, Mix_PlayChannel, Mix_Playing, Mix_HaltChannel, 
-		Mix_VolumeChunk)
+import numpy as np 
+import sdl2.ext
+from sdl2 import SDLK_c, SDLK_v
+from sdl2.sdlmixer import (Mix_LoadWAV, Mix_QuickLoad_RAW, Mix_PlayChannel, Mix_PlayChannelTimed, 
+	Mix_HaltChannel, Mix_Playing, Mix_VolumeChunk)
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_RATE
@@ -111,86 +111,196 @@ class AudioManager(object):
 
 # Note AudioClip is an adaption of code originally written by mike lawrence (github.com/mike-lawrence)
 class AudioClip(object):
-		default_channel = -1
-		sample = None
-		__playing = False
-		__volume = 128
-		__volume_increment = 12.8
+	"""A class for loading and playing sound clips from files or :obj:`numpy.ndarray` arrays. Only
+	16-bit WAVE files with a sample rate of 44100Hz are currently supported, but broader
+	OGG/FLAC/WAV support is planned. Multiple AudioClip objects can be played simultaneously.
 
-		def __init__(self, file_path):
-			"""
+	If loading a clip from a file located in the project's ``ExpAssets/Resources/audio`` folder,
+	you only need to provide the name of the file. Otherwise, you need to provide the full path.
 
-			:param file_path:
-			"""
-			super(AudioClip, self).__init__()
-			self.started = False
-			self.channel = self.default_channel
-			self.sample = Mix_LoadWAV(sdl2.ext.compat.byteify(file_path, "utf-8"))
+	Usage::
 
-		def play(self, channel=-1, loops=0):
-			"""
+		alert = AudioClip("Ping.wav", volume=0.5)
+		alert.play()
 
-			:param channel:
-			:param loops:
-			"""
-			self.channel = Mix_PlayChannel(channel, self.sample, loops)
-			self.__playing = True
+	Args:
+		clip (str or :obj:`numpy.ndarray`): The audio clip to load, can be either a path to a file
+			or a 2-column :class:`~.numpy.int16` numpy array.
+		volume (float, optional): The volume of the audio clip. Defaults to 1.0 (max volume).
 
-		def playing(self):
-			"""
+	"""
 
+	def __init__(self, clip, volume=1.0):
+		super(AudioClip, self).__init__()
+		if isinstance(clip, np.ndarray):
+			self._sample = self.__array_to_sample(clip)
+		else:
+			self._sample = self.__file_to_sample(clip)
+		self._channel = -1
+		self.volume = volume
+		self.started = False
 
-			:return:
-			"""
-			if self.started:
-				if Mix_Playing(self.channel):
-					return True
-				else:
-					self.__playing = False
-					return False
-
-			return False
+	def __file_to_sample(self, filename):
+		"""Creates an SDL2_mixer MixChunk sample from a WAV file.
 		
-		def stop(self):
-			if self.playing:
-				Mix_HaltChannel(self.channel)
-				self.__playing = False
+		"""
+		if filename in os.listdir(P.audio_dir):
+			file_path = os.path.join(P.audio_dir, filename)
+		elif os.path.isfile(filename):
+			file_path = filename
+		else:
+			raise IOError("Unable to locate audio file at ({0})".format(filename))
+		return Mix_LoadWAV(sdl2.ext.compat.byteify(file_path, "utf-8"))
 
-		def volume_up(self, steps=1):
-			"""
+	def __array_to_sample(self, arr):
+		"""Creates an SDL2_mixer MixChunk sample from a 2-channel 16-bit numpy array.
+		
+		"""
+		arr_bytes = arr.tostring()
+		buflen = len(arr_bytes)
+		self._buf = (c_ubyte * buflen).from_buffer_copy(arr_bytes)
+		return Mix_QuickLoad_RAW(ctypes.cast(self._buf, ctypes.POINTER(c_ubyte)), c_uint(buflen))
 
-			:param steps:
-			"""
-			self.__volume += steps * self.__volume_increment
-			self.__volume = int(self.volume)
+	def play(self, loop=False):
+		"""Plays the audio clip, if it is not already playing.
 
-		def volume_down(self, steps=1):
-			"""
+		Args:
+			loop (bool, optional): Whether the audio clip should play in a loop until it is
+				stopped manually, or only play once. Defaults to False (play once).
 
-			:param steps:
-			"""
-			self.__volume -= steps * self.__volume_increment
-			self.__volume = int(self.volume)
+		"""
+		if not self.playing:
+			self._channel = Mix_PlayChannel(-1, self._sample, -1 if loop else 0)
+			self.started = True
+	
+	def stop(self):
+		"""Stops the audio clip if it is currently playing.
 
-		def mute(self):
-			Mix_VolumeChunk(self.sample, 0)
+		"""
+		if self.playing:
+			Mix_HaltChannel(self._channel)
 
-		def unmute(self):
-			Mix_VolumeChunk(self.sample, self.__volume)
+	@property
+	def playing(self):
+		"""bool: Indicates whether the audio clip is currently playing.
 
-		@property
-		def volume(self):
-			return self.__volume
+		"""
+		return Mix_Playing(self._channel) == 1 if self.started else False
 
-		@volume.setter
-		def volume(self, volume_value):
-			if type(volume_value) is float and volume_value < 1:
-				self.__volume = 128 * volume_value
-			elif type(volume_value) is int and volume_value <= 128:
-				self.__volume = volume_value
-			else:
-				raise ValueError("Provide either an integer between 1 and 128 or a float between 0 and 1.")
-			Mix_VolumeChunk(self.sample, self.__volume)
+	@property
+	def volume(self):
+		"""float: The volume of the audio clip, ranging from 0.0 (silent) to 1.0 (100% volume).
+
+		"""
+		return self.__volume
+
+	@volume.setter
+	def volume(self, value):
+		if type(value) != float or not (0.0 <= value <= 1.0):
+			raise ValueError("Clip volume must be a float between 0.0 and 1.0, inclusive.")
+		self.__volume = value
+		Mix_VolumeChunk(self._sample, int(self.__volume * 128))
+
+
+class Noise(AudioClip):
+	"""A class for generating audio clips of different types of random noise.
+
+	Currently supports generating pure white noise (uniform distribution, fully random) or
+	gaussian white noise (normal distrubution, less harsh).
+	
+	Generated noise can also be *dichotic* (i.e. stereo), where different random noise is
+	generated for the left and right channels, or *non-dichotic* (i.e. mono), where the noise
+	is identical in both channels.
+
+	Example usage::
+
+		background_noise = Noise(8000, volume=0.5)
+		background_noise.play()
+
+		if self.evm.before('warning_onset'):
+			draw_stimuli()
+		background_noise.volume = 1.0 # double loudness of noise
+
+		if self.evm.before('warning_end'):
+			draw_stimuli()
+		background_noise.volume = 0.5 # return loudness to original value
+
+	Args:
+		duration (int): The milliseconds of noise to generate.
+		color (str, optional): The type of noise to generate, can be either 'white' or
+			'white_gaussian'. Defaults to 'white'.
+		dichotic (bool, optional): If True, generates dichotic noise instead of non-dichotic
+			noise. Defaults to False.
+		volume (float, optional): The volume of the audio clip. Defaults to 1.0 (max volume).
+
+	"""
+	
+	def __init__(self, duration, color="white", dichotic=False, volume=1.0):
+		self.__color = color
+		noise_L = self.__generate_noise(color, duration)
+		noise_R = self.__generate_noise(color, duration) if dichotic else noise_L
+		super(Noise, self).__init__(np.c_[noise_L, noise_R], volume)
+		
+	def __generate_noise(self, color, duration):
+		"""Generates a single channel of random noise.
+		
+		"""
+		max_int = 2**16/2 - 1 # 32767, which is the max/min value for a signed 16-bit int
+		dtype = np.int16 # Default audio format for SDL_Mixer is signed 16-bit integer
+		sample_rate = 44100/2 # sample rate for each channel is 22050 kHz, so 44100 total.
+		size = int((duration/1000.0)*sample_rate)
+		
+		if color == "white":
+			arr = np.random.uniform(low=-1.0, high=1.0, size=size) * max_int
+		elif color == "white_gaussian":
+			arr = np.random.normal(loc=0.0, scale=0.33, size=size) * max_int
+		
+		return arr.astype(dtype)
+		
+
+class Tone(AudioClip):
+	"""A class for generating audio clips of different types of tones.
+
+	Currently supports generating sine wave tones (a.k.a. 'pure tones') and square wave tones,
+	which have a more digital, buzz-like sound.
+
+	Example usage::
+
+		alerting_cue = Tone(100, frequency=2200)
+		alerting_cue.play()
+
+	Args:
+		duration (int): The milliseconds of tone to generate.
+		wave_type (str, optional): The type of tone waveform to generate, can be either 'sine'
+			or 'square'. Defaults to 'sine'.
+		frequency (int, optional): The frequency (in Hz) of the tone to generate. Defaults to
+			432 Hz.
+		volume (float, optional): The volume of the audio clip. Defaults to 1.0 (max volume).
+
+	"""
+	
+	def __init__(self, duration, wave_type='sine', frequency=432, volume=1.0):
+		self.__type = wave_type
+		self.__frequency = frequency
+		tone = self.__generate_tone(wave_type, frequency, duration)
+		super(Tone, self).__init__(np.c_[tone, tone], volume)
+	
+	def __generate_tone(self, wavetype, hz, duration):
+		"""Generates a single channel of tone at a given frequency.
+		
+		"""
+		max_int = 2**16/2 - 1 # 32767, which is the max/min value for a signed 16-bit int
+		dtype = np.int16 # Default audio format for SDL_Mixer is signed 16-bit integer
+		sample_rate = 44100/2 # sample rate for each channel is 22050 kHz, so 44100 total.
+		size = int((duration/1000.0)*sample_rate)
+		
+		if wavetype == "sine":
+			arr = np.sin(np.pi * np.arange(size)/sample_rate * hz) * max_int
+		elif wavetype == "square":
+			arr = np.sin(np.pi * np.arange(size)/sample_rate * hz)
+			arr = np.sign(arr) * max_int
+		
+		return arr.astype(dtype)
 
 
 class AudioSample(object):

@@ -137,8 +137,9 @@ data_dir = None
 incomplete_data_dir = None
 edf_dir = None
 incomplete_edf_dir = None
-image_dir = None
+audio_dir = None
 code_dir = None
+image_dir = None
 local_dir = None
 resources_dir = None
 versions_dir = None
@@ -250,9 +251,10 @@ def setup(project_name_str, seed_value=None):
 	global random_seed
 	global anonymous_username
 	global asset_dir
+	global audio_dir
+	global code_dir
 	global exp_font_dir
 	global image_dir
-	global code_dir
 	global config_dir
 	global resources_dir
 	global logo_file_path
@@ -265,9 +267,10 @@ def setup(project_name_str, seed_value=None):
 	project_name = project_name_str
 	asset_dir = "ExpAssets"
 	resources_dir = join(asset_dir, "Resources")
+	audio_dir = join(resources_dir, "audio")
+	code_dir = join(resources_dir, "code")
 	exp_font_dir = join(resources_dir, "font")
 	image_dir = join(resources_dir, "image")
-	code_dir = join(resources_dir, "code")
 	config_dir = join(asset_dir, "Config")
 	logo_file_path = resource_filename('klibs', 'resources/splash.png')
 

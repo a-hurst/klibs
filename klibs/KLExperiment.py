@@ -19,7 +19,7 @@ from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 from klibs.KLGraphics import KLDraw as kld
-from klibs.KLDatabase import Database
+from klibs.KLDatabase import EntryTemplate
 from klibs.KLUserInterface import any_key
 from klibs.KLAudio import AudioManager
 from klibs.KLResponseCollectors import ResponseCollector
@@ -118,14 +118,15 @@ class Experiment(EnvAgent):
 		if tx:
 			raise tx
 
-	def __log_trial__(self, trial_data, auto_id=True):
+	def __log_trial__(self, trial_data):
 		"""Internal method, logs trial data to database.
 
 		"""
-		if auto_id: trial_data[P.id_field_name] = P.participant_id
-		if self.database.current() is None: self.database.init_entry('trials', "trial_{0}".format(P.trial_number))
-		for attr in trial_data: self.database.log(attr, trial_data[attr])
-		return self.database.insert()
+		trial_template = EntryTemplate('trials')
+		trial_template.log(P.id_field_name, P.participant_id)
+		for attr in trial_data:
+			trial_template.log(attr, trial_data[attr])
+		return self.database.insert(trial_template)
 
 	def before_flip(self):
 		if P.show_gaze_dot and P.eye_tracking and P.in_trial:

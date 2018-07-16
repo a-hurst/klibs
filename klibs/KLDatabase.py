@@ -7,6 +7,7 @@ from itertools import chain
 from os import remove, rename
 from os.path import join, isfile
 from argparse import ArgumentParser
+from collections import OrderedDict
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import DatabaseException
@@ -75,113 +76,73 @@ def _convert_to_query_format(value, col_name, col_type):
 
 class EntryTemplate(object):
 
-	def __init__(self, table_name, table_schema, instance_name):
-		self.schema = table_schema
-		self.table_name = table_name
-		self.name = instance_name
-		self.data = [None] * len(table_schema)  # create an empty tuple of appropriate length
+
+	def __init__(self, table):
+		from klibs.KLEnvironment import db
+		self.table = table
+		self.schema = db.table_schemas[table]
+		self.defined = {}
+		self.data = [None] * len(self.schema)  # create an empty list of appropriate length
+
 
 	def __str__(self):
-		s = "<klibs.KLDatabase.KLEntryTemplate[{0}, {1}] object at {2}>"
-		return s.format(self.table_name, self.name, hex(id(self)))
+		s = "<klibs.KLDatabase.KLEntryTemplate[{0}] object at {1}>"
+		return s.format(self.table, hex(id(self)))
+
 
 	def pr_schema(self):
 		schema_str = "\t\t{\n"
-		for col in self.schema:
-			schema_str += "\t\t\t" + col[0] + " : " + str(col[1:]) + "\n"
+		for colname, info in self.schema.items():
+			schema_str += "\t\t\t" + colname + " : " + str(info) + "\n"
 		schema_str += "\t\t}"
 		return schema_str
 
-	#TODO: build logic for update statements as well (as against only insert statements)
-	def update_query(self, fields):
-		query = "UPDATE {0} SET ".format(self.table_name)
-		insert_template = []
-
-		for column in self.schema:
-			col_name = column[0]
-			col_value = SQL_NULL
-			try:
-				if col_name not in fields or col_name == ID: continue
-			except TypeError:  # ie. if fields is None update every field
-				pass
-			if self.data[self.index_of(col_name)] in [SQL_NULL, None]:
-				if not self.allow_null(col_name):
-					raise ValueError("Column '{0}' may not be null.".format(column))
-				self.data[self.index_of(col_name)] = SQL_NULL
-			else:
-				col_value = self.data[self.index_of(col_name)]
-			insert_template.append("`{0}` = {1}".format(col_name, col_value))
-
-		return ", ".join(insert_template)
-
 
 	def insert_query(self):
-
+		
 		insert_template = [SQL_NULL, ] * len(self.schema)
 		query_template = u"INSERT INTO `{0}` ({1}) VALUES ({2})"
 
-		for column in self.schema:
-			col_name = column[0]
-			if self.data[self.index_of(col_name)] in [SQL_NULL, None]:
-				if self.allow_null(col_name):
-					insert_template[self.index_of(col_name)] = SQL_NULL
-					self.data[self.index_of(col_name)] = SQL_NULL
+		cols = list(self.schema.keys())
+		for col_name in cols:
+			col_index = cols.index(col_name)
+			if self.data[col_index] in [SQL_NULL, None]:
+				if self.schema[col_name]['allow_null']:
+					insert_template[col_index] = SQL_NULL
+					self.data[col_index] = SQL_NULL
 				elif col_name == ID:
 					self.data[0] = SQL_NULL
 					insert_template[0] = SQL_NULL
-				elif self.table_name in P.table_defaults:
-					for i in P.table_defaults[self.table_name]:
+				elif self.table in P.table_defaults:
+					for i in P.table_defaults[self.table]:
 						if i[0] == col_name:
-							insert_template[self.index_of(col_name)] = utf8(i[1])
+							insert_template[col_index] = utf8(i[1])
 				else:
 					print(self.data)
 					raise ValueError("Column '{0}' may not be null.".format(col_name))
 			else:
-				insert_template[self.index_of(col_name)] = col_name
+				insert_template[col_index] = col_name
 
 		values = u",".join([utf8(i) for i in self.data if i != SQL_NULL])
 		columns = u",".join([i for i in insert_template if i != SQL_NULL])
-		return query_template.format(self.table_name, columns, values)
+		return query_template.format(self.table, columns, values)
 
-
-	def index_of(self, field):
-		index = 0
-		for col in self.schema:
-			if col[0] == field:
-				return index
-			else:
-				index += 1
-		raise IndexError("Field '{0}' not found in table '{1}'".format(field, self.table_name))
-
-	def type_of(self, field):
-		for col in self.schema:
-			if col[0] == field:
-				return col[1]['type']
-		e_msg = "Field '{0}' not found in table '{1}'".format(field, self.table_name)
-		raise IndexError(e_msg)
-
-	def allow_null(self, field):
-		for col in self.schema:
-			if col[0] == field:
-				return col[1]['allow_null']
-		raise IndexError("Field '{0}' not found in table '{1}'".format(field, self.table_name))
 
 	def log(self, field, value):
-		formatted_value = _convert_to_query_format(value, field, self.type_of(field))
-		self.data[self.index_of(field)] = formatted_value
-
-	def report(self):
-		print(self.schema)
+		try:
+			index = list(self.schema.keys()).index(field)
+		except ValueError:
+			err = "Column '{0}' does not exist in table '{1}'."
+			raise ValueError(err.format(field, self.table))
+		formatted_value = _convert_to_query_format(value, field, self.schema[field]['type'])
+		self.data[index] = formatted_value
+		self.defined[field] = value
 
 
 
 # TODO: look for required tables and columns explicitly and give informative error if absent
 # (ie. participants, created)
 class Database(EnvAgent):
-
-	__default_table = None
-	__open_entries = None
-	__current_entry = None
 
 	db = None
 	cursor = None
@@ -192,7 +153,6 @@ class Database(EnvAgent):
 		self.db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
 		self.db.text_factory = sqlite3.OptimizedUnicode
 		self.cursor = self.db.cursor()
-		self.__open_entries = {}
 		if len(self._tables()) == 0:
 			if isfile(P.schema_file_path):
 				self._deploy_schema(P.schema_file_path)
@@ -218,14 +178,27 @@ class Database(EnvAgent):
 	def _deploy_schema(self, schema):
 		with codecs.open(schema, 'r', 'utf-8') as f:
 			self.cursor.executescript(f.read())
-		
+
+	def _to_query_update_format(self, data, table):
+		sql_strs = []
+		for column, value in data.items():
+			try:
+				col_type = self.table_schemas[table][column]['type']
+			except KeyError:
+				err = "Column '{0}' does not exist in the table '{1}'."
+				raise ValueError(err.format(column, table))
+			formatted_value = _convert_to_query_format(value, column, col_type)
+			sql_strs.append("{0} = {1}".format(column, formatted_value))
+		return sql_strs
+
+
 	def build_table_schemas(self):
 		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
 		tables = {}
 		for table in self.cursor.fetchall():
 			table = str(table[0])  # unicode value
 			if table != "sqlite_sequence":  # a table internal to the database structure
-				table_cols = []
+				table_cols = OrderedDict()
 				self.cursor.execute("PRAGMA table_info({0})".format(table))
 				columns = self.cursor.fetchall()
 
@@ -245,29 +218,16 @@ class Database(EnvAgent):
 						err_str = "Invalid or unsupported type ({0}) for {1}.{2}'"
 						raise ValueError(err_str.format(col[2], table, col[1]))
 					allow_null = col[3] == 0
-					table_cols.append([col[1], {'type': col_type, 'allow_null': allow_null}])
+					table_cols[col[1]] = {'type': col_type, 'allow_null': allow_null}
 				tables[table] = table_cols
 		self.table_schemas = tables
 		return True
 
-	def current(self, instance=None):
-		if instance is False:
-			self.__current_entry = None
-			return
-		if instance is None:
-			return self.__current_entry
-		try:
-			self.__current_entry = instance
-			return self.__current_entry.name
-		except AttributeError:
-			self.__current_entry = self.__open_entries[instance]
-			return instance
 
 	def exists(self, table, column, value):
 		q = "SELECT * FROM `?` WHERE `?` = ?"
 		return len(self.query(q, QUERY_SEL, q_vars=[table, column, value])) > 0
 
-	def fetch_entry(self, instance_name): return self.__open_entries[instance_name]
 
 	def flush(self):
 		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
@@ -281,68 +241,42 @@ class Database(EnvAgent):
 				#self.cursor.execute(update_q.format(table))
 		self.db.commit()
 
-	def init_entry(self, table_name, instance_name=None, set_current=True):
-		try:
-			if instance_name is None: instance_name = table_name
-			entry = EntryTemplate(table_name, self.table_schemas[table_name], instance_name)
-			self.__open_entries[instance_name] = entry
-			if set_current: self.current(self.__open_entries[instance_name])
-		except IndexError:
-			msg = "Table '{0}' not found in the current experiment database."
-			raise IndexError(msg.format(table_name))
 
-	def insert(self, data=None, table=None, clear_current=True):
-		if data is None:
-			try:
-				data = self.current()
-				if not table:
-					table = data.table_name
-			except RuntimeError: # a more informative account of the current problem
-				msg = ("No data to insert; provide insert data or assign a current "
-					"KLEntryTemplate instance.")
-				raise RuntimeError(msg)
+	def insert(self, data, table=None):
+
+		if isinstance(data, EntryTemplate):
+			if not table:
+				table = data.table
+			query = data.insert_query()
+		elif isinstance(data, dict):
+			if not table:
+				raise ValueError("A table must be specified when inserting a dict.")
+			query = self.query_str_from_raw_data(data, table)
+		else:
+			raise TypeError("Argument 'data' must be either an EntryTemplate or a dict.")
 
 		try:
-			self.cursor.execute(data.insert_query())
-			if clear_current and self.current().name == data.name: self.current(False)
-		except AttributeError:
-			try:
-				self.cursor.execute(self.query_str_from_raw_data(data, table))
-			except Exception as e:
-				# when insert() is directly used to add data to a table in the db, and that table
-				# doesn't exist, KLibs crashes hard with an IOError: Broken Pipe. Need to add proper
-				# and informative error handling for this.
-				print("Error: unable to write data to database.")
-				raise e
+			self.cursor.execute(query)
 		except sqlite3.OperationalError:
 			err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
 			print(full_trace())
-			print(err.format(self.table_schemas[table], data.insert_query()))
+			print(err.format(self.table_schemas[table], query))
 			self.exp.quit()
 		self.db.commit()
 		return self.cursor.lastrowid
+
 
 	def is_unique(self, table, column, value):
 		q = "SELECT * FROM `?` WHERE `?` = ?"
 		return len(self.query(q, q_vars=[table, column, value])) == 0
 
+
 	def last_id_from(self, table):
-		if not table in self.table_schemas:
+		if not table in self.table_schemas.keys():
 			raise ValueError("Table '{0}' not found in current database".format(table))
 		q = "SELECT max({0}) from `{1}` WHERE `participant_id`={2}"
 		return self.query(q.format('id', table, P.participant_id))[0][0]
 
-	def log(self, field, value, instance=None, set_to_current=True):
-		try:
-			instance.log(field, value)
-		except AttributeError:
-			try:
-				self.__open_entries[instance].log(field, value)
-			except KeyError:
-				entry = self.current()
-				entry.log(field, value)
-		if set_to_current:
-			self.current(instance)
 
 	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
 		if q_vars:
@@ -358,68 +292,60 @@ class Database(EnvAgent):
 				return result
 		return True
 
-	def query_str_from_raw_data(self, data, table=None):
-		if table == None:
-			table = self.__default_table
+
+	def query_str_from_raw_data(self, data, table):
 		try:
 			template = self.table_schemas[table]
 		except KeyError:
-			err = "No table for query specified, and no default table set."
-			raise RuntimeError(err)
+			raise ValueError("Table '{0}' does not exist in the database.".format(table))
 		values = []
 		columns = []
-		if template[0][0] == 'id':
-			template = template[1:]
-		try:
-			for column in template:
-				column_index = template.index(column)
-				try:
-					value = data[column_index]
-				except KeyError:
-					value = data[column[0]]
-				formatted_value = _convert_to_query_format(value, column[0], column[1]['type'])
-				values.append(formatted_value)
-				columns.append(column[0])
-			if column_index + 1 > len(data):
-				raise ValueError('Cannot map data to table: more data elements than columns.')
-		except IndexError:
-			raise AttributeError('Cannot map data to table: fewer data elements than columns.')
+		template.pop('id', None) # remove id column from template if present
+		for colname, info in template:
+			try:
+				value = data[colname]
+			except KeyError:
+				raise ValueError("No value provided for column '{0}'.".format(colname))
+			formatted_value = _convert_to_query_format(value, colname, info['type'])
+			values.append(formatted_value)
+			columns.append(colname)
 		columns_str = u",".join(columns)
 		values_str = u",".join(values)
 		return u"INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
-			
-	def test_data(self, table):
-		# TODO: allow rules per column such as length
-		pass
+		
 
-	def update(self, record_id=None, data=None, fields=None, table=None, clear_current=True):
-		if not data:
-			try:
-				data = self.current()
-			except RuntimeError: # exception below is a more informative account of the problem
-				msg = ("No data to insert; provide insert data or assign a current "
-					"KLEntryTemplate instance.")
-				raise RuntimeError(msg)
-			if not table: table = data.table_name
-			if not record_id and not data.id:
-				msg = ("No record to update; no record_id provided or present in KLEntryTemplate "
-					"instance.")
-				raise RuntimeError(msg)
-		try:
-			self.cursor.execute(data.update_query(fields))
-			if clear_current and self.current().name == data.name: self.current(False)
-		except AttributeError:
-			self.cursor.execute(self.query_str_from_raw_data(data, table))
+	def update(self, table, columns, where={}):
+		"""Updates the values of data already written to the database for the current participant.
+
+		Args:
+			table (str): The name of the database table to update values in.
+			columns (:obj:`dict`): A dict in the form {column: value} defining the columns and
+				corresponding values to overwrite existing data with.
+			where (:obj:`dict`, optional): A dict in the form {column: value}, defining the
+				conditions that rows must match in order for their values to be updated.
+
+		"""
+		if not table in self.table_schemas.keys():
+			raise ValueError("The table '{0}' does not exist in the database.".format(table))
+
+		# prevent overwriting data from other participants
+		id_column = 'id' if table == 'participants' else P.id_field_name
+		where[id_column] = P.participant_id
+
+		replacements = self._to_query_update_format(columns, table)
+		filters = self._to_query_update_format(where, table)
+		replacements_str = ", ".join(replacements)
+		filter_str = " AND ".join(filters)
+
+		if not len(self.query("SELECT id FROM {0} WHERE {1}".format(table, filter_str))):
+			err = "No rows of table '{0}' matching filter criteria '{1}'."
+			raise ValueError(err.format(table, filter_str))
+
+		q = "UPDATE {0} SET {1} WHERE {2}".format(table, replacements_str, filter_str)
+		self.cursor.execute(q)
 		self.db.commit()
 		return self.cursor.lastrowid
 
-	@property
-	def default_table(self):
-		return self.__default_table
-
-	@default_table.setter
-	def default_table(self, name):  # todo: error handling
-		self.__default_table = name
 
 
 class DatabaseManager(EnvAgent):
@@ -506,8 +432,7 @@ class DatabaseManager(EnvAgent):
 
 	def copy_columns(self, table, ignore=[], sub={}):
 		colnames = []
-		for col in self.__local.table_schemas[table]:
-			colname = col[0]
+		for colname in self.__local.table_schemas[table].keys():
 			if colname not in ignore:
 				colnames.append(colname)
 		columns = ", ".join(colnames)
@@ -547,13 +472,13 @@ class DatabaseManager(EnvAgent):
 				else:
 					colnames.append(field)
 		else:
-			for column in self.__master.table_schemas['participants']:
-				if column[0] not in ['id'] + P.export_cols_exclude:
-					colnames.append(column[0])
+			for colname in self.__master.table_schemas['participants'].keys():
+				if colname not in ['id'] + P.export_cols_exclude:
+					colnames.append(colname)
 		for t in [P.primary_table] + join_tables:
-			for column in self.__master.table_schemas[t]:
-				if column[0] not in ['id', P.id_field_name] + P.export_cols_exclude:
-					colnames.append(column[0])
+			for colname in self.__master.table_schemas[t].keys():
+				if colname not in ['id', P.id_field_name] + P.export_cols_exclude:
+					colnames.append(colname)
 		column_names = TAB.join(colnames)
 		for colname in sub.keys():
 			column_names = column_names.replace(colname, sub[colname])
@@ -577,7 +502,6 @@ class DatabaseManager(EnvAgent):
 
 
 	def export(self, table=None, multi_file=True, join_tables=None):
-		#TODO: make sure p_id increments sequentially, ie. skips demo_user
 		#TODO: make option for exporting non-devmode/complete participants only
 		if table != None:
 			P.primary_table = table
@@ -704,14 +628,8 @@ class DatabaseManager(EnvAgent):
 	def commit(self):
 		self.__current.db.commit()
 
-	def current(self, *args, **kwargs):
-		return self.__current.current(*args, **kwargs)
-
 	def exists(self, *args, **kwargs):
 		return self.__current.exists(*args, **kwargs)
-	
-	def init_entry(self, *args, **kwargs):
-		return self.__current.init_entry(*args, **kwargs)
 	
 	def insert(self, *args, **kwargs):
 		return self.__current.insert(*args, **kwargs)
@@ -720,14 +638,15 @@ class DatabaseManager(EnvAgent):
 		return self.__current.is_unique(*args, **kwargs)
 	
 	def last_id_from(self, *args, **kwargs):
-		return self.__current.log(*args, **kwargs)
-
-	def log(self, *args, **kwargs):
-		return self.__current.log(*args, **kwargs)
+		return self.__current.last_id_from(*args, **kwargs)
 
 	def query(self, *args, **kwargs):
 		return self.__current.query(*args, **kwargs)
 
 	def update(self, *args, **kwargs):
 		return self.__current.update(*args, **kwargs)
+
+	@property
+	def table_schemas(self):
+		return self.__current.table_schemas
 		

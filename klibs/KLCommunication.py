@@ -19,6 +19,7 @@ import klibs.KLParams as P
 from klibs.KLJSON_Object import JSON_Object, AttributeDict
 from klibs.KLUtilities import pretty_list, now, pump, flush, iterable, utf8
 from klibs.KLUtilities import colored_stdout as cso
+from klibs.KLDatabase import EntryTemplate
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
 
@@ -61,10 +62,10 @@ def collect_demographics(anonymous=False):
 	if not P.collect_demographics and not anonymous: return
 
 	# first insert required, automatically-populated fields
-	db.init_entry('participants', instance_name='ptcp', set_current=True)
-	db.log("random_seed", P.random_seed)
-	db.log("klibs_commit", P.klibs_commit)
-	db.log('created', now(True))
+	demographics = EntryTemplate('participants')
+	demographics.log("random_seed", P.random_seed)
+	demographics.log("klibs_commit", P.klibs_commit)
+	demographics.log('created', now(True))
 
 	# collect a response and handle errors for each question
 	for q in user_queries.demographic:
@@ -85,19 +86,16 @@ def collect_demographics(anonymous=False):
 						break
 			else:
 				value = query(q, anonymous=anonymous)
-			db.log(q.database_field, value)
+			demographics.log(q.database_field, value)
 
 	# typical use; P.collect_demographics is True and called automatically by klibs
 	if not P.demographics_collected:
-		P.participant_id = db.insert()
+		P.participant_id = db.insert(demographics)
 		P.p_id = P.participant_id
 		P.demographics_collected = True
 	else:
 		#  The context for this is: collect_demographics is set to false but then explicitly called later
-		db.update(P.participant_id)
-
-	# unset the current DB entry and initialize the session for multi-session projects
-	db.current(False)
+		db.update(demographics.table, demographics.defined)
 
 	if P.multi_session_project and not P.manual_demographics_collection:
 		try:

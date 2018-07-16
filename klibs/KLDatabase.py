@@ -479,6 +479,7 @@ class DatabaseManager(EnvAgent):
 		remove(P.database_path)
 		rename(P.database_backup_path, P.database_path)
 	
+	
 	def __set_type_conversions(self, export=False):
 		if export:
 			sqlite3.register_converter("boolean", lambda x: str(bool(int(x))).upper())
@@ -486,6 +487,7 @@ class DatabaseManager(EnvAgent):
 		else:
 			sqlite3.register_converter("boolean", lambda x: bool(int(x)))
 			sqlite3.register_converter("BOOLEAN", lambda x: bool(int(x)))
+
 
 	def write_local_to_master(self):
 		attach_q = 'ATTACH `{0}` AS master'.format(P.database_path)
@@ -501,6 +503,7 @@ class DatabaseManager(EnvAgent):
 		
 		self.__local.cursor.execute('DETACH DATABASE `master`')
 			
+
 	def copy_columns(self, table, ignore=[], sub={}):
 		colnames = []
 		for col in self.__local.table_schemas[table]:
@@ -516,15 +519,6 @@ class DatabaseManager(EnvAgent):
 		q = "INSERT INTO master.{0} ({1}) SELECT {2} FROM {0}".format(table, columns, col_data)
 		self.__local.cursor.execute(q)
 	
-	def build_column_header(self, multi_file=True, join_tables=None):
-		column_names = []
-		for field in (P.default_participant_fields if multi_file else P.default_participant_fields_sf):
-			column_names.append(field[1]) if iterable(field) else column_names.append(field)
-		column_names = [snake_to_camel(col) for col in column_names]
-		for t in [P.primary_table] + join_tables:
-			for field in self.__master.table_schemas[t]:
-				if field[0][-2:] != "id": column_names.append(field[0])
-		return TAB.join(column_names)
 	
 	def close(self):
 		self.__master.cursor.close()
@@ -534,48 +528,52 @@ class DatabaseManager(EnvAgent):
 			self.__local.cursor.close()
 			self.__local.db.close()
 
+
 	def collect_export_data(self, multi_file=True,  join_tables=[]):
 		uid = P.unique_identifier
 		participant_ids = self.__master.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
-		default_fields = P.default_participant_fields if multi_file else P.default_participant_fields_sf
 
-		t_cols = []
-		data = []
+		colnames = []
+		sub = {P.unique_identifier: 'participants'}
 
-		#  random_seed has to be added to every participant row when exporting to multi-file
-		p_cols = [f for f in default_fields]
-		for t in [P.primary_table] + join_tables:
-			for field in self.__master.table_schemas[t]:
-				if field[0] not in [ID, P.id_field_name]:
-					t_cols.append(field[0])
-
-		for p in participant_ids:
-			wc_count = 0
-			q_wildcards = []
-			q_vars = []
-			cols = p_cols + t_cols
-			for c in cols:
-				if not iterable(c):
-					q_vars.append(c)
-					q_wildcards.append( "`{"+str(wc_count)+"}`")
-					wc_count += 1
+		# if P.default_participant_fields(_sf) is defined use that, but otherwise use
+		# P.export_cols_exclude since that's the better way of doing things
+		fields = P.default_participant_fields if multi_file else P.default_participant_fields_sf
+		if len(fields) > 0:
+			for field in fields:
+				if iterable(field):
+					sub[field[0]] = field[1]
+					colnames.append(field[0])
 				else:
-					q_vars += c
-					q_wildcards.append("`{"+str(wc_count)+"}` AS `{"+ str(wc_count + 1)+"}`")
-					wc_count += 2
+					colnames.append(field)
+		else:
+			for column in self.__master.table_schemas['participants']:
+				if column[0] not in ['id'] + P.export_cols_exclude:
+					colnames.append(column[0])
+		for t in [P.primary_table] + join_tables:
+			for column in self.__master.table_schemas[t]:
+				if column[0] not in ['id', P.id_field_name] + P.export_cols_exclude:
+					colnames.append(column[0])
+		column_names = TAB.join(colnames)
+		for colname in sub.keys():
+			column_names = column_names.replace(colname, sub[colname])
+		
+		data = []
+		for p in participant_ids:
 			primary_t = P.primary_table
-			q = "SELECT " + ",".join(q_wildcards) + " FROM `{0}` ".format(primary_t)
+			selected_cols = ",".join(["`"+col+"`" for col in colnames])
+			q = "SELECT " + selected_cols + " FROM `{0}` ".format(primary_t)
 			for t in ['participants'] + join_tables:
 				key = 'id' if t == 'participants' else 'participant_id'
 				q += " JOIN {0} ON `{1}`.`participant_id` = `{0}`.`{2}` ".format(t, primary_t, key)
 			q += " WHERE `{0}`.`participant_id` = ?".format(primary_t)
-			q = q.format(*q_vars)
-			p_data = []
+			p_data = [] 
 			for trial in self.__master.query(q, q_vars=tuple([p[0]])):
 				row_str = TAB.join(utf8(col) for col in trial)
 				p_data.append(row_str)
 			data.append([p[0], p_data])
-		return data
+
+		return [column_names, data]
 
 
 	def export(self, table=None, multi_file=True, join_tables=None):
@@ -588,27 +586,24 @@ class DatabaseManager(EnvAgent):
 		except TypeError:
 			join_tables = []
 		self.__set_type_conversions(export=True)
-		column_names = self.build_column_header(multi_file, join_tables)
-		data = self.collect_export_data(multi_file, join_tables)
+		column_names, data = self.collect_export_data(multi_file, join_tables)
 
 		cso("\n<green>*** Exporting data from {0} ***</green>\n".format(P.project_name))
 		if multi_file:
 			for data_set in data:
 				p_id = data_set[0]
-				if p_id != -1:
-					header = self.export_header(p_id)
-					incomplete = len(data_set[1]) < P.trials_per_block * P.blocks_per_experiment
-					file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
-					with codecs.open(file_path, 'w+', 'utf-8') as out:
-						out.write("\n".join([header, column_names, "\n".join(data_set[1])]))
-					print("    - Participant {0} successfully exported.".format(p_id))
+				header = self.export_header(p_id)
+				incomplete = len(data_set[1]) < P.trials_per_block * P.blocks_per_experiment
+				file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
+				with codecs.open(file_path, 'w+', 'utf-8') as out:
+					out.write("\n".join([header, column_names, "\n".join(data_set[1])]))
+				print("    - Participant {0} successfully exported.".format(p_id))
 		else:
 			combined_data = []
 			p_count = 0
 			for data_set in data:
-				if data_set[0] != -1:
-					p_count += 1
-					combined_data += data_set[1]
+				p_count += 1
+				combined_data += data_set[1]
 			header = self.export_header()
 			file_path = self.filepath_str(multi_file=False, base=table, joined=join_tables)
 			with codecs.open(file_path, 'w+', 'utf-8') as out:
@@ -655,7 +650,6 @@ class DatabaseManager(EnvAgent):
 		
 
 	def filepath_str(self, p_id=None, multi_file=False, base=None, joined=[], incomplete=False):
-
 		# if tables to join or alternate base table specified for export, note this in filename
 		tables = ''
 		if base != None or len(joined):	

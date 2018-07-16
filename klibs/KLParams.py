@@ -104,9 +104,9 @@ refresh_time = None # Expected time between display refreshes (in ms)
 id_field_name = "participant_id"
 primary_table = "trials"
 unique_identifier = "userhash"
-default_participant_fields = [["userhash", "participant"], "sex", "age", "handedness"]
-default_participant_fields_sf = [["userhash", "participant"], "random_seed", "sex", "age", "handedness"]
-default_demo_participant_str = TAB.join(["demo_user", "-", "-", "-"])
+default_participant_fields = [] # for legacy use
+default_participant_fields_sf = [] # for legacy use
+export_cols_exclude = ["klibs_commit", "created"]
 
 # Development mode & associated switches
 development_mode = False # when True, skips collect_demographics & prints various details to screen

@@ -15,8 +15,6 @@ view_distance = 57 # in centimeters, 57cm = 1 deg of visual angle per cm of scre
 #########################################
 eye_tracker_available = False
 eye_tracking = False
-labjack_available = False
-labjacking = False
 
 #########################################
 # Environment Aesthetic Defaults
@@ -58,8 +56,7 @@ dm_show_gaze_dot = True
 #########################################
 primary_table = "trials"
 unique_identifier = "userhash"
-default_participant_fields = [[unique_identifier, "participant"], "gender", "age", "handedness"]
-default_participant_fields_sf = [[unique_identifier, "participant"], "random_seed", "gender", "age", "handedness"]
+export_cols_exclude = ["klibs_commit", "created"]
 
 #########################################
 # PROJECT-SPECIFIC VARS

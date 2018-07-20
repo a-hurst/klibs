@@ -384,6 +384,10 @@ def hard_reset(path):
 def update(branch='default'):
 	import logging
 	import pip
+	try:
+		from pip import main as pip_main
+	except ImportError:
+		from pip._internal import main as pip_main
 
 	# Avoid unnecessary terminal clutter by suppressing alerts for non-upgraded dependencies
 	class pipFilter(logging.Filter):
@@ -392,9 +396,8 @@ def update(branch='default'):
 	try:
 		pip.req.req_set.logger.addFilter(pipFilter())
 	except AttributeError:
-		pip._internal.resolve.logger.addFilter(pipFilter())
-	except:
-		pass
+		pip_logger = logging.getLogger('pip._internal.operations.prepare')
+		pip_logger.addFilter(pipFilter())
 
 	#TODO: This should really be able to compare the version/commit/origin of the current KLibs
 	#install and the one about to be installed to make sure you can't unintentionally overwrite
@@ -415,7 +418,7 @@ def update(branch='default'):
 		print("")
 		cso("<green_d>Updating klibs to latest commit from {0}...</green_d>".format(git_repo_short))
 		try:
-			pip.main(update_cmd.split(' '))
+			pip_main(update_cmd.split(' '))
 		except OSError:
 			cso("<red>Root permissions required to reinstall klibs.</red>")
 			sys.exit()

@@ -120,10 +120,10 @@ class EyeLink(BaseEyeLink, EyeTracker):
 
 	def stop(self):
 		"""Stops recording data from the eye tracker. 
-		        
-        Called automatically at the end of each trial unless ``P.manual_eyelink_recording`` is
-        True, in which case it must be called manually in order to stop recording at any point. 
-        To resume recording after this method is called, use the :meth:`start` method.
+				
+		Called automatically at the end of each trial unless ``P.manual_eyelink_recording`` is
+		True, in which case it must be called manually in order to stop recording at any point. 
+		To resume recording after this method is called, use the :meth:`start` method.
 
 		"""
 		endRealTimeMode()
@@ -429,6 +429,57 @@ class EyeLink(BaseEyeLink, EyeTracker):
 				typename = self.get_event_name(event.type)
 				err = "Cannot report {0} for {1} events."
 				raise EyeTrackerError(err.format(report, typename))
+
+	
+	def get_event_info(self, event):
+		"""Returns all available info about an eye event or gaze sample in the form of a
+		:obj:`dict`.
+		
+		Usage::
+
+			q = self.el.get_event_queue() # fetch all unprocessed eye events
+			for event in q:
+				info = self.el.get_event_info(event)
+				if info['type'] == EL_SACCADE_END:
+					end_gaze = info[EL_GAZE_END]
+					end_time = info[EL_TIME_END]
+		
+		See the table in :meth:`within_boundary` for a list of the attributes available for each
+		eye event type.
+
+		Args:
+			event: The eye event (e.g. saccade, fixation, gaze sample) to collect the attributes of.
+
+		Returns:
+			A :obj:`dict` containing the available attributes of the event, such as start/end time,
+			start/end/average gaze, and type name.
+
+		"""
+		info = {}
+		info['type'] = event.getType()
+		if info['type'] == EL_GAZE_POS:
+			gaze = self.get_event_gaze(event, EL_GAZE_START)
+			time = self.get_event_timestamp(event, EL_TIME_START)
+			info[EL_TIME_START] = time
+			info[EL_TIME_END] = time
+			info[EL_GAZE_START] = gaze
+			info[EL_GAZE_END] = gaze
+
+		elif info['type'] in [EL_BLINK_START, EL_BLINK_END]:
+			info[EL_TIME_START] = event.getStartTime()
+			if info['type'] == EL_BLINK_END:
+				info[EL_TIME_END] = event.getEndTime()
+				
+		else:
+			info[EL_TIME_START] = event.getStartTime()
+			info[EL_GAZE_START] = event.getStartGaze()
+			if info['type'] in [EL_SACCADE_END, EL_FIXATION_END, EL_FIXATION_UPDATE]:
+				info[EL_TIME_END] = event.getEndTime()
+				info[EL_GAZE_END] = event.getEndGaze()
+				if info['type'] != EL_SACCADE_END:
+					info[EL_GAZE_AVG] = event.getAverageGaze()
+		
+		return info
 
 
 	@property

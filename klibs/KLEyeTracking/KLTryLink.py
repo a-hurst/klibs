@@ -396,6 +396,49 @@ class TryLink(EyeTracker):
 				raise EyeTrackerError(err.format(report, typename))
 
 
+	def get_event_info(self, event):
+		"""Returns all available info about an eye event or gaze sample in the form of a
+		:obj:`dict`.
+		
+		Usage::
+
+			q = self.el.get_event_queue() # fetch all unprocessed eye events
+			for event in q:
+				info = self.el.get_event_info(event)
+				if info['type'] == EL_SACCADE_END:
+					end_gaze = info[EL_GAZE_END]
+					end_time = info[EL_TIME_END]
+		
+		See the table in :meth:`within_boundary` for a list of the attributes available for each
+		eye event type.
+
+		Args:
+			event: The eye event (e.g. saccade, fixation, gaze sample) to collect the attributes of.
+
+		Returns:
+			A :obj:`dict` containing the available attributes of the event, such as start/end time,
+			start/end/average gaze, and type name.
+
+		"""
+		info = {}
+		info['type'] = event.type
+		if event.type == EL_GAZE_POS:
+			info[EL_TIME_START] = event.time
+			info[EL_TIME_END] = event.time
+			info[EL_GAZE_START] = event.gaze
+			info[EL_GAZE_END] = event.gaze
+		else:
+			info[EL_TIME_START] = event.start_time
+			info[EL_GAZE_START] = event.start_gaze
+			if event.type in [EL_SACCADE_END, EL_FIXATION_END, EL_FIXATION_UPDATE]:
+				info[EL_TIME_END] = event.end_time
+				info[EL_GAZE_END] = event.end_gaze
+				if event.type != EL_SACCADE_END:
+					info[EL_GAZE_AVG] = event.avg_gaze
+		
+		return info
+
+
 	@property
 	def eye(self):
 		"""str or None: The eye(s) currently being recorded by the tracker. Can be 'left', 'right',

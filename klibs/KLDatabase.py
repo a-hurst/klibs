@@ -3,6 +3,7 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 import codecs
 import shutil
 import sqlite3
+from copy import copy
 from itertools import chain
 from os import remove, rename
 from os.path import join, isfile
@@ -18,6 +19,7 @@ from klibs import P
 from klibs.KLUtilities import (full_trace, type_str, iterable, bool_to_int, boolean_to_logical,
 	snake_to_camel, getinput, utf8)
 from klibs.KLUtilities import colored_stdout as cso
+from klibs.KLRuntimeInfo import session_info_schema
 
 
 def _convert_to_query_format(value, col_name, col_type):
@@ -178,8 +180,9 @@ class Database(EnvAgent):
 	def _deploy_schema(self, schema):
 		with codecs.open(schema, 'r', 'utf-8') as f:
 			self.cursor.executescript(f.read())
+		self.cursor.execute(session_info_schema)
 
-	def _to_query_update_format(self, data, table):
+	def _to_sql_equals_statements(self, data, table):
 		sql_strs = []
 		for column, value in data.items():
 			try:
@@ -230,15 +233,9 @@ class Database(EnvAgent):
 
 
 	def flush(self):
-		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
-		for tableTuple in self.cursor.fetchall():
-			table = tableTuple[0]
-			if table == "sqlite_sequence":
-				pass
-			else:
-				self.cursor.execute(u"DELETE from `{0}`".format(table))
-				update_q = "UPDATE sqlite_sequence SET (SELECT MAX(col) FROM {0}) WHERE name=`{0}`"
-				#self.cursor.execute(update_q.format(table))
+		for table in self.table_schemas.keys():
+			self.cursor.execute(u"DELETE FROM `{0}`".format(table))
+			self.cursor.execute(u"DELETE FROM sqlite_sequence WHERE name='{0}'".format(table))
 		self.db.commit()
 
 
@@ -274,8 +271,7 @@ class Database(EnvAgent):
 	def last_id_from(self, table):
 		if not table in self.table_schemas.keys():
 			raise ValueError("Table '{0}' not found in current database".format(table))
-		q = "SELECT max({0}) from `{1}` WHERE `participant_id`={2}"
-		return self.query(q.format('id', table, P.participant_id))[0][0]
+		return self.query("SELECT max({0}) from `{1}`".format('id', table))[0][0]
 
 
 	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
@@ -295,13 +291,13 @@ class Database(EnvAgent):
 
 	def query_str_from_raw_data(self, data, table):
 		try:
-			template = self.table_schemas[table]
+			template = copy(self.table_schemas[table])
 		except KeyError:
 			raise ValueError("Table '{0}' does not exist in the database.".format(table))
 		values = []
 		columns = []
 		template.pop('id', None) # remove id column from template if present
-		for colname, info in template:
+		for colname, info in template.items():
 			try:
 				value = data[colname]
 			except KeyError:
@@ -332,8 +328,8 @@ class Database(EnvAgent):
 		id_column = 'id' if table == 'participants' else P.id_field_name
 		where[id_column] = P.participant_id
 
-		replacements = self._to_query_update_format(columns, table)
-		filters = self._to_query_update_format(where, table)
+		replacements = self._to_sql_equals_statements(columns, table)
+		filters = self._to_sql_equals_statements(where, table)
 		replacements_str = ", ".join(replacements)
 		filter_str = " AND ".join(filters)
 
@@ -415,6 +411,17 @@ class DatabaseManager(EnvAgent):
 			sqlite3.register_converter("BOOLEAN", lambda x: bool(int(x)))
 
 
+	def __is_complete(self, pid):
+		#TODO: needs modification to work with multi-session projects
+		if 'session_info' in self.__master.table_schemas:	
+			q = "SELECT complete FROM session_info WHERE participant_id = ?"
+			return bool(self.__master.query(q, q_vars=[pid])[0][0])
+		else:
+			q = "SELECT id FROM trials WHERE participant_id = ?"
+			trialcount = len(self.__master.query(q, q_vars=[pid]))
+			return trialcount > P.trials_per_block * P.blocks_per_experiment
+
+
 	def write_local_to_master(self):
 		attach_q = 'ATTACH `{0}` AS master'.format(P.database_path)
 		self.__local.cursor.execute(attach_q)
@@ -454,7 +461,7 @@ class DatabaseManager(EnvAgent):
 			self.__local.db.close()
 
 
-	def collect_export_data(self, multi_file=True,  join_tables=[]):
+	def collect_export_data(self, multi_file=True, join_tables=[]):
 		uid = P.unique_identifier
 		participant_ids = self.__master.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
 
@@ -462,7 +469,7 @@ class DatabaseManager(EnvAgent):
 		sub = {P.unique_identifier: 'participants'}
 
 		# if P.default_participant_fields(_sf) is defined use that, but otherwise use
-		# P.export_cols_exclude since that's the better way of doing things
+		# P.exclude_data_cols since that's the better way of doing things
 		fields = P.default_participant_fields if multi_file else P.default_participant_fields_sf
 		if len(fields) > 0:
 			for field in fields:
@@ -473,11 +480,16 @@ class DatabaseManager(EnvAgent):
 					colnames.append(field)
 		else:
 			for colname in self.__master.table_schemas['participants'].keys():
-				if colname not in ['id'] + P.export_cols_exclude:
+				if colname not in ['id'] + P.exclude_data_cols:
 					colnames.append(colname)
+		for colname in P.append_info_cols:
+			if colname not in self.__master.table_schemas['session_info'].keys():
+				err = "Column '{0}' does not exist in the session_info table."
+				raise RuntimeError(err.format(colname))
+			colnames.append(colname)
 		for t in [P.primary_table] + join_tables:
 			for colname in self.__master.table_schemas[t].keys():
-				if colname not in ['id', P.id_field_name] + P.export_cols_exclude:
+				if colname not in ['id', P.id_field_name] + P.exclude_data_cols:
 					colnames.append(colname)
 		column_names = TAB.join(colnames)
 		for colname in sub.keys():
@@ -487,11 +499,14 @@ class DatabaseManager(EnvAgent):
 		for p in participant_ids:
 			primary_t = P.primary_table
 			selected_cols = ",".join(["`"+col+"`" for col in colnames])
-			q = "SELECT " + selected_cols + " FROM `{0}` ".format(primary_t)
-			for t in ['participants'] + join_tables:
-				key = 'id' if t == 'participants' else 'participant_id'
-				q += " JOIN {0} ON `{1}`.`participant_id` = `{0}`.`{2}` ".format(t, primary_t, key)
-			q += " WHERE `{0}`.`participant_id` = ?".format(primary_t)
+			q = "SELECT " + selected_cols + " FROM participants "
+			if len(P.append_info_cols) and 'session_info' in self.__master.table_schemas:
+				info_cols = ",".join(['participant_id'] + P.append_info_cols)
+				q += "JOIN (SELECT " + info_cols + " FROM session_info) AS info "
+				q += "ON participants.id = info.participant_id "
+			for t in [primary_t] + join_tables:
+				q += "JOIN {0} ON participants.id = {0}.participant_id ".format(t)
+			q += " WHERE participants.id = ?"
 			p_data = [] 
 			for trial in self.__master.query(q, q_vars=tuple([p[0]])):
 				row_str = TAB.join(utf8(col) for col in trial)
@@ -517,7 +532,7 @@ class DatabaseManager(EnvAgent):
 			for data_set in data:
 				p_id = data_set[0]
 				header = self.export_header(p_id)
-				incomplete = len(data_set[1]) < P.trials_per_block * P.blocks_per_experiment
+				incomplete = (self.__is_complete(p_id) == False)
 				file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
 				with codecs.open(file_path, 'w+', 'utf-8') as out:
 					out.write("\n".join([header, column_names, "\n".join(data_set[1])]))
@@ -537,38 +552,65 @@ class DatabaseManager(EnvAgent):
 
 
 	def export_header(self, user_id=None):
-		#TODO: make header info reflect info when participant was run, instead of just current
-		# settings which is somewhat misleading (add runtime_info table)
-		
-		if user_id:
-			commit_q = "SELECT `klibs_commit` FROM `participants` WHERE `id` = ?"
-			klibs_commit = self.__master.query(commit_q, q_vars=[user_id])[0][0]
+
+		if 'session_info' in self.__master.table_schemas:
+			info_table = 'session_info'
+			info_cols = list(self.__master.table_schemas['session_info'].keys())
+			info_cols.remove('participant_id')
 		else:
-			# if doing multifile export, only append commit if all data collected with same one
-			commits = self.__master.query("SELECT DISTINCT `klibs_commit` FROM `participants`")
-			if len(commits) > 1:
-				klibs_commit = "(multiple)"
+			info_table = 'participants'
+			info_cols = ['klibs_commit', 'random_seed']
+
+		runtime_info = {}
+		for colname in info_cols:
+			if user_id:
+				q = "SELECT {0} FROM {1} WHERE `id` = ?".format(colname, info_table)
+				runtime_info[colname] = self.__master.query(q, q_vars=[user_id])[0][0]
 			else:
-				klibs_commit = commits[0][0]
+				q = "SELECT DISTINCT {0} FROM {1}".format(colname, info_table)
+				values = self.__master.query(q)
+				if len(values) > 1:
+					runtime_info[colname] = "(multiple)"
+				else:
+					runtime_info[colname] = values[0][0]
 
-		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", klibs_commit]]
-		eyelink_vars = ["EYELINK SETTINGS",
-						["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
-						["Saccadic Acceleration Threshold", P.saccadic_acceleration_threshold],
-						["Saccadic Motion Threshold", P.saccadic_motion_threshold]]
-		exp_vars 	 = ["EXPERIMENT SETTINGS",
-						["Trials Per Block", P.trials_per_block],
-						["Blocks Per Experiment", P.blocks_per_experiment]]
+		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", runtime_info['klibs_commit']]]
+		if info_table == 'session_info':
+			exp_vars 	 = ["EXPERIMENT SETTINGS",
+							["Trials Per Block", runtime_info['trials_per_block']],
+							["Blocks Per Experiment", runtime_info['blocks_per_session']]]
+			system_vars  = ["SYSTEM INFO",
+							["Operating System", runtime_info['os_version']],
+							["Python Version", runtime_info['python_version']]]
+			display_vars = ["DISPLAY INFO",
+							["Screen Size", runtime_info['screen_size']],
+							["Resolution", runtime_info['screen_res']],
+							["View Distance", runtime_info['viewing_dist']]]
+			eyelink_vars = ["EYELINK SETTINGS",
+							#["Tracker Model", runtime_info['eyetracker']],
+							["Saccadic Velocity Threshold", runtime_info['el_velocity_thresh']],
+							["Saccadic Acceleration Threshold", runtime_info['el_accel_thresh']],
+							["Saccadic Motion Threshold", runtime_info['el_motion_thresh']]]
+		else:
+			exp_vars 	 = ["EXPERIMENT SETTINGS",
+							["Trials Per Block", P.trials_per_block],
+							["Blocks Per Experiment", P.blocks_per_experiment]]
+			eyelink_vars = ["EYELINK SETTINGS",
+							["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
+							["Saccadic Acceleration Threshold", P.saccadic_acceleration_threshold],
+							["Saccadic Motion Threshold", P.saccadic_motion_threshold]]
 
-		header = ""
+		header_strs = []
 		header_info = [klibs_vars, exp_vars]
-		if P.eye_tracking and P.eye_tracker_available:
-			header_info.insert(1, eyelink_vars)
+		if info_table == 'session_info':
+			header_info += [system_vars, display_vars]
+		if P.eye_tracking:
+			header_info.append(eyelink_vars)
 		for info in header_info:
-			header += "# >>> {0}\n".format(info[0])
-			header += "\n".join(["# {0}: {1}".format(var[0], var[1]) for var in info[1:]])
-			header += "\n"
-			if info[0] != "EXPERIMENT SETTINGS": header += "#\n"
+			section = "# {0}\n".format(info[0])
+			section += "\n".join(["#  > {0}: {1}".format(var[0], var[1]) for var in info[1:]])
+			header_strs.append(section + "\n")
+		header = "#\n".join(header_strs)
 
 		return header
 		
@@ -602,6 +644,23 @@ class DatabaseManager(EnvAgent):
 				break
 
 		return filepath
+
+	
+	def remove_last(self):
+		"""Removes the last participant's data from the database. To be called through the CLI
+		to remove the data of a participants who opt to withdraw their data, or for removing
+		devmode testing participants.
+
+		"""
+		pid = self.__master.last_id_from('participants')
+		for table in self.__master.table_schemas.keys():
+			if table == "participants":
+				delete_q = u"DELETE FROM {0} WHERE id = {1}".format(table, pid)
+			else:
+				delete_q = u"DELETE FROM {0} WHERE {1} = {2}".format(table, P.id_field_name, pid)
+			self.__master.cursor.execute(delete_q)
+		self.__master.db.commit()
+		return pid
 
 
 	def rebuild(self):

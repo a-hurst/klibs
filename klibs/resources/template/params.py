@@ -56,7 +56,8 @@ dm_show_gaze_dot = True
 #########################################
 primary_table = "trials"
 unique_identifier = "userhash"
-export_cols_exclude = ["klibs_commit", "created"]
+exclude_data_cols = ["created"]
+append_info_cols = ["random_seed"]
 
 #########################################
 # PROJECT-SPECIFIC VARS

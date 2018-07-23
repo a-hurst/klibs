@@ -106,7 +106,8 @@ primary_table = "trials"
 unique_identifier = "userhash"
 default_participant_fields = [] # for legacy use
 default_participant_fields_sf = [] # for legacy use
-export_cols_exclude = ["klibs_commit", "created"]
+exclude_data_cols = ["created"]
+append_info_cols = []
 
 # Development mode & associated switches
 development_mode = False # when True, skips collect_demographics & prints various details to screen

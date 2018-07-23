@@ -6,9 +6,11 @@ import re
 import socket
 from copy import copy
 from time import time
+from os.path import join
 from hashlib import sha1
 from threading import Thread
 from sqlite3 import IntegrityError
+from shutil import copyfile, copytree
 
 from sdl2 import (SDL_PumpEvents, SDL_StartTextInput, SDL_StopTextInput,
 	SDL_KEYDOWN, SDLK_ESCAPE, SDLK_BACKSPACE, SDLK_RETURN, SDLK_KP_ENTER, SDL_TEXTINPUT)
@@ -20,6 +22,7 @@ from klibs.KLJSON_Object import JSON_Object, AttributeDict
 from klibs.KLUtilities import pretty_list, now, pump, flush, iterable, utf8
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLDatabase import EntryTemplate
+from klibs.KLRuntimeInfo import runtime_info_init
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
 
@@ -63,9 +66,13 @@ def collect_demographics(anonymous=False):
 
 	# first insert required, automatically-populated fields
 	demographics = EntryTemplate('participants')
-	demographics.log("random_seed", P.random_seed)
-	demographics.log("klibs_commit", P.klibs_commit)
 	demographics.log('created', now(True))
+	try:
+		# columns moved to session_info in newer templates
+		demographics.log("random_seed", P.random_seed)
+		demographics.log("klibs_commit", P.klibs_commit)
+	except ValueError: 
+		pass
 
 	# collect a response and handle errors for each question
 	for q in user_queries.demographic:
@@ -93,6 +100,18 @@ def collect_demographics(anonymous=False):
 		P.participant_id = db.insert(demographics)
 		P.p_id = P.participant_id
 		P.demographics_collected = True
+		# Log info about current runtime environment to database
+		if 'session_info' in db.table_schemas.keys():
+			runtime_info = EntryTemplate('session_info')
+			for col, value in runtime_info_init().items():
+				runtime_info.log(col, value)
+			db.insert(runtime_info)
+		# Save copy of experiment.py and config files as they were for participant
+		if not P.development_mode:
+			version_dir = join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))
+			os.mkdir(version_dir)
+			copyfile("experiment.py", join(version_dir, "experiment.py"))
+			copytree(P.config_dir, join(version_dir, "Config"))
 	else:
 		#  The context for this is: collect_demographics is set to false but then explicitly called later
 		db.update(demographics.table, demographics.defined)

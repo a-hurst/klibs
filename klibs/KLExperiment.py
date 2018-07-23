@@ -4,8 +4,6 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 import os
 import sys
 from abc import abstractmethod
-from os.path import join
-from shutil import copyfile, copytree
 
 import sdl2
 
@@ -70,10 +68,11 @@ class Experiment(EnvAgent):
 				except TrialException:
 					block.recycle()
 					P.recycle_count += 1
-					self.database.current(False)
 					clear()
 				self.rc.reset()
 		self.clean_up()
+		if 'session_info' in self.database.table_schemas.keys():
+			self.database.update('session_info', {'complete': True})
 
 	def __trial__(self, trial, practice):
 		"""
@@ -236,12 +235,6 @@ class Experiment(EnvAgent):
 		the actual experiment.
 
 		"""
-
-		if not P.development_mode:
-			version_dir = join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))
-			os.mkdir(version_dir)
-			copyfile("experiment.py", join(version_dir, "experiment.py"))
-			copytree(P.config_dir, join(version_dir, "Config"))
 
 		if P.eye_tracking and not P.manual_eyelink_setup:
 			self.el.setup()

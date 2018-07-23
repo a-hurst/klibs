@@ -131,7 +131,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		for event in pump(True):
 			if event.type == sdl2.SDL_KEYDOWN:
 				keysym = event.key.keysym
-				if not self.el.quitting:  
+				if not self.el._quitting:  
 					# don't process quit requests while already quitting
 					ui_request(keysym)
 				try:
@@ -139,7 +139,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 				except KeyError:
 					key = keysym.sym
 				# don't allow escape to control tracker unless calibrating
-				if key == pylink.ESC_KEY and not self.el.in_setup():  
+				if key == pylink.ESC_KEY and not self.el.in_setup:  
 					key = pylink.JUNK_KEY
 				keys.append(pylink.KeyInput(key, keysym.mod))
 		return keys

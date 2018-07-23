@@ -22,7 +22,7 @@ class TrialException(Exception):
 	def __str__(self):
 		return self.message
 
-class EyeLinkError(Exception):
+class EyeTrackerError(Exception):
 	def __init__(self, msg):
 		self.message = msg
 

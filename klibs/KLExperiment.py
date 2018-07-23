@@ -128,7 +128,7 @@ class Experiment(EnvAgent):
 		return self.database.insert(trial_template)
 
 	def before_flip(self):
-		if P.show_gaze_dot and P.eye_tracking and P.in_trial:
+		if P.show_gaze_dot and self.el.recording:
 			try:
 				self.tracker_dot
 			except AttributeError:

@@ -1,6 +1,6 @@
 KLTryLink
 =========
 
-.. automodule:: klibs.KLEyeLink.KLTryLink
+.. automodule:: klibs.KLEyeTracking.KLTryLink
 	:undoc-members:
 	:members:

@@ -49,7 +49,7 @@ EYELINK_1000 = 3
 # Variables indicating what to return from KLEyeTracking functions
 EL_GAZE_START = "start gaze"
 EL_GAZE_END = "end gaze"
-EL_AVG_GAZE = "average gaze"
+EL_GAZE_AVG = "average gaze"
 EL_TIME_START = "start time"
 EL_TIME_END = "end time"
 # KLEyeTracking event types

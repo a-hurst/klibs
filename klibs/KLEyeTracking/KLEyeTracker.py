@@ -6,7 +6,7 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
     EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
     EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
-    EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_AVG_GAZE, EL_TIME_START, EL_TIME_END,
+    EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
     EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
     TK_S, TK_MS)
 from klibs import P
@@ -63,8 +63,8 @@ class EyeTracker(EnvAgent, BoundaryInspector):
             EL_SACCADE_START: [EL_TIME_START, EL_GAZE_START],
             EL_SACCADE_END: [EL_TIME_END, EL_GAZE_END],
             EL_FIXATION_START: [EL_TIME_START, EL_GAZE_START],
-            EL_FIXATION_END: [EL_TIME_END, EL_AVG_GAZE],
-            EL_FIXATION_UPDATE: [EL_TIME_END, EL_AVG_GAZE]            
+            EL_FIXATION_END: [EL_TIME_END, EL_GAZE_AVG],
+            EL_FIXATION_UPDATE: [EL_TIME_END, EL_GAZE_AVG]            
         }
 
 
@@ -81,14 +81,14 @@ class EyeTracker(EnvAgent, BoundaryInspector):
             inspect: A flag indicating which gaze attribute of the eye event should be checked
                 against the boundary: the gaze at the start of the event (``EL_GAZE_START``),
                 the gaze at the end of the event (``EL_GAZE_END``), or the event's average gaze
-                (``EL_AVG_GAZE``). Note that not all eye events have all three gaze attributes.
+                (``EL_GAZE_AVG``). Note that not all eye events have all three gaze attributes.
 
         Returns:
             The timestamp of the start or end of the event (see the 'report' argument) if the
             inspected region was within the specified boundary, otherwise False.
 
         """
-        timestamp = self.get_event_gaze(event, report)
+        timestamp = self.get_event_timestamp(event, report)
         gaze_coords = self.get_event_gaze(event, inspect)
 
         result = BoundaryInspector.within_boundary(self, label, gaze_coords)
@@ -221,7 +221,7 @@ class EyeTracker(EnvAgent, BoundaryInspector):
         """Fetches and returns the eye tracker's event queue, emptying it in the process.
 
         To avoid problems with event processing when performing multiple tests in a short interval
-        (e.g. checking for fixations in multiple boundaries every iteration of loop), you should
+        (e.g. checking for fixations in multiple boundaries every iteration of a loop), you should
         use this method to retrieve the eye tracker event queue once at the start and then pass it
         to every function that inspects eye events.
         
@@ -275,10 +275,11 @@ class EyeTracker(EnvAgent, BoundaryInspector):
         """Checks whether a fixation, saccade, or gaze sample has occured within the specified
         boundary since the last time the eye event queue was fetched.
 
-        By default, this function reports whether an eye event has *started* within the boundary.
-        However, it can also be set to listen for fixations *ending* in the boundary, or for
-        fixation update events (sent occasionally while a fixation is in progress) if supported
-        by the eye tracker.
+        By default, this method tests the most useful gaze attribute of each event against the
+        given boundary. This means that ``EL_GAZE_START`` is inspected for saccade and fixation 
+        start events, ``EL_GAZE_END`` is inspected for saccade end events, and ``EL_GAZE_AVG``
+        is inspected for fixation update and fixation end events. You can manually specify which
+        gaze attribute to use for boundary testing with the 'inspect' argument.
 
         The valid event constants for this function, along with their supported 'inspect' and
         'report' flag values, are listed in the table below:
@@ -295,10 +296,10 @@ class EyeTracker(EnvAgent, BoundaryInspector):
         +------------------------+-------------------------------------+--------------------+
         | ``EL_FIXATION_START``  | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
         +------------------------+-------------------------------------+--------------------+
-        | ``EL_FIXATION_END``    | ``EL_GAZE_START``, ``EL_AVG_GAZE``, | ``EL_TIME_START``, |
+        | ``EL_FIXATION_END``    | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
         |                        | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
         +------------------------+-------------------------------------+--------------------+
-        | ``EL_FIXATION_UPDATE`` | ``EL_GAZE_START``, ``EL_AVG_GAZE``, | ``EL_TIME_START``, |
+        | ``EL_FIXATION_UPDATE`` | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
         |                        | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
         +------------------------+-------------------------------------+--------------------+
 
@@ -321,7 +322,7 @@ class EyeTracker(EnvAgent, BoundaryInspector):
             inspect (optional): A flag indicating which gaze attribute of events should be
                 checked against the boundary: the gaze at the start of the event
                 (``EL_GAZE_START``), the gaze at the end of the event (``EL_GAZE_END``), or
-                the events's average gaze (``EL_AVG_GAZE``). Defaults to inspecting start gaze
+                the events's average gaze (``EL_GAZE_AVG``). Defaults to inspecting start gaze
                 for fixation/saccade start events, average gaze for fixation update/end events, and
                 end gaze for saccade end events.
 
@@ -357,10 +358,11 @@ class EyeTracker(EnvAgent, BoundaryInspector):
         """Checks whether a specified boundary has been fixated since the last time the eye
         event queue was fetched.
 
-        By default, this function reports whether a fixation has *started* within the boundary.
-        However, it can also be set to listen for fixations *ending* in the boundary, or for
-        fixation update events (sent occasionally while a fixation is in progress) if supported
-        by the eye tracker.
+        By default, this method tests the most useful gaze attribute of each event against the
+        given boundary. This means that ``EL_GAZE_START`` is inspected for fixation start events
+        and ``EL_GAZE_AVG`` is inspected for fixation update and fixation end events. You can
+        manually specify which gaze attribute to use for boundary testing with the 'inspect'
+        argument.
 
         The valid event constants for this function, along with their supported 'inspect' and
         'report' flag values, are listed in the table below:
@@ -370,10 +372,10 @@ class EyeTracker(EnvAgent, BoundaryInspector):
         +========================+=====================================+====================+
         | ``EL_FIXATION_START``  | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
         +------------------------+-------------------------------------+--------------------+
-        | ``EL_FIXATION_UPDATE`` | ``EL_GAZE_START``, ``EL_AVG_GAZE``, | ``EL_TIME_START``, |
+        | ``EL_FIXATION_UPDATE`` | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
         |                        | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
         +------------------------+-------------------------------------+--------------------+
-        | ``EL_FIXATION_END``    | ``EL_GAZE_START``, ``EL_AVG_GAZE``, | ``EL_TIME_START``, |
+        | ``EL_FIXATION_END``    | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
         |                        | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
         +------------------------+-------------------------------------+--------------------+
 
@@ -391,7 +393,7 @@ class EyeTracker(EnvAgent, BoundaryInspector):
             inspect (optional): A flag indicating which gaze attribute of the fixation should be
                 checked against the boundary: the gaze at the start of the fixation
                 (``EL_GAZE_START``), the gaze at the end of the fixation (``EL_GAZE_END``), or
-                the fixation's average gaze (``EL_AVG_GAZE``). Defaults to inspecting start gaze
+                the fixation's average gaze (``EL_GAZE_AVG``). Defaults to inspecting start gaze
                 for fixation start events and average gaze for fixation update/end events.
 
         Returns:
@@ -485,9 +487,16 @@ class EyeTracker(EnvAgent, BoundaryInspector):
 
         Valid directions include 'up', 'down', 'left', and 'right'. In addition, you can specify
         both a horizontal and vertical direction (e.g. ['left', 'up']) to be more specific in your
-        direction of interest. For example, ``doi=['up']`` will detect any saccades that end higher
-        on the screen than they start, but ``doi=['up', 'right']`` will only detect saccades that
-        meet that criteria *and* end further to the right than they started.
+        direction of interest. For example::
+        
+             self.el.saccade_in_directon(doi=['up'])
+             
+        will detect any saccades that end higher on the screen than they start, whereas::
+        
+            self.el.saccade_in_directon(doi=['up', 'right'])
+            
+        will only detect saccades that meet that criteria *and* end further to the right than they
+        start.
 
         Args:
             doi (:obj:`List` of str): The names of the direction(s) of interest to watch for
@@ -537,8 +546,8 @@ class EyeTracker(EnvAgent, BoundaryInspector):
         pressed and the true location of the fixation, it indicates that there has been drift
         in the calibration.
 
-        On some eye trackers (e.g. SR EyeLink II), the recorded drift is used to adjust the
-        calibration on future trials. On others (e.g. SR EyeLink 1000), drift corrections will
+        On some eye trackers (e.g. EyeLink II), the recorded drift is used to adjust the
+        calibration on future trials. On others (e.g. EyeLink 1000), drift corrections will
         check for drift and alert the participant if the drift is large, but do not alter the
         calibration.
 
@@ -644,7 +653,7 @@ class EyeTracker(EnvAgent, BoundaryInspector):
                 coordinates from.
             inspect: A flag indicating the type of gaze to retrieve: the gaze at the start of
                 the event (``EL_GAZE_START``), the gaze at the end of the event (``EL_GAZE_END``),
-                or the event's average gaze (``EL_AVG_GAZE``). Note that not all eye events have
+                or the event's average gaze (``EL_GAZE_AVG``). Note that not all eye events have
                 all three gaze attributes. Has no effect on gaze samples.
         
         Returns:
@@ -652,7 +661,7 @@ class EyeTracker(EnvAgent, BoundaryInspector):
 
         Raises:
             EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
-                lacks that attribute (e.g. ``EL_AVG_GAZE`` for a ``EL_SACCADE_END`` event).
+                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``EL_SACCADE_END`` event).
 
         """
         pass

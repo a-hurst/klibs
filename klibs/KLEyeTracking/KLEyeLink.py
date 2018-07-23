@@ -9,7 +9,7 @@ from klibs.KLExceptions import TrialException, EyeTrackerError
 from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
 	EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
 	EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
-	EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_AVG_GAZE, EL_TIME_START, EL_TIME_END,
+	EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
 	EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
 	TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 from klibs import P
@@ -366,7 +366,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 				coordinates from.
 			inspect: A flag indicating the type of gaze to retrieve: the gaze at the start of
 				the event (``EL_GAZE_START``), the gaze at the end of the event (``EL_GAZE_END``),
-				or the event's average gaze (``EL_AVG_GAZE``). Note that not all eye events have
+				or the event's average gaze (``EL_GAZE_AVG``). Note that not all eye events have
 				all three gaze attributes. Has no effect on gaze samples.
 		
 		Returns:
@@ -374,7 +374,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 
 		Raises:
 			EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
-				lacks that attribute (e.g. ``EL_AVG_GAZE`` for a ``EL_SACCADE_END`` event).
+				lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``EL_SACCADE_END`` event).
 
 		"""
 		if event.getType() == EL_GAZE_POS:
@@ -392,7 +392,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 					coords = event.getStartGaze()
 				elif inspect == EL_GAZE_END:
 					coords = event.getEndGaze()
-				elif inspect == EL_AVG_GAZE:
+				elif inspect == EL_GAZE_AVG:
 					coords = event.getAverageGaze()
 			except AttributeError:
 				typename = self.get_event_name(event.type)

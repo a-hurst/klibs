@@ -55,17 +55,15 @@ class TryLink(EyeTracker):
 		self.__sacc = None # the saccade currently in progress
 
 
-	def setup(self):
-		"""Initalizes and sets up the eye tracker for the first time.
-
-		Called automatically after demographics collection during the KLibs runtime unless
-		``P.manual_eyelink_setup`` is True, in which case it must be called manually
-		before the eye tracker is first used in the experiment.
-
+	def _setup(self):
+		"""The mouse simulation specific part of the setup process.
+		
 		"""
 		self.version = "TryLink 0.1a"
-		self.calibrate()
-		self.initialized = True
+
+
+	def setup(self):
+		EyeTracker.setup(self) # so it shows up in the docs
 
 
 	def calibrate(self):

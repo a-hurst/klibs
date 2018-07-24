@@ -466,7 +466,7 @@ class DatabaseManager(EnvAgent):
 		participant_ids = self.__master.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
 
 		colnames = []
-		sub = {P.unique_identifier: 'participants'}
+		sub = {P.unique_identifier: 'participant'}
 
 		# if P.default_participant_fields(_sf) is defined use that, but otherwise use
 		# P.exclude_data_cols since that's the better way of doing things
@@ -587,7 +587,7 @@ class DatabaseManager(EnvAgent):
 							["Resolution", runtime_info['screen_res']],
 							["View Distance", runtime_info['viewing_dist']]]
 			eyelink_vars = ["EYELINK SETTINGS",
-							#["Tracker Model", runtime_info['eyetracker']],
+							["Tracker Model", runtime_info['eyetracker']],
 							["Saccadic Velocity Threshold", runtime_info['el_velocity_thresh']],
 							["Saccadic Acceleration Threshold", runtime_info['el_accel_thresh']],
 							["Saccadic Motion Threshold", runtime_info['el_motion_thresh']]]

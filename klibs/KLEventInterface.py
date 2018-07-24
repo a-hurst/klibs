@@ -264,7 +264,3 @@ class EventManager(object):
 		
 		"""
 		return self.trial_time * 1000
-
-	@property
-	def timestamp(self):
-		return time()

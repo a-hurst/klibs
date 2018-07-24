@@ -2,7 +2,6 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 from klibs.KLExceptions import TrialException, EyeTrackerError
-from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
     EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
     EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
@@ -15,7 +14,7 @@ from klibs.KLUserInterface import ui_request
 from klibs.KLBoundary import BoundaryInspector
 
 
-class EyeTracker(EnvAgent, BoundaryInspector):
+class EyeTracker(BoundaryInspector):
     """A base eye tracker class, laying out the essential attributes and methods required for an
     eye tracker to be used with KLibs.
     
@@ -159,6 +158,17 @@ class EyeTracker(EnvAgent, BoundaryInspector):
         return timestamp if result else False
 
 
+    def _setup(self):
+        """The eye tracker specific part of the setup process. This, not 'setup()', should be
+        overridden by any eye trackers that subclass the EyeTracker class.
+
+        Note: within this method, self.version must be set to a string containing the name/model
+        of the eye tracker.
+
+        """
+        pass
+
+
     def setup(self):
         """Initalizes and sets up the eye tracker for the first time.
         
@@ -167,7 +177,12 @@ class EyeTracker(EnvAgent, BoundaryInspector):
         before the eye tracker is first used in the experiment.
 
         """
-        pass
+        from klibs.KLEnvironment import db
+        self._setup()
+        if P.demographics_collected and 'session_info' in db.table_schemas:
+                db.update('session_info', {'eyetracker': self.version})
+        self.calibrate()
+        self.initialized = True
 
 
     def calibrate(self):

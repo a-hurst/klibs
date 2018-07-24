@@ -66,14 +66,10 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		self.initialized = False
 
 
-	def setup(self):
-		"""Initalizes the EyeLink for the first time and enters setup/calibration mode.
-
-		Called automatically after demographics collection during the KLibs runtime unless
-		``P.manual_eyelink_setup`` is True, in which case it must be called manually
-		before the eye tracker is first used in the experiment.
-
-		"""		
+	def _setup(self):
+		"""The EyeLink-specific part of the setup process.
+		
+		"""
 		self.version = self.getTrackerVersion()
 		self.__custom_display = ELCustomDisplay()
 		openGraphicsEx(self.__custom_display)	
@@ -88,9 +84,18 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		self.setSaccadeVelocityThreshold(P.saccadic_velocity_threshold)
 		self.setAccelerationThreshold(P.saccadic_acceleration_threshold)
 		self.setMotionThreshold(P.saccadic_motion_threshold)
-		self.calibrate()
 		beginRealTimeMode(10)
-		self.initialized = True
+
+
+	def setup(self):
+		"""Initalizes the EyeLink for the first time and enters setup/calibration mode.
+
+		Called automatically after demographics collection during the KLibs runtime unless
+		``P.manual_eyelink_setup`` is True, in which case it must be called manually
+		before the eye tracker is first used in the experiment.
+
+		"""
+		EyeTracker.setup(self) # so it shows up in the docs
 
 
 	def calibrate(self):

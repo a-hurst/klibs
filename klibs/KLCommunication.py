@@ -25,7 +25,7 @@ from klibs.KLUtilities import pretty_list, make_hash
 from klibs.KLDatabase import EntryTemplate
 from klibs.KLRuntimeInfo import runtime_info_init
 from klibs.KLGraphics import blit, clear, fill, flip
-from klibs.KLUserInterface import ui_request, any_key
+from klibs.KLUserInterface import ui_request, any_key, key_pressed
 
 try:
 	from slacker import Slacker
@@ -64,9 +64,6 @@ def collect_demographics(anonymous=False):
 	'''
 	from klibs.KLEnvironment import exp, db
 
-	# ie. demographic questions aren't being asked for this experiment
-	if not P.collect_demographics and not anonymous: return
-
 	# first insert required, automatically-populated fields
 	demographics = EntryTemplate('participants')
 	demographics.log('created', now(True))
@@ -78,31 +75,61 @@ def collect_demographics(anonymous=False):
 		pass
 
 	# collect a response and handle errors for each question
+	user_loaded = False
+	load_existing_user = False
 	for q in user_queries.demographic:
 		if q.active:
 			# if querying unique identifier, make sure it doesn't already exist in db
 			if q.database_field == P.unique_identifier:
 				# TODO: fix this to work with multi-user mode
 				existing = db.query("SELECT `{0}` FROM `participants`".format(q.database_field))
-				while True:
+				while not user_loaded:
 					value = query(q, anonymous=anonymous)
 					if utf8(value) in [utf8(val[0]) for val in existing]:
-						err = ("A participant with that ID already exists!\n"
-								"Please try a different identifier.")
-						fill()
-						blit(message(err, "alert", align='center', blit_txt=False), 5, P.screen_c)
-						flip()
-						any_key()
+						if P.multi_session_project:
+							msg = ("A participant with that ID already exists!\n"
+									"Load user data for current session? ( y / n )")
+							reload_q = message(msg, align='center', blit_txt=False)
+							response = None
+							while not response:
+								fill()
+								blit(reload_q, 5, P.screen_c)
+								flip()
+								events = pump(True)
+								if key_pressed('y', queue=events):
+									unique_id = value
+									load_existing_user = True
+									user_loaded = True
+									response = True
+								elif key_pressed('n', queue=events):
+									response = True
+						else:
+							err = ("A participant with that ID already exists!\n"
+									"Please try a different identifier.")
+							err_msg = message(err, "alert", align='center', blit_txt=False)
+							fill()
+							blit(err_msg, 5, P.screen_c)
+							flip()
+							any_key()
 					else:
-						break
+						user_loaded = True
 			else:
 				value = query(q, anonymous=anonymous)
+			if load_existing_user and user_loaded:
+				break
 			demographics.log(q.database_field, value)
 
 	# typical use; P.collect_demographics is True and called automatically by klibs
 	if not P.demographics_collected:
-		P.participant_id = db.insert(demographics)
-		P.p_id = P.participant_id
+		if load_existing_user:
+			id_q = "SELECT id FROM participants WHERE {0} = ?"
+			session_q = "SELECT max(session_number) FROM session_info WHERE {0} = ?"
+			P.p_id = db.query(id_q.format(P.unique_identifier), q_vars=[unique_id])[0][0]
+			last_session_num = db.query(session_q.format(P.id_field_name), q_vars=[P.p_id])[0][0]
+			P.session_number = last_session_num + 1
+		else:
+			P.p_id = db.insert(demographics)
+		P.participant_id = P.p_id
 		P.demographics_collected = True
 		# Log info about current runtime environment to database
 		if 'session_info' in db.table_schemas.keys():

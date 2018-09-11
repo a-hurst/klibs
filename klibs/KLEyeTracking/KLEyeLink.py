@@ -70,9 +70,9 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		"""The EyeLink-specific part of the setup process.
 		
 		"""
-		self.version = self.getTrackerVersion()
+		self.version = self.getTrackerVersionString()
 		self.__custom_display = ELCustomDisplay()
-		openGraphicsEx(self.__custom_display)	
+		openGraphicsEx(self.__custom_display)
 
 		flushGetkeyQueue()
 		self.setOfflineMode()
@@ -181,26 +181,29 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		else:
 			valid_events = set(EL_ALL_EVENTS + [EL_GAZE_POS])
 
-		samples = EL_GAZE_POS in valid_events
-		events = len(valid_events.intersection(EL_ALL_EVENTS)) > 0
+		samples = int(EL_GAZE_POS in valid_events)
+		events = int(len(valid_events.intersection(EL_ALL_EVENTS)) > 0)
 
 		queue = []
-		if self.getDataCount(samples, events) == 0:  # ie. no data available
-			return queue
-		last_sample = None
-		while True:
-			d_type = self.getNextData()
-			if d_type == 0:
-				break
-			elif d_type not in valid_events:
-				continue
-			data = self.getFloatData()
-			# once the same sample has been sent twice, gtfo
-			if data == last_sample:
-				break
-			else:
-				last_sample = data
-			queue.append(data)
+		if self.getDataCount(samples, events) != 0:  # i.e. if data available
+			last_sample = None
+			while True:
+				d_type = self.getNextData()
+				if d_type == 0:
+					break
+				elif d_type not in valid_events:
+					continue
+				data = self.getFloatData()
+				# once the same sample has been sent twice, gtfo
+				if data == last_sample:
+					break
+				else:
+					last_sample = data
+				queue.append(data)
+		
+		if samples == True and len(queue) == 0: # if no samples from getNextData, fetch latest
+			queue.append(self.getNewestSample())
+
 		return queue
 
 
@@ -295,7 +298,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 
 		"""
 		sample = self.getNewestSample()
-		if sample != 0:
+		if sample != None:
 			if sample.isRightSample():
 				gaze_pos = sample.getRightEye().getGaze()
 			elif sample.isLeftSample():
@@ -317,7 +320,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 						gaze_pos = ( (rx+lx)/2, (ry+ly)/2 )
 		else:
 			if self.eye != None:
-				return self.gaze()
+				return self.gaze(return_integers, binocular_mode)
 			else:
 				raise RuntimeError("Unable to collect a sample from the EyeLink.")
 

@@ -39,7 +39,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 
 		# If using an EyeLink 1000 or newer, these commands need to be sent
 		# to the tracker for everything to work correctly
-		if self.el.version >= EYELINK_1000:
+		if self.el.getTrackerVersion() >= EYELINK_1000:
 			self.el.sendCommand("enable_search_limits=YES")
 			self.el.sendCommand("track_search_limits=YES")
 			self.el.sendCommand("autothreshold_click=YES")

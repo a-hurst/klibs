@@ -618,6 +618,13 @@ class CursorResponse(ResponseListener, BoundaryInspector):
 					return Response(value, rt)
 		return None
 
+	def cleanup(self):
+		"""See :meth:`ResponseListener.cleanup`.
+
+		"""
+		if not (P.development_mode and P.dm_trial_show_mouse):
+			hide_mouse_cursor()
+
 	@property
 	def on_release(self):
 		"""bool: Whether presses or releases of the mouse button should be collected as responses.
@@ -732,7 +739,13 @@ class ColorWheelResponse(ResponseListener):
 				rt = self.evm.trial_time_ms - self._rc_start
 				return Response(value, rt)
 		return None
-				
+
+	def cleanup(self):
+		"""See :meth:`ResponseListener.cleanup`.
+
+		"""
+		if not (P.development_mode and P.dm_trial_show_mouse):
+			hide_mouse_cursor()	
 
 	def set_target(self, target):
 		'''Sets the colour probe Drawbject or target location for listener, which is used to
@@ -763,7 +776,6 @@ class ColorWheelResponse(ResponseListener):
 				raise ValueError("Target location must be within the range of the screen.")
 		else:
 			raise ValueError("Target must either be a Drawbject or a tuple of (x,y) coordinates.")
-
 
 	def set_wheel(self, wheel, location=None, registration=None):
 		'''Sets the ColorWheel or Annulus object to use for response collection.

@@ -325,24 +325,28 @@ def query(query_ob, anonymous=False):
 
 	# Create an informative error message for invalid responses
 	accepted_responses = query_ob.accepted  # for code readability
-	if accepted_responses:
-		try:
-			iter(accepted_responses)
-			accepted_str = pretty_list(accepted_responses)
-			invalid_answer_str = default_strings['invalid_answer'].format(accepted_str)
-		except:
-			raise TypeError("The 'accepted' key of a question must be a list of values.")
-	elif f.range:
-		if f.type not in ("int", "float"):
-			raise ValueError("Only queries with numeric types can use the range parameter.")
-		elif isinstance(f.range, list) == False or len(f.range) != 2:
-			raise TypeError("Query ranges must be two-item lists, containing an upper bound "
-				"and a lower bound.")
-		try:
-			template = default_strings['out_of_range']
-		except KeyError:
-			template = "Your answer must be a number between {0} and {1}, inclusive."
-		invalid_answer_str = template.format(f.range[0], f.range[1])
+	try:
+		if accepted_responses:
+			try:
+				iter(accepted_responses)
+				accepted_str = pretty_list(accepted_responses)
+				invalid_answer_str = default_strings['invalid_answer'].format(accepted_str)
+			except:
+				raise TypeError("The 'accepted' key of a question must be a list of values.")
+		elif f.range:
+			if f.type not in ("int", "float"):
+				raise ValueError("Only queries with numeric types can use the range parameter.")
+			elif isinstance(f.range, list) == False or len(f.range) != 2:
+				raise TypeError("Query ranges must be two-item lists, containing an upper bound "
+					"and a lower bound.")
+			try:
+				template = default_strings['out_of_range']
+			except KeyError:
+				template = "Your answer must be a number between {0} and {1}, inclusive."
+			invalid_answer_str = template.format(f.range[0], f.range[1])
+	except:
+		cso("\n<red>Error encountered while parsing query '{0}':</red>".format(query_ob.title))
+		raise
 
 	# user input loop; exited by breaking
 	input_string = u''  # populated in loop below

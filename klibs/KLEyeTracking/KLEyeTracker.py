@@ -355,9 +355,9 @@ class EyeTracker(BoundaryInspector):
 
         timestamp = None
         for e in event_queue:
-            e_type = self.get_event_type(e)
-            if e == None or e_type not in valid_events:
+            if e == None or self.get_event_type(e) not in valid_events:
                 continue
+            e_type = self.get_event_type(e)
             # if inspect or report not given, default to most reasonable option
             _report = report if report else self._event_defaults[e_type][0]
             _inspect = inspect if inspect else self._event_defaults[e_type][1]

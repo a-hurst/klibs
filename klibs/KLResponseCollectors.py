@@ -592,6 +592,7 @@ class CursorResponse(ResponseListener, BoundaryInspector):
 
 	def __init__(self):
 		super(CursorResponse, self).__init__('cursor_listener')
+		BoundaryInspector.__init__(self)
 		self.__event_type = SDL_MOUSEBUTTONDOWN
 		self.return_coords = False
 

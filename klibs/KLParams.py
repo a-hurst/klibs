@@ -45,6 +45,7 @@ multi_user = False # creates temp copy of db that gets merged into master at end
 trials_per_block = 0
 blocks_per_experiment = 0
 conditions = []
+default_condition = None
 table_defaults = {} # default column values for db tables when using EntryTemplate
 run_practice_blocks = True # (not implemented in klibs itself)
 color_output = False # whether cso() outputs colorized text or not

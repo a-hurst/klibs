@@ -202,7 +202,8 @@ class EyeLink(BaseEyeLink, EyeTracker):
 				queue.append(data)
 		
 		if samples == True and len(queue) == 0: # if no samples from getNextData, fetch latest
-			queue.append(self.getNewestSample())
+			newest_sample = self.getNewestSample()
+			queue = [newest_sample] if newest_sample != None else []
 
 		return queue
 

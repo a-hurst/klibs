@@ -247,6 +247,8 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 			setattr(P, k, v)
 
 	# If a condition has been specified, make sure it's a valid condition as per params.py
+	if P.condition == None:
+		P.condition = P.default_condition
 	if P.condition != None:
 		if len(P.conditions) == 0:
 			err("No between-participant conditions have been defined for this experiment. "

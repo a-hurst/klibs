@@ -450,6 +450,7 @@ class DatabaseManager(EnvAgent):
 			
 		q = "INSERT INTO master.{0} ({1}) SELECT {2} FROM {0}".format(table, columns, col_data)
 		self.__local.cursor.execute(q)
+		self.__local.db.commit()
 	
 	
 	def close(self):

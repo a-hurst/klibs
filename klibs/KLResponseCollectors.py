@@ -490,7 +490,7 @@ class MouseButtonResponse(ResponseListener):
 
 		"""
 		for event in event_queue:
-			if event.type is self.__event_type:
+			if event.type == self.__event_type:
 				b = event.button.button
 				if self.__button_map:
 					if b in self.__button_map.keys():
@@ -610,8 +610,8 @@ class CursorResponse(ResponseListener, BoundaryInspector):
 
 		"""
 		for event in event_queue:
-			if event.type is self.__event_type:
-				coords = (event.x, event.y)
+			if event.type == self.__event_type:
+				coords = (event.button.x, event.button.y)
 				boundary = self.which_boundary(coords)
 				if boundary:
 					value = [boundary, coords] if self.return_coords else boundary

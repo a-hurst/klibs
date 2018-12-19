@@ -25,7 +25,8 @@ if PYLINK_AVAILABLE:
 		beginRealTimeMode, endRealTimeMode, msecDelay)
 	from pylink import EyeLink as BaseEyeLink
 	from .KLCustomEyeLinkDisplay import ELCustomDisplay
-
+	cso("<green_d>(Note: if a bunch of SDL errors were just reported, this was expected, "
+		"do not be alarmed!)</green_d>")
 
 class EyeLink(BaseEyeLink, EyeTracker):
 	"""A connection to an SR Research EyeLink eye tracker, providing a friendly interface to the

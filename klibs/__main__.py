@@ -172,9 +172,7 @@ def create(name, path):
 
 def run(screen_size, path, condition, devmode, no_eyelink, seed):
 
-	cso("\n\n<green>*** Now loading KLIBS Environment ***</green>")
-	cso("<green_d>(Note: if a bunch of SDL errors were just reported, this was expected, "
-		"do not be alarmed!)</green_d>")
+	cso("\n\n<green>*** Now Loading KLibs Environment ***</green>\n")
 
 	from klibs import P
 	from klibs import env

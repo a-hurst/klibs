@@ -226,7 +226,7 @@ class Experiment(EnvAgent):
 		self.audio.shut_down()
 		sdl2.ext.quit()
 
-		cso("\n\n<green>*** '{0}' successfully shutdown. ***</green>\n\n".format(P.project_name))
+		cso("\n\n<green>*** '{0}' successfully shut down. ***</green>\n\n".format(P.project_name))
 		os._exit(1)
 
 

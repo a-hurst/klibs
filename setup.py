@@ -6,8 +6,8 @@ import subprocess as sub
 import shutil
 
 # Get the git hash for the current KLibs commit
-cmd = b'git rev-parse --verify HEAD'.split(b' ')
-commit = sub.check_output(cmd).rstrip(b'\n')
+cmd = 'git rev-parse --verify HEAD'.split(' ')
+commit = sub.check_output(cmd, universal_newlines=True)
 with open('klibs/resources/current_commit.txt', 'wb+') as f:
 	f.write(commit)
 	
@@ -16,7 +16,7 @@ install_packages = ['klibs']
 
 setup(
 	name='KLibs',
-	version='0.7.5a3',
+	version='0.7.5a4',
 	description='A framework for building psychological experiments in Python',
 	author='Jonathan Mulle & Austin Hurst',
 	author_email='mynameisaustinhurst@gmail.com',
@@ -30,9 +30,11 @@ setup(
 		'pysdl2>=0.9.0',
 		'Pillow>=3.0.0,!=5.1.0',
 		'aggdraw>1.2.0',
-		'PyOpenGL>=3.1.0',
-		'PyAudio>=0.2.9'
-	]
+		'PyOpenGL>=3.1.0'
+	],
+	extras_require={
+		'AudioResponse': ['PyAudio>=0.2.9']
+	}
 
 )
 

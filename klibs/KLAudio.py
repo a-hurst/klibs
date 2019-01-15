@@ -28,8 +28,10 @@ from klibs.KLCommunication import message
 try:
 	import pyaudio
 	PYAUDIO_AVAILABLE = True
+	pa_stream = pyaudio.Stream
 except ImportError:
 	PYAUDIO_AVAILABLE = False
+	pa_stream = Ellipse # so AudioStream subclassing Stream doesn't break KLAudio if no pyaudio
 
 
 class AudioManager(object):
@@ -326,7 +328,7 @@ class AudioSample(object):
 		self.mean = sum(self.array) // len(self.array)
 
 
-class AudioStream(pyaudio.Stream, EnvAgent):
+class AudioStream(pa_stream, EnvAgent):
 	"""A stream of audio from the default system audio input device (usually a microphone).
 	See the :obj:`pyaudio.Stream` documentation for a full list of this class's methods and
 	attributes.

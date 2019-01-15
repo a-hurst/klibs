@@ -290,6 +290,7 @@ class Database(EnvAgent):
 
 
 	def query_str_from_raw_data(self, data, table):
+		# TODO: replace this with EntryTemplate for consistency?
 		try:
 			template = copy(self.table_schemas[table])
 		except KeyError:
@@ -297,6 +298,10 @@ class Database(EnvAgent):
 		values = []
 		columns = []
 		template.pop('id', None) # remove id column from template if present
+		for colname in list(data.keys()):
+			if colname not in list(template.keys()):
+				err = "Column '{0}' does not exist in table '{1}'."
+				raise ValueError(err.format(colname, table))
 		for colname, info in template.items():
 			try:
 				value = data[colname]

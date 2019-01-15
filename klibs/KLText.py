@@ -1,7 +1,7 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 from os.path import isfile, join
-from math import floor
+from math import floor, ceil
 import ctypes
 from ctypes import byref, c_int
 
@@ -97,7 +97,7 @@ class TextStyle(object):
 	@property
 	def line_height(self):
 		if self.__line_height_units == '*':
-			return int(self._line_height * self._font_size)
+			return int(ceil(self._line_height * self._font_size))
 		else:
 			return int(self._line_height)
 			
@@ -109,7 +109,7 @@ class TextStyle(object):
 				if unit not in ['px', '*']:
 					raise ValueError("Line height unit must be either 'px' or '*' (multiple)")
 				self.__line_height_units = unit
-				height = float(''.join([i for i in height if i.isdigit()]))
+				height = float(''.join([i for i in height if (i.isdigit() or i == '.')]))
 			else:
 				height = float(height)
 		self._line_height = height

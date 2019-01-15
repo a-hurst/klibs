@@ -8,7 +8,7 @@ import shutil
 # Get the git hash for the current KLibs commit
 cmd = 'git rev-parse --verify HEAD'.split(' ')
 commit = sub.check_output(cmd, universal_newlines=True)
-with open('klibs/resources/current_commit.txt', 'wb+') as f:
+with open('klibs/resources/current_commit.txt', 'w+') as f:
 	f.write(commit)
 	
 	

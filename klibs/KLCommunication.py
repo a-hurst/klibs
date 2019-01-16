@@ -108,10 +108,11 @@ def collect_demographics(anonymous=False):
 			db.insert(runtime_info)
 		# Save copy of experiment.py and config files as they were for participant
 		if not P.development_mode:
-			version_dir = join(P.versions_dir, "p{0}_{1}".format(P.participant_id, now(True)))
-			os.mkdir(version_dir)
-			copyfile("experiment.py", join(version_dir, "experiment.py"))
-			copytree(P.config_dir, join(version_dir, "Config"))
+			pid = P.random_seed if P.multi_user else P.participant_id # pid set at end for multiuser
+			P.version_dir = join(P.versions_dir, "p{0}_{1}".format(pid, now(True)))
+			os.mkdir(P.version_dir)
+			copyfile("experiment.py", join(P.version_dir, "experiment.py"))
+			copytree(P.config_dir, join(P.version_dir, "Config"))
 	else:
 		#  The context for this is: collect_demographics is set to false but then explicitly called later
 		db.update(demographics.table, demographics.defined)
@@ -147,7 +148,7 @@ def init_messaging():
 				err = "<red>Error: user_queries.json file missing required section '{0}'.</red>"
 				cso(err.format(req))
 				raise ValueError()
-		default_strings = user_queries.default_strings # for easy accessiblity
+			default_strings = user_queries.default_strings # for easy accessiblity
 	except ValueError:
 		raise ValueError("User queries file has at least one formatting error; cannot continue.")
 	

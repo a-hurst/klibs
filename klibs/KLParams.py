@@ -109,6 +109,7 @@ default_participant_fields = [] # for legacy use
 default_participant_fields_sf = [] # for legacy use
 exclude_data_cols = ["created"]
 append_info_cols = []
+datafile_ext = ".txt"
 
 # Development mode & associated switches
 development_mode = False # when True, skips collect_demographics & prints various details to screen
@@ -145,6 +146,7 @@ image_dir = None
 local_dir = None
 resources_dir = None
 versions_dir = None
+version_dir = None
 
 database_filename = None
 database_path = None

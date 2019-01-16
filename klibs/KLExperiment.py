@@ -214,6 +214,10 @@ class Experiment(EnvAgent):
 			except:
 				print("EyeLink.stopRecording() unsuccessful.")
 				cso("<red>****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******</red>")
+
+		if P.multi_user and P.version_dir:
+			newpath = P.version_dir.replace(str(P.random_seed), str(P.participant_id))
+			os.rename(P.version_dir, newpath)
 				
 		#Commented out until LabJack integration is reimplemented/reconsidered
 		#if P.labjacking and P.labjack_available:

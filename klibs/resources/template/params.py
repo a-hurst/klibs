@@ -60,6 +60,7 @@ primary_table = "trials"
 unique_identifier = "userhash"
 exclude_data_cols = ["created"]
 append_info_cols = ["random_seed"]
+datafile_ext = ".txt"
 
 #########################################
 # PROJECT-SPECIFIC VARS

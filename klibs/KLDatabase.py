@@ -1,6 +1,6 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-import codecs
+import io
 import shutil
 import sqlite3
 from copy import copy
@@ -14,7 +14,7 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import DatabaseException
 from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_DELIM_STR,
 	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR, SQL_BIN, SQL_KEY, SQL_NULL,
-	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID, DATA_EXT)
+	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID)
 from klibs import P
 from klibs.KLUtilities import (full_trace, type_str, iterable, bool_to_int, boolean_to_logical,
 	snake_to_camel, getinput, utf8)
@@ -178,7 +178,7 @@ class Database(EnvAgent):
 		self.db.commit()
 
 	def _deploy_schema(self, schema):
-		with codecs.open(schema, 'r', 'utf-8') as f:
+		with io.open(schema, 'r', encoding='utf-8') as f:
 			self.cursor.executescript(f.read())
 		self.cursor.execute(session_info_schema)
 
@@ -434,6 +434,7 @@ class DatabaseManager(EnvAgent):
 
 		master_p_id = self.__local.cursor.lastrowid
 		update_p_id = {'participant_id': master_p_id, 'user_id': master_p_id}
+		P.participant_id = master_p_id
 		
 		for table in self.__local.table_schemas.keys():
 			if table == 'participants': continue
@@ -540,8 +541,8 @@ class DatabaseManager(EnvAgent):
 				header = self.export_header(p_id)
 				incomplete = (self.__is_complete(p_id) == False)
 				file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
-				with codecs.open(file_path, 'w+', 'utf-8') as out:
-					out.write("\n".join([header, column_names, "\n".join(data_set[1])]))
+				with io.open(file_path, 'w+', encoding='utf-8') as out:
+					out.write(u"\n".join([header, column_names, "\n".join(data_set[1])]))
 				print("    - Participant {0} successfully exported.".format(p_id))
 		else:
 			combined_data = []
@@ -551,8 +552,8 @@ class DatabaseManager(EnvAgent):
 				combined_data += data_set[1]
 			header = self.export_header()
 			file_path = self.filepath_str(multi_file=False, base=table, joined=join_tables)
-			with codecs.open(file_path, 'w+', 'utf-8') as out:
-				out.write("\n".join([header, column_names, "\n".join(combined_data)]))
+			with io.open(file_path, 'w+', encoding='utf-8') as out:
+				out.write(u"\n".join([header, column_names, "\n".join(combined_data)]))
 			print("    - Data for {0} participants successfully exported.".format(p_count))
 		print("") # newline between export info and next prompt for aesthetics' sake
 
@@ -630,8 +631,8 @@ class DatabaseManager(EnvAgent):
 		
 		if multi_file:
 			created_q = "SELECT `created` FROM `participants` WHERE `id` = ?"
-			created = self.__master.query(created_q, q_vars=[1], fetch_all=False).fetchone()[0][:10]
-			basename = "p{0}{1}.{2}".format(str(p_id), tables, created)
+			created = self.__master.query(created_q, q_vars=[p_id], fetch_all=False).fetchone()[0]
+			basename = "p{0}{1}.{2}".format(str(p_id), tables, created[:10])
 		else:
 			basename = "{0}_all_trials{1}".format(P.project_name, tables)		
 
@@ -639,7 +640,7 @@ class DatabaseManager(EnvAgent):
 		while True:
 			# Generate suffix and see if file already exists with that name. If it does, keep 
 			# incremeting the numeric part of the suffix until it doesn't.
-			suffix = DATA_EXT
+			suffix = P.datafile_ext
 			if incomplete: suffix = "_incomplete" + suffix
 			if duplicate_count: suffix = "_{0}".format(duplicate_count) + suffix
 			fname = basename + suffix

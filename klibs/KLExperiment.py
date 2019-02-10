@@ -4,6 +4,7 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 import os
 import sys
 from abc import abstractmethod
+from traceback import print_tb, print_stack
 
 import sdl2
 
@@ -74,6 +75,7 @@ class Experiment(EnvAgent):
 		if 'session_info' in self.database.table_schemas.keys():
 			self.database.update('session_info', {'complete': True})
 
+
 	def __trial__(self, trial, practice):
 		"""
 		Private method; manages a trial.
@@ -117,6 +119,7 @@ class Experiment(EnvAgent):
 		if tx:
 			raise tx
 
+
 	def __log_trial__(self, trial_data):
 		"""Internal method, logs trial data to database.
 
@@ -126,6 +129,7 @@ class Experiment(EnvAgent):
 		for attr in trial_data:
 			trial_template.log(attr, trial_data[attr])
 		return self.database.insert(trial_template)
+
 
 	def before_flip(self):
 		if P.show_gaze_dot and self.el.recording:
@@ -138,6 +142,7 @@ class Experiment(EnvAgent):
 			except RuntimeError:
 				pass
 				
+
 	def insert_practice_block(self, block_nums, trial_counts=None, factor_mask=None):
 		"""
 		Adds one or more practice blocks to the experiment. This function must be called during setup(),
@@ -186,50 +191,42 @@ class Experiment(EnvAgent):
 			self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_mask)
 			P.blocks_per_experiment += 1
 
+
 	def quit(self):
 		"""Safely exits the program, ensuring data has been saved and any connected EyeLink unit's
 		recording is stopped. This, not Python's sys.exit(), should be used to exit an experiment.
 
 		"""
-		#TODO: this needs hella cleanup, so much commented-out and messy code
 		if P.verbose_mode:
-			print(full_trace())
+			print_tb(print_stack(), 6)
 
+		err = ''
 		try:
-			try:
-				self.database.commit()
-			except Exception as e:
-				if str(e) == "Cannot operate on a closed database.":
-					pass
-				else:
-					print("Commit() to self.database failed.")
-					raise e
+			self.database.commit()
 			self.database.close()
 		except Exception:
-			print(full_trace())
+			err += "<red>Error encountered closing database connection:</red>\n\n"
+			err += full_trace()+"\n\n"
+			err += "<red>Some data may not have been saved.</red>\n\n\n"
 
 		if P.eye_tracking and P.eye_tracker_available:	
 			try:
 				self.el.shut_down()
-			except:
-				print("EyeLink.stopRecording() unsuccessful.")
-				cso("<red>****** MANUALLY STOP RECORDING PLEASE & THANKS!! *******</red>")
+			except Exception:
+				err += "<red>Eye tracker encountered error during shutdown:</red>\n\n"
+				err += full_trace()+"\n\n"
+				err += "<red>You may need to manually stop the tracker from recording.</red>\n\n\n"
 
 		if P.multi_user and P.version_dir:
 			newpath = P.version_dir.replace(str(P.random_seed), str(P.participant_id))
 			os.rename(P.version_dir, newpath)
-				
-		#Commented out until LabJack integration is reimplemented/reconsidered
-		#if P.labjacking and P.labjack_available:
-		#	try:
-		#		lj.shut_down()
-		#	except:
-		#		print("LabJack.shutdown() unsuccessful.")
-		#		cso("<red>****** DISCONNECT & RECONNECT LABJACK PLEASE & THANKS! *******</red>")
 
 		self.audio.shut_down()
 		sdl2.ext.quit()
 
+		if err:
+			cso("\n\n" + err + "<red>*** Errors encountered during shutdown. ***</red>\n\n")
+			os._exit(1)
 		cso("\n\n<green>*** '{0}' successfully shut down. ***</green>\n\n".format(P.project_name))
 		os._exit(1)
 

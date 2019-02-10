@@ -170,7 +170,7 @@ def create(name, path):
 	cso("<green_d>\nProject successfully created at:</green_d> '<blue>{0}</blue>'".format(project_path))
 
 
-def run(screen_size, path, condition, devmode, no_eyelink, seed):
+def run(screen_size, path, condition, devmode, no_tracker, seed):
 
 	cso("\n\n<green>*** Now Loading KLibs Environment ***</green>\n")
 
@@ -267,7 +267,7 @@ def run(screen_size, path, condition, devmode, no_eyelink, seed):
 	# create runtime environment
 	env.txtm = TextManager()
 	if P.eye_tracking:
-		if no_eyelink is True:
+		if no_tracker is True:
 			P.eye_tracker_available = False
 		if P.development_mode and P.dm_show_gaze_dot:
 			P.show_gaze_dot = True
@@ -509,8 +509,8 @@ def cli():
 		help=("If the experiment has between-participant conditions, allows the user "
 		"to specify which condition to run.")
 	)
-	run_parser.add_argument('-ELx', '--no_eyelink', action="store_true",
-		help=("Signals the absence of a connected EyeLink unit. "
+	run_parser.add_argument('-ELx', '--no_tracker', action="store_true",
+		help=("Signals the absence of a connected eye tracker. "
 		"Does nothing for non-eyetracking experiments.")
 	)
 	run_parser.add_argument('-s', '--seed', type=int, nargs="?", metavar="seed",
@@ -518,12 +518,9 @@ def cli():
 		help=("The seed to use for random number generation during the KLibs runtime. "
 		"Defaults to a random integer.")
 	)
-	#run_parser.add_argument('-dbg', '--show_debug_pane', action="store_true",
-	#	help="Debug log will be blit to translucent panel on screen in real time."
-	#)
 	# todo: verbose mode should accept a value, and then logging should be incrementally verbose
 	#run_parser.add_argument('-v', '--verbose', action="store_true",
-	#	help="EventsInterface will syndicate EyeLink, LabJack & log messages to terminal."
+	#	help="Logs extra klibs debug information to the terminal."
 	#)
 	run_parser.set_defaults(func=run)
 

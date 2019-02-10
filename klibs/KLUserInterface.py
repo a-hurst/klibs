@@ -78,39 +78,49 @@ def key_pressed(key=None, queue=None):
 	return pressed
 
 
-def konami_code(callback=None):
-	"""An implementation of the classic Konami code. Waits 10 seconds for the keys to be pressed
-	in the right sequence before returning. Useful for adding hidden debug menus and other
-	things you really don't want participants activating by mistake...?
+def konami_code(callback=None, queue=None):
+	"""An implementation of the classic Konami code. If called repeatedly within a loop, this
+	function will collect keypress matching the sequence and save them between calls until the full
+	sequence has been entered correctly.
+	
+	If a callback function has been specified, it will be called once the code has been entered. 
+	If any incorrect keys are pressed during entry, the collected input so far will be reset and
+	the code will need to be entered again from the start.
+	
+	Useful for adding hidden debug menus and other things you really don't want participants
+	activating by mistake...?
 
 	Args:
 		callback (function, optional): The function to be run upon successful input of the Konami
 			code.
+		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of SDL Events to check
+			for valid keys in the sequence.
 
 	Returns:
-		bool: True if sequence was correctly entered within 10 sec, otherwise False.
+		bool: True if sequence was correctly entered, otherwise False.
 
 	"""
-	start = time()
-	sequence = []
-	konami_sequence = [SDLK_UP, SDLK_DOWN, SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_LEFT, SDLK_RIGHT, SDLK_b, SDLK_a]
-	while True:
-		print(sequence)
-		for event in pump(True):
-			if time() - start > 10:
-				return False
-			if event.type != SDL_KEYDOWN:
-				continue
-			ui_request(event.key.keysym)
-			key = event.key  # keyboard button event object (https://wiki.libsdl.org/SDL_KeyboardEvent)
-			# if not len(sequence) and key.keysym.sym != SDLK_UP:
-			# 	return False
-			sequence.append(key.keysym.sym)
-			if len(sequence) == 10:
-				if sequence == konami_sequence:
-					if callable(callback):
-						callback()
-					return True
+	sequence = [
+		SDLK_UP, SDLK_DOWN, SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_LEFT, SDLK_RIGHT,
+		SDLK_b, SDLK_a
+	]
+	if not hasattr(konami_code, "input"):
+		konami_code.input = [] # static variable, stays with the function between calls
+	
+	if queue == None:
+		queue = pump(True)
+	for e in queue:
+		if e.type == SDL_KEYDOWN:
+			ui_request(e.key.keysym)
+			konami_code.input.append(e.key.keysym.sym)
+			if konami_code.input != sequence[:len(konami_code.input)]:
+				konami_code.input = [] # reset input if mismatch encountered
+			elif len(konami_code.input) == len(sequence):
+				konami_code.input = []
+				if callable(callback):
+					callback()
+				return True
+	return False
 
 
 def ui_request(key_press=None, execute=True, queue=None):
@@ -118,7 +128,7 @@ def ui_request(key_press=None, execute=True, queue=None):
 	
 	- Quit (Ctrl/Command-Q): Quit the experiment runtime
 
-	- Calibrate EyeLink (Ctrl/Command-C): Enter setup mode for the EyeLink eye tracker, 
+	- Calibrate Eye Tracker (Ctrl/Command-C): Enter setup mode for the connected eye tracker, 
 	  if eye tracking is enabled for the experiment and not using TryLink simulation.
 	
 	If no event queue from :func:`~klibs.KLUtilities.pump` and no keypress event(s) are
@@ -135,42 +145,37 @@ def ui_request(key_press=None, execute=True, queue=None):
 	ResponseCollector callbacks.
 
 	Args:
-		key_press (:obj:`sdl2.SDL_Keycode` or :obj:`List`, optional): A keycode or list of
-			keycodes to check for valid UI commands.
+		key_press (:obj:`sdl2.SDL_Keysym`, optional): The key.keysym of an SDL_KEYDOWN event to
+			check for a valid UI command.
 		execute (bool, optional): If True, valid UI commands will be executed immediately. 
-			Defaults to True.
+			Otherwise, valid UI commands will return a string indicating the type of command
+			received. Defaults to True.
 		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of SDL Events to check
 			for valid UI commands.
 		
 	Returns:
 		str or bool: "quit" if a Quit request encountered, "el_calibrate" if a Calibrate 
-			EyeLink request encountered, otherwise False.
+			Eye Tracker request encountered, otherwise False.
 	"""
-	if queue:
-		ret_val = None
+	if key_press == None:
+		if queue == None:
+			queue = pump(True)
 		for e in queue:
-			v = ui_request(e, execute)
-			if v: ret_val = v
-		return ret_val
-	if not key_press:
-		for event in pump(True):
-			if event.type in [SDL_KEYUP, SDL_KEYDOWN]:
-				request = ui_request(event.key.keysym, execute)
+			if e.type == SDL_KEYDOWN:
+				request = ui_request(e.key.keysym, execute)
 				if request:
-					return
-			if event.type == SDL_KEYUP:
-				return # ie it wasn't a ui request and can't become one now
+					return request
 		return False
+
 	else:
 		try:
-			key_press = key_press.key.keysym
+			key_press.mod
 		except AttributeError:
-			pass
-	try:
-		iter(key_press)
-	except TypeError:
-		key_press = [key_press]
-	for k in key_press:
+			wrong = type(key_press).__name__
+			e = "'key_press' must be a valid SDL Keysym object (got '{0}')".format(wrong)
+			raise TypeError(e)
+
+		k = key_press
 		if any(k.mod & mod for mod in [KMOD_GUI, KMOD_CTRL]): # if ctrl or meta being held
 			if k.sym == SDLK_q:
 				if execute:
@@ -182,6 +187,6 @@ def ui_request(key_press=None, execute=True, queue=None):
 					from klibs.KLEnvironment import el
 					if el.initialized: # make sure el.setup() has been run already
 						if execute:
-							return el.calibrate()
+							el.calibrate()
 						return "el_calibrate"
-	return False
+		return False

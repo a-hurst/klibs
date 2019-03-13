@@ -42,10 +42,14 @@ def _convert_to_query_format(value, col_name, col_type):
 
 	'''
 
-	err_str = "'{0}' could not be coerced to {1} for insertion into column {2}"
+	err_str = "'{0}' could not be coerced to '{1}' for insertion into column '{2}'"
 	
 	if value is None:
 		return SQL_NULL
+
+	if col_type not in [PY_BOOL, PY_FLOAT, PY_INT, PY_STR, PY_BIN]:
+		type_err = "'{0}' is not a valid EntryTemplate data type."
+		raise ValueError(type_err.format(col_type))
 
 	try:
 		if col_type == PY_BOOL:
@@ -63,14 +67,10 @@ def _convert_to_query_format(value, col_name, col_type):
 			value = u"'{0}'".format(utf8(value))
 		elif col_type == PY_BIN:
 			raise NotImplementedError("SQL blob insertion is not yet supported.")
-		else:
-			type_err = "'{0}' is not a valid EntryTemplate data type."
-			raise ValueError(type_err.format(col_type))
 
-	except TypeError:
+	except (TypeError, ValueError):
 		# if value can't be converted to column type, raise an exception
-		value = utf8(value).encode('utf-8') # ensure value is ascii for exception message
-		raise ValueError(err_str.format(value, col_name, col_type))
+		raise ValueError(err_str.format(value, col_type, col_name))
 	
 	return value
 

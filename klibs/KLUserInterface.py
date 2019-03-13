@@ -78,7 +78,7 @@ def key_pressed(key=None, queue=None):
 	return pressed
 
 
-def konami_code(callback=None, queue=None):
+def konami_code(callback=None, cb_args={}, queue=None):
 	"""An implementation of the classic Konami code. If called repeatedly within a loop, this
 	function will collect keypress matching the sequence and save them between calls until the full
 	sequence has been entered correctly.
@@ -93,6 +93,8 @@ def konami_code(callback=None, queue=None):
 	Args:
 		callback (function, optional): The function to be run upon successful input of the Konami
 			code.
+		cbargs (:obj:`Dict`, optional): A dict of keyword arguments to pass to the callback
+			function when it's called.
 		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of SDL Events to check
 			for valid keys in the sequence.
 
@@ -118,7 +120,7 @@ def konami_code(callback=None, queue=None):
 			elif len(konami_code.input) == len(sequence):
 				konami_code.input = []
 				if callable(callback):
-					callback()
+					callback(**cb_args)
 				return True
 	return False
 

@@ -191,7 +191,7 @@ class ResponseListener(NamedObject, EnvAgent):
 		try:
 			response = self.responses[index]
 		except IndexError:
-			response = Response(self.null_response, -1)
+			response = Response(self.null_response, TIMEOUT)
 
 		if value and rt:
 			return response
@@ -1125,7 +1125,7 @@ class ResponseCollector(EnvAgent):
 				listener = l() # create listener object from listener class
 				if listener.eyetracking:
 					self.__fetch_eye_events = True
-					if not P.eyetracking:
+					if not P.eye_tracking:
 						err = "Eye tracking must be enabled in order to use the {0} listener."
 						raise RuntimeError(err.format(class_name))
 				self.__name_map[class_name] = listener.name

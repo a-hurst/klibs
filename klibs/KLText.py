@@ -175,7 +175,7 @@ class TextManager(object):
 						pos = int(surface_width/float(w.value) * len(line))
 						segment = line[:pos].rstrip()
 						TTF_SizeUTF8(rendering_font, segment, byref(segment_w), byref(h))
-						while line[pos] != ' ' or segment_w.value > surface_width:
+						while line.decode('utf-8')[pos] != ' ' or segment_w.value > surface_width:
 							pos = pos - 1
 							segment = line[:pos].rstrip()
 							TTF_SizeUTF8(rendering_font, segment, byref(segment_w), byref(h))

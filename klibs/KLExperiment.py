@@ -50,7 +50,7 @@ class Experiment(EnvAgent):
 
 		"""
 
-		if not self.blocks:
+		if self.blocks == None:
 			self.blocks = self.trial_factory.export_trials()
 		for block in self.blocks:
 			P.recycle_count = 0

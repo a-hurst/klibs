@@ -1,7 +1,7 @@
 /*
 
 ******************************************************************************************
-						NOTES ON HOW TO USE AND MODIFY THIS FILE
+                         NOTES ON HOW TO USE AND MODIFY THIS FILE
 ******************************************************************************************
 
 This file is used at the beginning of your project to create the SQLite database in which
@@ -42,17 +42,17 @@ to be an integer.
 */
 
 CREATE TABLE participants (
-	id integer primary key autoincrement not null,
-	userhash text not null,
-	gender text not null,
-	age integer not null, 
-	handedness text not null,
-	created text not null
+    id integer primary key autoincrement not null,
+    userhash text not null,
+    gender text not null,
+    age integer not null, 
+    handedness text not null,
+    created text not null
 );
 
 CREATE TABLE trials (
-	id integer primary key autoincrement not null,
-	participant_id integer not null references participants(id),
-	block_num integer not null,
-	trial_num integer not null
+    id integer primary key autoincrement not null,
+    participant_id integer not null references participants(id),
+    block_num integer not null,
+    trial_num integer not null
 );

@@ -29,25 +29,45 @@ class EnvAgent(object):
 
 	@property
 	def evm(self):
+		""":obj:`~klibs.KLEventInterface.EventManager`: The EventManager instance for the 
+		current KLibs runtime environment. 
+
+		"""
 		from klibs.KLEnvironment import evm
 		return evm
 
 	@property
 	def exp(self):
+		""":obj:`~klibs.KLExperiment.Experiment`: The Experiment object for the current KLibs
+		runtime environment. 
+
+		"""
 		from klibs.KLEnvironment import exp
 		return exp
 
 	@property
 	def txtm(self):
+		""":obj:`~klibs.KLText.TextManager`: The TextManager instance for the current KLibs
+		runtime environment. 
+
+		"""
 		from klibs.KLEnvironment import txtm
 		return txtm
 
 	@property
 	def db(self):
+		""":obj:`~klibs.KLDatabase.DatabaseManager`: The database connection for the current
+		KLibs runtime environment. 
+
+		"""
 		from klibs.KLEnvironment import db
 		return db
 
 	@property
 	def el(self):
+		""":obj:`~klibs.KLEyeTracking.KLEyeTracker`: If 'P.eye_tracking' is True, this is the
+		EyeTracker instance for the KLibs runtime environment. Otherwise, None.
+
+		"""
 		from klibs.KLEnvironment import el
 		return el

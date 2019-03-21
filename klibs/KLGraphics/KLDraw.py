@@ -140,14 +140,14 @@ class Drawbject(object):
 		self.object_height = height
 		self.rotation = rotation
 
-		self.init_surface()
+		self._init_surface()
 
 
 	def __str__(self):
 		properties = [self.__name__, self.surface_width, self.surface_height, hex(id(self))]
 		return "klibs.Drawbject.{0} ({1} x {2}) at {3}".format(*properties)
 
-	def init_surface(self):
+	def _init_surface(self):
 		self._update_dimensions()
 		self.rendered = None # Clear any existing rendered texture
 		if self.fill_color:
@@ -164,24 +164,19 @@ class Drawbject(object):
 		self.surface.setantialias(True)
 
 	def render(self):
-		"""Renders the Drawbject to a numpy array so it can be drawn to the display buffer
-		using KLGraphics.blit(). This method is called implicitly when an unrendered
-		Drawbject is passed to blit(), so while rendering a Drawbject explicitly is not
-		required, it does make the blitting process faster and is recommended whenever
-		possible. 
+		"""Pre-renders the shape so it can be drawn to the screen using
+		:func:`~klibs.KLGraphics.blit`. Although it is not necessary to pre-render
+		shapes before drawing them to the screen, it will make the initial blit faster
+		and is recommended wherever possible. 
 		
-		Once a Drawbject is rendered, a copy of the resulting array is saved within the
-		object under the 'rendered' attribute which will be used by blit() if present. 
-		Note that if you change any of the attributes of a Drawbject (e.g. stroke, fill,
-		rotation) after it has been rendered, you will need to call this method again
-		before those changes will take effect.
+		Once a Drawbject has been rendered, it will not need to be rendered again unless
+		any of its properties (e.g. stroke, fill, rotation) are changed.
 		
 		Returns:
-			:obj:`numpy.array`: A numpy array with the dimensions (surface_height, 
-				surface_width) containing the pixels of the rendered Drawbject.
+			:obj:`~numpy.ndarray`: A numpy array of the rendered shape.
 
 		"""
-		self.init_surface()
+		self._init_surface()
 		self.draw()
 		self.rendered = asarray(self.canvas)
 		return self.rendered
@@ -254,7 +249,7 @@ class Drawbject(object):
 		self.stroke_width = width
 		self.__stroke = Pen(tuple(color[:3]), width, color[3])
 		if self.surface: # don't call this when initializing the Drawbject for the first time
-			self.init_surface()
+			self._init_surface()
 		return self
 
 	@property
@@ -285,7 +280,7 @@ class Drawbject(object):
 		self.fill_color = color
 		self.__fill = Brush(tuple(color[:3]), color[3])
 		if self.surface: # don't call this when initializing the Drawbject for the first time
-			self.init_surface()
+			self._init_surface()
 		return self
 
 	@abc.abstractmethod
@@ -401,7 +396,7 @@ class Ellipse(Drawbject):
 	@width.setter
 	def width(self, value):
 		self.object_width = value
-		self.init_surface()
+		self._init_surface()
 
 	@property
 	def height(self):
@@ -411,7 +406,7 @@ class Ellipse(Drawbject):
 	@height.setter
 	def height(self, value):
 		self.object_height = value
-		self.init_surface()
+		self._init_surface()
 
 	@property
 	def diameter(self):
@@ -429,12 +424,31 @@ class Ellipse(Drawbject):
 	def diameter(self, value):
 		self.object_height = value
 		self.object_width = value
-		self.init_surface()
+		self._init_surface()
 
 
-# Depricated, only here to avoid breaking legacy code. Will be removed soon.
-def Circle(diameter, stroke=None, fill=None, auto_draw=True):
-	return Ellipse(diameter, diameter, stroke, fill, auto_draw)
+def Circle(Ellipse):
+	"""Creates a Drawbject containing a circle. A special case of the Ellipse.
+
+	Mainly here for backwards compatibility with older experiments, may be removed in a
+	future release. You should probably use :obj:`~klibs.KLGraphics.KLDraw.Ellipse` instead
+	of this.
+
+	Args:
+		diameter (int): The diameter of the circle in pixels.
+		stroke (List[alignment, width, Tuple(color)], optional): The stroke of the circle,
+			indicating the alignment (inner, center, or outer), width, and color of the
+			stroke. Defaults to no stroke.
+		fill (Tuple(color), optional): The fill color for the circle in RGB or RGBA
+			format. Defaults to transparent fill.
+		auto_draw (bool, optional): If True, internally draws the circle on initialization.	
+
+	Returns:
+		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified circle.
+
+	"""
+	def __init__(self, diameter, stroke=None, fill=None, auto_draw=True):
+		Ellipse.__init__(self, diameter, diameter, stroke, fill, auto_draw)
 
 
 class Annulus(Drawbject):

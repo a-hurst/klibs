@@ -49,9 +49,11 @@ def alert(text):
 def collect_demographics(anonymous=False):
 	'''Collects participant demographics and writes them to the 'participants' table in the
 	experiment's database, based on the queries in the "demographic" section of the project's
-	user_queries.json file. Run automatically on launch if P.manual_demographics_collection is
-	False (which is the default setting), but if P.manual_demographics_collection = True then this
-	function should be called once at some point during the setup portion of your experiment class.
+	user_queries.json file.
+	
+	If P.manual_demographics_collection = True, this function should be called at some point during
+	the setup() section of your experiment class. Otherwise, this function will be run
+	automatically when the experiment is launched.
 
 	Args:
 		anonymous (bool, optional): If True, this function will log all of the anonymous values for

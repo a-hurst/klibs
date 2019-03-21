@@ -41,7 +41,7 @@ class AudioManager(object):
 	'self.audio'. As such, you should never need to create your own AudioManager object.
 
 	Attributes:
-		input (:obj:`pyaudio.PyAudio`, None): An interface for creating/destroying audio streams
+		input (:obj:`~pyaudio.PyAudio`, None): An interface for creating/destroying audio streams
 			and getting information about the host's audio hardware/APIs. See the PyAudio
 			documentation for more information. If the pyaudio module is not installed, this
 			attribute will be a NoneType instead.
@@ -69,7 +69,7 @@ class AudioManager(object):
 
 	def calibrate(self):
 		"""Determines a threshold loudness to use for vocal responses based on sample input from
-		the participant. See :obj:`KLAudio.AudioCalibrator` for more details.
+		the participant. See :obj:`~klibs.KLAudio.AudioCalibrator` for more details.
 
 		Returns:
 			int: an integer from 1 to 32767 representing the threshold value to use for vocal
@@ -113,7 +113,7 @@ class AudioManager(object):
 
 # Note AudioClip is an adaption of code originally written by mike lawrence (github.com/mike-lawrence)
 class AudioClip(object):
-	"""A class for loading and playing sound clips from files or :obj:`numpy.ndarray` arrays. Only
+	"""A class for loading and playing sound clips from files or :obj:`~numpy.ndarray` arrays. Only
 	16-bit WAVE files with a sample rate of 44100Hz are currently supported, but broader
 	OGG/FLAC/WAV support is planned. Multiple AudioClip objects can be played simultaneously.
 
@@ -126,8 +126,8 @@ class AudioClip(object):
 		alert.play()
 
 	Args:
-		clip (str or :obj:`numpy.ndarray`): The audio clip to load, can be either a path to a file
-			or a 2-column :class:`~.numpy.int16` numpy array.
+		clip (str or :obj:`~numpy.ndarray`): The audio clip to load, can be either a path to a file
+			or a 2-column :class:`~numpy.int16` numpy array.
 		volume (float, optional): The volume of the audio clip. Defaults to 1.0 (max volume).
 
 	"""
@@ -313,7 +313,7 @@ class AudioSample(object):
 			AudioSample.read().
 	
 	Attributes:
-		array (:obj:`array.array`): A Python array object containing the data from the input sample
+		array (:obj:`~array.array`): A Python array object containing the data from the input sample
 			in signed 16-bit ('h') format.
 		peak (int): The highest value in the sample (maximum is 32767).
 		trough (int): The lowest value in the sample (minimum is -32768).
@@ -330,7 +330,7 @@ class AudioSample(object):
 
 class AudioStream(pa_stream, EnvAgent):
 	"""A stream of audio from the default system audio input device (usually a microphone).
-	See the :obj:`pyaudio.Stream` documentation for a full list of this class's methods and
+	See the :obj:`~pyaudio.Stream` documentation for a full list of this class's methods and
 	attributes.
 
 	Args:
@@ -362,7 +362,7 @@ class AudioStream(pa_stream, EnvAgent):
 		open when this method is called, it will open one automatically.
 
 		Returns:
-			:obj:`KLAudio.AudioSample`: An AudioSample containing the most recent 1024 frames from
+			:obj:`~KLAudio.AudioSample`: An AudioSample containing the most recent 1024 frames from
 				the input stream.
 		"""
 		if not self.is_active():
@@ -529,7 +529,7 @@ class AudioCalibrator(EnvAgent):
 		
 		Args:
 			period (numeric): the number of seconds to record input for.
-			msg (:obj:`KLGraphics.KLNumpySurface.NumpySurface`, optional): a rendered message
+			msg (:obj:`~klibs.KLGraphics.KLNumpySurface.NumpySurface`, optional): a rendered message
 				to display in the top-right corner of the screen during the sampling loop.
 
 		Returns:

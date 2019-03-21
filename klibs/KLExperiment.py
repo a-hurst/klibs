@@ -29,11 +29,12 @@ class Experiment(EnvAgent):
 	
 	window = None
 	paused = False
-	
-	blocks = None
 
 	def __init__(self):
 		super(Experiment, self).__init__()
+
+		self.incomplete = True # flag for keeping track of session completeness
+		self.blocks = None # blocks of trials for the experiment
 
 		self.audio = AudioManager() # initialize audio management for the experiment
 		self.rc = ResponseCollector() # add default response collector
@@ -52,6 +53,7 @@ class Experiment(EnvAgent):
 
 		if self.blocks == None:
 			self.blocks = self.trial_factory.export_trials()
+
 		for block in self.blocks:
 			P.recycle_count = 0
 			P.block_number = self.blocks.i
@@ -72,6 +74,8 @@ class Experiment(EnvAgent):
 					clear()
 				self.rc.reset()
 		self.clean_up()
+
+		self.incomplete = False
 		if 'session_info' in self.database.table_schemas.keys():
 			self.database.update('session_info', {'complete': True})
 
@@ -131,17 +135,69 @@ class Experiment(EnvAgent):
 		return self.database.insert(trial_template)
 
 
-	def before_flip(self):
-		if P.show_gaze_dot and self.el.recording:
-			try:
-				self.tracker_dot
-			except AttributeError:
-				self.tracker_dot = kld.Ellipse(8, stroke=[2, (255,255,255)], fill=(255,0,0)).render()
-			try:
-				blit(self.tracker_dot, 5, self.el.gaze())
-			except RuntimeError:
-				pass
-				
+	## Define abstract methods to be overridden in experiment.py ##
+
+	@abstractmethod
+	def setup(self):
+		"""The first part of the experiment that gets run. Locations, sizes, stimuli, and
+		other experiment resources that stay the same throughout the experiment should be
+		initialized and defined here.
+
+		"""
+		pass
+
+	@abstractmethod
+	def block(self):
+		"""Run once at the start of every block. Block messages, block-level stimulus generation,
+		and similar content should go here.
+
+		"""
+		pass
+
+	@abstractmethod
+	def setup_response_collector(self):
+		"""Run immediately before trial_prep during each iteration of the trial loop. If using a
+		:obj:`~klibs.KLResponseCollectors.ResponseCollector` that requires configuration at the
+		start of each trial, that code should go here.
+		
+		"""
+		pass
+	
+	@abstractmethod
+	def trial_prep(self):
+		"""Run immediately before the start of every trial. All trial preparation unrelated to
+		response collection should go here.
+
+		"""
+		pass
+
+	@abstractmethod
+	def trial(self):
+		"""The core of the experiment. All code related to the presentation of stimuli during a
+		given trial, the collection and processing of responses, and the writing out of primary
+		data should go here.
+
+		The timing of events in the built-in :obj:`~klibs.KLEventManager.EventManager` instance
+		(``self.evm``) are all relative to when this method is called.
+
+		"""
+		pass
+
+	@abstractmethod
+	def trial_clean_up(self):
+		"""Run immediately after the end of every trial.
+
+		"""
+		pass
+	
+	@abstractmethod
+	def clean_up(self):
+		"""Run once at the end of the experiment, after all trials have been completed. Anything
+		you want to happen at the very end of the session should go here.
+
+		"""
+		pass
+	
 
 	def insert_practice_block(self, block_nums, trial_counts=None, factor_mask=None):
 		"""
@@ -190,6 +246,26 @@ class Experiment(EnvAgent):
 		for i in range(0, len(block_nums)):
 			self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_mask)
 			P.blocks_per_experiment += 1
+
+	
+	def before_flip(self):
+		"""A method called immediately before every refresh of the screen (i.e. every time
+		:func:`~klibs.KLGraphics.flip` is called).
+		
+		By default, this is used for drawing the current gaze location to the screen when using an
+		eye tracker (and ``P.show_gaze_dot`` is True), but can be overridden with a different
+		function if desired.
+
+		"""
+		if P.show_gaze_dot and self.el.recording:
+			try:
+				self.tracker_dot
+			except AttributeError:
+				self.tracker_dot = kld.Ellipse(8, stroke=[2, (255,255,255)], fill=(255,0,0)).render()
+			try:
+				blit(self.tracker_dot, 5, self.el.gaze())
+			except RuntimeError:
+				pass
 
 
 	def quit(self):
@@ -248,6 +324,7 @@ class Experiment(EnvAgent):
 
 		self.quit()
 
+
 	def show_logo(self):
 		logo = NpS(P.logo_file_path)
 		flush()
@@ -256,40 +333,3 @@ class Experiment(EnvAgent):
 			blit(logo, 5, P.screen_c)
 			flip()
 		any_key()
-
-
-	## Define abstract methods to be overridden in experiment.py ##
-	#TODO: Add in-line documentation for most of these
-
-	if P.multi_session_project:
-		@abstractmethod
-		def init_session(self, id_str):
-			pass
-
-	@abstractmethod
-	def setup(self):
-		pass
-
-	@abstractmethod
-	def block(self):
-		pass
-
-	@abstractmethod
-	def setup_response_collector(self):
-		pass
-	
-	@abstractmethod
-	def trial_prep(self):
-		pass
-
-	@abstractmethod
-	def trial(self):
-		pass
-
-	@abstractmethod
-	def trial_clean_up(self):
-		pass
-	
-	@abstractmethod
-	def clean_up(self):
-		pass

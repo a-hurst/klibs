@@ -203,9 +203,9 @@ def init_project():
 
 	global initialized
 
-
-	# file names
+	# File names
 	database_filename = str(project_name) + DB_EXT
+	database_local_filename = str(project_name) + str(random_seed) + DB_EXT
 	schema_filename = str(project_name) + SCHEMA_EXT
 	user_queries_filename = str(project_name) + USER_QUERIES_EXT
 	log_filename = str(project_name) + LOG_EXT
@@ -213,7 +213,7 @@ def init_project():
 	params_filename = str(project_name) + PARAMS_EXT
 	events_filename = str(project_name) + MESSSAGING_EXT
 
-	# project paths
+	# Project paths
 	data_dir = join(asset_dir, "Data")
 	local_dir = join(asset_dir, "Local")
 	edf_dir = join(asset_dir, "EDF")  # todo: write edf management
@@ -222,7 +222,7 @@ def init_project():
 	schema_file_path = join(config_dir, schema_filename)
 	user_queries_file_path = join(config_dir, user_queries_filename)
 	database_path = join(asset_dir, database_filename)
-	database_local_path = join(tempfile.gettempdir(), database_filename)
+	database_local_path = join(tempfile.gettempdir(), database_local_filename)
 	database_backup_path = database_path + BACK_EXT
 	incomplete_data_dir = join(data_dir, "incomplete")
 	ind_vars_file_path = join(config_dir, ind_vars_filename)
@@ -236,21 +236,12 @@ def init_project():
 	# Font folder info
 	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
 
-	project_structure = [
-		local_dir, logs_dir, versions_dir, edf_dir, data_dir,
-		incomplete_data_dir, incomplete_edf_dir
-	]
-	for path in project_structure:
-		if not exists(path):
-			try:
-				makedirs(path)
-			except OSError:
-				pass
-
 	initialized = True
 	return True
 
+
 def setup(project_name_str, seed_value=None):
+
 	global project_name
 	global random_seed
 	global anonymous_username
@@ -278,11 +269,5 @@ def setup(project_name_str, seed_value=None):
 	config_dir = join(asset_dir, "Config")
 	logo_file_path = resource_filename('klibs', 'resources/splash.png')
 
-	for path in [exp_font_dir, image_dir]:
-		if not exists(path):
-			try:
-				makedirs(path)
-			except OSError:
-				pass
-
 	return init_project()
+	

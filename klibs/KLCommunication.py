@@ -81,10 +81,11 @@ def collect_demographics(anonymous=False):
 		if q.active:
 			# if querying unique identifier, make sure it doesn't already exist in db
 			if q.database_field == P.unique_identifier:
+				# TODO: fix this to work with multi-user mode
 				existing = db.query("SELECT `{0}` FROM `participants`".format(q.database_field))
 				while True:
 					value = query(q, anonymous=anonymous)
-					if value in [val[0] for val in existing]:
+					if utf8(value) in [utf8(val[0]) for val in existing]:
 						err = ("A participant with that ID already exists!\n"
 								"Please try a different identifier.")
 						fill()

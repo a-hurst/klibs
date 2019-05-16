@@ -427,7 +427,7 @@ class Ellipse(Drawbject):
 		self._init_surface()
 
 
-def Circle(Ellipse):
+class Circle(Ellipse):
 	"""Creates a Drawbject containing a circle. A special case of the Ellipse.
 
 	Mainly here for backwards compatibility with older experiments, may be removed in a
@@ -447,8 +447,9 @@ def Circle(Ellipse):
 		:obj:`KLDraw.Drawbject`: A Drawbject containing the specified circle.
 
 	"""
+
 	def __init__(self, diameter, stroke=None, fill=None, auto_draw=True):
-		Ellipse.__init__(self, diameter, diameter, stroke, fill, auto_draw)
+		super(Circle, self).__init__(diameter, diameter, stroke, fill, auto_draw)
 
 
 class Annulus(Drawbject):
@@ -843,7 +844,7 @@ class ColorWheel(Drawbject):
 		diameter (int): The diameter of the color wheel in pixels.
 		thickness (int, optional): The width of the ring of the color wheel in pixels.
 			Defaults to one quarter of the diameter if not specified.
-		colorspace (:obj:`list`, optional): The list of colours to render the colour
+		colors (:obj:`list`, optional): The list of colours to render the colour
 			wheel with, in the form of RGB or RGBA tuples. Defaults to a CIELUV
 			constant-luminance colour wheel if not specified.
 		rotation (int, optional): The angle in degrees by which to rotate the color wheel
@@ -855,10 +856,11 @@ class ColorWheel(Drawbject):
 		
 	"""
 
-	def __init__(self, diameter, thickness=None, colorspace=None, rotation=0, auto_draw=True):
-		if colorspace == None:
-			colorspace = const_lum
-		self.palette = colorspace
+	def __init__(self, diameter, thickness=None, colors=None, rotation=0, auto_draw=True):
+		if colors == None:
+			colors = const_lum
+		self.__colors = None
+		self.colors = colors
 		self.diameter = diameter
 		self.radius = self.diameter / 2.0
 		self.thickness = 0.20 * diameter if not thickness else thickness
@@ -870,8 +872,8 @@ class ColorWheel(Drawbject):
 		rotation = self.rotation
 		center = self.surface_width / 2.0
 		r = self.radius + 1
-		for i in range(0, len(self.palette)):
-			brush = Brush(rgb_to_rgba(self.palette[i]))
+		for i in range(0, len(self.colors)):
+			brush = Brush(rgb_to_rgba(self.colors[i]))
 			vertices = [center, center]
 			for i in range(0, 4):
 				r_shift = -0.25 if i < 2 else 1.25
@@ -879,7 +881,7 @@ class ColorWheel(Drawbject):
 				func = cos if i % 2 else sin
 				vertices.append(r + r * func(radians(r_shift+180)))
 			self.surface.polygon(vertices, brush)
-			rotation += 360.0 / len(self.palette)
+			rotation += 360.0 / len(self.colors)
 		self.surface.flush()
 
 		# Create annulus mask and apply it to colour disc
@@ -900,10 +902,10 @@ class ColorWheel(Drawbject):
 		if not rotation:
 			rotation = self.rotation
 		
-		degrees_per_colour = 360.0/len(self.palette)
+		degrees_per_colour = 360.0/len(self.colors)
 		adj_angle = (angle - rotation) % 360
 		i = int(adj_angle/degrees_per_colour)
-		color = self.palette[i]
+		color = self.colors[i]
 		return color
 
 	def angle_from_color(self, color, rotation=None):
@@ -915,214 +917,27 @@ class ColorWheel(Drawbject):
 			rotation = self.rotation
 
 		try:
-			i = self.palette.index(rgb_to_rgba(color))
+			i = self.colors.index(rgb_to_rgba(tuple(color)))
 		except ValueError:
 			err_str = "The color '{0}' does not exist in the color wheel palette."
 			raise ValueError(err_str.format(rgb_to_rgba(color)))
-		degrees_per_colour = 360.0/len(self.palette)
+		degrees_per_colour = 360.0/len(self.colors)
 		angle = ((i+0.5) * degrees_per_colour + rotation) % 360
 		return angle
+
+	@property
+	def colors(self):
+		return self.__colors
+
+	@colors.setter
+	def colors(self, colorlist):
+		self.__colors = [rgb_to_rgba(tuple(c)) for c in colorlist]
 
 	@property
 	def __name__(self):
 		return "ColorWheel"
 
 
-
-class FreeDraw(Drawbject):
-
-	def __init__(self, width, height, stroke, origin=None, fill=None, auto_draw=True):
-		super(FreeDraw, self).__init__(width, height, stroke, fill)
-		self.origin = origin if origin else (0,0)
-		self.at = self.origin
-		self.closed = False
-		self.sequence = []
-		self.close_at = None
-
-	def line(self, destination, origin=None):
-		# if origin and origin != self.at:
-		# 	self.move(origin)
-		# else:
-		# 	self.move(self.at)
-		self.sequence.append([KLD_LINE, (destination[0], destination[1])])
-		# self.at = destination
-
-		return self
-
-	def arc(self, destination, control, origin=None):
-		# origin = self.__validate_ends(destination, origin)
-		# x_ctrl = (destination[0] + control[0] // 2, control[1])
-		# y_ctrl = (control[0], destination[1] + control[1] // 2)
-		# self.__validate_ends([], x_ctrl)
-		# self.__validate_ends([], y_ctrl)
-		# if origin and origin != self.at:
-		# 	self.move(origin)
-		# else:
-		# 	self.move(self.at)
-		# arc_el =
-		self.sequence.append([KLD_ARC, (list(origin) + list(control) + list(destination))])
-		# self.move(destination)
-		# self.at = destination
-
-		return self
-
-	def path(self, sequence, origin=None):
-		self.sequence.append([KLD_PATH, sequence])
-		self.at = sequence[-1]
-
-		return self
-
-	def move(self, location):
-		self.sequence.append([KLD_MOVE, location])
-
-	def draw_points(self, sequence):
-		def chunks(s, n):
-			for i in range(0, len(s), n):
-				yield s[i:i + n]
-		e_size = 3
-		for s in chunks(sequence, 2):
-			x1 = s[0] - e_size
-			x2 = s[0] + e_size
-			y1 = s[1] - e_size
-			y2 = s[1] + e_size
-			b = Brush((0,0,0))
-			self.surface.ellipse([x1,y1,x2,y2], b)
-			print("CHUNK! {0}".format([x1,y1,x2,y2]))
-		self.surface.flush()
-
-	def draw(self, with_points=False):
-		self.surface.rectangle([0,0,self.object_width, self.object_height], Brush((245, 245, 245)))
-
-		# path_str = "M{0},{1}".format(*self.origin)
-		path_str = ""
-		for s in self.sequence:
-			# if self.sequence[0] == s:
-			# 	path_str += "M{0},{1}".format(s[1][0], s[1][1])
-			if s[0] == KLD_MOVE:
-				path_str += " M{0},{1}".format(s[1][0], s[1][1])
-			if s[0]  == KLD_LINE:
-				path_str += " L{0},{1}".format(*s[1])
-			if s[0]  == KLD_ARC:
-				path_str += " S{0},{1},{2},{3},{4},{5}".format(*s[1])
-			if s[0]  == KLD_PATH:
-				for p in s[1]:
-					path_str += "L{0},{1}".format(*p)
-		if self.close_at:
-			path_str += " {0},{1}z".format(*self.close_at)
-		p = Symbol(path_str)
-		self.surface.symbol((0,0), p, self.stroke)
-		self.surface.flush()
-		return self.canvas
-
-	def __validate_ends(self, sequence, origin):
-		if not origin:
-			if not self.at:
-				return ValueError("Parameter 'at' not currently set and no origin provided.")
-			origin = self.at
-		try:
-			if type(sequence[0]) is int:
-				sequence = [sequence]
-		except IndexError:
-			pass
-		# for loc in sequence:
-		# 	if loc[0] not in range(0, self.object_width) or loc[1] not in range(0, self.object_height):
-		# 		raise ValueError("Location ({0}, {1}) does not fall within surface bounds.".format(*loc))
-		return origin
-
-	@property
-	def __name__(self):
-		return "FreeDraw"
-
-class Bezier(Drawbject):
-	path_str = "m{0},{1} c{2},{3} {4},{5} {6},{7} z"
-	path_str_2 = "m{0},{1} c{2},{3} {4},{5} {6},{7} s{8},{9} {10},{11} z"
-
-	def __init__(self, height, width, origin, destination, ctrl1_s, ctrl1_e, ctrl2_s=None, ctrl2_e=None, stroke=None, fill=None, auto_draw=True):
-		super(Bezier, self).__init__(width, height, stroke, fill)
-		self.origin = origin
-		self.destination = destination
-		self.ctrl_start = ctrl1_s
-		self.ctrl_end = ctrl1_e
-		self.ctrl_2_start = ctrl2_s
-		self.ctrl_2_end = ctrl2_e
-
-		if auto_draw:
-			self.draw()
-
-	def draw(self):
-		data = self.origin + self.ctrl_start + self.ctrl_end + self.destination
-		path_str = self.path_str
-		if self.ctrl_2_start and self.ctrl_2_end:
-			data += self.ctrl_2_start
-			data += self.ctrl_2_end
-			path_str = self.path_str_2
-		sym = Symbol(path_str.format(*data))
-		self.surface.path((0,0), sym, self.stroke, self.fill)
-		self.surface.flush()
-		return self.canvas
-
-
-	# # The following functions [bezier_curve() and pascal_row()]were written by the StackOverflow user @unutbu (#notypo)
-	# # http://stackoverflow.com/questions/246525/how-can-i-draw-a-bezier-curve-using-pythons-pil
-	# def __bezier_curve(self, xys):
-	# 	# xys should be a sequence of 2-tuples (Bezier control points)
-	# 	n = len(xys)
-	# 	combinations = self.__pascal_row(n-1)
-	# 	def bezier(ts):
-	# 		# This uses the generalized formula for bezier curves
-	# 		# http://en.wikipedia.org/wiki/B%C3%A9zier_curve#Generalization
-	# 		result = []
-	# 		for t in ts:
-	# 			t_powers = (t**i for i in range(n))
-	# 			u_powers = reversed([(1-t)**i for i in range(n)])
-	# 			coeffficients = [c*a*b for c, a, b in zip(combinations, t_powers, u_powers)]
-	# 			result.append(
-	# 				tuple(sum([c*p for c, p in zip(coeffficients, ps)]) for ps in zip(*xys)))
-	# 		return result
-	# 	return bezier
-	#
-	# def __pascal_row(self, n):
-	# 	# This returns the nth row of Pascal's Triangle
-	# 	result = [1]
-	# 	x, numerator = 1, n
-	# 	for denominator in range(1, n//2+1):
-	# 		# print(numerator,denominator,x)
-	# 		x *= numerator
-	# 		x /= denominator
-	# 		result.append(x)
-	# 		numerator -= 1
-	# 	if n&1 == 0:
-	# 		# n is even
-	# 		result.extend(reversed(result[:-1]))
-	# 	else:
-	# 		result.extend(reversed(result))
-	# 	return result
-
-# class SVG(Drawbject):
-#
-# 	def __init__(self, filename, auto_draw=True):
-# 		svg_start = re.compile("<path.*d=(.*)")
-# 		svg_end = re.compile("(.*)/>\n")
-# 		fpath = os.path.join(P.image_dir, filename+".svg")
-# 		paths = []
-# 		img = open(fpath).readlines()
-# 		started = False
-# 		for l in open(self.edf_path).readlines():
-# 			if P_ID.match(l) is not None:
-# 				id = P_ID.match(l).group(1)
-# 			if START.match(l) is not None:
-# 				t = Trial(START_TIME.match(l).group(1))
-# 				continue
-# 			if END.match(l) is not None:
-# 				t.end = END_TIME.match(l).group(1)
-# 				self.add_trial(t)
-# 				t = None
-# 				continue
-# 			if t:
-# 				t.add_line(l)
-# 		for l in img:
-# 			if svg_start.match()
-#
 
 # polygon
 	#hs = self.size / 2.0 # half of the asterisk's size

@@ -287,7 +287,7 @@ class Experiment(EnvAgent):
 
 		if P.eye_tracking and P.eye_tracker_available:	
 			try:
-				self.el.shut_down()
+				self.el.shut_down(incomplete=self.incomplete)
 			except Exception:
 				err += "<red>Eye tracker encountered error during shutdown:</red>\n\n"
 				err += full_trace()+"\n\n"

@@ -105,12 +105,16 @@ class TryLink(EyeTracker):
 		self.__recording = False
 
 
-	def shut_down(self):
+	def shut_down(self, incomplete=False):
 		"""Terminates recording and disconnects from the eye tracker, putting it into standby mode.
 		Should also transfer any data files from the current session to the KLibs computer
 		from the tracker (e.g. EDF files). Does nothing when using TryLink simulation.
 
 		Called automatically whenever KLibs exits. For internal use only.
+
+		Args:
+            incomplete (bool, optional): Whether the full session was completed before the function
+                was called. Has no effect in TryLink simulation mode. Defaults to False.
 
 		"""
 		self.stop()

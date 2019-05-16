@@ -140,15 +140,23 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		flushGetkeyQueue()
 
 
-	def shut_down(self):
+	def shut_down(self, incomplete=False):
 		"""Terminates recording and disconnects from the eye tracker, putting it into standby mode.
 
 		Will also transfer the EDF file for the current session from the tracker to the project's
-		``ExpAssets/EDF`` folder.
+		``ExpAssets/EDF`` folder (or its ``incomplete`` subfolder, if incomplete = True).
 
 		Called automatically whenever KLibs exits. For internal use only.
 
+		Args:
+            incomplete (bool, optional): Whether the full session was completed before the function
+                was called. If True, the EDF file for the session will be written to an 'incomplete'
+                subfolder of the eye tracker data directory ('ExpAssets/EDF'). Defaults to False.
+
 		"""
+		# Determine whether EDF should go to 'incomplete' subfolder or not
+		edf_dir = P.incomplete_edf_dir if incomplete else P.edf_dir
+
 		self._quitting = True
 		if self.isRecording() == 0:
 			self.stopRecording()
@@ -156,7 +164,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		self.setOfflineMode()
 		msecDelay(500)
 		self.closeDataFile()
-		self.receiveDataFile(self.edf_filename, join(P.edf_dir, self.edf_filename))
+		self.receiveDataFile(self.edf_filename, join(edf_dir, self.edf_filename))
 		return self.close()
 
 

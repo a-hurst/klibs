@@ -79,7 +79,8 @@ def create(name, path):
 			"Resources": {"audio": None, "code": None, "font": None, "image": None},
 			"Local": {"logs": None},
 			"Data": {"incomplete": None},
-			"EDF": {"incomplete": None} }
+			"EDF": {"incomplete": None}
+		}
 	}
 	template_files = [
 		("schema.sql", ["ExpAssets", "Config"]),
@@ -324,6 +325,10 @@ def export(path, table=None, combined=False, join=None):
 
 	# set initial param values for project's context
 	P.setup(project_name)
+
+	# ensure that 'Data' and 'Data/incomplete' directories exist, creating if missing
+	if not os.path.isdir(P.incomplete_data_dir):
+		os.makedirs(P.incomplete_data_dir)
 
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():

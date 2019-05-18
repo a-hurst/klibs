@@ -424,7 +424,7 @@ class DatabaseManager(EnvAgent):
 		else:
 			q = "SELECT id FROM trials WHERE participant_id = ?"
 			trialcount = len(self.__master.query(q, q_vars=[pid]))
-			return trialcount > P.trials_per_block * P.blocks_per_experiment
+			return trialcount >= P.trials_per_block * P.blocks_per_experiment
 
 
 	def write_local_to_master(self):
@@ -463,6 +463,7 @@ class DatabaseManager(EnvAgent):
 		self.__master.cursor.close()
 		self.__master.db.close()
 		if P.multi_user:
+			# TODO: Retry some number of times on write failure (locked db)
 			self.write_local_to_master()
 			self.__local.cursor.close()
 			self.__local.db.close()
@@ -531,18 +532,18 @@ class DatabaseManager(EnvAgent):
 			join_tables = join_tables[0].split(",")
 		except TypeError:
 			join_tables = []
+
+		cso("\n<green>*** Exporting data from {0} ***</green>\n".format(P.project_name))
 		self.__set_type_conversions(export=True)
 		column_names, data = self.collect_export_data(multi_file, join_tables)
 
-		cso("\n<green>*** Exporting data from {0} ***</green>\n".format(P.project_name))
 		if multi_file:
-			for data_set in data:
-				p_id = data_set[0]
+			for p_id, trials in data:
 				header = self.export_header(p_id)
 				incomplete = (self.__is_complete(p_id) == False)
 				file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
 				with io.open(file_path, 'w+', encoding='utf-8') as out:
-					out.write(u"\n".join([header, column_names, "\n".join(data_set[1])]))
+					out.write(u"\n".join([header, column_names, "\n".join(trials)]))
 				print("    - Participant {0} successfully exported.".format(p_id))
 		else:
 			combined_data = []
@@ -559,7 +560,6 @@ class DatabaseManager(EnvAgent):
 
 
 	def export_header(self, user_id=None):
-
 		if 'session_info' in self.__master.table_schemas:
 			info_table = 'session_info'
 			info_cols = list(self.__master.table_schemas['session_info'].keys())
@@ -688,6 +688,7 @@ class DatabaseManager(EnvAgent):
 			self.__master._drop_tables(self.__master.table_list)
 			self.__restore__()
 			raise e
+
 
 	## Convenience methods that all pass to corresponding method of current DB ##
 

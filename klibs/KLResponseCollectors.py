@@ -1239,8 +1239,11 @@ class ResponseCollector(EnvAgent):
 				timeout = self.terminate_after[0]
 				if self.terminate_after[1] == TK_S: timeout *= 1000.0
 				if t > (self.rc_start_time + timeout):
-					if P.development_mode:
-						print("Response collection timed out after {0}s.".format(timeout/1000.0))
+					for listener in self.using():
+						l = self.listeners[listener]
+						if P.development_mode and l.response_count < l.min_response_count:
+							msg = "Response collection for {0} timed out after {1}s."
+							print(msg.format(l.name, timeout/1000.0))
 					break
 
 			# Check event queue for UI requests if not already processing keypress responses

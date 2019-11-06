@@ -25,6 +25,7 @@ p_id = None # alias for participant_id
 trial_id = None
 trial_number = 0
 block_number = 0
+session_number = 1
 recycle_count = 0 # reset on a per-block basis
 
 # State variables

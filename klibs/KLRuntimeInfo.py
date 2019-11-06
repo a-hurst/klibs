@@ -91,7 +91,7 @@ def runtime_info_init():
 
     info = {
         'participant_id': P.participant_id,
-        'session_number': 1,
+        'session_number': P.session_number,
         'complete': False,
         'date': datetime.now().strftime("%Y-%m-%d"),
         'time': datetime.now().strftime("%H:%M:%S"),

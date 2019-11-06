@@ -417,10 +417,12 @@ class DatabaseManager(EnvAgent):
 
 
 	def __is_complete(self, pid):
-		#TODO: needs modification to work with multi-session projects
+		#TODO: still needs modification to work with multi-session projects
 		if 'session_info' in self.__master.table_schemas:	
 			q = "SELECT complete FROM session_info WHERE participant_id = ?"
-			return bool(self.__master.query(q, q_vars=[pid])[0][0])
+			sessions = self.__master.query(q, q_vars=[pid])
+			complete = [bool(s[0]) for s in sessions]
+			return all(complete)
 		else:
 			q = "SELECT id FROM trials WHERE participant_id = ?"
 			trialcount = len(self.__master.query(q, q_vars=[pid]))
@@ -570,22 +572,19 @@ class DatabaseManager(EnvAgent):
 
 		runtime_info = {}
 		for colname in info_cols:
+			q = "SELECT DISTINCT {0} FROM {1}".format(colname, info_table)
 			if user_id:
-				q = "SELECT {0} FROM {1} WHERE `id` = ?".format(colname, info_table)
-				runtime_info[colname] = self.__master.query(q, q_vars=[user_id])[0][0]
+				q += " WHERE `participant_id` = ?"
+				values = self.__master.query(q, q_vars=[user_id])
 			else:
-				q = "SELECT DISTINCT {0} FROM {1}".format(colname, info_table)
 				values = self.__master.query(q)
-				if len(values) > 1:
-					runtime_info[colname] = "(multiple)"
-				else:
-					runtime_info[colname] = values[0][0]
+			runtime_info[colname] = "(multiple)" if len(values) > 1 else values[0][0]
 
 		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", runtime_info['klibs_commit']]]
 		if info_table == 'session_info':
 			exp_vars 	 = ["EXPERIMENT SETTINGS",
 							["Trials Per Block", runtime_info['trials_per_block']],
-							["Blocks Per Experiment", runtime_info['blocks_per_session']]]
+							["Blocks Per Session", runtime_info['blocks_per_session']]]
 			system_vars  = ["SYSTEM INFO",
 							["Operating System", runtime_info['os_version']],
 							["Python Version", runtime_info['python_version']]]

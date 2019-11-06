@@ -77,7 +77,8 @@ class Experiment(EnvAgent):
 
 		self.incomplete = False
 		if 'session_info' in self.database.table_schemas.keys():
-			self.database.update('session_info', {'complete': True})
+			where = {'session_number': P.session_number}
+			self.database.update('session_info', {'complete': True}, where)
 
 
 	def __trial__(self, trial, practice):

@@ -2,15 +2,19 @@ import pytest
 import mock
 import klibs
 
-with mock.patch("os.path.exists") as path_exists:
-	path_exists.return_value = True
+from klibs.KLJSON_Object import AttributeDict
+
 
 @pytest.fixture
 def experiment():
 	from klibs.KLExperiment import Experiment
-	return Experiment("TestProject", 13, None, False, False, False, False)
+	from klibs import P
+	P.manual_trial_generation = True
+	return Experiment()
 
 
 def test_Experiment(experiment):
-	with pytest.raises(OSError):
+	with mock.patch.object(experiment, 'quit', return_value=None):
+		experiment.blocks = []
+		experiment.database = AttributeDict({'table_schemas': {}})
 		experiment.run()

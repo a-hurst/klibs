@@ -1,6 +1,9 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-import collections
+try:
+	from collections.abc import MutableMapping
+except ImportError:
+	from collections import MutableMapping
 
 
 class NamedObject(object):
@@ -14,7 +17,7 @@ class NamedObject(object):
 		return self.__name__
 
 
-class NamedInventory(collections.MutableMapping):
+class NamedInventory(MutableMapping):
 	"""A dictionary specifically for objects that implement KLObject mixin."""
 
 	def __init__(self, *args, **kwargs):

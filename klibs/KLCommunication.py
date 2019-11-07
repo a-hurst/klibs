@@ -147,7 +147,7 @@ def init_messaging():
 		# After loading in queries, verify that all required sections are present
 		required_sections = ['default_strings', 'demographic', 'experimental']
 		for req in required_sections:
-			if not req in user_queries.__dict__.keys():
+			if not req in user_queries.keys():
 				err = "<red>Error: user_queries.json file missing required section '{0}'.</red>"
 				cso(err.format(req))
 				raise ValueError()

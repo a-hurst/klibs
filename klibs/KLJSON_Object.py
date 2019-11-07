@@ -21,7 +21,7 @@ class AttributeDict(dict):
 		self[key] = value
 
 
-class JSON_Object(object):
+class JSON_Object(AttributeDict):
 	'''A class for importing JSON objects such that you can access their attributes the same way
 	you would a Python object. For example, if you imported a .json file with the following
 	contents:
@@ -67,9 +67,8 @@ class JSON_Object(object):
 	'''
 
 	def __init__(self, json_file_path):
-		self.file_path = json_file_path
 		try:
-			json_file = io.open(self.file_path, encoding='utf-8')
+			json_file = io.open(json_file_path, encoding='utf-8')
 			json_dict = json.load(json_file, object_hook=self.__objectify)
 			for key in json_dict:
 				setattr(self, key, json_dict[key])

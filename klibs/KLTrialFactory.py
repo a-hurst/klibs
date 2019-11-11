@@ -6,10 +6,8 @@ from collections import OrderedDict
 from copy import copy, deepcopy
 from itertools import product
 from os.path import exists, join
-from os import makedirs
 from imp import load_source
 		
-from klibs.KLEnvironment import EnvAgent
 from klibs import P
 from klibs.KLIndependentVariable import IndependentVariableSet
 
@@ -90,27 +88,50 @@ class TrialIterator(BlockIterator):
 		self.__practice = practicing == True
 
 
+
 class TrialFactory(object):
 
-	exp_factors = None
-	excluded_practice_factors = None
-	trial_generator = None
-	event_code_generator = None
+	def __init__(self):
 
-	def __init__(self, trial_generator=None):
-		self.trial_generator = trial_generator
+		self.blocks = None
+		self.trial_generator = self.__generate_trials
 
-	def __generate_trials__(self, factors=None, block_count=None, trial_count=None):
-		# if a well-formatted factor list is passed, use that instead of self.exp_factors
-		if factors is None:
-			factors = self.exp_factors
+		# Load experiment factors from the project's _independent_variables.py file(s)
+		factors = self.__load_ind_vars(P.ind_vars_file_path)
+		if not P.dm_ignore_local_overrides:
+			try:
+				sys.path.append(P.ind_vars_file_local_path)
+				local_factors = self.__load_ind_vars(P.ind_vars_file_local_path)
+				factors.update(local_factors)
+			except IOError:
+				pass
+		
+		# Create alphabetically-sorted ordered dict from factors
+		self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
+
+
+	def __load_ind_vars(self, path):
+
+		set_name = "{0}_ind_vars".format(P.project_name)
+		try:
+			var_set = load_source("*", path).__dict__[set_name]
+			factors = var_set.to_dict()
+		except KeyError:
+			err = 'Unable to find IndependentVariableSet in independent_vars.py.'
+			raise RuntimeError(err)
+
+		return factors
+
+
+	def __generate_trials(self, factors, block_count, trial_count):
 
 		factor_list = []
 		for name, values in factors.items(): # convert dict to list
 			factor_list.append([name, values])
 
 		trial_tuples = list(product(*[factor[1][:] for factor in factor_list]))
-		if len(trial_tuples) == 0: trial_tuples = [ [] ]
+		if len(trial_tuples) == 0:
+			trial_tuples = [ [] ]
 		# convert each trial tuple to a list
 		trial_set = []
 		for t in trial_tuples:
@@ -120,14 +141,8 @@ class TrialFactory(object):
 		trials = copy(trial_set)
 		random.shuffle(trials)
 
-		# Generate one complete set of trials based on given factors
-		if block_count is None:
-			block_count = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
-		if trial_count is None:
-			if P.trials_per_block <= 0:
-				P.trials_per_block = trial_set_count
-			trial_count = P.trials_per_block
-
+		if trial_count <= 0:
+			trial_count = trial_set_count
 		total_trials = block_count * trial_count
 
 		if total_trials > trial_set_count:
@@ -148,51 +163,30 @@ class TrialFactory(object):
 		blocks = []
 		for i in range(0, len(trials), trial_count):
 			blocks.append(trials[i:i + trial_count])
+
 		return blocks
-	
-	def __load_ind_vars(self, path):
-		set_name = "{0}_ind_vars".format(P.project_name)
-		try:
-			var_set = load_source("*", path).__dict__[set_name]
-			factors = var_set.to_dict()
-		except KeyError:
-			err = 'Unable to find IndependentVariableSet in independent_vars.py.'
-			raise RuntimeError(err)
-		return factors
 
-	def generate(self, exp_factors=None):
-		if not exp_factors:
-			factors = self.__load_ind_vars(P.ind_vars_file_path)
-			if not P.dm_ignore_local_overrides:
-				try:
-					sys.path.append(P.ind_vars_file_local_path)
-					local_factors = self.__load_ind_vars(P.ind_vars_file_local_path)
-					factors.update(local_factors)
-				except IOError:
-					pass
-				
 
-		# Create alphabetically-sorted ordered dict from factors
-		self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
+	def generate(self, exp_factors=None, block_count=None, trial_count=None):
 
-		try:
-			self.blocks = BlockIterator(self.trial_generator(self.exp_factors))
-		except TypeError:
-			self.blocks = BlockIterator(self.__generate_trials__())
+		# If block/trials-per-block counts aren't specified, use values from params.py
+		if block_count is None:
+			block_count = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
+		if trial_count is None:
+			trial_count = P.trials_per_block
+		
+		exp_factors = self.exp_factors if exp_factors == None else exp_factors
+		blocks = self.trial_generator(exp_factors, block_count, trial_count)
+		self.blocks = BlockIterator(blocks)
+
 
 	def export_trials(self):
+		if not self.blocks:
+			raise RuntimeError("Trials must be generated before they can be exported.")
 		return self.blocks
 
-	def add_factor_by_inference(self, factor_name, generator, argument_list):
-		"""
 
-		:param factor_name:
-		:param generator:
-		:param argument_list:
-		"""
-		self.exp_factors[factor_name] = {"f": generator, "arg_list": argument_list}
-
-	def insert_block(self, block_num, practice=False, trial_count=None, factor_mask=None):
+	def insert_block(self, block_num, practice=False, trial_count=0, factor_mask=None):
 		"""
 
 		:param block_num:
@@ -218,12 +212,10 @@ class TrialFactory(object):
 			# If no factor mask, generate trials randomly based on self.exp_factors
 			factors = None
 
-		block = self.__generate_trials__(factors, 1, trial_count)
+		block = self.trial_generator(factors, 1, trial_count)
 		# there is no "zero" block from the UI/UX perspective, so adjust insertion accordingly
 		self.blocks.insert(block_num - 1, block[0], practice)
 
-	def define_trial(self, rule, quantity):
-		pass
 
 	def num_values(self, factor):
 		"""
@@ -238,9 +230,9 @@ class TrialFactory(object):
 			e_msg = "Factor '{0}' not found.".format(factor)
 			raise ValueError(e_msg)
 
+
 	def dump(self):
-		if not exists(P.local_dir):
-			makedirs(P.local_dir)
+		# TODO: Needs a rewrite
 		with open(join(P.local_dir, "TrialFactory_dump.txt"), "w") as log_f:
 			log_f.write("Blocks: {0}, ".format(P.blocks_per_experiment))
 			log_f.write("Trials: {0}\n\n".format(P.trials_per_block))
@@ -263,22 +255,17 @@ class TrialFactory(object):
 				block_num += 1
 				log_f.write("\n")
 
+
 	@property
 	def trial_generation_function(self, trial_generator):
-		"""
-
-		:param trial_generator:
-		:return:
+		"""Not properly implemented, unlikely to work. Still figuring out how/if custom
+		trial generation should be handled.
 		"""
 		return self.trial_generator
 
+
 	@trial_generation_function.setter
 	def trial_generation_function(self, trial_generator):
-		"""
-
-		:param trial_generator:
-		:raise ValueError:
-		"""
 		if not hasattr(trial_generator, '__call__'):
 			raise ValueError("trial_generator must be a function definition.")
 		else:

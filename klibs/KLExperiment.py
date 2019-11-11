@@ -40,7 +40,7 @@ class Experiment(EnvAgent):
 		self.rc = ResponseCollector() # add default response collector
 		self.database = self.db # use database from evm
 
-		self.trial_factory = TrialFactory(self)
+		self.trial_factory = TrialFactory()
 		if P.manual_trial_generation is False:
 			self.trial_factory.generate()
 		self.event_code_generator = None

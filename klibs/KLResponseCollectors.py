@@ -872,7 +872,6 @@ class DrawResponse(ResponseListener, BoundaryInspector):
 		self.points = []
 		self.started = False
 		self.stopped = False
-		self.stop_eligible = False
 		self.start_time = None # time of first entry into start_boundary
 		self.first_sample_time = None # time of first sample outside of start_boundary
 		# User-facing options
@@ -889,61 +888,58 @@ class DrawResponse(ResponseListener, BoundaryInspector):
 		self.stroke_width = 1
 
 
+	def init(self):
+		"""See :meth:`ResponseListener.init`.
+
+		"""
+		# Do sanity checks before entering collection
+		if not self.stop_boundary or not self.start_boundary:
+			raise ValueError("Start and stop boundaries must be provided for draw listeners.")
+		# Make cursor visible or invisible at collection start, depending on listener options
+		if self.show_inactive_cursor:
+			show_mouse_cursor()
+		else:
+			hide_mouse_cursor()
+
+
 	def listen(self, event_queue=None):
 		"""See :meth:`ResponseListener.listen`.
 
 		"""
-		# assert cursor visibility (or not)
-		if not self.started or self.stopped:
-			if self.show_inactive_cursor:
-				show_mouse_cursor()
-			else:
-				hide_mouse_cursor()
-		if self.started and not self.stopped:
-			if self.show_active_cursor:
-				show_mouse_cursor()
-			else:
-				hide_mouse_cursor()
 
 		mp = mouse_pos()
+		if tuple(mp) in P.ignore_points_at:
+			return None
 
-		# if there are no boundaries for initation and completion, start immediately
-		if not self.stop_boundary or not self.start_boundary:
-			self.started = True
-
-		# if boundaries, test for initiation condition
+		# If drawing not started, check if cursor in start boundary and start if so
 		if not self.started:
 			if self.within_boundary(self.start_boundary, mp):
 				self.started = True
 				self.start_time = self.evm.trial_time
+				if self.show_active_cursor:
+					show_mouse_cursor()
+				else:
+					hide_mouse_cursor()
 
-		# if boundaries, test for completion condition
-		if self.within_boundary(self.stop_boundary, mp):
-			if self.stop_eligible and not self.stopped:
+		# If started and within stop boundary, check if stop eligible and stop if so
+		elif self.within_boundary(self.stop_boundary, mp):
+			if len(self.points) >= self.min_samples and not self.stopped:
 				self.stopped = True
 				rt = (self.points[-1][2] - self.points[0][2])
 				return Response(self.points, rt)
 
-		# don't allow checking for stopped condition until started and outside of start boundary
-		self.drawing = not self.within_boundary(self.start_boundary, mp) and self.started
-		if self.drawing:
-			try:
+		# Otherwise, if started and cursor not within start/stop boundaries, record drawing
+		elif not self.within_boundary(self.start_boundary, mp):
+			if self.first_sample_time:
 				timestamp = self.evm.trial_time - self.first_sample_time
-			except TypeError:
+			else:
 				self.first_sample_time = self.evm.trial_time
 				timestamp = 0.0
-			p = [mp[0] - self.x_offset, mp[1] - self.y_offset]
-			if tuple(p) in P.ignore_points_at:
-				return
-			p.append(timestamp)
-			try:
-				# don't repeat points
-				if mp != self.points[-1]:
-					self.points.append(tuple(p))
-			except IndexError:
-				self.points.append(tuple(p))
+			p = (mp[0] - self.x_offset, mp[1] - self.y_offset, timestamp)
+			self.points.append(p)
 
-		self.stop_eligible = self.drawing and len(self.points)>=self.min_samples
+		return None
+
 
 	def reset(self):
 		"""See :meth:`ResponseListener.reset`.
@@ -953,35 +949,30 @@ class DrawResponse(ResponseListener, BoundaryInspector):
 		self.points = []
 		self.started = False
 		self.stopped = False
-		self.stop_eligible = False
 		self.start_time = None
+		self.first_sample_time = None
+
 
 	def render_progress(self):
-		"""Renders the drawing so far so that it can be drawn to the screen.
+		"""Renders the drawing so far so that it can be drawn to the screen. If less than 2 points
+		have been collected or :attr:`render_real_time` is False, this returns an empty image with
+		the specified :attr:`fill`.
 
 		Returns:
-			A :obj:`numpy.ndarray` equal to the size of the screen in pixels (P.screen_x_y)
-			containing the drawing, or False if :attr:`render_real_time` is False, the cursor has
-			not yet left the start boundary, or less than two points have been collected.
-
+			A :obj:`numpy.ndarray` equal to the size of the screen in pixels (P.screen_x_y).
 		"""
-		if not self.render_real_time:
-			return False
-		if not self.started:
-			return False
-		if len(self.points) < 2:
-			return False
-		m_str = ""
-		for p in self.points:
-			if m_str == "":
-				m_str = "M{0},{1}".format(p[0], p[1])
-			else:
-				m_str += "L{0},{1}".format(p[0], p[1])
-		s = aggdraw.Symbol(m_str)
 		test_p = aggdraw.Draw("RGBA", P.screen_x_y, self.fill)
 		test_p.setantialias(True)
-		col = self.stroke_color
-		test_p.symbol((0,0), s, aggdraw.Pen(col[:3], self.stroke_width, col[3]))
+		if self.render_real_time and len(self.points) >= 2:
+			m_str = ""
+			for p in self.points:
+				if m_str == "":
+					m_str = "M{0},{1}".format(p[0], p[1])
+				else:
+					m_str += "L{0},{1}".format(p[0], p[1])
+			s = aggdraw.Symbol(m_str)
+			col = self.stroke_color
+			test_p.symbol((0,0), s, aggdraw.Pen(col[:3], self.stroke_width, col[3]))
 		return aggdraw_to_array(test_p)
 
 	@property

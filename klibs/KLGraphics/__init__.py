@@ -184,10 +184,12 @@ def display_init(diagonal_in):
 		P.screen_c = (P.screen_x // 2, P.screen_y // 2)
 		P.screen_x_y = (P.screen_x, P.screen_y)
 
-		P.refresh_rate = display_mode.refresh_rate
+		P.refresh_rate = float(display_mode.refresh_rate)
 		if P.refresh_rate == 0:
 			P.refresh_rate = 60.0
 			print("\tWarning: Unable to detect your monitor's refresh rate, defaulting to 60Hz.")
+		elif P.refresh_rate == 59:
+			P.refresh_rate = 59.94 # fix for some Windows monitors
 		P.refresh_time = 1000.0 / P.refresh_rate
 
 		#TODO: figure out what's actually needed for multi-monitor support
@@ -219,6 +221,7 @@ def display_init(diagonal_in):
 		)
 		window = sdl2.ext.Window(P.project_name, P.screen_x_y, P.screen_origin, SCREEN_FLAGS)
 		sdl2.SDL_GL_CreateContext(window.window)
+		sdl2.SDL_GL_SetSwapInterval(1) # enforce vsync
 		gl.glMatrixMode(gl.GL_PROJECTION)
 		gl.glLoadIdentity()
 		gl.glOrtho(0, P.screen_x, P.screen_y, 0, 0, 1)

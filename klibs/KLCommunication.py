@@ -7,7 +7,6 @@ import socket
 from copy import copy
 from time import time
 from os.path import join
-from hashlib import sha1
 from threading import Thread
 from sqlite3 import IntegrityError
 from shutil import copyfile, copytree
@@ -19,7 +18,7 @@ from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, QUERY_ACTION_UP
 	QUERY_ACTION_HASH)
 import klibs.KLParams as P
 from klibs.KLJSON_Object import JSON_Object, AttributeDict
-from klibs.KLUtilities import pretty_list, now, pump, flush, iterable, utf8
+from klibs.KLUtilities import pretty_list, now, pump, flush, iterable, utf8, make_hash
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLDatabase import EntryTemplate
 from klibs.KLRuntimeInfo import runtime_info_init
@@ -229,10 +228,10 @@ def message(text, style=None, location=None, registration=None, blit_txt=True,
 		style = txtm.styles['default']
 	else:
 		try:
+			# TODO: Informative error if requested font style doesn't exist
 			style = txtm.styles[style]
 		except TypeError:
 			pass
-	# todo: padding should be implemented as a call to resize() on message surface; but you have to fix wrap first
 
 	message_surface = txtm.render(text, style, align, wrap_width)
 	if blit_txt == False:
@@ -452,7 +451,7 @@ def query(query_ob, anonymous=False):
 		return int(input_string)
 	elif f.type == "str":
 		if f.action == QUERY_ACTION_HASH:
-			return sha1(utf8(input_string).encode('utf-8')).hexdigest()
+			return make_hash(input_string)
 		elif f.action == QUERY_ACTION_UPPERCASE:
 			return utf8(input_string).upper()
 		elif query_ob.allow_null and len(input_string) == 0:

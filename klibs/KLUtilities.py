@@ -8,6 +8,8 @@ import time
 import ctypes
 import datetime
 import traceback
+import base64
+from hashlib import sha512
 from sys import exc_info
 from math import sin, cos, acos, atan2, radians, pi, degrees, ceil
 
@@ -202,13 +204,6 @@ def hide_mouse_cursor():
 	SDL_ShowCursor(SDL_DISABLE)
 
 
-def img(name, sub_dirs=None):
-	if sub_dirs:
-		sub_dirs = os.path.join(*sub_dirs)
-		return os.path.join(P.image_dir, sub_dirs, name)
-	return os.path.join(P.image_dir, name)
-
-
 def indices_of(element, container, identity_comparison=False):
 	if identity_comparison:
 		return [i for i, x in enumerate(container) if x is element]
@@ -324,6 +319,27 @@ def log(msg, priority):
 	if priority <= P.verbosity:
 		with open(P.log_file_path, 'a') as log_file:
 			log_file.write(str(priority) + ": " + msg)
+
+
+def make_hash(x, n_bytes=16):
+	"""Produces a hash string for a given input, with the length of the hash string being
+	determined by the number of bytes (more bytes = longer string).
+
+	Hashes are encoded with SHA-512 and converted to strings using base64 encoding. The
+	number of requested bytes must be an integer between 1 and 64. 
+
+	Args:
+		x: The number, string, or other object to hash. Must be coercible to a string.
+		n_bytes (optional): The number of bytes to use from the hash.
+
+	Returns:
+		A string object containing the generated hash.
+
+	"""
+	s = utf8(x)
+	h = sha512(s.encode('utf-8')).digest()[:n_bytes]
+	encoded = base64.b64encode(h, altchars=b"_-")
+	return str(encoded.decode('utf-8').strip('='))
 
 
 def midpoint(p1, p2):
@@ -747,6 +763,15 @@ def valid_coords(coords):
 
 		
 def smart_sleep(interval, units=TK_MS):
+	"""Stops and waits for a given amount of time, ensuring that any 'quit' or 'calibrate' key
+	commands issued during the wait interval are processed.
+
+	Args:
+		interval (float): The number of units of time to pause execution for.
+		units (int, optional): The time unit of 'interval', must be one of `klibs.TK_S` (seconds)
+			or `klibs.TK_MS` (milliseconds). Defaults to milliseconds.
+			
+	"""
 	from klibs.KLUserInterface import ui_request
 	from klibs.KLTime import precise_time
 	if units == TK_MS:

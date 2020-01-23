@@ -308,7 +308,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 
 		"""
 		sample = self.getNewestSample()
-		if sample != None:
+		if sample is not 0:
 			if sample.isRightSample():
 				gaze_pos = sample.getRightEye().getGaze()
 			elif sample.isLeftSample():
@@ -322,6 +322,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 					rx, ry = sample.getRightEye().getGaze()
 					lx, ly = sample.getLeftEye().getGaze()
 					# if either eye is missing, use good eye instead of averaging
+					#todo: this shoud be default behaviour but the  decision should still be exposed to the user
 					if int(lx) == -32768:
 						gaze_pos = (rx, ry)
 					elif int(rx) == -32768:

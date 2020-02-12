@@ -210,7 +210,7 @@ class TrialFactory(object):
 					raise ValueError(e)
 		else:
 			# If no factor mask, generate trials randomly based on self.exp_factors
-			factors = None
+			factors = self.exp_factors
 
 		block = self.trial_generator(factors, 1, trial_count)
 		# there is no "zero" block from the UI/UX perspective, so adjust insertion accordingly

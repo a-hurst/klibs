@@ -16,7 +16,7 @@ install_packages = ['klibs']
 
 setup(
 	name='KLibs',
-	version='0.7.5a7',
+	version='0.7.5a8',
 	description='A framework for building psychological experiments in Python',
 	author='Jonathan Mulle & Austin Hurst',
 	author_email='mynameisaustinhurst@gmail.com',
@@ -27,7 +27,8 @@ setup(
 	python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*',
 	install_requires=[
 		'numpy>=1.8.0rc1', 
-		'pysdl2>=0.9.0',
+		'pysdl2>=0.9.7',
+		'pysdl2-dll>=2.0.10',
 		'Pillow>=3.0.0,!=5.1.0',
 		'aggdraw>1.2.0',
 		'PyOpenGL>=3.1.0'

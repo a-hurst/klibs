@@ -3,10 +3,14 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import sys
+import warnings
 from abc import abstractmethod
 from traceback import print_tb, print_stack
 
-import sdl2
+# Suppresses possible pysdl2-dll warning message on import
+with warnings.catch_warnings():	
+	warnings.simplefilter("ignore")
+	import sdl2
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException

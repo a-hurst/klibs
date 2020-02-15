@@ -9,41 +9,31 @@ KLibs also aims to make the distribution, replication, and modification of parad
 
 ## Dependencies
 
-In order to install KLibs on your system, the sdl2, sdl2\_ttf, sdl2\_mixer, and portaudio libraries must already be installed.
+The only dependencies needed to install KLibs on macOS or Windows are Git and a supported version of Python. KLibs requires either Python 3.5 (or newer) or Python 2.7 to run.
 
-Under macOS/OS X, you can easily do this with a package manager such as [Homebrew](https://brew.sh):
-
-```
-brew install sdl2 sdl2_ttf sdl2_mixer portaudio
-```
-
-Under Debian/Ubuntu linux, the key dependencies can be installed using apt-get:
+For Linux and other platforms, you will also need to install the SDL2, SDL2\_ttf, and SDL2\_mixer binaries for your system in order for KLibs to work. Under Debian/Ubuntu linux, the key dependencies can be installed using apt-get:
 
 ```
-sudo apt-get install git python-pip libsdl2-2.0-0 libsdl2-ttf-2.0-0 libsdl2-mixer-2.0-0 portaudio19-dev
+sudo apt-get install git python-pip libsdl2-2.0-0 libsdl2-ttf-2.0-0 libsdl2-mixer-2.0-0
 ```
 
-Under Windows, you can install the dependencies by following the [Windows installation guide](https://github.com/a-hurst/klibs/wiki/Installation-on-Windows).
+You will also need the pip Python package manager to install KLibs on your system. If running 'pip --version' on your system results in a "command not found" message, you can install it using the [official instructions](https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py).
 
-You will also need the pip Python package manager to install KLibs on your system. If running 'pip --version' on your system results in a "command not found" message, you can install it by running ```sudo easy_install pip```.
-
-KLibs requires either Python 3.3 (or newer) or Python 2.7 to run.
+In order to use the optional AudioResponse response collector or to interface with an SR Research EyeLink eye tracker, you will need to install some [additional dependencies](https://github.com/a-hurst/klibs/wiki/Installing-Optional-Dependencies).
 
 ## Installation
 
-After all the prerequisite libraries have been installed, you can run the following command to install KLibs and all its Python dependencies:
+After all the prerequisites have been installed, you can run the following command to install KLibs and all its Python dependencies:
 
 ```
 pip install git+https://github.com/a-hurst/klibs.git
 ```
 
-Note that if you are using the default system-installed version of Python on macOS, you will need to preface the `pip install` command with `sudo -H` for the command to work.
-
 If you want to use the Slack messaging feature in KLibs, you will need to install the 'slacker' package by running ```pip install slacker```.
 
 ## Usage
 
-Installing KLibs will install the `klibs` command-line utility, which is used for creating, running, and exporting data from KLibs experiments: 
+Installing KLibs will install the `klibs` command-line utility, which is used for creating, running, and exporting data from KLibs experiments:
 
 ```
 $ klibs --help
@@ -54,7 +44,7 @@ The command-line interface for the KLibs framework.
 optional arguments:
   -h, --help            show this help message and exit
 
-commands:                                   
+commands:
     create              Create a new project template
     run                 Run a KLibs experiment
     export              Export data to ExpAssets/Data/
@@ -62,4 +52,5 @@ commands:
     db-rebuild          Delete and rebuild the database
     hard-reset          Delete all collected data
 ```
+
 For more detailed information on using KLibs, see the [project Wiki](https://github.com/a-hurst/klibs/wiki).

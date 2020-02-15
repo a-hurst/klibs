@@ -308,7 +308,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 
 		"""
 		sample = self.getNewestSample()
-		if sample != None:
+		if sample is not 0:
 			if sample.isRightSample():
 				gaze_pos = sample.getRightEye().getGaze()
 			elif sample.isLeftSample():

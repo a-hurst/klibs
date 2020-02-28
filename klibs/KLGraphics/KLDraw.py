@@ -148,6 +148,7 @@ class Drawbject(object):
 		return "klibs.Drawbject.{0} ({1} x {2}) at {3}".format(*properties)
 
 	def _init_surface(self):
+		#todo: this isn't processing fill colors properly
 		self._update_dimensions()
 		self.rendered = None # Clear any existing rendered texture
 		if self.fill_color:

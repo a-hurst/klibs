@@ -790,3 +790,5 @@ def acute_angle(vertex, p1, p2):
 	v_p2 = float(line_segment_len(vertex, p2))
 	p1_p2 = line_segment_len(p1, p2)
 	return degrees(acos((v_p1**2 + v_p2**2 - p1_p2**2) / (2 * v_p1 * v_p2)))
+
+

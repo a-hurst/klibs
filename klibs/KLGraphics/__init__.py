@@ -50,9 +50,9 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 
 		"""
 		from .KLDraw import Drawbject
-		from .KLNumpySurface import NumpySurface
+		from .KLCanvas import Canvas
 		
-		if isinstance(source, NumpySurface):
+		if isinstance(source, Canvas):
 			height = source.height
 			width = source.width
 			if source.rendered is None:

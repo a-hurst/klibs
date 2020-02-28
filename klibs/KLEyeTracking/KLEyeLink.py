@@ -19,6 +19,7 @@ from klibs.KLUserInterface import ui_request
 from klibs.KLGraphics import blit, fill, flip, clear
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
+from klibs.KLTime import precise_time
 
 if PYLINK_AVAILABLE:
 	from pylink import (openGraphicsEx, flushGetkeyQueue, pumpDelay,
@@ -307,8 +308,21 @@ class EyeLink(BaseEyeLink, EyeTracker):
 			RuntimeError: If neither eye is currently available for recording.
 
 		"""
+		start = precise_time()
+		while precise_time() - start < 0.01:
+			sample = self.__gaze()
+			if sample:
+				return tuple(int(p) for p in sample) if return_integers else sample
+
+		if self.eye is not None:
+			return self.gaze(return_integers, binocular_mode)
+		else:
+			raise RuntimeError("Unable to collect a sample from the EyeLink.")
+
+
+	def __gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):
 		sample = self.getNewestSample()
-		if sample is not 0:
+		if sample:
 			if sample.isRightSample():
 				gaze_pos = sample.getRightEye().getGaze()
 			elif sample.isLeftSample():
@@ -322,21 +336,16 @@ class EyeLink(BaseEyeLink, EyeTracker):
 					rx, ry = sample.getRightEye().getGaze()
 					lx, ly = sample.getLeftEye().getGaze()
 					# if either eye is missing, use good eye instead of averaging
-					#todo: this shoud be default behaviour but the  decision should still be exposed to the user
+					# todo: this shoud be default behaviour but the  decision should still be exposed to the user
 					if int(lx) == -32768:
 						gaze_pos = (rx, ry)
 					elif int(rx) == -32768:
 						gaze_pos = (lx, ly)
 					else:
-						gaze_pos = ( (rx+lx)/2, (ry+ly)/2 )
+						gaze_pos = ((rx + lx) / 2, (ry + ly) / 2)
+			return gaze_pos
 		else:
-			if self.eye != None:
-				return self.gaze(return_integers, binocular_mode)
-			else:
-				raise RuntimeError("Unable to collect a sample from the EyeLink.")
-
-		return tuple(int(p) for p in gaze_pos) if return_integers else gaze_pos
-
+			return None
 
 	def now(self, unit=TK_MS):
 		"""Fetches the current time according to the tracker's internal clock.

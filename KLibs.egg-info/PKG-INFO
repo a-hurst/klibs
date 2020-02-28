@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: KLibs
+Version: 0.7.5a7
+Summary: A framework for building psychological experiments in Python
+Home-page: http://github.com/a-hurst/klibs
+Author: Jonathan Mulle & Austin Hurst
+Author-email: mynameisaustinhurst@gmail.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Requires-Python: >=2.7, !=3.0.*, !=3.1.*, !=3.2.*
+Provides-Extra: AudioResponse

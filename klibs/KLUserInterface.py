@@ -29,6 +29,7 @@ def any_key(allow_mouse_click=True):
 				any_key_pressed = True
 
 
+#todo: add a function that detects a mouse click like key_pressed
 def key_pressed(key=None, queue=None):
 	"""Checks an event queue to see if a given key has been pressed. If no key is specified,
 	the function will return True if any key has been pressed. If an event queue is not
@@ -62,7 +63,7 @@ def key_pressed(key=None, queue=None):
 	else:
 		keycode = key
 
-	if type(keycode).__name__ not in ['int', 'NoneType']:
+	if type(keycode) not in [int, None]:
 		raise ValueError("'key' must be a string, an SDL Keycode (int), or None.") 
 	
 	pressed = False

@@ -257,8 +257,9 @@ class TextManager(object):
 		bgra_color = SDL_Color(stl.color[2], stl.color[1], stl.color[0], stl.color[3])
 		rendered_text = TTF_RenderUTF8_Blended(rendering_font, text, bgra_color).contents
 		surface_array = self.__SDLSurface_to_ndarray(rendered_text)
-		surface = NpS(surface_array)
-		return surface
+		print "warning: you have not restored message()"
+		# surface = NpS(surface_array)
+		return surface_array
 
 
 	def add_font(self, name, filename=None):

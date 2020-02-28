@@ -16,7 +16,7 @@ from klibs.KLUtilities import full_trace, pump, flush, now, show_mouse_cursor, h
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear
-from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
+from klibs.KLGraphics.KLCanvas import Canvas
 from klibs.KLGraphics import KLDraw as kld
 from klibs.KLDatabase import EntryTemplate
 from klibs.KLUserInterface import any_key
@@ -327,7 +327,10 @@ class Experiment(EnvAgent):
 
 
 	def show_logo(self):
-		logo = NpS(P.logo_file_path)
+		logo = Canvas(746, 123)
+		logo.add_layer(P.logo_file_path)
+		logo = logo.render()
+		# print logo
 		flush()
 		for i in (1, 2):
 			fill()

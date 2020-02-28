@@ -1,0 +1,3 @@
+[console_scripts]
+klibs = klibs.__main__:cli
+

@@ -1,8 +1,9 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
-
+from warnings import warn
 from copy import copy
 from collections import namedtuple
 from os.path import exists
+from time import time
 
 import numpy as np
 from PIL import Image
@@ -17,6 +18,8 @@ from klibs.KLUtilities import bool_to_int
 e_string_type = "Argument '{0}' expected '{1}', got '{2}'."
 e_string_iter = "Argument '{0}}' must be an iterable collection; {1} passed."
 e_bad_behaviour_str = "Passed value for argument 'behaviour' not a recognized canvas behaviour."
+e_not_rgba = "Argument '{0}' expected a container of RGB/RGBA values, or an RGBAColor object; {0} provided."
+
 """
 These next few functions just wrap aggdraw's stupid API :S
 """
@@ -89,27 +92,6 @@ def ad_stroke(color, width=1, opacity=255):
 	return aggdraw.Pen(color, width, opacity)
 
 
-def add_alpha_channel(numpy_array, alpha_value=255):
-	try:
-		with_alpha = np.zeros((numpy_array.shape[0], numpy_array.shape[1], 4))
-		with_alpha[:, :, :3] = numpy_array
-		with_alpha[:, :, 3] = alpha_value
-		return with_alpha
-	except ValueError:
-		return numpy_array
-	# try:
-	# 	if numpy_array.shape[2] == 3:
-	# 		return numpy.insert(numpy_array, 3, alpha_value, 2)
-	# 	else:
-	# 		return numpy_array
-	# except IndexError:
-	# 	raise ValueError("Invalid data supplied; too few dimensions or wrong data type.")
-
-
-def import_image_file(path):
-		return add_alpha_channel(np.array(Image.open(path)))
-
-
 def grey_scale_to_alpha(source):
 		"""
 
@@ -119,15 +101,18 @@ def grey_scale_to_alpha(source):
 		if type(source) is Canvas:
 			source = source.render()
 		elif type(source) is str:
-			source = import_image_file(source)
+			source = Canvas.magic_import(source)
 		elif type(source) is not np.ndarray:
 			raise TypeError("Argument 'mask' must be a Canvas, numpy.ndarray or a path string of an image file.")
 		source[0: -1, 0: -1, 3] = source[0: -1, 0: -1, 0]
 		return source
 
 
-def rects_overlap(target_shape, dest_shape, origin=(0, 0), registration=7):
-	origin = Canvas.reregister_origin(dest_shape, origin, registration)
+def rects_overlap(target_shape, dest_shape, origin=(0,0), registration=7, flip_shape=False):
+	if flip_shape:
+		target_shape = np_shape_flip(target_shape)
+		dest_shape = np_shape_flip(dest_shape)
+	origin = Canvas.reregister_origin(target_shape, dest_shape, registration, origin)
 	try:
 		assert (origin[0] + dest_shape[0] >= 0)
 		assert (origin[0] < target_shape[0])
@@ -139,23 +124,37 @@ def rects_overlap(target_shape, dest_shape, origin=(0, 0), registration=7):
 	return True
 
 
+def rect_containable(target_shape, dest_shape, origin=(0,0), registration=7, flip_shape=False):
+	if flip_shape:
+		target_shape = np_shape_flip(target_shape)
+		dest_shape = np_shape_flip(dest_shape)
+	origin = Canvas.reregister_origin(target_shape, dest_shape, registration, origin)
+	try:
+		assert (origin[0] + target_shape[0] >= dest_shape[0])
+		assert (origin[1] + target_shape[1] >= dest_shape[1])
+	except AssertionError:
+		return False
+
+	return True
+
+
 Point = namedtuple('Point', ['x', 'y'])
 RGBAColor = namedtuple('Color', ['red', 'green', 'blue', 'alpha'])
 
 
 class Canvas(object):
-	# todo: save states! save diffs between operations! so cool and unnecessary!
-	# todo: default alpha value for render
-	# todo: fg/bg dichotomy stupid and unwieldy; just use indexed layers
+	# TODO: wrap relevant pillow methods http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
+	# TODO: make a 'chainable' decorator that returns the canvas object to make  jquery-style methods
 
-	def __init__(self, height, width):
+	def __init__(self, height, width, background=None):
 		try:
 			all([type(dimension) is int for dimension in [height, width]])
 		except AssertionError:
-			raise ValueError("Both 'height' and 'width' argument must be integers.")
+			raise ValueError("Both 'height' and 'width' arguments must be integers.")
 		self._height = None
 		self._width = None
-		self._bg_color__ = None
+		self._background = None
+		self.background = background
 		self.rendered = None
 		self._width = height
 		self._height = width
@@ -180,32 +179,44 @@ class Canvas(object):
 				self.background = np.zeros((self.width, self.height, 4))
 				self._ensure_writeable(NS_BACKGROUND)
 
-	def _fetch_layer(self, layer):
-		if layer == NS_FOREGROUND:
-			if self.foreground is not None:
-				return self.foreground
-			else:
-				raise ValueError("klibs.NS_FOREGROUND given for 'layer' argument, but foreground attribute is not set.")
-		elif layer == NS_BACKGROUND:
-			if self.background is not None:
-				return self.background
-			else:
-				raise ValueError("klibs.NS_BACKGROUND given for 'layer' argument, but background attribute is not set.")
-		else:
-			raise TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
+	def fetch_layer(self, layer):
+		try:
+			assert(type('layer') is str)
+		except AssertionError:
+			raise TypeError("fetch_layer() retrieves layers by name; str expected but {0} provided.".format(type(layer)))
+		for l in self._layers:
+			if l.name == layer:
+				return l
+		raise ValueError("No layer with name '{0}' exists in this Canvas object.".format(layer))
 
 	@staticmethod
-	def reregister_origin(shape, origin, registration):
+	def reregister_origin(target_shape, dest_shape, registration, origin=(0, 0), flip_shape=False):
+		'''
+		Relocates an assumed origin for placing the top-left corner of target_shape onto dest_shape to appropriate
+		position on dest_shape given registration.
+
+		:param target_shape:
+		:param dest_shape:
+		:param origin:
+		:param registration:
+		:param flip_shape:
+		:return:
+		'''
+		if flip_shape:
+			target_shape = np_shape_flip(target_shape)
+			dest_shape = np_shape_flip(dest_shape)
 		origin = list(origin)
+		d_x = target_shape[0] - dest_shape[0]
+		d_y = target_shape[1] - dest_shape[1]
 		if registration in [8, 5, 2]:
-			origin[0] += floor(shape[0] / 2)
+			origin[0] += floor(d_x / 2.0)
 		elif registration in [9, 6, 3]:
-			origin[0] += shape[0]
+			origin[0] += d_x
 		if registration in [4, 5, 6]:
-			origin[1] += floor(shape[1] / 2)
+			origin[1] += floor(d_y / 2)
 		elif registration in [1, 2, 3]:
-			origin[1] += shape[1]
-		return int(origin[0]), int(origin[1])
+			origin[1] += d_y
+		return Point(int(origin[0]), int(origin[1]))
 
 	@staticmethod
 	def magic_import(source):
@@ -216,7 +227,7 @@ class Canvas(object):
 		except AssertionError:
 			try:
 				exists(source)
-				data = add_alpha_channel(np.array(Image.open(source)))
+				data = Canvas.add_alpha_channel(np.array(Image.open(source)), skip_import=True)
 			except IOError:
 				raise IOError("Cannot identify image data in file '{0}'".format(source))
 			except TypeError:
@@ -227,9 +238,8 @@ class Canvas(object):
 
 		return data.astype(np.float)
 
-
 	@staticmethod
-	def add_alpha_channel(data, alpha_value=255):
+	def add_alpha_channel(data, alpha_value=255, skip_import=False):
 		data = Canvas.magic_import(data)
 
 		try:
@@ -241,8 +251,7 @@ class Canvas(object):
 			return data
 
 
-	@staticmethod
-	def crop(size, data, origin=(0, 0), registration=BL_TOP_LEFT):
+	def crop(self, shape, origin=(0,0), data=None):
 		"""
 			Crops either entire Canvas object (if not data is provided) or passed data (a Canvas, NumpySurface, ndarray,
 			path to image file, or aggdraw canvas) to provided size starting at provided origin.
@@ -252,28 +261,31 @@ class Canvas(object):
 			If data is provided, a cropped version is returned. Otherwise the canvas object returns itself to allow
 			method chaining.
 			"""
-
-		if type(data) is Canvas:
-			data.__layers = [l.crop(size, origin) for l in data.__layers]
-			return data
-
-		data = Canvas.magic_import(data)
-		origin = Canvas.reregister_origin(data[1], origin)
+		if data is None:
+			target_shape = self.shape
+		else:
+			data = Canvas.magic_import(data)
+			target_shape = (data.shape[1], data.shape[0])
+		try:
+			assert(rects_overlap(shape, (target_shape[1], target_shape[0]), origin, BL_TOP_LEFT))
+		except AssertionError:
+			warn("Canvas.crop() had no effect as the region to be masked is outside the image bounds.")
 
 		try:
-			assert(rects_overlap(size, (data.shape[1], data.shape[0]), origin, registration))
+			assert(shape[0] < target_shape[1] or shape[1] < target_shape[0])
 		except AssertionError:
-			raise Warning("Canvas.crop() had no effect as the region to be masked is outside the image bounds.")
+			warn("Canvas.crop() had no effect as the output size is larger than ")
 
-		try:
-			assert(size[0] < data.shape[1] or size[1] < data.shape[0])
-		except AssertionError:
-			raise Warning("Canvas.crop() had no effect as the output size is larger than ")
+		if data is None:
+			for l in self._layers:
+				l.crop(shape, origin)
+			self._width, self._height = shape
+			return self
 
-		return (data[origin[1]:-1, origin[0]:-1, 4])[0:size[1], 0:size[0], 4]
-
+		return (data[origin[1]:-1, origin[0]:-1, :])[0:shape[1], 0:shape[0], :]
 
 	def add_layer(self, content, origin=(0, 0), z_index=None, name='layer_{0}', registration=BL_TOP_LEFT):
+		print content, origin
 		z_index = z_index if z_index is not None else self.layer_count
 		name = name.format(len(self._layers))  # does nothing if any other string is passed
 		try:
@@ -290,75 +302,23 @@ class Canvas(object):
 		except AssertionError:
 			raise IndexError("Argument 'z_index' must be an integer or None; {0} provided.".format(type(z_index)))
 
-		content = self.magic_import(content)
+		content = Canvas.magic_import(content)
 		name = 'layer_{0}'.format(self.layer_count) if name is None else name
-
-		if (z_index == self.layer_count):
-			self._layers.append(CanvasLayer(name, self, content))
+		origin = Canvas.reregister_origin(np_shape_flip(content.shape), self.shape, registration, origin)
+		try:
+			if (z_index == self.layer_count):
+				l = CanvasLayer(name, self, content,origin, registration)
+				self._layers.append(l)
+		except ValueError as e:
+			raise e
 
 		return self._update_shape()
 
-	def write(self, source, layer, registration=BL_TOP_LEFT, location=(0, 0), behaviour=CANVAS_EXPAND):
-		# todo: implement layer logic here
-		"""
 
-		:param source:
-		:param layer:
-		:param registration:
-		:param location:
-		:raise ValueError:
-		"""
-		# try:
-		# 	source.foreground = source.foreground.astype(np.uint8)
-		# 	source = source.render()
-		# except AttributeError:
-		# 	pass
-		# try:
-		# 	source = add_alpha_channel(source)
-		# except:
-		# 	raise TypeError("Argument 'source' must be either of klibs.Canvas or numpy.ndarray.")
-		source = self.magic_import(source)
-
-		source_height = source.shape[0]
-		source_width = source.shape[1]
-
-		registration = _build_registrations(source_height, source_width)[registration]
-		location = (int(location[0] + registration[0]), int(location[1] + registration[1]))
-
-		# don't attempt the blit if source can't fit
-		if behaviour is None:
-			if source_height > self.height or source_width > self.width:
-				e_msg = "Source ({0} x {1}) is larger than destination ({2} x {3})".format(source_width, source_height, self.width, self.height)
-				raise ValueError(e_msg)
-			elif source_height + location[1] > self.height or source_width + location[0] > self.width:
-				raise ValueError("Source cannot be blit to location; destination bounds exceeded.")
-		x1 = location[0]
-		x2 = location[0] + int(source_width)
-		y1 = location[1]
-		y2 = location[1] + int(source_height)
-		# print "Position: {0}: ".format(location)
-		# print "Blit Coords: {0}: ".format([y1,y2,x1,x2])
-
-		self._ensure_writeable(layer)
-		# todo: find out why this won't accept a 3rd dimension (ie. color)
-		if behaviour == "resize":
-			if source_width > self.width: self.resize([self.height, source_width])
-			if source_height > self.height: self.resize([self.width, source_height])
-		# todo: make a "clip" behaviour
-		# print "ForegroundShape: {0}, SourceShape: {1}".format(self.foreground.shape, source.shape)
-		blit_region = self.foreground[y1: y2, x1: x2, :]
-		# print "Blit_region of fg: {0}".format(blit_region.shape)
-		if layer == NS_FOREGROUND:
-			self.foreground[y1: y2, x1: x2, :] = source
-		else:
-			self.background[y1: y2, x1: x2] = source
-
-		return self
-
-	def scale(self, size, layer=None):
-		# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
+	def scale(self, size):
+		# todo: incorporate for individual layers
 		if self.empty:
-			raise Warning("Scale operation not performed as no layers were found to have content.")
+			warn("Scale operation not performed as no layers were found to have content.")
 
 		for layer in self._layers:
 			layer.scale(size)
@@ -367,34 +327,16 @@ class Canvas(object):
 		return self
 
 	def rotate(self, angle, layer=None):
-	# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
-		if not self.has_content:
+		if self.empty:
 			return
 
-		if layer == NS_FOREGROUND or layer is None:
-			try:
-				layer_image = Image.fromarray(self.foreground.astype(np.uint8))
-				scaled_image = layer_image.Image.rotate(angle, Image.ANTIALIAS)
-				self.foreground = np.asarray(scaled_image)
-			except AttributeError as e:
-				if str(e) != "'NoneType' object has no attribute '__array_interface__'":
-					raise e
-			except TypeError:
-				pass
+		if layer is None:
+			for l in self._layers:
+				l.rotate(angle)
 		self._update_shape()
+
 		return self
 
-	def get_pixel_value(self, location, layer=NS_FOREGROUND):
-		"""
-
-		:param location:
-		:param layer:
-		:return:
-		"""
-		if self.location_in_layer_bounds(location, layer):
-			return self._fetch_layer(layer)[location[1]][location[0]]
-		else:
-			return False
 
 	def resize(self, size, registration=BL_TOP_LEFT):
 		"""
@@ -409,85 +351,63 @@ class Canvas(object):
 			assert(size[0] <= self.width)
 			assert(size[1] <= self.height)
 		except AssertionError:
-			raise Warning('Canvas {0} was smaller after resize; some clipping has occurred.')
+			warn('Canvas {0} was smaller after resize; some clipping has occurred.')
 		for layer in self._layers:
 			layer.resize(size, registration)
 
 		return self
 
-	def render(self, prerendering=False):
+	def render(self):
 		# todo: add functionality for not using a copy, ie. permanently render
 		"""
 
 		:param prerendering:  Legacy argument; left in for backwards compatibility
 		:return: :raise ValueError:
 		"""
-
+		start = time()
 		if self.empty:
 			raise ValueError('Nothing to render; Canvas has been initialized but no layer content has been added.')
 
 		render_surface = np.zeros((self.height, self.width, 4), dtype=np.float)
-		self.render_steps = []
 		if len(self._layers) is 1:
 			self.rendered = self._layers[0].content.astype(np.uint8)
 		else:
-			passes = 0
-			for l in self._layers:
-				passes += 1
+			# This bit composites layers from the "top" "down", as in last-in-first-out, where
+			for i in range(self.layer_count, 0, -1):
+				l = self._layers[i-1]
+				if i == self.layer_count:
+					render_surface[0: self.shape[1], 0: self.shape[0]] = l.render()
+					continue
 				# get the regions to be composited
-				fg = l.render()
-				l_x1, l_y1 = l.origin
-				l_x2 = l_x1 + fg.shape[1]
-				l_y2 = l_y1 + fg.shape[0]
-				bg = copy(render_surface[l_y1: l_y2, l_x1: l_x2]).astype(np.float)
-				self.render_steps.append([bg, 'render_surface composite region'])
-				self.render_steps.append([fg, l.name])
-				# Extract the RGB channels
-				fg_rgb = fg[..., :3]
-				bg_rgb = bg[..., :3]
-
-				# Extract the alpha channels and normalise to range 0.1
-				fg_alpha = fg[..., 3] / 255.0
-				bg_alpha = bg[..., 3] / 255.0
-
-				# Work out resultant alpha channel
-				comp_alpha = bg_alpha + fg_alpha * (1 - bg_alpha)
-
-				# Work out resultant RGB
-				fg_serialized = fg_rgb * fg_alpha[..., np.newaxis]
-				bg_serialized = bg_rgb * bg_alpha[..., np.newaxis]
-				# comp_rgb = (bg_serialized + fg_serialized * (1 - bg_alpha[..., np.newaxis])) / comp_alpha[..., np.newaxis]
-				comp_rgb = (bg_rgb * bg_alpha[..., np.newaxis] + fg_rgb * fg_alpha[..., np.newaxis] * (1 - bg_alpha[..., np.newaxis])) / comp_alpha[..., np.newaxis]
-				# Merge RGB and alpha (scaled back up to 0..255) back into single image
-				# composite = np.dstack((comp_rgb, comp_alpha * 255)).astype(np.uint8)
-				composite = np.dstack((comp_rgb, comp_alpha * 255)).astype(np.uint8)
-
-				render_surface[l_y1: l_y2, l_x1: l_x2] = composite
-				self.render_steps.append([copy(render_surface), 'render_surface, pass {0}'.format(passes)])
+				else:
+					bg = Image.fromarray(l.render().astype(np.uint8))
+					fg = Image.fromarray(copy(render_surface[0: self.shape[1], 0: self.shape[0]]).astype(np.uint8))
+					render_surface[0: self.shape[1], 0: self.shape[0]] = Image.alpha_composite(bg, fg)
 
 			self.rendered = render_surface.astype(np.uint8)
+		elapsed = time() - start
+		if elapsed > 0.04:
+			warn('Canvas took {0}ms to render.'.format(elapsed))
 		return self.rendered
 
 	def _update_shape(self):
 		for l in self._layers:
 			try:
-				if self._width < l.width:
-					self._width = l.width
-					update_layers = True
-				if self._height < l.height:
-					self._height = l.height
-					update_layers = True
+				self._width = l.width + l.origin[0] if self._width < (l.width + l.origin[0]) else self._width
+				self._height = l.height + l.origin[1] if self._height < (l.height + l.origin[1]) else self._height
 			except AttributeError:
 				pass
 		try:
-			if update_layers:
-				for l in self._layers:
-					l.reshape(self.shape, 5, self.layer_add_behaviour)
+			for l in self._layers:
+				l.reshape(self.shape, self.layer_add_behaviour)
 		except NameError:
 			pass
 
 		return self
 
+	@property
+	def shape(self):
+		return (self.width, self.height)
 
 	@property
 	def height(self):
@@ -501,7 +421,7 @@ class Canvas(object):
 
 	@property
 	def shape(self):
-		return [self.width, self.height]
+		return (self.width, self.height)
 
 	@property
 	def layers(self):
@@ -531,14 +451,14 @@ class Canvas(object):
 
 class CanvasLayer(object):
 
-	def __init__(self, name, canvas, content, origin=(0,0)):
+	def __init__(self, name, canvas, content, origin, registration):
 		super(CanvasLayer, self).__init__()
 		self.name = name
 		self.canvas = canvas
 		self._origin = origin
-		self._position = (0, 0)
 		self._opacity = 1.0
-		self._content = content
+		self._raw_content = content	 # original passed data, independent of canvas shape
+		self._content = None  # content placed in an np array with shape matching the canvas
 		self._mask = None
 		self._mask_origin = None
 		self._render = None
@@ -546,10 +466,23 @@ class CanvasLayer(object):
 		self._visible = True
 		self._writeable = False
 		self._canvas_scale_behaviour = True
+		self._registration = registration
 		self._bg_fill = RGBAColor(0, 0, 0, 0)
 
-		if self.width < self.canvas.width or self.height < self.canvas.height:
-			self.reshape(self.canvas.shape)
+		self._init_content()
+
+	def _init_content(self):
+		raw_shape = list(self._raw_content.shape)
+		raw_shape[0] += self.origin[1]
+		raw_shape[1] += self.origin[0]
+		width = raw_shape[1] if self.canvas.width < raw_shape[1] else self.canvas.width
+		height = raw_shape[0] if self.canvas.height < raw_shape[0] else self.canvas.height
+		self._content = np.zeros([height, width, 4])
+		c_x1, c_y1 = self.origin
+		c_x2 = c_x1 + self._raw_content.shape[1]
+		c_y2 = c_y1 + self._raw_content.shape[0]
+		self._content[c_y1:c_y2, c_x1:c_x2, :] = self._raw_content
+		print "layer '{0}' init shape: {1}".format(self.name, self._content.shape)
 
 	def __str__(self):
 		return "klibs.KLGraphics.CanvasLayer, ('{0}', {1} x {2}) at {3}".format(self.name, self.width, self.height, hex(id(self)))
@@ -559,8 +492,10 @@ class CanvasLayer(object):
 			return np.zeros([self.height, self.width,4])
 
 		self._apply_mask()
-
-		return self._render.astype(np.float)
+		self._render = self._render.astype(np.float)
+		if self.opacity < 1:
+			self._render = self._render * np.full((self.shape[1], self.shape[0], 4), [1.0, 1.0, 1.0, self.opacity])
+		return self._render
 
 	def _apply_mask(self):
 		content = copy(self._content)
@@ -583,6 +518,9 @@ class CanvasLayer(object):
 	def _write_check(self):
 		if not self._writeable:
 			raise RuntimeError("Operation not permitted; CanvasLayer object '{0}' not writeable.".format(self.name))
+
+	def crop(self, shape, origin):
+		self._content = (self._content[origin[1]:, origin[0]:, :])[0:shape[1], 0:shape[0], :]
 
 	def move(self):
 		pass
@@ -607,26 +545,28 @@ class CanvasLayer(object):
 	def invert(self):
 		pass
 
-	def rotate(self):
-		pass
+	def rotate(self, angle):
+		np_content = Image.fromarray(self._content.astype(np.uint8))
+		rotated = np_content.rotate(angle)
+		self._content = np.asarray(rotated)
+		self.canvas._update_shape()
 
-	def write(self, data, registration=7, location=(0, 0)):
+	def write(self, data, registration=7, location=(0,0)):
 		self._write_check()
 		data = Canvas.magic_import(data)
 		# ok, first make sure data falls on canvas
 
 
-	def reshape(self, shape, registration=7, behaviour=CANVAS_EXPAND):
-		if list(self.shape) == list(shape):
-			return
+	def reshape(self, shape, behaviour=CANVAS_EXPAND):
+		if tuple(shape) == self.shape: return
 		print 'reshaping {0} from {1} to {2}'.format(self.name, self.shape, shape)
 		# create some empty arrays of the new dimensions and ascertain clipping values if needed
 		output = np.zeros((shape[1], shape[0], 4), dtype=np.float)  # ie. new foreground
 		if behaviour == CANVAS_EXPAND:
-			x1, y1 = Canvas.reregister_origin(shape, (0, 0), registration)
-			x2 = x1 + self.shape[0]
-			y2 = y1 + self.shape[1]
-			print type(self._content), x1, x2, y1, y2
+			x1, y1 = self.origin
+			x2 = x1 + self.width
+			y2 = y1 + self.height
+			print x1,x2, y1, y2
 			output[y1:y2, x1:x2] = self._content
 
 		self._content = output
@@ -638,21 +578,18 @@ class CanvasLayer(object):
 
 	@property
 	def opacity(self):
-		pass
+		return self._opacity
 
-	@property
-	def position(self):
-		return self._position
-
-
-	@property
-	def position(self, coords):
+	@opacity.setter
+	def opacity(self, value):
 		try:
-			iter(coords)
-			assert(all([type(d) is int for d in coords]))
-			self._position = coords
-		except TypeError:
-				raise TypeError(e_string_iter.format("Coords", type(coords)))
+			if value in [0,1]: # just giving users a break for having skipped a decimal
+				self._opacity = float(value)
+			else:
+				assert(type(value) is float and 0.0 <= value <= 1.0)
+				self._opacity = value
+		except AssertionError:
+			raise ValueError("Opacity must be greater than or equal to 0.0 and less than or equal to 1.0")
 
 	@property
 	def visible(self):
@@ -736,7 +673,7 @@ class CanvasLayer(object):
 		if rects_overlap(content, self.content, location, registration):
 			self._mask = content
 		else:
-			raise Warning("Mask data was not set because passed content and layer contents do not overlap.")
+			warn("Mask data was not set because passed content and layer contents do not overlap.")
 
 	@property
 	def origin(self):
@@ -755,4 +692,8 @@ class CanvasLayer(object):
 
 	@property
 	def shape(self):
-		return [self._content.shape[1], self._content.shape[0]]
+		return (self._content.shape[1], self._content.shape[0])
+
+	@property
+	def registration(self):
+		return self._registration

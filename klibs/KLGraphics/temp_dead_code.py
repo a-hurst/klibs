@@ -268,27 +268,91 @@
 
 
 	# self._update_shape()
-	
-#!/usr/local/bin/python3
-from PIL import Image
-import numpy as np
 
-# Open input images, and make Numpy array versions
+# def get_pixel_value(self, location, layer=NS_FOREGROUND):
+# 	"""
+#
+# 	:param location:
+# 	:param layer:
+# 	:return:
+# 	"""
+# 	if self.location_in_layer_bounds(location, layer):
+# 		return self._fetch_layer(layer)[location[1]][location[0]]
+# 	else:
+# 		return False
+#
+
+# def add_alpha_channel(numpy_array, alpha_value=255):
+# 	try:
+# 		with_alpha = np.zeros((numpy_array.shape[0], numpy_array.shape[1], 4))
+# 		with_alpha[:, :, :3] = numpy_array
+# 		with_alpha[:, :, 3] = alpha_value
+# 		return with_alpha
+# 	except ValueError:
+# 		return numpy_array
+	# try:
+	# 	if numpy_array.shape[2] == 3:
+	# 		return numpy.insert(numpy_array, 3, alpha_value, 2)
+	# 	else:
+	# 		return numpy_array
+	# except IndexError:
+	# 	raise ValueError("Invalid data supplied; too few dimensions or wrong data type.")
 
 
-# Extract the RGB channels
-fg_rgb = fg[...,:3]
-bg_rgb = bg[...,:3]
+def write(self, source, layer, registration=BL_TOP_LEFT, location=Point(0, 0), behaviour=CANVAS_EXPAND):
+	# todo: implement layer logic here
+	"""
 
-# Extract the alpha channels and normalise to range 0..1
-fg_alpha = fg[...,3]/255.0
-bg_alpha = bg[...,3]/255.0
+	:param source:
+	:param layer:
+	:param registration:
+	:param location:
+	:raise ValueError:
+	"""
+	# try:
+	# 	source.foreground = source.foreground.astype(np.uint8)
+	# 	source = source.render()
+	# except AttributeError:
+	# 	pass
+	# try:
+	# 	source = add_alpha_channel(source)
+	# except:
+	# 	raise TypeError("Argument 'source' must be either of klibs.Canvas or numpy.ndarray.")
+	source = self.magic_import(source)
 
-# Work out resultant alpha channel
-comp_alpha = bg_alpha + fg_alpha*(1-bg_alpha)
+	source_height = source.shape[0]
+	source_width = source.shape[1]
 
-# Work out resultant RGB
-comp_rgb = (bg_rgb*bg_alpha[...,np.newaxis] + fg_rgb*fg_alpha[...,np.newaxis]*(1-bg_alpha[...,np.newaxis])) / comp_alpha[...,np.newaxis]
+	registration = _build_registrations(source_height, source_width)[registration]
+	location = (int(location[0] + registration[0]), int(location[1] + registration[1]))
 
-# Merge RGB and alpha (scaled back up to 0..255) back into single image
-composite = np.dstack((comp_rgb, comp_alpha*255))
+	# don't attempt the blit if source can't fit
+	if behaviour is None:
+		if source_height > self.height or source_width > self.width:
+			e_msg = "Source ({0} x {1}) is larger than destination ({2} x {3})".format(source_width, source_height,
+																					   self.width, self.height)
+			raise ValueError(e_msg)
+		elif source_height + location[1] > self.height or source_width + location[0] > self.width:
+			raise ValueError("Source cannot be blit to location; destination bounds exceeded.")
+	x1 = location[0]
+	x2 = location[0] + int(source_width)
+	y1 = location[1]
+	y2 = location[1] + int(source_height)
+	# print "Position: {0}: ".format(location)
+	# print "Blit Coords: {0}: ".format([y1,y2,x1,x2])
+
+	self._ensure_writeable(layer)
+	# todo: find out why this won't accept a 3rd dimension (ie. color)
+	if behaviour == "resize":
+		if source_width > self.width: self.resize([self.height, source_width])
+		if source_height > self.height: self.resize([self.width, source_height])
+	# todo: make a "clip" behaviour
+	# print "ForegroundShape: {0}, SourceShape: {1}".format(self.foreground.shape, source.shape)
+	blit_region = self.foreground[y1: y2, x1: x2, :]
+	# print "Blit_region of fg: {0}".format(blit_region.shape)
+	if layer == NS_FOREGROUND:
+		self.foreground[y1: y2, x1: x2, :] = source
+	else:
+		self.background[y1: y2, x1: x2] = source
+
+	return self

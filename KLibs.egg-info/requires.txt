@@ -1,6 +1,6 @@
 numpy>=1.8.0rc1
 pysdl2>=0.9.0
-Pillow!=5.1.0,>=3.0.0
+Pillow>=3.0.0,!=5.1.0
 aggdraw>1.2.0
 PyOpenGL>=3.1.0
 

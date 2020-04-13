@@ -1,3 +1,19 @@
+# def _update_shape(self):
+# 	# 	for l in self._layers:
+# 	# 		try:
+# 	# 			l_ef_width, l_ef_height = l.width + l.origin[0], l.height + l.origin[1]  # l_ef = layer_effective
+# 	# 			self._width = l_ef_width if self._width < l_ef_width else self._width
+# 	# 			self._height = l_ef_height if self._height < l_ef_height else self._height
+# 	# 		except AttributeError:
+# 	# 			pass
+# 	# 	try:
+# 	# 		for l in self._layers:
+# 	# 			l.reshape(self.shape)
+# 	# 	except NameError:
+# 	# 		pass
+# 	#
+# 	# 	return self
+
 # try:
 # 	# python3
 # 	class Point(namedtuple):

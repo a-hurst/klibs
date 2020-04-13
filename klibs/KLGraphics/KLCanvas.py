@@ -13,6 +13,7 @@ import aggdraw
 from math import floor, ceil
 from klibs.KLConstants import *
 from klibs.KLGraphics import _build_registrations
+from klibs.KLGraphics.KLDraw import Rectangle
 from klibs.KLUtilities import bool_to_int
 from klibs.KLExceptions import BoundaryError
 
@@ -149,7 +150,7 @@ class Canvas(object):
 	# TODO: make a 'chainable' decorator that returns the canvas object to make  jquery-style methods
 	# TODO: figure out why KLDraw returns shapes 2px larger than they should be and adjust math here or in KLDraw
 
-	def __init__(self, height, width, background=None):
+	def __init__(self, width, height, background=None):
 		try:
 			all([type(dimension) is int for dimension in [height, width]])
 		except AssertionError:
@@ -159,15 +160,19 @@ class Canvas(object):
 		self._background = None
 		self.background = background
 		self.rendered = None
-		self._width = height
-		self._height = width
+		self._width = width
+		self._height = height
 		self._layers = []
 		self._layer_add_behaviour = CANVAS_EXPAND
+		self.add_layer(np.full((height, width, 4), self.background).astype(np.uint8), name="_background")
 
 
 	def __str__(self):
 		return "klibs.Canvas, ({0} x {1}) at {2}".format(self.width, self.height, hex(id(self)))
 
+
+	def _update_bg(self):
+		self.fetch_layer("_background").fill(self.background)
 
 	def fetch_layer(self, layer):
 		try:
@@ -297,20 +302,21 @@ class Canvas(object):
 		name = 'layer_{0}'.format(self.layer_count) if name is None else name
 		new_origin = Canvas.reregister_origin(np_shape_flip(content.shape), self.shape, registration, origin)
 		print "add_layer(): Layer '{0}' new origin is: ({1},{2})".format(name, new_origin[0], new_origin[1]) # debug line
-		print "canvas shape is: {0}".format(self.shape) # debug line
+		print "add_layer(): canvas shape is: {0}".format(self.shape) # debug line
 		try:
 			self._add_layer(name, z_index, content, new_origin, registration)
 		except BoundaryError as e:
 			if self._layer_add_behaviour is CANVAS_EXPAND:
-				print "Presizing for {0}, initial origin: {1}".format(name, origin)
+				print "add_layer():  Presizing for {0}, initial origin: {1}".format(name, origin)
 				new_origin = Canvas.reregister_origin(np_shape_flip(content.shape), self.shape, registration, origin)
-				print "origin post-presize: {0}".format(new_origin)
+				print "add_layer():  origin post-presize: {0}".format(new_origin)
 				w,h = self.shape
 				new_origin = self._presize_canvas(content, new_origin, registration)
-				print "presize() canvas ({0}, {1}) -> {2},{3})".format(w,h,self.width, self.height)
+				print "add_layer():  presize() canvas ({0}, {1}) -> {2},{3})".format(w,h,self.width, self.height)
 				self._add_layer(name, z_index, content, new_origin, registration)
 			else:
 				raise BoundaryError(e)
+		print "\n"
 
 	def _add_layer(self, name, z_index, content, origin, registration):
 		if (z_index == self.layer_count):
@@ -336,8 +342,8 @@ class Canvas(object):
 			right = (origin.x + content.shape[1]) - self.width
 		if origin.y + content.shape[0] > self.height:
 			bottom = (origin.y + content.shape[0]) - self.height
-		self._width += left + right
-		self._height += top + bottom
+		self.width = self.width + left + right
+		self.height = self.height + top + bottom
 		self.extend(left, right, top, bottom)
 		x = 0 if origin.x < 0 else origin.x
 		y = 0 if origin.y < 0 else origin.y
@@ -359,6 +365,8 @@ class Canvas(object):
 		:param bottom:
 		"""
 		for l in self.layers:
+			if l.name == "_background":
+				continue
 			l._extend(left,right, top, bottom)
 
 	def scale(self, size):
@@ -373,13 +381,16 @@ class Canvas(object):
 
 	def rotate(self, angle, layer=None):
 		if self.empty:
+			print "rotate(): was empty"
 			return
-
+		print "rotate(): layer_1 size was {0}".format(np_shape_flip(self._layers[1]._content.shape))
 		if layer is None:
 			for l in self._layers:
 				l.rotate(angle)
-		self._width = self._layers[0].content.shape[1]
-		self._height = self._layers[0].content.shape[0]
+		print "rotate(): layer_1 size is {0}".format(np_shape_flip(self._layers[1]._content.shape))
+
+		self.width = self._layers[1].content.shape[1]
+		self.height = self._layers[1].content.shape[0]
 
 		return self
 
@@ -414,6 +425,7 @@ class Canvas(object):
 			raise ValueError('Nothing to render; Canvas has been initialized but no layer content has been added.')
 
 		render_surface = np.zeros((self.height, self.width, 4), dtype=np.float)
+		# render_surface = np.full((self.height, self.width,4), self.background, dtype=np.float)
 		if len(self._layers) is 1:
 			self.rendered = self._layers[0].content.astype(np.uint8)
 		else:
@@ -427,43 +439,43 @@ class Canvas(object):
 				else:
 					bg = Image.fromarray(l.render().astype(np.uint8))
 					fg = Image.fromarray(copy(render_surface[0: self.shape.y, 0: self.shape.x]).astype(np.uint8))
-					render_surface[0: self.shape.y, 0: self.shape.x] = Image.alpha_composite(bg, fg)
+					try:
+						render_surface[0: self.shape.y, 0: self.shape.x] = Image.alpha_composite(bg, fg)
+					except ValueError as e:
+						print "render():  bg_layer = {0}, {1}x{2}, surface_shape: {3}x{4}".format(l.name, l._content.shape[1], l._content.shape[0], render_surface.shape[1], render_surface.shape[0])
+						raise ValueError(e)
 
 			self.rendered = render_surface.astype(np.uint8)
+
 		elapsed = time() - start
-		if elapsed > 0.04:
+		if elapsed > 0.04: # todo: this should be a set variable, probably in Params so users can choose their sensitivity
 			warn('Canvas took {0}ms to render.'.format(elapsed))
 		return self.rendered
 
-	def _update_shape(self):
-		for l in self._layers:
-			try:
-				l_ef_width, l_ef_height = l.width + l.origin[0], l.height + l.origin[1]  # l_ef = layer_effective
-				self._width = l_ef_width if self._width < l_ef_width else self._width
-				self._height = l_ef_height if self._height < l_ef_height else self._height
-			except AttributeError:
-				pass
-		try:
-			for l in self._layers:
-				l.reshape(self.shape)
-		except NameError:
-			pass
-
-		return self
 
 	@property
 	def shape(self):
-		return (self.width, self.height)
+		return Point(self.width, self.height)
 
 	@property
 	def height(self):
 		return self._height
 
+	@height.setter
+	def height(self, value):
+		# TODO: make sure value is valid
+		self._height = value
+		self._update_bg()
 
 	@property
 	def width(self):
 		return self._width
 
+	@width.setter
+	def width(self, value):
+		# TODO: make sure value is valid
+		self._width = value
+		self._update_bg()
 
 	@property
 	def shape(self):
@@ -479,7 +491,7 @@ class Canvas(object):
 
 	@property
 	def empty(self):
-		return all([layer.content is None for layer in self._layers])
+		return all([layer.content is None for layer in self._layers[1:]]) # background layer will never be empty
 
 	@property
 	def layer_add_behaviour(self):
@@ -511,7 +523,7 @@ class CanvasLayer(object):
 		self._z_index = 1
 		self._visible = True
 		self._writeable = False
-		self._canvas_scale_behaviour = True
+		self._canvas_scale_behaviour = True  # todo: this can't be right....
 		self._registration = registration
 		self._bg_fill = RGBAColor(0, 0, 0, 0)
 
@@ -520,7 +532,7 @@ class CanvasLayer(object):
 	def _init_content(self):
 		coverage = Point(self._raw_content.shape[1] + abs(self.origin.x), self._raw_content.shape[0] + abs(self.origin.y))
 		if coverage.x > self.canvas.width or coverage.y > self.canvas.height or self.origin.x < 0 or self.origin.y < 0:
-			print "Coverage: {0} , canvas: {1}, origin: {2}".format(coverage, self.canvas.shape, self.origin)
+			print "CanvasLayer::init_content(): Coverage: {0} , canvas: {1}, origin: {2}".format(coverage, self.canvas.shape, self.origin)
 			raise BoundaryError("Content exceeds canvas bounds.")
 
 		width, height = self.canvas.shape
@@ -589,7 +601,7 @@ class CanvasLayer(object):
 		pass
 
 	def fill(self, color):
-		pass
+		self._content = np.full((self.canvas.height, self.canvas.width, 4), color)
 
 	def clear(self):
 		pass
@@ -609,9 +621,11 @@ class CanvasLayer(object):
 		pass
 
 	def rotate(self, angle):
-		np_content = Image.fromarray(self._content.astype(np.uint8))
-		rotated = np_content.rotate(angle)
-		self._content = np.asarray(rotated)
+		print "pre-rotate: {0}".format(self._content.shape)
+		self._content  = np.asarray(Image.fromarray(copy(self._content).astype(np.uint8)).rotate(angle))
+		print "post-rotate: {0}".format(self._content.shape)
+		# rotated = np_content.
+		# self._content = rotated)
 
 
 	def write(self, data, registration=7, location=(0,0)):

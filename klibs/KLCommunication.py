@@ -382,7 +382,7 @@ def query(query_ob, anonymous=False):
 
 				elif sdl_keysym in (SDLK_KP_ENTER, SDLK_RETURN):
 					# Enter or Return check if a valid response has been made and end loop if it has
-					if len(input_string) > 0 or query_ob.allow_null is True:
+					if len(input_string) > 0:
 						response = input_string
 						# If type is 'int' or 'float', make sure input can be converted to that type
 						if f.type == "int":
@@ -407,6 +407,8 @@ def query(query_ob, anonymous=False):
 									error_string = invalid_answer_str
 							else:
 								user_finished = True
+					elif query_ob.allow_null is True:
+						user_finished = True
 					else:
 						# If no input and allow_null is false, display error
 						error_string = default_strings['answer_not_supplied']
@@ -447,15 +449,15 @@ def query(query_ob, anonymous=False):
 	flip()
 	SDL_StopTextInput()
 
-	if f.type == "int":
+	if query_ob.allow_null and len(input_string) == 0:
+		return None
+	elif f.type == "int":
 		return int(input_string)
 	elif f.type == "str":
 		if f.action == QUERY_ACTION_HASH:
 			return make_hash(input_string)
 		elif f.action == QUERY_ACTION_UPPERCASE:
 			return utf8(input_string).upper()
-		elif query_ob.allow_null and len(input_string) == 0:
-			return None
 		else:
 			return utf8(input_string)
 	elif f.type == "float":

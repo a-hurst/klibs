@@ -55,7 +55,8 @@ def key_pressed(key=None, queue=None):
 		ValueError: If the keycode is anything other than an SDL_Keycode integer or None.
 
 	"""
-	if type(key) is str:
+	strtypes = [type(u" "), type(" ")] # for Python 2/3 unicode compatibility
+	if type(key) in strtypes:
 		keycode = SDL_GetKeyFromName(key.encode('utf8'))
 		if keycode == 0:
 			raise ValueError("'{0}' is not a recognized key name.".format(key))

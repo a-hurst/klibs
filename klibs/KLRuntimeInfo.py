@@ -70,7 +70,7 @@ def get_sysinfo():
     elif platform.system() == 'Windows':
         version, build, sp = platform.win32_ver()[:3]
         arch = platform.architecture()[0]
-        if sp == '': # if no service pack
+        if sp in ('', 'SP0'): # if no service pack
             os_version = "Windows {0} (Build {1}) ({2})".format(version, build, arch)
         else:
             os_version = "Windows {0} {1} (Build {2}) ({3})".format(version, sp, build, arch)

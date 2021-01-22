@@ -85,7 +85,7 @@ screen_origin = (0,0)  # (not implemented) always (0,0) unless multiple displays
 blit_flip_x = False
 ignore_points_at = [] # For ignoring problematic pixel coordinates when using DrawResponse
 
-# Display defaults (defined automatically on launch in KLGrapics.display_init())
+# Display defaults (defined automatically on launch in KLGraphics.display_init())
 ppi = 0  # pixels-per-inch
 pixels_per_degree = None  # pixels-per-degree, ie. degree of visual angle
 ppd = None  # alias of pixels_per_degree

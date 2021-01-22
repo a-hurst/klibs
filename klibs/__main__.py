@@ -1,6 +1,7 @@
 __author__ = 'Austin Hurst & Jonathan Mulle'
 
 import os
+import re
 import sys
 import imp
 import time
@@ -25,14 +26,10 @@ if __name__ == '__main__':
 
 # Utility Functions #
 
-def initialize_path(path):
-	path = os.path.normpath(path)
-	project_name = os.path.split(path)[-1]
-	os.chdir(path)
-	if not os.path.exists(os.path.join(path, 'experiment.py')):
-		err("no 'experiment.py' file was found in the specified directory.\n"
-			"Please make sure you are in a valid KLibs project folder and try again.")
-	return project_name
+def err(err_string):
+	cso("<red>\nError: " + err_string + "</red>\n")
+	sys.exit()
+
 
 def ensure_directory_structure(dir_map, root, parents=[], create_missing=False):
 	missing_dirs = []
@@ -57,16 +54,46 @@ def ensure_directory_structure(dir_map, root, parents=[], create_missing=False):
 		missing_dirs += ensure_directory_structure(subdirs, root, new_parents, create_missing)
 	return missing_dirs
 
-def err(err_string):
-	cso("<red>\nError: " + err_string + "</red>\n")
-	sys.exit()
+
+def initialize_path(path):
+
+	# Initialize paths and switch to project directory
+	path = os.path.normpath(path)
+	exp_file = os.path.join(path, 'experiment.py')
+	config_dir = os.path.join(path, 'ExpAssets', 'Config')
+	os.chdir(path)
+
+	# Verify required project files and folders exist
+	if not os.path.exists(exp_file):
+		err("no 'experiment.py' file was found in the specified directory.\n"
+			"Please make sure you are in a valid KLibs project folder and try again.")
+	if not os.path.isdir(config_dir):
+		err("could not locate the project's required 'ExpAssets/Config' directory.\n"
+			"Please make sure you are in a valid KLibs project folder and try again.")
+
+	# Get experiment name from experiment.py file
+	with open(exp_file, 'r') as f:
+		name_regex = re.compile(r"\nclass\s+(\w+)\((?:klibs\.)?Experiment.*")
+		exp_class_names = name_regex.findall(f.read())
+	if not len(exp_class_names):
+		err("could not find a valid KLibs Experiment class in 'experiment.py'.\n"
+			"Please double-check the main experiment script and try again.")		
+	project_name = exp_class_names[0]
+
+	# Check Config folder for files matching experiment name
+	config_project_names = [f.split("_")[0] for f in os.listdir(config_dir)]
+	if not any([project_name == n for n in config_project_names]):
+		err("the project name in 'experiment.py' ({0}) does not match the names of any "
+			"of the project's configuration files.\n"
+			"Please verify the project structure and try again.".format(project_name))
+		
+	return project_name
 
 
 # Actual CLI Functions #
 
 def create(name, path):
 	import shutil
-	import re
 	from random import choice
 	from os.path import join
 	from tempfile import mkdtemp
@@ -92,7 +119,7 @@ def create(name, path):
 	]
 
 	# Validate name (must be valid Python identifier)
-	valid_name = re.match(re.compile(r"^[^\d\W]\w*\Z"), name) != None
+	valid_name = re.match(re.compile(r"^[A-Za-z_]+([A-Za-z0-9_]+)?$"), name) != None
 	if not valid_name:
 		err("'{0}' is not a valid project name. Project names must not contain any spaces or "
 			"special characters apart from '_', and cannot start with a number.".format(name))
@@ -351,9 +378,6 @@ def rebuild_db(path):
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
 		setattr(P, k, v)
 	DatabaseManager().rebuild()
-
-
-# def rename(path): todo: write this, it's irritatingly complex but also super necessary
 
 
 def hard_reset(path):

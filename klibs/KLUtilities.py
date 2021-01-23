@@ -121,30 +121,89 @@ def clip(value, minimum, maximum):
 	return value
 
 
-def colored_stdout(string, print_string=True, args=[]):
-	string = string.format(*args)
-	end_col = re.compile(r"</([a-z_]{1,8})>")
-	colors = {
-			"<purple>": '\033[95m',
-			"<purple_d>": '\033[35m',
-			"<blue>": '\033[94m',
-			"<blue_d>": '\033[34m',
-			"<green>": '\033[92m',
-			"<green_d>": '\033[32m',
-			"<red>": '\033[91m',
-			"<red_d>": '\033[31m',
-			"<cyan>": '\033[96m',
-			"<cyan_d>": '\033[36m',
-			"<bold>": '\033[1m'
+def colored_stdout(string, print_string=True):
+	"""Generates and optionally prints colour text to the terminal, with colours and other styles
+	being specified using HTML-style open/close tags (e.g. "<red>hello</red>").
+
+	The following styles and colours are currently supported:
+
+	================== ====================== ======================
+	Style / Colour     Style Code             ANSI Code
+	================== ====================== ======================
+	Red                ``red``                ``\033[91m``
+	------------------ ---------------------- ----------------------
+	Green              ``green``              ``\033[92m``
+	------------------ ---------------------- ----------------------
+	Blue               ``blue``               ``\033[94m``
+	------------------ ---------------------- ----------------------
+	Purple             ``purple``             ``\033[95m``
+	------------------ ---------------------- ----------------------
+	Cyan               ``cyan``               ``\033[96m``
+	------------------ ---------------------- ----------------------
+	Dark Red           ``red_d``              ``\033[31m``
+	------------------ ---------------------- ----------------------
+	Dark Green         ``green_d``            ``\033[32m``
+	------------------ ---------------------- ----------------------
+	Dark Blue          ``blue_d``             ``\033[34m``
+	------------------ ---------------------- ----------------------
+	Dark Purple        ``purple_d``           ``\033[35m``
+	------------------ ---------------------- ----------------------
+	Dark Cyan          ``cyan_d``             ``\033[36m``
+	------------------ ---------------------- ----------------------
+	Bold               ``bold``               ``\033[1m``
+	================== ====================== ======================
+
+	Args:
+		string (str): A string to style with ANSI colour codes.
+		print_string (bool, optional): If True, the string will be printed immediately after
+			being formatted. Defaults to True.
+
+	Return:
+		str: The formatted output string.
+
+	"""
+	code_pattern = r"(</?[a-z_]+>)"
+	codes = {
+		"purple": '\033[95m',
+		"purple_d": '\033[35m',
+		"blue": '\033[94m',
+		"blue_d": '\033[34m',
+		"green": '\033[92m',
+		"green_d": '\033[32m',
+		"red": '\033[91m',
+		"red_d": '\033[31m',
+		"cyan": '\033[96m',
+		"cyan_d": '\033[36m',
+		"bold": '\033[1m'
 	}
-	for c in colors:
-		string = string.replace(c, colors[c] if P.color_output else '')
-	original_color = "\033[0m"
-	string =  end_col.sub(original_color if P.color_output else '', string)
+
+	out = ""
+	stack = []
+	for s in re.split(code_pattern, string):
+		if re.match(code_pattern, s) and P.color_output:
+			code = re.findall(r"</?([a-z_]+)>", s)[0]
+			if not code in codes.keys():
+				continue
+			if s[:2] == "</":
+				if code == "bold" and "bold" in stack:
+					stack.remove("bold")
+					out += "\033[0m"
+				if len(stack) and stack[-1] == code:
+					stack.pop()
+				out += codes[stack[-1]] if len(stack) else "\033[0m"
+			else:
+				stack.append(code)
+				out += codes[code]   
+		else:
+			out += s
+
+	if P.color_output:
+		out += "\033[0m"  # Ensure text style reset to normal at end
+	
 	if print_string:
-		print(string)
-	else:
-		return string
+		print(out)
+
+	return out
 
 
 def deg_to_px(deg, even=False):

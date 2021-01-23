@@ -146,21 +146,21 @@ def create(name, path):
 	if len(author.split()) < 2:
 		one_name_peeps = ["Madonna", "Prince", "Cher", "Bono", "Sting"]
 		cso("<red>\nOk {0}, take it easy.</red> "
-			"<green_d>First</green_d> <cyan>*and*</cyan> <green_d>last name. "
+			"<green_d>First <cyan>*and*</cyan> last name. "
 			"Let's try that again--you got this champ...</green_d>".format(choice(one_name_peeps)))
 		return create(name, path)
 	
 	# Verify author name and project path before creating it
-	cso("\n<green_d>***</green_d> <purple>Confirm Project Details</purple> <green_d>***</green_d>")
-	cso("<cyan>Project Author:</cyan> <blue>{0} {1}</blue>", args=author.split())
-	cso("<cyan>Project Path:</cyan> <blue>{0}</blue>\n", args=[project_path])
+	cso("\n<green_d>*** <purple>Confirm Project Details</purple> ***</green_d>")
+	cso("<cyan>Project Author:</cyan> <blue>{0} {1}</blue>".format(*author.split()))
+	cso("<cyan>Project Path:</cyan> <blue>{0}</blue>\n".format(project_path))
 	verified = False
 	while not verified:
 		query = cso(
-            "<green_d>Is this correct? Answer with</green_d> "
-            "<purple>Y</purple><green_d>es,</green_d> "
-			"<purple>N</purple><green_d>o, or</green_d> "
-			"<purple>Q</purple><green_d>uit: </green_d>", False
+            "<green_d>Is this correct? Answer with "
+            "<purple>Y</purple>es, "
+			"<purple>N</purple>o, or "
+			"<purple>Q</purple>uit: </green_d>", False
         )
 		response = getinput(query).lower()
 		response = response[0] if len(response) > 1 else response
@@ -230,10 +230,10 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 		cso("<red>Some expected or required directories for this project appear to be missing.</red>")
 		while True:
 			query = cso(
-				"<green_d>You can</green_d> "
-				"<purple>(c)</purple><green_d>reate them automatically, view a "
-				"<purple>(r)</purple><green_d>eport on the missing directories, or "
-				"<purple>(q)</purple><green_d>uit klibs: </green_d>", False
+				"<green_d>You can "
+				"<purple>(c)</purple>reate them automatically, view a "
+				"<purple>(r)</purple>eport on the missing directories, or "
+				"<purple>(q)</purple>uit klibs: </green_d>", False
 			)
 			action = getinput(query).lower()
 			action = action[0] if len(action) > 1 else action # only check first letter of input
@@ -439,9 +439,9 @@ def update(branch='default'):
 	update_cmd = 'install -U git+{0}#egg=klibs --upgrade-strategy only-if-needed'.format(git_repo)
 	update_prompt = cso(
 		"\n<green_d>Updating will replace the current install of KLibs with the most "
-		"recent commit of the </green_d><purple>{0}</purple><green_d> branch of "
-		"</green_d><purple>'{1}'</purple><green_d>. Are you sure you want to continue? "
-		"(Y/N): </green_d>".format(branch, git_repo_short), False
+		"recent commit of the <purple>{0}</purple> branch of <purple>'{1}'</purple>. "
+		"Are you sure you want to continue? (Y/N): </green_d>".format(branch, git_repo_short),
+		False
 	)
 	if getinput(update_prompt).lower() == "y":
 		print("")

@@ -369,12 +369,12 @@ class DatabaseManager(EnvAgent):
 			self.__current = self.__master
 			
 	def __catch_db_not_found__(self):
-		cso("\n<green_d>No database file was present at '{0}'.</green_d>", args=[P.database_path])
+		cso("\n<green_d>No database file was present at '{0}'.</green_d>".format(P.database_path))
 		err_string = cso(
-			"<green_d>You can</green_d> "
-			"<purple>(c)</purple><green_d>reate it,</green_d> "
-			"<purple>(s)</purple><green_d>upply a different path or</green_d> "
-			"<purple>(q)</purple><green_d>uit: </green_d>", print_string=False
+			"<green_d>You can "
+			"<purple>(c)</purple>reate it, "
+			"<purple>(s)</purple>upply a different path or "
+			"<purple>(q)</purple>uit: </green_d>", print_string=False
 		)
 		db_action = ArgumentParser()
 		db_action.add_argument('action', type=str, choices=['c', 's', 'q'])

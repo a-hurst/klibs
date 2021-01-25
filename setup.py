@@ -2,21 +2,33 @@
 
 import os
 from setuptools import setup
+from distutils.spawn import find_executable
 import subprocess as sub
-import shutil
 
-# Get the git hash for the current KLibs commit
-cmd = 'git rev-parse --verify HEAD'.split(' ')
-commit = sub.check_output(cmd, universal_newlines=True).strip()
-with open('klibs/resources/current_commit.txt', 'w+') as f:
-	f.write(commit)
+
+# If installing from GitHub, get the git hash for the current KLibs commit
+
+commit_file = os.path.join('klibs', 'resources', 'current_commit.txt')
+source_install = False
+
+if not os.path.isfile(commit_file):
+
+	source_install = True
+	if not find_executable('git'):
+		e = "You must have Git installed in order to install KLibs from GitHub"
+		raise RuntimeError(e)
+	
+	cmd = 'git rev-parse --verify HEAD'.split(' ')
+	commit = sub.check_output(cmd, universal_newlines=True).strip()
+	with open(commit_file, 'w+') as f:
+		f.write(commit)
 	
 	
 install_packages = ['klibs']
 
 setup(
 	name='KLibs',
-	version='0.7.5a8',
+	version='0.7.5a9',
 	description='A framework for building psychological experiments in Python',
 	author='Jonathan Mulle & Austin Hurst',
 	author_email='mynameisaustinhurst@gmail.com',
@@ -36,8 +48,10 @@ setup(
 	extras_require={
 		'AudioResponse': ['PyAudio>=0.2.9']
 	}
-
 )
 
+
 # Remove current_commit.txt after install to avoid messing with git
-os.remove('klibs/resources/current_commit.txt')
+
+if source_install and os.path.exists(commit_file):
+	os.remove(commit_file)

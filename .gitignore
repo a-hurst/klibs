@@ -3,3 +3,5 @@
 !.gitignore
 build
 build/*
+dist
+*.egg-info

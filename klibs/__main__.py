@@ -10,9 +10,7 @@ import traceback
 import binascii
 
 try:
-	from klibs.KLExceptions import DatabaseException
 	from klibs.KLUtilities import colored_stdout as cso
-	from klibs.KLUtilities import getinput
 	from klibs import P
 except:
 	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m\n\nStack Trace:")
@@ -29,6 +27,13 @@ if __name__ == '__main__':
 def err(err_string):
 	cso("<red>\nError: " + err_string + "</red>\n")
 	sys.exit()
+
+
+def getinput(*args, **kwargs):
+	try:
+		return raw_input(*args, **kwargs)
+	except NameError:
+		return input(*args, **kwargs)
 
 
 def ensure_directory_structure(dir_map, root, parents=[], create_missing=False):
@@ -88,6 +93,39 @@ def initialize_path(path):
 			"Please verify the project structure and try again.".format(project_name))
 		
 	return project_name
+
+
+def validate_database_path(db_path, prompt=False):
+
+	if prompt == False and not os.path.isfile(db_path):
+		err("unable to locate project database at '{0}'.\nIt may have been renamed, "
+			"or may not exist yet.".format(db_path))
+
+	while not os.path.isfile(db_path):
+		cso("\n<green_d>No database file was present at '{0}'.</green_d>".format(db_path))
+		db_prompt = cso(
+			"<green_d>You can "
+			"<purple>(c)</purple>reate it, "
+			"<purple>(s)</purple>upply a different path or "
+			"<purple>(q)</purple>uit: </green_d>", print_string=False
+		)
+		response = getinput(db_prompt).lower()
+		
+		while response not in ['c', 's', 'q']:
+			err_prompt = cso("<red>\nPlease respond with one of 'c', 's', or 'q': </red>", False)
+			response = getinput(err_prompt).lower()
+
+		if response == "c":
+			open(db_path, "a").close()
+		elif response == "s":
+			db_path = getinput(cso("<green_d>\nGreat, where might it be?: </green_d>", False))
+			db_path = os.path.normpath(db_path)
+		elif response == "q":
+			print("")
+			sys.exit()
+	
+	return db_path
+
 
 
 # Actual CLI Functions #
@@ -202,7 +240,6 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 
 	cso("\n\n<green>*** Now Loading KLibs Environment ***</green>\n")
 
-	from klibs import P
 	from klibs import env
 	from klibs.KLGraphics.core import display_init
 	from klibs.KLDatabase import DatabaseManager
@@ -213,7 +250,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)
 
-	# create any missing project directories
+	# Create any missing project directories
 	dir_structure = {
 		"ExpAssets": {
 			".versions": None,
@@ -249,8 +286,9 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 			else:
 				cso("\n<red>Please enter a valid response.</red>")
 
-	# set initial param values for project's context
+	# Set initial param values for project's context
 	P.setup(project_name, seed)
+	P.database_path = validate_database_path(P.database_path, prompt=True)
 
 	# Add ExpAssets/Resources/code to pythonpath for easy importing
 	sys.path.append(P.code_dir)
@@ -258,7 +296,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 	# If a condition was specified, set it in Params
 	P.condition = condition
 
-	# import params defined in project's local params file in ExpAssets/Config
+	# Import params defined in project's params file in ExpAssets/Config
 	try:
 		for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
 			setattr(P, k, v)
@@ -267,7 +305,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 			"file exists, and that the name of the experiment folder matches the name of the "
 			"Experiment class defined in 'experiment.py'.")
 
-	# if a local params file exists, do the same:
+	# If a local params file exists, do the same:
 	if os.path.exists(P.params_local_file_path) and not P.dm_ignore_local_overrides:
 		for k, v in imp.load_source("*", P.params_local_file_path).__dict__.items():
 			setattr(P, k, v)
@@ -284,15 +322,14 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 			err("'{0}' is not a valid condition for this experiment (must be one of '{1}'). "
 				"Please relaunch the experiment.".format(P.condition, cond_list))
 
-	# set some basic global Params
+	# Set some basic global Params
 	if devmode:
 		P.development_mode = True
 		P.collect_demographics = False
 	if not P.labjack_available:
 		P.labjacking = False
-	#TODO: check if current commit matches experiment.py and warn user if not
 
-	# create runtime environment
+	# Create runtime environment
 	env.txtm = TextManager()
 	if P.eye_tracking:
 		if no_tracker is True:
@@ -304,12 +341,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 			env.el = KLEyeTracking.Tracker()
 		except RuntimeError:
 			sys.exit()
-	try:
-		env.db = DatabaseManager()
-	except DatabaseException as e:
-		if e.message != "Quitting.":
-			cso("<red>Unable to load database.</red>")
-		sys.exit()
+	env.db = DatabaseManager()
 	env.evm = EventManager()
 
 	try:
@@ -344,39 +376,43 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 
 
 def export(path, table=None, combined=False, join=None):
-	from klibs import P
 	from klibs.KLDatabase import DatabaseManager
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)
 
-	# set initial param values for project's context
+	# Set initial param values for project's context
 	P.setup(project_name)
 
-	# ensure that 'Data' and 'Data/incomplete' directories exist, creating if missing
+	# Ensure that 'Data' and 'Data/incomplete' directories exist, creating if missing
 	if not os.path.isdir(P.incomplete_data_dir):
 		os.makedirs(P.incomplete_data_dir)
 
-	# import params defined in project's local params file in ExpAssets/Config
+	# Import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
 		setattr(P, k, v)
 	multi_file = combined != True
+
+	# Validate database path and export
+	P.database_path = validate_database_path(P.database_path)
 	DatabaseManager().export(table, multi_file, join)
 
 
 def rebuild_db(path):
-	from klibs import P
 	from klibs.KLDatabase import DatabaseManager
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)
 
-	# set initial param values for project's context
+	# Set initial param values for project's context
 	P.setup(project_name)
 
-	# import params defined in project's local params file in ExpAssets/Config
+	# Import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
 		setattr(P, k, v)
+
+	# Validate database path and rebuild
+	P.database_path = validate_database_path(P.database_path)
 	DatabaseManager().rebuild()
 
 
@@ -386,7 +422,10 @@ def hard_reset(path):
 	from klibs.KLUtilities import iterable
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
-	initialize_path(path)
+	project_name = initialize_path(path)
+
+	# Set initial param values for project's context
+	P.setup(project_name)
 
 	reset_prompt = cso(
 		"\n<red>Warning: doing a hard reset will delete all collected data, "
@@ -402,11 +441,13 @@ def hard_reset(path):
 				shutil.rmtree(join(path, "ExpAssets", d))
 			except OSError:
 				pass
+		for f in [P.database_path, P.database_backup_path]:
+			if os.path.isfile(f):
+				os.remove(f)
 		os.makedirs(join(path, "ExpAssets", "Data", "incomplete"))
 		os.makedirs(join(path, "ExpAssets", "EDF", "incomplete"))
 		os.mkdir(join(path, "ExpAssets", "Local", "logs"))
 		os.mkdir(join(path, "ExpAssets", ".versions"))
-		rebuild_db(path)
 	print("")
 
 

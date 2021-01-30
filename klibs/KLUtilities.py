@@ -247,15 +247,6 @@ def full_trace():
 	return exception_str[:-1]
 
 
-def getinput(*args, **kwargs):
-	# python-agnostic function for getting console input. Saves us from requring 'future'
-	# or 'six' compatibility package (for now, anyway).
-	try:
-		return raw_input(*args, **kwargs)
-	except NameError:
-		return input(*args, **kwargs)
-
-
 def hide_mouse_cursor():
 	"""Hides the mouse cursor if it is currently shown. Otherwise, this function does nothing.
 	

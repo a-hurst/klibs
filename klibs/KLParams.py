@@ -15,7 +15,7 @@ from os.path import exists, join, expanduser
 from pkg_resources import resource_filename, resource_string
 
 from klibs.KLConstants import (TAB, DATETIME_STAMP, DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
-	FACTORS_EXT, PARAMS_EXT, MESSSAGING_EXT, BACK_EXT)
+	FACTORS_EXT, PARAMS_EXT, MESSAGING_EXT, BACK_EXT)
 
 klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
 
@@ -212,7 +212,7 @@ def init_project():
 	log_filename = str(project_name) + LOG_EXT
 	ind_vars_filename = str(project_name) + FACTORS_EXT
 	params_filename = str(project_name) + PARAMS_EXT
-	events_filename = str(project_name) + MESSSAGING_EXT
+	events_filename = str(project_name) + MESSAGING_EXT
 
 	# Project paths
 	data_dir = join(asset_dir, "Data")

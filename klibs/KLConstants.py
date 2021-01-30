@@ -22,10 +22,6 @@ ANNULUS_BOUNDARY = "annulus"
 STROKE_INNER = 1
 STROKE_CENTER = 2
 STROKE_OUTER = 3
-KLD_LINE = "line"
-KLD_ARC = "arc"
-KLD_PATH = "path"
-KLD_MOVE = "move"
 
 # ResponseCollector Constants
 RC_AUDIO = 'audio_listener'
@@ -96,7 +92,7 @@ SCHEMA_EXT = "_schema.sql"
 USER_QUERIES_EXT = "_user_queries.json"
 FACTORS_EXT = "_independent_variables.py"
 PARAMS_EXT = "_params.py"
-MESSSAGING_EXT = "_messaging.csv"
+MESSAGING_EXT = "_messaging.csv"
 
 # KLText Constants
 TEXT_PT = "pt"

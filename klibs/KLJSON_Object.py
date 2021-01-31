@@ -66,6 +66,8 @@ class JSON_Object(AttributeDict):
 
 	'''
 
+	# NOTE: Can't handle JSON where base json is a list and not a dict, should find a fix
+
 	def __init__(self, json_file_path):
 		try:
 			json_file = io.open(json_file_path, encoding='utf-8')
@@ -73,14 +75,17 @@ class JSON_Object(AttributeDict):
 			for key in json_dict:
 				setattr(self, key, json_dict[key])
 		except ValueError:
-			raise ValueError("JSON file is poorly formatted. Please check syntax.")
+			err = "'{0}' is not a valid JSON file.".format(json_file_path)
+			raise RuntimeError(err)
+		except AttributeError as e:
+			raise ValueError(e)
 	
 	def __objectify(self, dict_obj):
 		# Check if JSON object name is a valid Python class attribute name
-		valid_attr_name = re.compile(r"[A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__)")
+		valid_attr_name = re.compile(r"^[A-Za-z_]+([A-Za-z0-9_]+)?$")
 		for key in dict_obj.keys():
 			if re.match(valid_attr_name, key) == None:
 				print(u"Error: '{0}' is not a valid Python class attribute name ".format(key) +
-					u"(try removing special characters).\n")
-				raise RuntimeError("Error encountered loading json_object")
+					u"(try removing spaces and special characters).\n")
+				raise AttributeError("Error encountered loading json_object")
 		return AttributeDict(dict_obj)

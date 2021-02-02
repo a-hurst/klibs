@@ -6,7 +6,7 @@ import sqlite3
 from copy import copy
 from itertools import chain
 from os import remove, rename
-from os.path import join, isfile
+from os.path import join, isfile, basename
 from collections import OrderedDict
 
 from klibs.KLEnvironment import EnvAgent
@@ -15,7 +15,7 @@ from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_
 	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR, SQL_BIN, SQL_KEY, SQL_NULL,
 	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID)
 from klibs import P
-from klibs.KLUtilities import full_trace, iterable, bool_to_int, boolean_to_logical, utf8
+from klibs.KLUtilities import full_trace, iterable, boolean_to_logical, utf8
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLRuntimeInfo import session_info_schema
 
@@ -649,8 +649,9 @@ class DatabaseManager(object):
 			print("\nDatabase successfully rebuilt! Please make sure to update your experiment.py "
 				  "to reflect any changes you might have made to tables or column names.\n")
 		except (sqlite3.ProgrammingError, sqlite3.OperationalError, ValueError) as e:
+			schema_filename = basename(P.schema_file_path)
 			cso("\n<red>Syntax error encountered in '{0}'. Please double-check the formatting of "
-				"the schema and try again.</red>\n".format(P.schema_filename))
+				"the schema and try again.</red>\n".format(schema_filename))
 			self.__master._drop_tables(self.__master.table_list)
 			self.__restore__()
 			raise e

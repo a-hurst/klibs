@@ -287,7 +287,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 				cso("\n<red>Please enter a valid response.</red>")
 
 	# Set initial param values for project's context
-	P.setup(project_name, seed)
+	P.initialize_runtime(project_name, seed)
 	P.database_path = validate_database_path(P.database_path, prompt=True)
 
 	# Add ExpAssets/Resources/code to pythonpath for easy importing
@@ -382,7 +382,7 @@ def export(path, table=None, combined=False, join=None):
 	project_name = initialize_path(path)
 
 	# Set initial param values for project's context
-	P.setup(project_name)
+	P.initialize_paths(project_name)
 
 	# Ensure that 'Data' and 'Data/incomplete' directories exist, creating if missing
 	if not os.path.isdir(P.incomplete_data_dir):
@@ -405,7 +405,7 @@ def rebuild_db(path):
 	project_name = initialize_path(path)
 
 	# Set initial param values for project's context
-	P.setup(project_name)
+	P.initialize_paths(project_name)
 
 	# Import params defined in project's local params file in ExpAssets/Config
 	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
@@ -425,7 +425,7 @@ def hard_reset(path):
 	project_name = initialize_path(path)
 
 	# Set initial param values for project's context
-	P.setup(project_name)
+	P.initialize_paths(project_name)
 
 	reset_prompt = cso(
 		"\n<red>Warning: doing a hard reset will delete all collected data, "

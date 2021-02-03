@@ -16,14 +16,15 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
-from klibs.KLUtilities import full_trace, pump, flush, now, show_mouse_cursor, hide_mouse_cursor
+from klibs.KLUtilities import full_trace, now
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 from klibs.KLGraphics import KLDraw as kld
 from klibs.KLDatabase import EntryTemplate
-from klibs.KLUserInterface import any_key
+from klibs.KLEventQueue import pump, flush
+from klibs.KLUserInterface import any_key, show_mouse_cursor, hide_mouse_cursor
 from klibs.KLAudio import AudioManager
 from klibs.KLResponseCollectors import ResponseCollector
 from klibs.KLCommunication import message, query, collect_demographics

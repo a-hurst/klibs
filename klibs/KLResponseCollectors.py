@@ -13,9 +13,9 @@ from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS,
 	NO_RESPONSE, TIMEOUT, TK_S, TK_MS)
 from klibs import P
 from klibs.KLKeyMap import KeyMap
-from klibs.KLUtilities import (pump, flush, hide_mouse_cursor, show_mouse_cursor, mouse_pos,
-	full_trace, iterable, angle_between)
-from klibs.KLUserInterface import ui_request
+from klibs.KLEventQueue import pump, flush
+from klibs.KLUserInterface import ui_request, show_mouse_cursor, hide_mouse_cursor, mouse_pos
+from klibs.KLUtilities import full_trace, iterable, angle_between
 from klibs.KLBoundary import BoundaryInspector, AnnulusBoundary
 from klibs.KLGraphics import flip
 from klibs.KLGraphics.utils import aggdraw_to_array

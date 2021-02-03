@@ -1,11 +1,20 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-from sdl2 import (SDL_GetKeyFromName, SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL,
-	KMOD_GUI, SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
+# TODO: Add 'mouse_clicked' and/or 'boundary_clicked' function
+# TODO: Add mouseover function?
 
+import ctypes
+
+from sdl2 import (SDL_GetKeyFromName, SDL_ShowCursor, SDL_PumpEvents, SDL_BUTTON,
+	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
+	SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL, KMOD_GUI, SDLK_UP,
+	SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
+from sdl2.mouse import SDL_GetMouseState, SDL_WarpMouseGlobal
+
+from klibs import TK_S, TK_MS
 from klibs import P
 from klibs.KLTime import precise_time as time
-from klibs.KLUtilities import pump
+from klibs.KLEventQueue import pump
 
 
 def any_key(allow_mouse_click=True):
@@ -76,6 +85,60 @@ def key_pressed(key=None, queue=None):
 				pressed = True
 
 	return pressed
+
+
+def hide_mouse_cursor():
+	"""Hides the mouse cursor if it is currently shown. Otherwise, this function does nothing.
+	
+	"""
+	SDL_ShowCursor(SDL_DISABLE)
+
+
+def show_mouse_cursor():
+	"""Unhides the mouse cursor if it is currently hidden. Otherwise, this function does nothing.
+
+	"""
+	SDL_ShowCursor(SDL_ENABLE)
+
+
+def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
+	"""Returns the current coordinates of the mouse cursor, or alternatively warps the
+	position of the cursor to a specific location on the screen.
+
+	Args:
+		pump_event_queue (bool, optional): Pumps the SDL2 event queue. See documentation
+			for pump() for more information. Defaults to True.
+		position (None or iter(int,int), optional): The x,y pixel coordinates to warp
+			the cursor to if desired. Defaults to None.
+		return_button_state (bool, optional): If True, return the mouse button currently
+			being pressed (if any) in addition to the current cursor coordinates. Defaults
+			to False.
+
+	Returns:
+		A 2-element Tuple containing the x,y coordinates of the cursor as integer values.
+		If position is not None, this will be the coordinates the cursor was warped to.
+		If return_button_state is True, the function returns a 3-element Tuple containing
+		the x,y coordinates of the cursor and the mouse button state (left pressed = 1,
+		right pressed = 2, middle pressed = 3, none pressed = 0).
+
+	"""
+	if pump_event_queue:
+		SDL_PumpEvents()
+	if not position:
+		x, y = ctypes.c_int(0), ctypes.c_int(0)
+		button_state = SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
+		if return_button_state:
+			if (button_state & SDL_BUTTON(SDL_BUTTON_LEFT)): pressed = 1
+			elif (button_state & SDL_BUTTON(SDL_BUTTON_RIGHT)): pressed = 2
+			elif (button_state & SDL_BUTTON(SDL_BUTTON_MIDDLE)): pressed = 3
+			else: pressed = 0
+			return (x.value, y.value, pressed)
+		else:
+			return (x.value, y.value)
+	else:
+		x, y = [int(n) for n in position]
+		SDL_WarpMouseGlobal(x, y)
+		return position
 
 
 def konami_code(callback=None, cb_args={}, queue=None):
@@ -192,3 +255,20 @@ def ui_request(key_press=None, execute=True, queue=None):
 							el.calibrate()
 						return "el_calibrate"
 		return False
+
+
+def smart_sleep(interval, units=TK_MS):
+	"""Stops and waits for a given amount of time, ensuring that any 'quit' or 'calibrate' key
+	commands issued during the wait interval are processed.
+
+	Args:
+		interval (float): The number of units of time to pause execution for.
+		units (int, optional): The time unit of 'interval', must be one of `klibs.TK_S` (seconds)
+			or `klibs.TK_MS` (milliseconds). Defaults to milliseconds.
+			
+	"""
+	if units == TK_MS:
+		interval *= .001
+	start = time()
+	while time() - start < interval:
+		ui_request()

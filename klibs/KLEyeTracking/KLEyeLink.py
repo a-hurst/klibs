@@ -13,9 +13,9 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
 	EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
 	TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 from klibs import P
-from klibs.KLUtilities import full_trace, iterable, hide_mouse_cursor, mouse_pos, now
+from klibs.KLUtilities import full_trace, iterable, now
 from klibs.KLUtilities import colored_stdout as cso
-from klibs.KLUserInterface import ui_request
+from klibs.KLUserInterface import ui_request, hide_mouse_cursor
 from klibs.KLGraphics import blit, fill, flip, clear
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker

@@ -5,44 +5,23 @@ import os
 import re
 import math
 import time
-import ctypes
-import datetime
 import traceback
 import base64
 from hashlib import sha512
 from sys import exc_info
+from datetime import datetime
 from math import sin, cos, acos, atan2, radians, pi, degrees, ceil
-
-from sdl2 import (SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents,
-	SDL_PeepEvents, SDL_GetError, SDL_GetTicks,
-	SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_GETEVENT, SDL_MOUSEMOTION, 
-	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
-	KMOD_SHIFT, KMOD_CAPS)
-from sdl2.ext import get_events
-from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
-from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
 
 from klibs.KLConstants import DATETIME_STAMP, TK_S, TK_MS
 from klibs import P
+from klibs.KLEventQueue import pump, flush
+from klibs.KLUserInterface import show_mouse_cursor, hide_mouse_cursor, mouse_pos, smart_sleep
 
-
-def arg_error_str(arg_name, given, expected, kw=True):
-	if kw:
-		err_string = "The keyword argument, '{0}', was expected to be of type '{1}' but '{2}' was given."
-	else:
-		err_string = "The argument, '{0}', was expected to be of type '{1}' but '{2}' was given."
-	return err_string.format(arg_name, type(given), type(expected))
 
 
 def angle_between(origin, p2, rotation=0, clockwise=False):
 	angle = degrees(atan2(p2[1] - origin[1], p2[0] - origin[0])) + (-rotation if clockwise else rotation)
 	return (angle if clockwise else -angle) % 360
-
-
-def bool_to_int(boolean_val):
-	if boolean_val is False: return 0
-	if boolean_val is True: return 1
-	raise ValueError("Non-boolean value passed ('{0}')".format(type(boolean_val)))
 
 
 def boolean_to_logical(value, convert_integers=False):
@@ -59,11 +38,6 @@ def bounded_by(pos, left, right, top, bottom):
 		return (left < pos[0] < right and top < pos[1] < bottom)
 	except TypeError:
 		raise TypeError("'pos' must be [x,y] coordinates, other arguments must be numeric.")
-
-
-def camel_to_snake(string):
-	s = re.sub('([a-z0-9])([A-Z])', r'\1_\2', re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string))
-	return s.lower()
 
 
 def canvas_size_from_points(points, flat=False):
@@ -226,15 +200,6 @@ def deg_to_px(deg, even=False):
 	return int(px)
 
 
-def flush():
-	"""Empties the event queue of all unprocessed input events. This should be called before
-	any input-checking loops, to avoid any input events from before the loop being processed.
-	
-	"""
-	pump()
-	SDL_FlushEvents(SDL_FIRSTEVENT, SDL_LASTEVENT)
-
-
 def full_trace():
 	exception_list = traceback.format_stack()
 	exception_list = exception_list[:-2]
@@ -247,14 +212,8 @@ def full_trace():
 	return exception_str[:-1]
 
 
-def hide_mouse_cursor():
-	"""Hides the mouse cursor if it is currently shown. Otherwise, this function does nothing.
-	
-	"""
-	SDL_ShowCursor(SDL_DISABLE)
-
-
 def indices_of(element, container, identity_comparison=False):
+	# Another TraceLab special, should be removed there (and eventually here)
 	if identity_comparison:
 		return [i for i, x in enumerate(container) if x is element]
 	else:
@@ -262,6 +221,7 @@ def indices_of(element, container, identity_comparison=False):
 
 
 def interpolated_path_len(points):
+	# TraceLab special, already rewritten there, should re-evaluate usefulness here
 	# where points is a list of coordinate tuples
 	path_len = 0
 	for i in range(0, len(points)):
@@ -342,19 +302,6 @@ def line_segment_len(a, b):
 	return math.sqrt(dy**2 + dx**2)
 
 
-def list_dimensions(target, dim=0):
-	"""
-	Tests if testlist is a list and how many dimensions it has
-	returns -1 if it is no list at all, 0 if list is empty
-	and otherwise the dimensions of it
-	http://stackoverflow.com/questions/15985389/python-check-if-list-is-multidimensional-or-one-dimensional, u: bunkus
-	"""
-	if isinstance(target, list):
-		return dim if not len(target) else list_dimensions(target[0], dim + 1)
-	else:
-		return -1 if dim == 0 else dim
-
-
 def log(msg, priority):
 	"""Writes a message to a log file (Note: the way logging in KLibs is handled will probably get
 	rewritten soon, so I'd advise against using this).
@@ -419,56 +366,9 @@ def mean(values):
 	return sum(values) / float(len(values))
 
 
-def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
-	"""Returns the current coordinates of the mouse cursor, or alternatively warps the
-	position of the cursor to a specific location on the screen.
-
-	Args:
-		pump_event_queue (bool, optional): Pumps the SDL2 event queue. See documentation
-			for pump() for more information. Defaults to True.
-		position (None or iter(int,int), optional): The x,y pixel coordinates to warp
-			the cursor to if desired. Defaults to None.
-		return_button_state (bool, optional): If True, return the mouse button currently
-			being pressed (if any) in addition to the current cursor coordinates. Defaults
-			to False.
-
-	Returns:
-		A 2-element Tuple containing the x,y coordinates of the cursor as integer values.
-		If position is not None, this will be the coordinates the cursor was warped to.
-		If return_button_state is True, the function returns a 3-element Tuple containing
-		the x,y coordinates of the cursor and the mouse button state (left pressed = 1,
-		right pressed = 2, middle pressed = 3, none pressed = 0).
-
-	"""
-	if pump_event_queue:
-		SDL_PumpEvents()
-	if not position:
-		x, y = ctypes.c_int(0), ctypes.c_int(0)
-		button_state = SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
-		if return_button_state:
-			if (button_state & SDL_BUTTON(SDL_BUTTON_LEFT)): pressed = 1
-			elif (button_state & SDL_BUTTON(SDL_BUTTON_RIGHT)): pressed = 2
-			elif (button_state & SDL_BUTTON(SDL_BUTTON_MIDDLE)): pressed = 3
-			else: pressed = 0
-			return (x.value, y.value, pressed)
-		else:
-			return (x.value, y.value)
-	else:
-		x, y = [int(n) for n in position]
-		SDL_WarpMouseGlobal(x, y)
-		return position
-
-
-def mouse_angle(pump_event_queue=True, reference=None, rotation=0, clockwise=False):
-	if pump_event_queue:
-		SDL_PumpEvents()
-	if reference is None:
-		reference = P.screen_c
-	return angle_between(reference, mouse_pos(), rotation, clockwise)
-
-
 def now(format_time=False, format_template=DATETIME_STAMP):
-	return datetime.datetime.fromtimestamp(time.time()).strftime(format_template) if format_time else time.time()
+	t = time.time()
+	return datetime.fromtimestamp(t).strftime(format_template) if format_time else t
 
 
 def peak(v1, v2):
@@ -522,36 +422,6 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False, return_int=
 		err = "point_pos error (start: {0}, amp: {1}, ang: {2}, rot: {3})"
 		print(err.format(origin, amplitude, angle, rotation))
 		raise
-
-
-def pump(return_events=False):
-
-	"""Pumps the SDL2 event queue and appends its contents to the EventManager log.
-	The SDL2 event queue contains SDL_Event objects representing keypresses, mouse
-	movements, mouse clicks, and other input events that have occured since last
-	check.
-
-	Pumping the SDL2 event queue clears its contents, so be careful of calling it
-	(or functions that call it implicitly) multiple times in the same loop, as it
-	may result in unexpected problems watching for input (e.g if you have two
-	functions checking for mouse clicks within two different boundaries and both
-	call pump(), the second one will only return True if a click within that boundary
-	occurred within the sub-millisecond interval between the first and second functions.)
-	To avoid these problems, you can manually fetch the queue once per loop and pass its
-	contents to each of the functions in the loop inspecting user input.
-
-	Args:
-		return_events (bool): If true, returns the contents of the SDL2 event queue.
-
-	Returns:
-		A list of SDL_Event objects, if return_events=True. Otherwise, the return 
-		value is None.
-
-	"""
-	SDL_PumpEvents()
-
-	if return_events:
-		return get_events()
 
 
 def pretty_list(items, sep=',', space=' ', before_last='or', brackets='[]', pad=True):
@@ -648,13 +518,6 @@ def rotate_points(points, origin, angle, clockwise=True, flat=False):
 	return rotated
 
 
-def show_mouse_cursor():
-	"""Unhides the mouse cursor if it is currently hidden. Otherwise, this function does nothing.
-
-	"""
-	SDL_ShowCursor(SDL_ENABLE)
-
-
 def scale(coords, canvas_size, target_size=None, scale=True, center=True):
 	"""Scales and/or centers pixel coordinates intended for use at a given resolution to a
 	smaller or larger resolution, maintaining aspect ratio.
@@ -706,17 +569,6 @@ def scale(coords, canvas_size, target_size=None, scale=True, center=True):
 	return (x,y)
 
 
-def sdl_key_code_to_str(sdl_keysym):
-	key_name = SDL_GetKeyName(sdl_keysym).replace(b"Keypad ", b"")
-	key_name = str(key_name.decode('utf-8')) # for py3k compatibility
-	if key_name == "Space":
-		return " "
-	if not any(SDL_GetModState() & mod for mod in [KMOD_CAPS, KMOD_SHIFT]):
-		# if not holding Shift or Caps Lock isn't on, make letter lower case.
-		key_name = key_name.lower()
-	return key_name if len(key_name) == 1 else False # if key is not alphanumeric
-
-
 def snake_to_camel(string):
 	words = string.split('_')
 	return words[0] + "".join(x.title() for x in words[1:])
@@ -728,6 +580,7 @@ def snake_to_title(string):
 
 
 def str_pad(string, str_len, pad_char=" ", pad_dir="r"):
+	# Only used in TraceLab, redundant with ljust/rjust
 	pad_len = str_len - len(string)
 	if pad_len < 1:
 		raise ValueError("Desired string length shorter current string.")
@@ -810,25 +663,6 @@ def valid_coords(coords):
 		return len(coords) == 2 and all([type(i) in [int, float] for i in coords])
 	except TypeError:
 		return False
-
-		
-def smart_sleep(interval, units=TK_MS):
-	"""Stops and waits for a given amount of time, ensuring that any 'quit' or 'calibrate' key
-	commands issued during the wait interval are processed.
-
-	Args:
-		interval (float): The number of units of time to pause execution for.
-		units (int, optional): The time unit of 'interval', must be one of `klibs.TK_S` (seconds)
-			or `klibs.TK_MS` (milliseconds). Defaults to milliseconds.
-			
-	"""
-	from klibs.KLUserInterface import ui_request
-	from klibs.KLTime import precise_time
-	if units == TK_MS:
-		interval *= .001
-	start = precise_time()
-	while precise_time() - start < interval:
-		ui_request()
 
 
 def acute_angle(vertex, p1, p2):

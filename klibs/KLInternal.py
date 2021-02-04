@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+import os
 import re
+import sys
 import time
 import traceback
-from sys import exc_info
 from datetime import datetime
 
 from klibs.KLConstants import DATETIME_STAMP
@@ -78,6 +79,37 @@ def utf8(x):
 		return unicode(x)
 	except NameError:
 		return str(x)
+
+
+def load_source(filepath):
+	"""Loads a ``.py`` Python source file and retrieves its attributes, returning
+	them in a dictionary.
+
+	Args:
+		filepath (str): Path of the Python source file to load.
+
+	Returns:
+		dict: the names and values of the attributes of the provided source file.
+
+	"""
+	# Load Python file as a module
+	mod_name = os.path.basename(filepath).strip(".py")
+	if sys.version_info.major == 3:
+		from importlib.util import spec_from_file_location, module_from_spec
+		spec = spec_from_file_location(mod_name, filepath)
+		src = module_from_spec(spec)
+		spec.loader.exec_module(src)
+	else:
+		import imp
+		src = imp.load_source(mod_name, filepath)
+
+	# Filter out modules and internal Python stuff from imported attributes
+	attributes = {}
+	for key, val in vars(src).items():
+		if not (key.startswith('_') or type(val).__name__ == "module"):
+			attributes[key] = val
+
+	return attributes
 
 
 def boolean_to_logical(value, convert_integers=False):
@@ -192,10 +224,11 @@ def log(msg, priority):
 
 
 def full_trace():
+	exc_type, exc_val, exc_traceback = sys.exc_info()
 	exception_list = traceback.format_stack()
 	exception_list = exception_list[:-2]
-	exception_list.extend(traceback.format_tb(exc_info()[2]))
-	exception_list.extend(traceback.format_exception_only(exc_info()[0], exc_info()[1]))
+	exception_list.extend(traceback.format_tb(exc_traceback))
+	exception_list.extend(traceback.format_exception_only(exc_type, exc_val))
 
 	exception_str = "Traceback (most recent call last):\n"
 	exception_str += "".join(exception_list)

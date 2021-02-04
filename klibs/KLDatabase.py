@@ -501,7 +501,6 @@ class DatabaseManager(object):
 		except TypeError:
 			join_tables = []
 
-		cso("\n<green>*** Exporting data from {0} ***</green>\n".format(P.project_name))
 		self.__set_type_conversions(export=True)
 		column_names, data = self.collect_export_data(multi_file, join_tables)
 
@@ -645,11 +644,11 @@ class DatabaseManager(object):
 		try:
 			self.__master._deploy_schema(P.schema_file_path)
 			self.__master.build_table_schemas()
-			print("\nDatabase successfully rebuilt! Please make sure to update your experiment.py "
+			print("Database successfully rebuilt! Please make sure to update your experiment.py "
 				  "to reflect any changes you might have made to tables or column names.\n")
 		except (sqlite3.ProgrammingError, sqlite3.OperationalError, ValueError) as e:
 			schema_filename = basename(P.schema_file_path)
-			cso("\n<red>Syntax error encountered in '{0}'. Please double-check the formatting of "
+			cso("<red>Syntax error encountered in '{0}'. Please double-check the formatting of "
 				"the schema and try again.</red>\n".format(schema_filename))
 			self.__master._drop_tables(self.__master.table_list)
 			self.__restore__()

@@ -86,8 +86,9 @@ def initialize_path(path):
 	project_name = exp_class_names[0]
 
 	# Check Config folder for files matching experiment name
-	config_project_names = [f.split("_")[0] for f in os.listdir(config_dir)]
-	if not any([project_name == n for n in config_project_names]):
+	# TODO: Expand this to actually check for matching file paths
+	config_project_names = os.listdir(config_dir)
+	if not any([project_name == n[:len(project_name)] for n in config_project_names]):
 		err("the project name in 'experiment.py' ({0}) does not match the names of any "
 			"of the project's configuration files.\n"
 			"Please verify the project structure and try again.".format(project_name))

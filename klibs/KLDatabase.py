@@ -11,12 +11,12 @@ from collections import OrderedDict
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import DatabaseException
-from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_DELIM_STR,
+from klibs.KLConstants import (DB_COL_TITLE, SQL_COL_DELIM_STR,
 	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR, SQL_BIN, SQL_KEY, SQL_NULL,
 	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID)
 from klibs import P
-from klibs.KLUtilities import full_trace, iterable, boolean_to_logical, utf8
-from klibs.KLUtilities import colored_stdout as cso
+from klibs.KLInternal import full_trace, iterable, utf8
+from klibs.KLInternal import colored_stdout as cso
 from klibs.KLRuntimeInfo import session_info_schema
 
 
@@ -75,7 +75,6 @@ def _convert_to_query_format(value, col_name, col_type):
 
 
 class EntryTemplate(object):
-
 
 	def __init__(self, table):
 		from klibs.KLEnvironment import db

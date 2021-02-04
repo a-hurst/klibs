@@ -4,8 +4,8 @@ from time import time
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import TK_MS, TK_S
-from klibs.KLUtilities import colored_stdout as cso
-from klibs.KLUtilities import smart_sleep
+from klibs.KLInternal import colored_stdout as cso
+from klibs.KLUserInterface import smart_sleep
 from klibs.KLGraphics import flip, blit
 from klibs.KLUserInterface import ui_request
 

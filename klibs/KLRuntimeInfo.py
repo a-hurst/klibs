@@ -6,7 +6,6 @@ import platform
 from datetime import datetime
 
 from klibs import P
-from klibs.KLUtilities import now
 
 
 session_info_schema = """

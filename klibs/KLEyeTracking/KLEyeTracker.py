@@ -9,7 +9,8 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
     EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
     TK_S, TK_MS)
 from klibs import P
-from klibs.KLUtilities import iterable, pretty_list
+from klibs.KLInternal import iterable
+from klibs.KLUtilities import pretty_list
 from klibs.KLUserInterface import ui_request
 from klibs.KLBoundary import BoundaryInspector
 

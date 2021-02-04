@@ -1,9 +1,6 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import abc
-from imp import load_source
-from bisect import bisect
-from os.path import join
 from math import cos, sin, radians, ceil, sqrt
 
 from aggdraw import Brush, Draw, Pen, Symbol

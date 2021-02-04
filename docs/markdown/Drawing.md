@@ -252,6 +252,6 @@ You'll notice that the experiment exits itself after a couple key presses. This 
     ^
 IndentationError: unexpected indent
   File "/usr/local/bin/klibs", line 281, in run
-    experiment_file = imp.load_source(path, "experiment.py")
+    experiment = load_source("experiment.py")[project_name]
 ```
 This is because Python as a language is super-picky about whether you use tabs or spaces to indent lines because indentation is how you indicate that a loop has started or ended and many other things. If you copy and paste lines of code from the internet into a Python file you've written, it may use a different kind of indentation and confuse the Python interpreter. To avoid this, most text editors have a "convert tabs to spaces" or "convert spaces to tabs" function you can use to make it all consistent. It doesn't matter which one you use (tabs or spaces, that is, but spaces is recommended by the [official PEP8 style guide](https://www.python.org/dev/peps/pep-0008/)), the important thing is consistency.

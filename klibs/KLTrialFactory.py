@@ -6,9 +6,9 @@ from collections import OrderedDict
 from copy import copy, deepcopy
 from itertools import product
 from os.path import exists, join
-from imp import load_source
 		
 from klibs import P
+from klibs.KLInternal import load_source
 from klibs.KLIndependentVariable import IndependentVariableSet
 
 
@@ -114,7 +114,7 @@ class TrialFactory(object):
 
 		set_name = "{0}_ind_vars".format(P.project_name)
 		try:
-			var_set = load_source("*", path).__dict__[set_name]
+			var_set = load_source(path)[set_name]
 			factors = var_set.to_dict()
 		except KeyError:
 			err = 'Unable to find IndependentVariableSet in independent_vars.py.'

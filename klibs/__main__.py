@@ -3,13 +3,13 @@ __author__ = 'Austin Hurst & Jonathan Mulle'
 import os
 import re
 import sys
-import imp
 import time
 import argparse
 import traceback
 import binascii
 
 try:
+	from klibs.KLInternal import load_source
 	from klibs.KLInternal import colored_stdout as cso
 	from klibs import P
 except:
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 # Utility Functions #
 
 def err(err_string):
-	cso("<red>\nError: " + err_string + "</red>\n")
+	cso("<red>Error: " + err_string + "</red>\n")
 	sys.exit()
 
 
@@ -102,7 +102,7 @@ def validate_database_path(db_path, prompt=False):
 			"or may not exist yet.".format(db_path))
 
 	while not os.path.isfile(db_path):
-		cso("\n<green_d>No database file was present at '{0}'.</green_d>".format(db_path))
+		cso("<green_d>No database file was present at '{0}'.</green_d>".format(db_path))
 		db_prompt = cso(
 			"<green_d>You can "
 			"<purple>(c)</purple>reate it, "
@@ -110,10 +110,12 @@ def validate_database_path(db_path, prompt=False):
 			"<purple>(q)</purple>uit: </green_d>", print_string=False
 		)
 		response = getinput(db_prompt).lower()
-		
+		print("")
+
 		while response not in ['c', 's', 'q']:
-			err_prompt = cso("<red>\nPlease respond with one of 'c', 's', or 'q': </red>", False)
+			err_prompt = cso("<red>Please respond with one of 'c', 's', or 'q': </red>", False)
 			response = getinput(err_prompt).lower()
+			print("")
 
 		if response == "c":
 			open(db_path, "a").close()
@@ -121,11 +123,41 @@ def validate_database_path(db_path, prompt=False):
 			db_path = getinput(cso("<green_d>\nGreat, where might it be?: </green_d>", False))
 			db_path = os.path.normpath(db_path)
 		elif response == "q":
-			print("")
 			sys.exit()
 	
 	return db_path
 
+
+def load_params():
+
+	# Verify that the project's params.py file exists
+	if not os.path.exists(P.params_file_path):
+		err("Unable to locate the experiment's '_params.py' file. Please ensure that the "
+			"file exists, and that the first part of its name matches the name of the "
+			"Experiment class defined in 'experiment.py'.")
+
+	# Load main project params.py file
+	user_params = load_source(P.params_file_path)
+	ignore_local = P.dm_ignore_local_overrides
+	if 'dm_ignore_local_overrides' in list(user_params.keys()):
+		ignore_local = user_params['dm_ignore_local_overrides']
+
+	# If it exists, also load the project's local params.py file
+	if os.path.exists(P.params_local_file_path) and not ignore_local:
+		overrides = []
+		for param, value in load_source(P.params_local_file_path).items():
+			if param in user_params.keys() and value != user_params[param]:
+				overrides.append(param)
+				user_params[param] = value
+		if len(overrides):
+			msg = "<bold>* Note: The following {0} been overridden by\n  '{1}':</bold>"
+			plural = "parameters have" if len(overrides) > 1 else "parameter has"
+			cso(msg.format(plural, P.params_local_file_path))
+			for param in overrides:
+				print("    - {0}".format(param))
+			print("")
+
+	return user_params.items()
 
 
 # Actual CLI Functions #
@@ -180,7 +212,7 @@ def create(name, path):
 			"your project a different name and try again.".format(name, path))
 
 	# Get author name for adding to project files
-	author = getinput(cso("\n<green_d>Please provide your first and last name: </green_d>", False))
+	author = getinput(cso("<green_d>Please provide your first and last name: </green_d>", False))
 	if len(author.split()) < 2:
 		one_name_peeps = ["Madonna", "Prince", "Cher", "Bono", "Sting"]
 		cso("<red>\nOk {0}, take it easy.</red> "
@@ -238,7 +270,7 @@ def create(name, path):
 
 def run(screen_size, path, condition, devmode, no_tracker, seed):
 
-	cso("\n\n<green>*** Now Loading KLibs Environment ***</green>\n")
+	cso("\n<green>*** Now Loading KLibs Environment ***</green>\n")
 
 	# Suppresses possible pysdl2-dll warning message on import
 	import warnings
@@ -302,19 +334,9 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 	# If a condition was specified, set it in Params
 	P.condition = condition
 
-	# Import params defined in project's params file in ExpAssets/Config
-	try:
-		for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
-			setattr(P, k, v)
-	except IOError:
-		err("Unable to locate the experiment's '_params.py' file. Please ensure that this "
-			"file exists, and that the name of the experiment folder matches the name of the "
-			"Experiment class defined in 'experiment.py'.")
-
-	# If a local params file exists, do the same:
-	if os.path.exists(P.params_local_file_path) and not P.dm_ignore_local_overrides:
-		for k, v in imp.load_source("*", P.params_local_file_path).__dict__.items():
-			setattr(P, k, v)
+	# Load all attributes from the project's params.py file(s)
+	for param, value in load_params():
+		setattr(P, param, value)
 
 	# If a condition has been specified, make sure it's a valid condition as per params.py
 	if P.condition == None:
@@ -355,8 +377,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 		init_messaging()
 
 		# finally, import the project's Experiment class and instantiate
-		experiment_file = imp.load_source(path, "experiment.py")
-		experiment = getattr(experiment_file, project_name)
+		experiment = load_source("experiment.py")[project_name]
 		env.exp = experiment()
 
 		# create a display context if everything's gone well so far
@@ -386,6 +407,7 @@ def export(path, table=None, combined=False, join=None):
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)
+	cso("\n<green>*** Exporting data from {0} ***</green>\n".format(project_name))
 
 	# Set initial param values for project's context
 	P.initialize_paths(project_name)
@@ -395,8 +417,8 @@ def export(path, table=None, combined=False, join=None):
 		os.makedirs(P.incomplete_data_dir)
 
 	# Import params defined in project's local params file in ExpAssets/Config
-	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
-		setattr(P, k, v)
+	for param, value in load_params():
+		setattr(P, param, value)
 	multi_file = combined != True
 
 	# Validate database path and export
@@ -414,8 +436,8 @@ def rebuild_db(path):
 	P.initialize_paths(project_name)
 
 	# Import params defined in project's local params file in ExpAssets/Config
-	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
-		setattr(P, k, v)
+	for param, value in load_params():
+		setattr(P, param, value)
 
 	# Validate database path and rebuild
 	P.database_path = validate_database_path(P.database_path)
@@ -485,7 +507,7 @@ def update(branch='default'):
 	
 	update_cmd = 'install -U git+{0}#egg=klibs --upgrade-strategy only-if-needed'.format(git_repo)
 	update_prompt = cso(
-		"\n<green_d>Updating will replace the current install of KLibs with the most "
+		"<green_d>Updating will replace the current install of KLibs with the most "
 		"recent commit of the <purple>{0}</purple> branch of <purple>'{1}'</purple>. "
 		"Are you sure you want to continue? (Y/N): </green_d>".format(branch, git_repo_short),
 		False
@@ -659,4 +681,5 @@ def cli():
 	for key in args:
 		if key != "func": arg_dict[key] = args[key]
 
+	print("") # Add a blank line before any CLI output
 	args["func"](**arg_dict)

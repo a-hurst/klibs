@@ -5,7 +5,8 @@ from collections import OrderedDict
 
 from klibs.KLConstants import RECT_BOUNDARY, CIRCLE_BOUNDARY, ANNULUS_BOUNDARY
 from klibs.KLExceptions import BoundaryError
-from klibs.KLUtilities import iterable, midpoint, line_segment_len, valid_coords
+from klibs.KLInternal import valid_coords, iterable
+from klibs.KLUtilities import midpoint, line_segment_len
 
 """A module containing different types of boundaries that can you can use to see if a given point
 is within a given region or not. These boundaries can be used as individual objects, or

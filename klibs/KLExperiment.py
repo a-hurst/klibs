@@ -16,8 +16,8 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
 from klibs import P
 from klibs.KLKeyMap import KeyMap
-from klibs.KLUtilities import full_trace, now
-from klibs.KLUtilities import colored_stdout as cso
+from klibs.KLInternal import full_trace
+from klibs.KLInternal import colored_stdout as cso
 from klibs.KLTrialFactory import TrialFactory
 from klibs.KLGraphics import flip, blit, fill, clear
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS

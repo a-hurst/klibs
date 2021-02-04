@@ -12,7 +12,8 @@ import numpy as np
 
 from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
 from klibs import P
-from klibs.KLUtilities import deg_to_px, px_to_deg, utf8
+from klibs.KLInternal import utf8
+from klibs.KLUtilities import deg_to_px, px_to_deg
 from klibs.KLGraphics import rgb_to_rgba
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 

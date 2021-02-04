@@ -19,8 +19,9 @@ from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, QUERY_ACTION_UP
 import klibs.KLParams as P
 from klibs.KLJSON_Object import import_json, AttributeDict
 from klibs.KLEventQueue import pump, flush
-from klibs.KLUtilities import pretty_list, now, iterable, utf8, make_hash
-from klibs.KLUtilities import colored_stdout as cso
+from klibs.KLInternal import iterable, utf8, now
+from klibs.KLInternal import colored_stdout as cso
+from klibs.KLUtilities import pretty_list, make_hash
 from klibs.KLDatabase import EntryTemplate
 from klibs.KLRuntimeInfo import runtime_info_init
 from klibs.KLGraphics import blit, clear, fill, flip

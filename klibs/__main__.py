@@ -10,7 +10,7 @@ import traceback
 import binascii
 
 try:
-	from klibs.KLUtilities import colored_stdout as cso
+	from klibs.KLInternal import colored_stdout as cso
 	from klibs import P
 except:
 	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m\n\nStack Trace:")
@@ -419,7 +419,7 @@ def rebuild_db(path):
 def hard_reset(path):
 	import shutil
 	from os.path import join
-	from klibs.KLUtilities import iterable
+	from klibs.KLInternal import iterable
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)

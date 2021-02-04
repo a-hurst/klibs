@@ -13,8 +13,8 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
 	EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
 	TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 from klibs import P
-from klibs.KLUtilities import full_trace, iterable, now
-from klibs.KLUtilities import colored_stdout as cso
+from klibs.KLInternal import full_trace, valid_coords, now
+from klibs.KLInternal import colored_stdout as cso
 from klibs.KLUserInterface import ui_request, hide_mouse_cursor
 from klibs.KLGraphics import blit, fill, flip, clear
 from klibs.KLGraphics.KLDraw import drift_correct_target
@@ -260,7 +260,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		target = drift_correct_target() if target is None else target
 		draw_target = EL_TRUE if draw_target in [EL_TRUE, True] else EL_FALSE
 		location = P.screen_c if location is None else location
-		if not iterable(location):
+		if not valid_coords(location):
 			raise ValueError("'location' must be a pair of (x,y) pixel coordinates.")
 
 		try:

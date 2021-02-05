@@ -13,7 +13,7 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
 	EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
 	TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 from klibs import P
-from klibs.KLInternal import full_trace, valid_coords, now
+from klibs.KLInternal import full_trace, valid_coords, now, hide_stderr
 from klibs.KLInternal import colored_stdout as cso
 from klibs.KLUserInterface import ui_request, hide_mouse_cursor
 from klibs.KLGraphics import blit, fill, flip, clear
@@ -21,12 +21,11 @@ from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
 
 if PYLINK_AVAILABLE:
-	from pylink import (openGraphicsEx, flushGetkeyQueue, pumpDelay,
-		beginRealTimeMode, endRealTimeMode, msecDelay)
-	from pylink import EyeLink as BaseEyeLink
+	with hide_stderr(macos_only=True):
+		from pylink import (openGraphicsEx, flushGetkeyQueue, pumpDelay,
+			beginRealTimeMode, endRealTimeMode, msecDelay)
+		from pylink import EyeLink as BaseEyeLink
 	from .KLCustomEyeLinkDisplay import ELCustomDisplay
-	cso("<green_d>(Note: if a bunch of SDL errors were just reported, this was expected, "
-		"do not be alarmed!)</green_d>")
 
 class EyeLink(BaseEyeLink, EyeTracker):
 	"""A connection to an SR Research EyeLink eye tracker, providing a friendly interface to the

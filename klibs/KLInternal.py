@@ -112,6 +112,26 @@ def load_source(filepath):
 	return attributes
 
 
+def package_available(name):
+	"""Python 2/3 agnostic function for determining if a given package is installed.
+
+	Args:
+		name (str): Name of the Python package to search for.
+
+	Returns:
+		bool: True if the package is available, otherwise False.
+
+	"""
+	if sys.version_info.major == 3:
+		from importlib.util import find_spec
+	else:
+		from imp import find_module as find_spec
+	try:
+		return find_spec(name) != None
+	except (ValueError, ImportError):
+		return False
+
+
 def boolean_to_logical(value, convert_integers=False):
 	# NOTE: Depricated, should remove once scrubbed from MixedMotionCueing
 	if convert_integers and value in [0, 1, '0', '1']:

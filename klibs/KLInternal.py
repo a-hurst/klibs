@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import time
+import binascii
 import traceback
 from datetime import datetime
 from contextlib import contextmanager
@@ -93,8 +94,10 @@ def load_source(filepath):
 		dict: the names and values of the attributes of the provided source file.
 
 	"""
+	# Generate a random module name, ensuring it won't conflict with other imports
+	mod_name = "mod_{0}".format(binascii.b2a_hex(os.urandom(4)))
+
 	# Load Python file as a module
-	mod_name = os.path.basename(filepath).strip(".py")
 	if sys.version_info.major == 3:
 		from importlib.util import spec_from_file_location, module_from_spec
 		spec = spec_from_file_location(mod_name, filepath)

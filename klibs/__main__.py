@@ -156,6 +156,42 @@ def load_params():
 	return user_params.items()
 
 
+def ind_vars_to_factors(path):
+
+	set_name = "{0}_ind_vars".format(P.project_name)
+	ind_vars = load_source(path)
+	if not set_name in ind_vars.keys():
+		err("unable to find a variable set with the name '{0}' in\n'{1}'.".format(set_name, path))
+	factors = ind_vars[set_name].to_dict()
+
+	return factors
+
+
+def load_ind_vars():
+
+	# Load main project independent_variables.py file
+	factors = ind_vars_to_factors(P.ind_vars_file_path)
+	ignore_local = P.dm_ignore_local_overrides
+
+	# If it exists, also load the project's local independent_variables.py file
+	if os.path.exists(P.ind_vars_file_local_path) and not ignore_local:
+		overrides = []
+		local_factors = ind_vars_to_factors(P.ind_vars_file_local_path)
+		for var, value in local_factors.items():
+			if var in factors.keys() and value != factors[var]:
+				overrides.append(var)
+				factors[var] = value
+		if len(overrides):
+			msg = "<bold>* Note: The following independent {0} been overridden by\n  '{1}':</bold>"
+			plural = "variables have" if len(overrides) > 1 else "variable has"
+			cso(msg.format(plural, P.ind_vars_file_local_path))
+			for var in overrides:
+				print("    - {0}".format(var))
+			print("")
+
+	return factors
+
+
 # Actual CLI Functions #
 
 def create(name, path):
@@ -346,6 +382,9 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 			err("'{0}' is not a valid condition for this experiment (must be one of '{1}'). "
 				"Please relaunch the experiment.".format(P.condition, cond_list))
 
+	# Get experiment factors from the project's independent_variables.py file(s)
+	exp_factors = load_ind_vars()
+
 	# Set some basic global Params
 	if devmode:
 		P.development_mode = True
@@ -375,6 +414,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 		# Load the project's Experiment class from the experiment.py file and instantiate it
 		experiment = load_source("experiment.py")[project_name]
 		env.exp = experiment()
+		env.exp._initialize_factors(exp_factors)
 
 		# Create a display context and show the KLibs logo
 		env.exp.window = display_init(screen_size)

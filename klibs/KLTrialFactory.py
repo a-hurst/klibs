@@ -9,7 +9,7 @@ from os.path import exists, join
 		
 from klibs import P
 from klibs.KLInternal import load_source
-from klibs.KLIndependentVariable import IndependentVariableSet
+
 
 
 class BlockIterator(object):
@@ -91,36 +91,15 @@ class TrialIterator(BlockIterator):
 
 class TrialFactory(object):
 
-	def __init__(self):
+	# TODO: Document this, potentially after rewrite
+
+	def __init__(self, factors):
 
 		self.blocks = None
 		self.trial_generator = self.__generate_trials
-
-		# Load experiment factors from the project's _independent_variables.py file(s)
-		factors = self.__load_ind_vars(P.ind_vars_file_path)
-		if not P.dm_ignore_local_overrides:
-			try:
-				sys.path.append(P.ind_vars_file_local_path)
-				local_factors = self.__load_ind_vars(P.ind_vars_file_local_path)
-				factors.update(local_factors)
-			except IOError:
-				pass
 		
 		# Create alphabetically-sorted ordered dict from factors
 		self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
-
-
-	def __load_ind_vars(self, path):
-
-		set_name = "{0}_ind_vars".format(P.project_name)
-		try:
-			var_set = load_source(path)[set_name]
-			factors = var_set.to_dict()
-		except KeyError:
-			err = 'Unable to find IndependentVariableSet in independent_vars.py.'
-			raise RuntimeError(err)
-
-		return factors
 
 
 	def __generate_trials(self, factors, block_count, trial_count):

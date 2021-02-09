@@ -22,7 +22,6 @@ class Experiment(EnvAgent):
 	def __init__(self):
 		from klibs.KLAudio import AudioManager
 		from klibs.KLResponseCollectors import ResponseCollector
-		from klibs.KLTrialFactory import TrialFactory
 
 		super(Experiment, self).__init__()
 
@@ -32,11 +31,17 @@ class Experiment(EnvAgent):
 		self.audio = AudioManager() # initialize audio management for the experiment
 		self.rc = ResponseCollector() # add default response collector
 		self.database = self.db # use database from evm
+		self.trial_factory = None
 
-		self.trial_factory = TrialFactory()
+
+	def _initialize_factors(self, exp_factors):
+		"""For internal use: adds and initializes the trial factors for the experiment.
+
+		"""
+		from klibs.KLTrialFactory import TrialFactory
+		self.trial_factory = TrialFactory(exp_factors)
 		if P.manual_trial_generation is False:
 			self.trial_factory.generate()
-		self.event_code_generator = None
 
 
 	def __execute_experiment__(self, *args, **kwargs):

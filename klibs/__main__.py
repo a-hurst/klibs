@@ -86,12 +86,13 @@ def initialize_path(path):
 	project_name = exp_class_names[0]
 
 	# Check Config folder for files matching experiment name
-	# TODO: Expand this to actually check for matching file paths
-	config_project_names = os.listdir(config_dir)
-	if not any([project_name == n[:len(project_name)] for n in config_project_names]):
-		err("the project name in 'experiment.py' ({0}) does not match the names of any "
-			"of the project's configuration files.\n"
-			"Please verify the project structure and try again.".format(project_name))
+	suffixes = ['_params.py', '_independent_variables.py', '_schema.sql', '_user_queries.json']
+	for suffix in suffixes:
+		filepath = os.path.join(config_dir, project_name + suffix)
+		if not os.path.isfile(filepath):
+			err("unable to locate the experiment's '{0}' file. Please ensure that the "
+			"file exists, and that the first part of its name matches the name of the "
+			"Experiment class defined in 'experiment.py'.".format(suffix))
 		
 	return project_name
 
@@ -130,12 +131,6 @@ def validate_database_path(db_path, prompt=False):
 
 
 def load_params():
-
-	# Verify that the project's params.py file exists
-	if not os.path.exists(P.params_file_path):
-		err("Unable to locate the experiment's '_params.py' file. Please ensure that the "
-			"file exists, and that the first part of its name matches the name of the "
-			"Experiment class defined in 'experiment.py'.")
 
 	# Load main project params.py file
 	user_params = load_source(P.params_file_path)
@@ -374,25 +369,26 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 	env.evm = EventManager()
 
 	try:
-		# create basic text styles, load in user queries, and initialize slack (if enabled)
+		# Load in user queries and initialize slack (if enabled)
 		init_messaging()
 
-		# finally, import the project's Experiment class and instantiate
+		# Load the project's Experiment class from the experiment.py file and instantiate it
 		experiment = load_source("experiment.py")[project_name]
 		env.exp = experiment()
 
-		# create a display context if everything's gone well so far
+		# Create a display context and show the KLibs logo
 		env.exp.window = display_init(screen_size)
 		env.exp.show_logo()
 
-		# once display size and pixels-per-degree known, initialize default text styles
+		# Once display size and pixels-per-degree are known, initialize default text styles
 		init_default_textstyles()
 
-		# create an anonymous user if not collecting demographic information
+		# If enabled and not development mode, collect demographics
 		if not P.manual_demographics_collection:
-			collect_demographics(not P.collect_demographics or P.development_mode)
+			skip_demographics = P.collect_demographics == False
+			collect_demographics(anonymous=skip_demographics)
 
-		# off to the races team...
+		# And away we gooooooooooooooooo! (actually run the experiment)
 		env.exp.run()
 
 	except Exception as e:

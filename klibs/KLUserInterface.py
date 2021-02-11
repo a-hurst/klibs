@@ -1,14 +1,13 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-# TODO: Add 'mouse_clicked' and/or 'boundary_clicked' function
 # TODO: Add mouseover function?
 
 import ctypes
 
 from sdl2 import (SDL_GetKeyFromName, SDL_ShowCursor, SDL_PumpEvents, SDL_BUTTON,
 	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
-	SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL, KMOD_GUI, SDLK_UP,
-	SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
+	SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEBUTTONDOWN, KMOD_CTRL, KMOD_GUI,
+	SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
 from sdl2.mouse import SDL_GetMouseState, SDL_WarpMouseGlobal
 
 from klibs import TK_S, TK_MS
@@ -39,10 +38,11 @@ def any_key(allow_mouse_click=True):
 
 
 def key_pressed(key=None, queue=None):
-	"""Checks an event queue to see if a given key has been pressed. If no key is specified,
-	the function will return True if any key has been pressed. If an event queue is not
-	manually specified, :func:`~klibs.KLUtilities.pump` will be called and the returned event
-	queue will be used.
+	"""Checks an event queue to see if a given key has been pressed.
+	
+	If no key is specified, the function will return True if any key has been pressed. If an
+	event queue is not manually specified, :func:`~klibs.KLEventQueue.pump` will be called
+	and the returned event queue will be used.
 	
 	For a comprehensive list of valid key names, see the 'Name' column of the following 
 	table: https://wiki.libsdl.org/StuartPBentley/CombinedKeyTable
@@ -54,7 +54,7 @@ def key_pressed(key=None, queue=None):
 		key (str or :obj:`sdl2.SDL_Keycode`, optional): The key name or SDL keycode
 			corresponding to the key to check. If not specified, any keypress will return
 			True.
-		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of SDL_Events to check
+		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to check
 			for valid keypress events.
 
 	Returns:
@@ -85,6 +85,65 @@ def key_pressed(key=None, queue=None):
 				pressed = True
 
 	return pressed
+
+
+def mouse_clicked(button=None, released=False, within=None, queue=None):
+	"""Checks an event queue to see if a mouse button has been clicked.
+	
+	If a button is specified, this function will only return True when that button has been
+	clicked. Otherwise, this function will return True for any mouse click events. Valid button
+	names are ``'left'``, ``'right'``, and ``'middle'``. If a :obj:`~klibs.KLBoundary.Boundary`
+	is provided (e.g. a :obj:`~klibs.KLBoundary.RectangleBoundary`), this function will only
+	return True if a click has occured within the boundary. If an event queue is not provided,
+	:func:`~klibs.KLEventQueue.pump` will be called and the returned event queue will be used.
+
+	Args:
+		button (str, optional): The name of the button to check for clicks. Defaults to ``None``
+			(checks all buttons for clicks).
+		released (bool, optional): If True, this function will look for mouse button release
+			events instead of mouse button click events. Defaults to False.
+		within (:obj:`~klibs.KLBoundary.Boundary`, optional): A specific region of the screen to
+			check for clicks. Defaults to ``None`` (no boundary).
+		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to check
+			for valid mouse button events.
+
+	Returns:
+		bool: True if the button has been clicked, otherwise False.
+
+	Raises:
+		ValueError: If an invalid button name is provided.
+
+	"""
+	buttons = {
+		'left': SDL_BUTTON_LEFT, 'right': SDL_BUTTON_RIGHT, 'middle': SDL_BUTTON_MIDDLE
+	}
+	if button:
+		if not button in buttons.keys():
+			raise ValueError("'{0}' is not a valid mouse button name.".format(button))
+		button = buttons[button]
+
+	bounds = within
+	if bounds != None:
+		try:
+			bounds.bounds
+		except (AttributeError, NotImplementedError):
+			raise TypeError("the provided boundary must be a valid KLibs Boundary object.")
+
+	clicked = False
+	if queue == None:
+		queue = pump(True)
+	for e in queue:
+		if e.type == SDL_KEYDOWN:
+			ui_request(e.key.keysym)
+		elif e.type == (SDL_MOUSEBUTTONUP if released else SDL_MOUSEBUTTONDOWN):
+			if not button or e.button.button == button:
+				if bounds:
+					loc = (e.button.x, e.button.y)
+					clicked = bounds.within(loc)
+				else:
+					clicked = True
+
+	return clicked
 
 
 def hide_mouse_cursor():
@@ -172,6 +231,7 @@ def konami_code(callback=None, cb_args={}, queue=None):
 	if not hasattr(konami_code, "input"):
 		konami_code.input = [] # static variable, stays with the function between calls
 	
+	code_entered = False
 	if queue == None:
 		queue = pump(True)
 	for e in queue:
@@ -181,11 +241,14 @@ def konami_code(callback=None, cb_args={}, queue=None):
 			if konami_code.input != sequence[:len(konami_code.input)]:
 				konami_code.input = [] # reset input if mismatch encountered
 			elif len(konami_code.input) == len(sequence):
-				konami_code.input = []
-				if callable(callback):
-					callback(**cb_args)
-				return True
-	return False
+				code_entered = True
+
+	if code_entered:
+		konami_code.input = []
+		if callable(callback):
+			callback(**cb_args)
+
+	return code_entered
 
 
 def ui_request(key_press=None, execute=True, queue=None):
@@ -196,15 +259,17 @@ def ui_request(key_press=None, execute=True, queue=None):
 	- Calibrate Eye Tracker (Ctrl/Command-C): Enter setup mode for the connected eye tracker, 
 	  if eye tracking is enabled for the experiment and not using TryLink simulation.
 	
-	If no event queue from :func:`~klibs.KLUtilities.pump` and no keypress event(s) are
+	If no event queue from :func:`~klibs.KLEventQueue.pump` and no keypress event(s) are
 	supplied to this function, the current contents of the SDL2 event queue will be fetched
-	and processed using :func:`~klibs.KLUtilities.pump`. 
+	and processed using :func:`~klibs.KLEventQueue.pump`. 
 	
 	This function is meant to be called during loops in your experiment where no other input
 	checking occurs, to ensure that you can quit your experiment or recalibrate your eye
-	tracker during those periods. This function is automatically called by other functions that
-	process keyboard/mouse input, such as :func:`any_key` and :func:`key_pressed`, so you will
-	not need to call it yourself in places where one of them is already being called. 
+	tracker during those periods.
+	
+	This function is called implicitly by other functions that process keyboard/mouse input, such
+	as :func:`any_key`, :func:`key_pressed`, and :func:`mouse_clicked` (but not :func:`mouse_pos`),
+	so you will not need to call it yourself in places where one of them is already being called. 
 	In addition, the :obj:`~klibs.KLResponseCollectors.ResponseCollector` collect method also
 	calls this function every loop, meaning that you do not need to include it when writing
 	ResponseCollector callbacks.

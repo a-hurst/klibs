@@ -14,6 +14,8 @@ from eventfactory import click, keydown, keyup, queue_event
 # NOTE: missing tests for any_key and konami_code
 
 
+# Fixtures and helpers
+
 @pytest.fixture(scope='module')
 def with_sdl():
     sdl2.SDL_ClearError()
@@ -37,6 +39,7 @@ class UIRequestTester(object):
         self.command = 'calibrate'
 
 
+# Actual tests
 
 @pytest.mark.skip("not implemented")
 def test_any_key(with_sdl):
@@ -74,6 +77,49 @@ def test_key_pressed(with_sdl):
     assert ui.key_pressed('a', queue=[click()]) == False
     with pytest.raises(ValueError):
         ui.key_pressed('nope', queue=pressed_ab)
+
+
+def test_mouse_clicked(with_sdl):
+
+    # Initialize fake experiment class in environment
+    from klibs import env
+    env.exp = UIRequestTester()
+    
+    # Test basic functionality
+    test_clicks = [click('left'), click('middle'), click('right', release=True)]
+    assert ui.mouse_clicked(queue=test_clicks) == True
+    assert ui.mouse_clicked('left', queue=test_clicks) == True
+    assert ui.mouse_clicked('middle', queue=test_clicks) == True
+    assert ui.mouse_clicked('right', queue=test_clicks) == False
+    assert ui.mouse_clicked('left', released=True, queue=test_clicks) == False
+    assert ui.mouse_clicked('right', released=True, queue=test_clicks) == True
+
+    # Test with provided boundaries
+    test_clicks2 = [click('left'), click('left', loc=(200, 200))]
+    test_bounds = RectangleBoundary('test', (100, 100), (300, 300))
+    test_bounds2 = RectangleBoundary('test', (300, 300), (500, 500))
+    assert ui.mouse_clicked(within=test_bounds, queue=test_clicks2) == True
+    assert ui.mouse_clicked('left', within=test_bounds, queue=test_clicks2) == True
+    assert ui.mouse_clicked('left', within=test_bounds2, queue=test_clicks2) == False
+
+    # Test without providing queue as argument
+    queue_event(test_clicks[0])
+    assert ui.mouse_clicked('left') == True
+    assert ui.mouse_clicked('left') == False  # queue should be flushed after first call
+
+    # Test intercepting of ui request commands
+    quit_test = [click('left'), keydown('q', mod='ctrl')]
+    ui.mouse_clicked('left', queue=quit_test)
+    assert env.exp.command == 'quit'
+
+    # Test edge cases
+    assert ui.mouse_clicked(queue=[]) == False
+    assert ui.mouse_clicked('left', queue=[]) == False
+    assert ui.mouse_clicked('left', queue=[keyup('a')]) == False
+    with pytest.raises(ValueError):
+        ui.mouse_clicked('nope', queue=test_clicks)
+    with pytest.raises(TypeError):
+        ui.mouse_clicked(within=test_clicks, queue=test_clicks)
 
 
 @pytest.mark.skip("not implemented")
@@ -127,3 +173,26 @@ def test_ui_request(with_sdl):
     assert ui.ui_request(queue=[not_quit], execute=False) == False
     with pytest.raises(TypeError):
         ui.ui_request(normal_keys, queue=[])
+
+    
+def test_smart_sleep(with_sdl):
+
+    # Initialize fake experiment class in environment
+    from klibs import env
+    env.exp = UIRequestTester()
+
+    # Queue a quit event and see if smart_sleep catches it
+    queue_event(keydown('q', mod='ctrl'))
+    start = time.time()
+    ui.smart_sleep(1, units=TK_MS) # 1 millisecond
+    duration = time.time() - start
+    assert duration < 0.002
+    assert env.exp.command == 'quit'
+
+    # Test units of seconds
+    env.exp.command = None
+    start = time.time()
+    ui.smart_sleep(0.001, units=TK_S) # 1 millisecond
+    duration = time.time() - start
+    assert duration < 0.002
+    assert env.exp.command == None

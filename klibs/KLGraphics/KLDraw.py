@@ -14,7 +14,7 @@ from klibs.KLConstants import (STROKE_CENTER, STROKE_INNER, STROKE_OUTER,
 	KLD_LINE, KLD_MOVE, KLD_ARC, KLD_PATH)
 from klibs import P
 from klibs.KLUtilities import point_pos, rotate_points, translate_points, canvas_size_from_points
-from klibs.KLGraphics import rgb_to_rgba, aggdraw_to_numpy_surface
+from klibs.KLGraphics.utils import rgb_to_rgba, aggdraw_to_array
 from klibs.KLGraphics.colorspaces import const_lum
 
 ##########################################################################
@@ -42,12 +42,11 @@ def cursor(color=None):
 	brush = Brush(tuple(cursor_color), 255)
 	pen = Pen((255,255,255), 1, 255)
 	dc.polygon(cursor_xy_list, pen, brush)
-	cursor_surface = aggdraw_to_numpy_surface(dc)
+	cursor_surface = aggdraw_to_array(dc)
 	return cursor_surface
 
 
 def drift_correct_target():
-	from klibs.KLGraphics import aggdraw_to_numpy_surface
 	draw_context_length = P.screen_y // 60
 	while draw_context_length % 3 != 0: # inner dot should be 1/3 size of target
 		draw_context_length += 1
@@ -59,7 +58,7 @@ def drift_correct_target():
 	wd_bot = 2 * draw_context_length // 3
 	draw_context.ellipse([wd_top, wd_top, wd_bot, wd_bot], white_brush)
 
-	return aggdraw_to_numpy_surface(draw_context)
+	return aggdraw_to_array(draw_context)
 
 
 
@@ -72,8 +71,8 @@ class Drawbject(object):
 	Args:
 		width (int): The width of the shape in pixels.
 		height (int): The height of the shape in pixels.
-		stroke (List[alignment, width, Tuple[color]]): The stroke of the shape, indicating
-			the alignment (inner, center, or outer), width, and color of the stroke.
+		stroke (List[width, Tuple[color], alignment]): The stroke of the shape, indicating
+			the width, color, and alignment (inner, center, or outer) of the stroke.
 		fill (Tuple[color]): The fill color for the shape expressed as an iterable of integer 
 			values from 0 to 255 representing an RGB or RGBA color (e.g. (255,0,0,128)
 			for bright red with 50% transparency.)

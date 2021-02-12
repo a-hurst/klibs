@@ -11,19 +11,12 @@ import OpenGL.GL as gl
 import numpy as np
 from PIL import Image
 
-from klibs.KLConstants import *
 from klibs import P
 from klibs.KLTime import precise_time
 
-
-def aggdraw_to_numpy_surface(draw_context):
-	from .KLNumpySurface import NumpySurface
-	return NumpySurface(aggdraw_to_array(draw_context))
-
-
-def aggdraw_to_array(draw_obj):
-	draw_context_bytes = Image.frombytes(draw_obj.mode, draw_obj.size, draw_obj.tobytes())
-	return np.asarray(draw_context_bytes)
+from .utils import _build_registrations, rgb_to_rgba, image_file_to_array, add_alpha
+from .KLNumpySurface import aggdraw_to_numpy_surface, NumpySurface
+from .KLDraw import Drawbject
 
 
 def blit(source, registration=7, location=(0,0), flip_x=False):
@@ -49,8 +42,6 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 			TypeError: If the 'source' object passed is not one of the accepted types.
 
 		"""
-		from .KLDraw import Drawbject
-		from .KLNumpySurface import NumpySurface
 		
 		if isinstance(source, NumpySurface):
 			height = source.height
@@ -298,31 +289,3 @@ def flip():
 		if flip_time > (P.refresh_time + 1):
 			warn = "Warning: Screen refresh took {0} ms (expected {1} ms)"
 			print(warn.format("%.2f"%flip_time, "%.2f"%P.refresh_time))
-
-
-def rgb_to_rgba(rgb):
-	"""Converts a 3-element RGB iterable to a 4-element RGBA tuple. If a 4-element RGBA
-	iterable is passed it is coerced to a tuple and returned, making the function safe
-	for use when the input might be either an RGB or RGBA value.
-
-	Args:
-		rgb(iter): A 3 or 4 element RGB(A) iterable to convert.
-	
-	Returns:
-		Tuple[r, g, b, a]: A 4-element RGBA tuple.
-	"""
-	return tuple(rgb) if len(rgb) == 4 else tuple([rgb[0], rgb[1], rgb[2], 255])
-
-
-def _build_registrations(source_height, source_width):
-    return ((),
-        (0, -1.0 * source_height),
-        (-1.0 * source_width / 2.0, -1.0 * source_height),
-        (-1.0 * source_width, -1.0 * source_height),
-        (0, -1.0 * source_height / 2.0),
-        (-1.0 * source_width / 2.0, -1.0 * source_height / 2.0),
-        (-1.0 * source_width, -1.0 * source_height / 2.0),
-        (0, 0),
-        (-1.0 * source_width / 2.0, 0),
-        (-1.0 * source_width, 0)
-    )

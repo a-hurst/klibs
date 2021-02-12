@@ -8,81 +8,7 @@ from PIL import ImageOps
 import aggdraw
 
 from klibs.KLConstants import NS_BACKGROUND, NS_FOREGROUND, BL_TOP_RIGHT, BL_TOP_LEFT
-from klibs.KLGraphics import _build_registrations
-
-
-"""
-These next few functions just wrap aggdraw's stupid API :S
-"""
-
-
-def canvas(width, height, mode='RGBA', background=(0, 0, 0, 0)):
-	"""
-
-	:param width:
-	:param height:
-	:param mode:
-	:param background:
-	:return:
-	"""
-	bg = []
-	bg.append(n for n in background)
-	if len(bg) == 3: bg.append(0)
-	return aggdraw.Draw(mode, (width, height), tuple(background))
-
-
-def ad_fill(color, opacity=255):
-	"""
-
-	:param color:
-	:param opacity:
-	:return:
-	"""
-	col = list()
-	col.append(n for n in color)
-	if len(col) == 4:
-		opacity = col[3]
-		col = col[0:2]
-	else:
-		col = color
-	return aggdraw.Brush(tuple(col), opacity)
-
-
-def ad_stroke(color, width=1, opacity=255):
-	"""
-
-	:param color:
-	:param width:
-	:param opacity:
-	:return:
-	"""
-	col = list()
-	col.append(n for n in color)
-	if len(col) == 4:
-		opacity = col[3]
-		col = col[0:3]
-	return aggdraw.Pen(color, width, opacity)
-
-
-def add_alpha_channel(numpy_array, alpha_value=255):
-	try:
-		with_alpha = np.zeros((numpy_array.shape[0], numpy_array.shape[1], 4))
-		with_alpha[:, :, :3] = numpy_array
-		with_alpha[:, :, 3] = alpha_value
-		return with_alpha
-	except ValueError:
-		return numpy_array
-	# try:
-	# 	if numpy_array.shape[2] == 3:
-	# 		return numpy.insert(numpy_array, 3, alpha_value, 2)
-	# 	else:
-	# 		return numpy_array
-	# except IndexError:
-	# 	raise ValueError("Invalid data supplied; too few dimensions or wrong data type.")
-
-
-def import_image_file(path):
-		return add_alpha_channel(np.array(Image.open(path)))
+from .utils import _build_registrations, aggdraw_to_array, image_file_to_array, add_alpha
 
 
 def grey_scale_to_alpha(source):
@@ -94,11 +20,25 @@ def grey_scale_to_alpha(source):
 		if type(source) is NumpySurface:
 			source = source.render()
 		elif type(source) is str:
-			source = import_image_file(source)
+			source = image_file_to_array(source)
 		elif type(source) is not np.ndarray:
 			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
 		source[0: -1, 0: -1, 3] = source[0: -1, 0: -1, 0]
 		return source
+
+
+def aggdraw_to_numpy_surface(surface):
+	"""Converts an :obj:`aggdraw.Draw` object to an RGBA :obj:`~NumpySurface` of the same size.
+
+	Args:
+		surface (:obj:`aggdraw.Draw`): The aggdraw surface to convert.
+
+	Returns:
+		:obj:`~NumpySurface`: A NumpySurface of the given aggdraw surface.
+
+	"""
+	# NOTE: Legacy function, should be undocumented and eventually removed
+	return NumpySurface(aggdraw_to_array(surface))
 
 
 class NumpySurface(object):
@@ -221,7 +161,7 @@ class NumpySurface(object):
 		except AttributeError:
 			pass
 		try:
-			source = add_alpha_channel(source)
+			source = add_alpha(source)
 		except:
 			raise TypeError("Argument 'source' must be either of klibs.NumpySurface or numpy.ndarray.")
 
@@ -320,12 +260,12 @@ class NumpySurface(object):
 		:param location:
 		:return: :raise TypeError:
 		"""
-		image_content = add_alpha_channel(np.array(Image.open(image)))
+		image_content = image_file_to_array(image)
 
 		if layer == NS_FOREGROUND:
 			self.foreground = image_content
 		elif layer == NS_BACKGROUND:
-			self.__set_background__(image_content)
+			self.background = image_content
 		else:
 			TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
 
@@ -412,7 +352,7 @@ class NumpySurface(object):
 		if type(mask) is NumpySurface:
 			mask = mask.render()
 		elif type(mask) is str:
-			mask = import_image_file(mask)
+			mask = image_file_to_array(mask)
 		elif type(mask) is not np.ndarray:
 			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
 		if grey_scale:
@@ -600,22 +540,6 @@ class NumpySurface(object):
 
 		return True
 
-	def __set_foreground__(self, foreground_content=None):
-		if foreground_content.shape[1] > self.width:
-			self.width = foreground_content.shape[1]
-		if foreground_content.shape[0] > self.height:
-			self.height = foreground_content.shape[0]
-		self.__foreground__ = foreground_content
-		self.fg = self.__foreground__  # convenience alias
-
-	def __set_background__(self, background_content):
-		if background_content.shape[1] > self.width:
-			self.width = background_content.shape[1]
-		if background_content.shape[0] > self.height:
-			self.height = background_content.shape[0]
-		self.__background__ = background_content
-		self.bg = self.__background__  # convenience alias
-
 	@property
 	def height(self):
 		return self.__height__
@@ -656,7 +580,7 @@ class NumpySurface(object):
 			self.fg = self.__foreground__
 			return
 		try:
-			fg_array = add_alpha_channel(foreground_content)  # ie. numpy.ndarray
+			fg_array = add_alpha(foreground_content)  # ie. numpy.ndarray
 		except AttributeError:
 			try:
 				self.layer_from_file(foreground_content, True, self.fg_offset)  # ie. path (string)
@@ -692,7 +616,7 @@ class NumpySurface(object):
 			self.bg = self.__background__
 			return
 		try:
-			bg_array = add_alpha_channel(background_content)  # ie. numpy.ndarray
+			bg_array = add_alpha(background_content)  # ie. numpy.ndarray
 		except AttributeError:
 			try:
 				self.layer_from_file(background_content, True, self.bg_offset)  # ie. path (string)

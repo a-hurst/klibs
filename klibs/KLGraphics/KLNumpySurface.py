@@ -45,6 +45,15 @@ def aggdraw_to_numpy_surface(surface):
 class NumpySurface(object):
 
 	def __init__(self, content=None, fg_offset=None, width=None, height=None, fill=(0,0,0,0)):
+
+		if content is None and not (width and height):
+			raise ValueError('If no content given, surface width and height must both be provided.')
+		for i in (width, height):
+			if i != None and int(i) < 1:
+				raise ValueError('NumpySurface width and height must both be >= 1px.')
+		if not len(fill) in (3, 4):
+			raise TypeError("Fill color must be a tuple of RGB or RGBA values.")
+
 		self.__content = None
 		self.__foreground_offset__ = None
 		self.__foreground_mask__ = None
@@ -52,15 +61,15 @@ class NumpySurface(object):
 		self.__height = None
 		self.__width = None
 		self.__fill = rgb_to_rgba(fill)
+
 		self.rendered = None
-		self.fg_offset = None
-		self.width = width
-		self.height = height
 		self.fg_offset = fg_offset
 		self.__init_content(content)
 
+
 	def __str__(self):
 		return "klibs.NumpySurface, ({0} x {1}) at {2}".format(self.width, self.height, hex(id(self)))
+
 
 	def __ensure_writeable__(self, layer=NS_FOREGROUND):
 		if layer == NS_FOREGROUND:
@@ -69,6 +78,7 @@ class NumpySurface(object):
 			except AttributeError:
 				self.__content =  np.zeros((self.width, self.height, 4))
 				self.__ensure_writeable__(NS_FOREGROUND)
+
 
 	def __init_content(self, new):
 		from .KLDraw import Drawbject
@@ -106,13 +116,6 @@ class NumpySurface(object):
 			self.__height = self.__content.shape[0]
 		except AttributeError:
 			pass
-
-
-	def average_color(self):
-		px = self.render()
-		px_count = px.shape[0] * px.shape[1]
-		new_px = px.reshape((px_count,4))
-		print(new_px.shape)
 
 
 	def blit(self, source, layer=NS_FOREGROUND, registration=7, location=(0, 0), behavior=None):
@@ -384,39 +387,56 @@ class NumpySurface(object):
 
 	@property
 	def height(self):
+		"""int: The current height (in pixels) of the NumpySurface.
+
+		"""
 		return self.__height
 
-	@height.setter
-	def height(self, height_value):
-		try:
-			if int(height_value) > 0:
-				self.__height = int(height_value)
-			else:
-				raise ValueError
-		except (ValueError, TypeError):
-			self.__height = 0
 
 	@property
 	def width(self):
+		"""int: The current width (in pixels) of the NumpySurface.
+
+		"""
 		return self.__width
 
-	@width.setter
-	def width(self, width_value):
-		try:
-			if int(width_value) > 0:
-				self.__width = int(width_value)
-			else:
-				raise ValueError
-		except (ValueError, TypeError):
-			self.__width = 0
+	
+	@property
+	def surface_c(self):
+		"""tuple(int, int): The (x, y) coordinates of the center of the surface.
+
+		"""
+		return (int(self.width//2), int(self.height//2))
+	
+
+	@property
+	def dimensions(self):
+		"""tuple(int, int): The current size of the NumpySurface, in the format (width, height).
+
+		"""
+		return (self.width, self.height)
+
+
+	@property
+	def content(self):
+		""":obj:`numpy.ndarray`: The contents of the NumpySurface.
+
+		"""
+		return self.__content
+
 
 	@property
 	def foreground(self):
 		return self.__content
 
+
 	@property
-	def dimensions(self):
-		return [self.width, self.height]
+	def average_color(self):
+		"""tuple of ints: The average RGBA colour of the NumpySurface.
+
+		"""
+		img = Image.fromarray(self.content.astype(np.uint8))
+		return img.resize((1,1), Image.ANTIALIAS).getpixel((0,0))
 
 	@property
 	def fg_offset(self):

@@ -44,23 +44,20 @@ def aggdraw_to_numpy_surface(surface):
 
 class NumpySurface(object):
 
-	def __init__(self, foreground=None, fg_offset=None, width=None, height=None):
+	def __init__(self, content=None, fg_offset=None, width=None, height=None, fill=(0,0,0,0)):
 		self.__content = None
-		self.__foreground__ = None
 		self.__foreground_offset__ = None
 		self.__foreground_mask__ = None
 		self.__foreground_unmask__ = None
-		self.__height__ = None
-		self.__width__ = None
-		self.__bg_color__ = None
+		self.__height = None
+		self.__width = None
+		self.__fill = rgb_to_rgba(fill)
 		self.rendered = None
-		self.fg = None
 		self.fg_offset = None
 		self.width = width
 		self.height = height
 		self.fg_offset = fg_offset
-		self.foreground = foreground
-		self.init_canvas()
+		self.__init_content(content)
 
 	def __str__(self):
 		return "klibs.NumpySurface, ({0} x {1}) at {2}".format(self.width, self.height, hex(id(self)))
@@ -70,21 +67,53 @@ class NumpySurface(object):
 			try:
 				self.foreground.setflags(write=1)
 			except AttributeError:
-				self.foreground = np.zeros((self.width, self.height, 4))
+				self.__content =  np.zeros((self.width, self.height, 4))
 				self.__ensure_writeable__(NS_FOREGROUND)
 
-	def init_canvas(self):
-		if all(i is None for i in [self.foreground, self.width, self.height]):
-			self.foreground = np.zeros((1,1,4))
+	def __init_content(self, new):
+		from .KLDraw import Drawbject
+
+		if new is None:
+			new = Image.new('RGBA', (self.width, self.height), self.__fill)
+			new_arr = np.asarray(new)
+		elif isinstance(new, np.ndarray):
+			new_arr = add_alpha(new)
+		elif isinstance(new, NumpySurface):
+			new_arr = new.content
+		elif isinstance(new, Drawbject):
+			new_arr = new.render()
+		elif isinstance(new, Image.Image):
+			if new.mode == 'RGB':
+				new_arr = add_alpha(np.array(new))
+			else:
+				if new.mode != 'RGBA':
+					new = new.convert('RGBA')
+				new_arr = np.array(new)
+		elif type(new).__name__ in ('str', 'unicode'):
+			new_arr = image_file_to_array(new)
+		elif type(new).__name__ == 'Draw': # aggdraw surface
+			new_arr = aggdraw_to_array(new)
 		else:
-			self.foreground = np.zeros((self.height, self.width, 4))
-		self.__update_shape__()
+			TypeError("Invalid type for initializing a NumpySurface object.")
+
+		self.__content = new_arr.astype(np.uint8)
+		self.__update_shape()
+
+
+	def __update_shape(self):
+		try:
+			self.__width = self.__content.shape[1]
+			self.__height = self.__content.shape[0]
+		except AttributeError:
+			pass
+
 
 	def average_color(self):
 		px = self.render()
 		px_count = px.shape[0] * px.shape[1]
 		new_px = px.reshape((px_count,4))
 		print(new_px.shape)
+
 
 	def blit(self, source, layer=NS_FOREGROUND, registration=7, location=(0, 0), behavior=None):
 		# todo: implement layer logic here
@@ -135,9 +164,10 @@ class NumpySurface(object):
 		# print "ForegroundShape: {0}, SourceShape: {1}".format(self.foreground.shape, source.shape)
 		blit_region = self.foreground[y1: y2, x1: x2, :]
 		# print "Blit_region of fg: {0}".format(blit_region.shape)
-		self.foreground[y1: y2, x1: x2, :] = source
+		self.__content[y1: y2, x1: x2, :] = source
 
 		return self
+
 
 	def scale(self, size, layer=None):
 		# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
@@ -148,17 +178,18 @@ class NumpySurface(object):
 			try:
 				layer_image = Image.fromarray(self.foreground.astype(np.uint8))
 				scaled_image = layer_image.resize(size, Image.ANTIALIAS)
-				self.foreground = np.asarray(scaled_image)
+				self.__content =  np.asarray(scaled_image)
 			except AttributeError as e:
 				if str(e) != "'NoneType' object has no attribute '__array_interface__'":
 					raise e
 			except TypeError:
 				pass
 
-		self.__update_shape__()
+		self.__update_shape()
 		# self.resize(size)
 
 		return self
+
 
 	def rotate(self, angle, layer=None):
 	# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
@@ -169,14 +200,15 @@ class NumpySurface(object):
 			try:
 				layer_image = Image.fromarray(self.foreground.astype(np.uint8))
 				scaled_image = layer_image.Image.rotate(angle, Image.ANTIALIAS)
-				self.foreground = np.asarray(scaled_image)
+				self.__content =  np.asarray(scaled_image)
 			except AttributeError as e:
 				if str(e) != "'NoneType' object has no attribute '__array_interface__'":
 					raise e
 			except TypeError:
 				pass
-		self.__update_shape__()
+		self.__update_shape()
 		return self
+
 
 	def get_pixel_value(self, location, layer=NS_FOREGROUND):
 		"""
@@ -190,8 +222,10 @@ class NumpySurface(object):
 		except IndexError:
 			return False
 
+
 	def has_content(self):
 		return False if self.foreground is None else True
+
 
 	def mask(self, mask, location=[0,0], grey_scale=False, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
 		"""
@@ -274,7 +308,8 @@ class NumpySurface(object):
 			zipped_arrays = zip(flat_map, flat_fg)
 			flat_masked_region = np.asarray([min(x, y) for x, y in zipped_arrays])
 			masked_region = flat_masked_region.reshape(alpha_map.shape)
-			self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3] = masked_region
+			self.__content[fg_y1: fg_y2, fg_x1: fg_x2, 3] = masked_region
+
 
 	def prerender(self):
 		"""
@@ -283,6 +318,7 @@ class NumpySurface(object):
 		:return:
 		"""
 		return self.render(True)
+
 
 	def resize(self, dimensions=None, registration=BL_TOP_LEFT, fill=[0, 0, 0, 0]):
 		# todo: add "extend" function, which wraps this
@@ -299,7 +335,7 @@ class NumpySurface(object):
 			raise ValueError("Argument fill must be a rgb or rgba color iterable.")
 
 		if dimensions is None:
-			return self.__update_shape__()
+			return self.__update_shape()
 
 		# create some empty arrays of the new dimensions and ascertain clipping values if needed
 		try:
@@ -314,7 +350,7 @@ class NumpySurface(object):
 			raise ValueError("Argument dimensions must be a an iterable integer pair (height x width) ")
 
 		# apply clipping if needed
-		self.foreground = self.foreground[0:fg_clip[0], 0:fg_clip[1]]
+		self.__content =  self.foreground[0:fg_clip[0], 0:fg_clip[1]]
 
 		y1 = self.fg_offset[1]
 		y2 = self.foreground.shape[0]
@@ -322,11 +358,12 @@ class NumpySurface(object):
 		x2 = self.foreground.shape[1]
 		new_fg[y1:y2, x1:x2, :] = self.foreground
 
-		self.foreground = new_fg
+		self.__content =  new_fg
 
-		# self.__update_shape()
+		self.__update_shape()
 
 		return self
+
 
 	def render(self, prerendering=False):
 		# todo: add functionality for not using a copy, ie. permanently render
@@ -344,89 +381,38 @@ class NumpySurface(object):
 		self.rendered = render_surface.astype(np.uint8)
 		return self.rendered
 
-	def __update_shape__(self):
-		for surface in [self.foreground]:
-			try:
-				if self.width < surface.shape[1]:
-					self.width = surface.shape[1]
-				if self.height < surface.shape[0]:
-					self.height = surface.shape[0]
-			except AttributeError:
-				pass
 
 	@property
 	def height(self):
-		return self.__height__
+		return self.__height
 
 	@height.setter
 	def height(self, height_value):
 		try:
 			if int(height_value) > 0:
-				self.__height__ = int(height_value)
+				self.__height = int(height_value)
 			else:
 				raise ValueError
 		except (ValueError, TypeError):
-			self.__height__ = 0
+			self.__height = 0
 
 	@property
 	def width(self):
-		return self.__width__
+		return self.__width
 
 	@width.setter
 	def width(self, width_value):
 		try:
 			if int(width_value) > 0:
-				self.__width__ = int(width_value)
+				self.__width = int(width_value)
 			else:
 				raise ValueError
 		except (ValueError, TypeError):
-			self.__width__ = 0
+			self.__width = 0
 
 	@property
 	def foreground(self):
-		return self.__foreground__
-
-	@foreground.setter
-	def foreground(self, foreground_content):
-		if foreground_content is None:
-			self.__foreground__ = None
-			self.fg = self.__foreground__
-			return
-		try:
-			fg_array = add_alpha(foreground_content)  # ie. numpy.ndarray
-		except AttributeError:
-			try:
-				fg_array = image_file_to_array(foreground_content) # ie. path (string)
-			except AttributeError:
-				try:
-					fg_array = foreground_content.foreground  # ie. KLNumpySurface.NumpySurface
-				except AttributeError:
-					try:
-						fg_array = foreground_content.render()  # ie. KLDraw.Drawbject
-					except AttributeError:
-						try:
-							fg_array = aggdraw_to_array(foreground_content)
-						except:
-							raise TypeError("Invalid type for initializing a NumpySurface layer.")
-		if fg_array.shape[1] > self.width:
-			self.width = fg_array.shape[1]
-		if fg_array.shape[0] > self.height:
-			self.height = fg_array.shape[0]
-		self.__foreground__ = fg_array
-		self.fg = self.__foreground__  # convenience alias
-
-	@property
-	def background_color(self):
-		return self.__bg_color__
-
-	@background_color.setter
-	def background_color(self, color):
-		if type(color) is tuple and len(color) in (3, 4):
-			if len(color) == 3:
-				color[3] = 255
-			self.__bg_color__ = color
-		else:
-			raise TypeError("NumpySurface.background_color must be a tuple of integers (ie. rgb or rgba color value).")
+		return self.__content
 
 	@property
 	def dimensions(self):

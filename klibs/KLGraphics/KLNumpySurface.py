@@ -51,17 +51,13 @@ class NumpySurface(object):
 		self.__init_content(content)
 
 
+	def __repr__(self):
+		s = "<klibs.KLGraphics.NumpySurface(width={0}, height={1}) at {2}>"
+		return s.format(self.width, self.height, hex(id(self)))
+
+
 	def __str__(self):
-		return "klibs.NumpySurface, ({0} x {1}) at {2}".format(self.width, self.height, hex(id(self)))
-
-
-	def __ensure_writeable__(self, layer=NS_FOREGROUND):
-		if layer == NS_FOREGROUND:
-			try:
-				self.foreground.setflags(write=1)
-			except AttributeError:
-				self.__content =  np.zeros((self.width, self.height, 4))
-				self.__ensure_writeable__(NS_FOREGROUND)
+		return "NumpySurface(width={0}, height={1})".format(self.width, self.height)
 
 
 	def __init_content(self, new):
@@ -102,56 +98,81 @@ class NumpySurface(object):
 			pass
 
 
-	def blit(self, source, layer=NS_FOREGROUND, registration=7, location=(0, 0), behavior=None):
-		# todo: implement layer logic here
-		"""
+	def blit(self, source, registration=7, location=(0,0), clip=True, blend=True):
+		"""Draws a shape, image, or other texture at a given location on the surface.
 
-		:param source:
-		:param layer:
-		:param registration:
-		:param location:
-		:raise ValueError:
+		Valid source content types include :obj:`NumpySurface` objects, :obj:`Drawbject` shapes,
+		and :obj:`numpy.ndarray` or :obj:`Pillow.Image` objects in RGBA format.
+
+		Args:
+			source: The content to draw to the surface.
+			registration (int, optional): An integer from 1 to 9 indicating which point on the
+				source to align to the location coordinates. Defaults to 7 (top-left corner).
+			location([int, int], optional): The (x, y) pixel coordinates indicating where the 
+				content should be placed on the surface. Defaults to (0, 0).
+			clip (bool, optional): Whether to clip content that exceeds the bounds of the surface
+				to fit instead of raising an exception. Defaults to True.
+				exceed the margins of the surface, or return an error instead. Defaults to True.
+			blend (bool, optional): Whether to blend the image with the existing background or
+				simply replace the contents of the target region (faster). Defaults to True
+				(blend source with surface).
+
+		Raises:
+			ValueError: if the source does not fit on the surface with the given registration
+				and location.
+
 		"""
-		try:
-			source.foreground = source.foreground.astype(np.uint8)
-			source = source.render()
-		except AttributeError:
-			pass
-		try:
+		# TODO: Add reference to location/registration explanation in the docstring once it's written
+		if isinstance(source, np.ndarray):
 			source = add_alpha(source)
-		except:
-			raise TypeError("Argument 'source' must be either of klibs.NumpySurface or numpy.ndarray.")
+		elif isinstance(source, NumpySurface):
+			source = source.render()
+		else:
+			try:
+				source = NumpySurface(source)
+				source = source.render()
+			except TypeError:
+				e = "'{0} is not a supported NumpySurface content format."
+				raise TypeError(e.format(type(source).__name__))
 
-		source_height = source.shape[0]
-		source_width = source.shape[1]
+		# Calculate top-left corner for source, using location, registration, & size
+		source_h, source_w = (source.shape[0], source.shape[1])
+		r_x, r_y = _build_registrations(source_h, source_w)[registration]
+		location = (int(location[0] + r_x), int(location[1] + r_y))
+		
+		# Get source dimensions (sx/sy) and source bounding box on surface (cx/cy)
+		sx1, sy1, sx2, sy2 = (0, 0, source_w, source_h)
+		cx1, cy1, cx2, cy2 = location + (location[0] + source_w, location[1] + source_h)
 
-		registration = _build_registrations(source_height, source_width)[registration]
-		location = (int(location[0] + registration[0]), int(location[1] + registration[1]))
+		# Make sure location/registration actually place source on surface
+		if cx1 > self.width or cy1 > self.height or cx2 < 0 or cy2 < 0:
+			e = ("Provided blit location ({0}, {1}) and registration ({2}) place source "
+				"completely outside surface bounds.")
+			raise ValueError(e.format(cx1, cy1, registration))
 
-		# don't attempt the blit if source can't fit
-		if behavior is None:
-			if source_height > self.height or source_width > self.width:
-				e_msg = "Source ({0} x {1}) is larger than destination ({2} x {3})".format(source_width, source_height, self.width, self.height)
-				raise ValueError(e_msg)
-			elif source_height + location[1] > self.height or source_width + location[0] > self.width:
-				raise ValueError("Source cannot be blit to location; destination bounds exceeded.")
-		x1 = location[0]
-		x2 = location[0] + int(source_width)
-		y1 = location[1]
-		y2 = location[1] + int(source_height)
-		# print "Position: {0}: ".format(location)
-		# print "Blit Coords: {0}: ".format([y1,y2,x1,x2])
+		# If source is partly outside surface, adjust dimensions & bounding box to clip
+		if clip == True:
+			if cx1 < 0: sx1, cx1 = (abs(cx1), 0)
+			if cy1 < 0: sy1, cy1 = (abs(cy1), 0)
+			if cx2 > self.width: sx2, cx2 = (sx2 + (self.width - cx2), self.width)
+			if cy2 > self.height: sy2, cy2 = (sy2 + (self.height - cy2), self.height)
+		else:
+			if source_h > self.height or source_w > self.width:
+				e = "Source ({0}x{1}) is larger than the destination surface ({2}x{3})"
+				raise ValueError(e.format(source_w, source_h, self.width, self.height))
+			elif cx1 < 0 or cy1 < 0 or cx2 > self.width or cy2 > self.height:
+				e = ("Provided blit location ({0}, {1}) and registration ({2}) place source "
+					"partially outside surface bounds.")
+				raise ValueError(e.format(cx1, cy1, registration))
 
-		self.__ensure_writeable__(layer)
-		# todo: find out why this won't accept a 3rd dimension (ie. color)
-		if behavior == "resize":
-			if source_width > self.width: self.resize([self.height, source_width])
-			if source_height > self.height: self.resize([self.width, source_height])
-		# todo: make a "clip" behavior
-		# print "ForegroundShape: {0}, SourceShape: {1}".format(self.foreground.shape, source.shape)
-		blit_region = self.foreground[y1: y2, x1: x2, :]
-		# print "Blit_region of fg: {0}".format(blit_region.shape)
-		self.__content[y1: y2, x1: x2, :] = source
+		# Add source to surface, optionally blending alpha channels
+		if blend == True:
+			img = Image.fromarray(self.content)
+			src = Image.fromarray(source[sy1:sy2, sx1:sx2, :])
+			img.alpha_composite(src, (cx1, cx2))
+			self.__content = np.array(img)
+		else:
+			self.__content[cy1:cy2, cx1:cx2, :] = source[sy1:sy2, sx1:sx2, :]
 
 		return self
 
@@ -230,16 +251,17 @@ class NumpySurface(object):
 		Args:
 			mask (:obj:`NumpySurface`, :obj:`numpy.ndarray`): The image or array to use as a
 				transparency mask.
-			registration (int, optional): An integer from 1 to 9 indicating which location on the
-				mask should be aligned to the location coordinates (see manual for more info).
-			location ([int, int], optional): The (x, y) pixel coordinates on the target surface
-				at which to place the mask. Defaults to (0, 0).
+			registration (int, optional): An integer from 1 to 9 indicating which point on the
+				mask to align to the location coordinates. Defaults to 7 (top-left corner).
+			location ([int, int], optional): The (x, y) pixel coordinates indicating where the 
+				mask should be placed on the surface. Defaults to (0, 0).
 			complete (bool, optional): If True, the entire surface outside of the mask region
 				will be made transparent. Defaults to False.				
 			invert (bool, optional): Whether the alpha values in the mask region should be
 				the inverse of the mask's alpha instead of the same. Defaults to True.
 
 		"""
+		# TODO: Add reference to location/registration explanation in the docstring once it's written
 		from .KLDraw import Drawbject
 
 		if type(mask) is NumpySurface:

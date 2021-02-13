@@ -203,13 +203,13 @@ class TextManager(object):
 				continue
 			if align == "left":
 				l_surf_pos = (0, lines.index(line) * net_line_height)
-				output.blit(l_surf, location=l_surf_pos)
+				output.blit(l_surf, location=l_surf_pos, blend=False, clip=False)
 			elif align == "center":
 				l_surf_pos = (surface_width/2, lines.index(line) * net_line_height)
-				output.blit(l_surf, location=l_surf_pos, registration=8)
+				output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=8)
 			elif align == "right":
 				l_surf_pos = (surface_width, lines.index(line) * net_line_height)
-				output.blit(l_surf, location=l_surf_pos, registration=9)
+				output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=9)
 
 		return output
 

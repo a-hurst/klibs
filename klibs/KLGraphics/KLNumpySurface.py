@@ -150,6 +150,16 @@ class NumpySurface(object):
 		return self.content if surftype == np.uint8 else self.content.astype(np.uint8)
 
 
+	def copy(self):
+		"""Returns a copy of the current surface as a new NumpySurface object.
+
+		Returns:
+			:obj:`~NumpySurface`: A copy of the current surface.
+
+		"""
+		return NumpySurface(self.content.astype(np.uint8))
+
+
 	def blit(self, source, registration=7, location=(0,0), clip=True, blend=True):
 		"""Draws a shape, image, or other texture at a given location on the surface.
 
@@ -257,29 +267,6 @@ class NumpySurface(object):
 		return self
 
 
-	def rotate(self, angle, layer=None):
-	# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
-		if not self.has_content():
-			return
-
-		if layer == NS_FOREGROUND or layer is None:
-			try:
-				layer_image = Image.fromarray(self.foreground.astype(np.uint8))
-				scaled_image = layer_image.Image.rotate(angle, Image.ANTIALIAS)
-				self.__content =  np.asarray(scaled_image)
-			except AttributeError as e:
-				if str(e) != "'NoneType' object has no attribute '__array_interface__'":
-					raise e
-			except TypeError:
-				pass
-		self.__update_shape()
-		return self
-
-
-	def has_content(self):
-		return False if self.foreground is None else True
-
-
 	def mask(self, mask, registration=7, location=(0,0), complete=False, invert=True):
 		"""Applies a transparency mask to the surface at a given location.
 		
@@ -324,6 +311,7 @@ class NumpySurface(object):
 			location = registration
 			registration = 7
 
+		# Calculate top-left corner for mask, using location, registration, & size
 		registration = _build_registrations(mask.height, mask.width)[registration]
 		location = (int(location[0] + registration[0]), int(location[1] + registration[1]))
 
@@ -407,11 +395,6 @@ class NumpySurface(object):
 		""":obj:`numpy.ndarray`: The contents of the NumpySurface.
 
 		"""
-		return self.__content
-
-
-	@property
-	def foreground(self):
 		return self.__content
 
 

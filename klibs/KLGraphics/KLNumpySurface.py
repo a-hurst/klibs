@@ -72,7 +72,7 @@ class NumpySurface(object):
 			Defaults to fully transparent.
 
 	"""
-	def __init__(self, content=None, fg_offset=None, width=None, height=None, fill=(0,0,0,0)):
+	def __init__(self, content=None, width=None, height=None, fill=(0,0,0,0)):
 
 		if content is None and not (width and height):
 			raise ValueError('If no content given, surface width and height must both be provided.')
@@ -83,12 +83,10 @@ class NumpySurface(object):
 			raise TypeError("Fill color must be a tuple of RGB or RGBA values.")
 
 		self.__content = None
-		self.__foreground_offset__ = None
 		self.__height = None
 		self.__width = None
 		self.__fill = rgb_to_rgba(fill)
 
-		self.fg_offset = fg_offset
 		self.__init_content(content)
 		if content is not None and (width or height):
 			self.scale(width, height)
@@ -352,51 +350,6 @@ class NumpySurface(object):
 		return self
 
 
-	def resize(self, dimensions=None, registration=BL_TOP_LEFT, fill=[0, 0, 0, 0]):
-		# todo: add "extend" function, which wraps this
-		"""
-
-		:param dimensions:
-		:param fill: Transparent by default, can be any rgba value
-		:return:
-		"""
-
-		try:
-			fill = rgb_to_rgba(fill)
-		except (AttributeError, IndexError):
-			raise ValueError("Argument fill must be a rgb or rgba color iterable.")
-
-		if dimensions is None:
-			return self.__update_shape()
-
-		# create some empty arrays of the new dimensions and ascertain clipping values if needed
-		try:
-			new_fg = np.zeros((dimensions[1], dimensions[0], 4))  # ie. new foreground
-			fg_clip = [	new_fg.shape[0] - (self.fg_offset[1] + self.foreground.shape[0]),
-						new_fg.shape[1] - (self.fg_offset[0] + self.foreground.shape[1]) ]
-			for clip in fg_clip:
-				axis = fg_clip.index(clip)
-				if clip >= 0:
-					fg_clip[axis] = self.foreground.shape[axis] + self.fg_offset[axis]
-		except (AttributeError, IndexError):
-			raise ValueError("Argument dimensions must be a an iterable integer pair (height x width) ")
-
-		# apply clipping if needed
-		self.__content =  self.foreground[0:fg_clip[0], 0:fg_clip[1]]
-
-		y1 = self.fg_offset[1]
-		y2 = self.foreground.shape[0]
-		x1 = self.fg_offset[0]
-		x2 = self.foreground.shape[1]
-		new_fg[y1:y2, x1:x2, :] = self.foreground
-
-		self.__content =  new_fg
-
-		self.__update_shape()
-
-		return self
-
-
 	def get_pixel_value(self, coords):
 		"""Retrieves the RGBA colour value of a given pixel of the surface.
 
@@ -469,18 +422,3 @@ class NumpySurface(object):
 		"""
 		img = Image.fromarray(self.content.astype(np.uint8))
 		return img.resize((1,1), Image.ANTIALIAS).getpixel((0,0))
-
-	@property
-	def fg_offset(self):
-		return self.__foreground_offset__
-
-	@fg_offset.setter
-	def fg_offset(self, offset):
-		try:
-			iter(offset)
-			self.__foreground_offset__ = offset
-		except TypeError:
-			if offset is None:
-				self.__foreground_offset__ = (0, 0)
-			else:
-				raise ValueError("Background and foreground offsets must be iterable.")

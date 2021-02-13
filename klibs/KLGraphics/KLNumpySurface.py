@@ -29,7 +29,49 @@ def aggdraw_to_numpy_surface(surface):
 
 
 class NumpySurface(object):
+	"""A flexible object for working with images and other textures. Can be used for loading
+	image files, converting images into a :func:`~klibs.KLGraphics.blit`-able format, applying
+	transparency masks to images, merging multiple images into one, resizing images, and more. 
 
+	By default, the height and width of the surface will be inferred from the input content. If
+	a width and height are provided, the content will be stretched to fit the given size. If
+	only one dimension is provided, the content will be scaled to that size preserving the
+	aspect ratio of the image. If a surface is created without any content, both a width and
+	height must be specified.
+
+	All NumpySurface objects use the RGBA colour format, and any valid input types in other
+	formats (e.g. RGB) will be coerced to RGBA when the NumpySurface is created.
+
+	Supported input types:
+
+	* Pillow Image (:obj:`PIL.Image.Image`)
+
+	* RGB or RGBA Numpy array (:obj:`numpy.ndarray`)
+
+	* Shape from :mod:`~klibs.KLGraphics.KLDraw` (:obj:`~klibs.KLGraphics.KLDraw.Drawbject`)
+
+	* Aggdraw drawing context (:obj:`aggdraw.Draw`)
+
+	* NumpySurface object (:obj:`~NumpySurface`)
+
+	* A string specifying the full path to an image file
+
+	* A string specifying the path to an image file relative to the project's 
+	  `ExpAssets/Resources/image` directory
+
+	* :obj:`NoneType` (initializes a new surface with a given width, height, and fill)
+
+	A list of supported formats for images loaded via file path can be found
+	`here <https://pillow.readthedocs.io/en/5.1.x/handbook/image-file-formats.html>`_.
+
+	Args:
+		content (optional): The image, shape, or other texture to create the surface with.
+		width (int, optional): The width of the new surface.
+		height (int, optional): The height of the new surface.
+		fill (:obj:`tuple` or :obj:`list`, optional): The fill colour of the new surface. 
+			Defaults to fully transparent.
+
+	"""
 	def __init__(self, content=None, fg_offset=None, width=None, height=None, fill=(0,0,0,0)):
 
 		if content is None and not (width and height):
@@ -46,9 +88,10 @@ class NumpySurface(object):
 		self.__width = None
 		self.__fill = rgb_to_rgba(fill)
 
-		self.rendered = None
 		self.fg_offset = fg_offset
 		self.__init_content(content)
+		if content is not None and (width or height):
+			self.scale(width, height)
 
 
 	def __repr__(self):
@@ -96,6 +139,17 @@ class NumpySurface(object):
 			self.__height = self.__content.shape[0]
 		except AttributeError:
 			pass
+
+
+	def render(self):
+		"""Renders and returns the contents of the NumpySurface as an RGBA texture.
+
+		Returns:
+			:obj:`numpy.ndarray`: A 3-dimensional RGBA array of the surface content.
+
+		"""
+		surftype = self.content.dtype
+		return self.content if surftype == np.uint8 else self.content.astype(np.uint8)
 
 
 	def blit(self, source, registration=7, location=(0,0), clip=True, blend=True):
@@ -177,24 +231,30 @@ class NumpySurface(object):
 		return self
 
 
-	def scale(self, size, layer=None):
-		# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
-		if not self.has_content():
-			return
+	def scale(self, width=None, height=None):
+		"""Scales the surface and its contents to a given size. If only one dimension is provided,
+		the contents will be scaled to that size preserving the surface's aspect ratio. If both
+		height and width are provided, the surface contents will be stretched to fit.
 
-		if layer == NS_FOREGROUND or layer is None:
-			try:
-				layer_image = Image.fromarray(self.foreground.astype(np.uint8))
-				scaled_image = layer_image.resize(size, Image.ANTIALIAS)
-				self.__content =  np.asarray(scaled_image)
-			except AttributeError as e:
-				if str(e) != "'NoneType' object has no attribute '__array_interface__'":
-					raise e
-			except TypeError:
-				pass
+		Args:
+			width (int, optional): The width in pixels to scale the surface to.
+			height (int, optional): The height in pixels to scale the surface to.
 
+		Raises:
+			ValueError: if neither height or width are provided.
+		
+		"""
+		aspect = self.width / float(self.height)
+		if width != None:
+			size = (width, height) if height != None else (width, int(round(width / aspect)))
+		elif height != None:
+			size = (int(round(height * aspect)), height)
+		else:
+			raise ValueError("At least one of 'height' or 'width' must be provided.")
+
+		img = Image.fromarray(self.content)
+		self.__content = np.array(img.resize(size, Image.ANTIALIAS))
 		self.__update_shape()
-		# self.resize(size)
 
 		return self
 
@@ -216,19 +276,6 @@ class NumpySurface(object):
 				pass
 		self.__update_shape()
 		return self
-
-
-	def get_pixel_value(self, location, layer=NS_FOREGROUND):
-		"""
-
-		:param location:
-		:param layer:
-		:return:
-		"""
-		try:
-			return self.foreground[location[1]][location[0]]
-		except IndexError:
-			return False
 
 
 	def has_content(self):
@@ -305,15 +352,6 @@ class NumpySurface(object):
 		return self
 
 
-	def prerender(self):
-		"""
-
-
-		:return:
-		"""
-		return self.render()
-
-
 	def resize(self, dimensions=None, registration=BL_TOP_LEFT, fill=[0, 0, 0, 0]):
 		# todo: add "extend" function, which wraps this
 		"""
@@ -359,16 +397,24 @@ class NumpySurface(object):
 		return self
 
 
-	def render(self):
-		"""Renders and returns the contents of the NumpySurface as an RGBA texture.
+	def get_pixel_value(self, coords):
+		"""Retrieves the RGBA colour value of a given pixel of the surface.
+
+		Args:
+			coords([int, int]): The (x, y) coordinates of the pixel to retrieve.
 
 		Returns:
-			:obj:`numpy.ndarray`: A 3-dimensional Numpy array of an RGBA texture.
+			tuple: The RGBA value of the specified pixel.
+
+		Raises:
+			ValueError: If the given coords do not correspond to a pixel on the surface.
 
 		"""
-		surftype = self.content.dtype
-		self.rendered = self.content if surftype == np.uint8 else self.content.astype(np.uint8)
-		return self.rendered
+		try:
+			return tuple(self.content[coords[1]][coords[0]])
+		except IndexError:
+			e = "Coordinates ({0}, {1}) do not correspond to a pixel on the surface."
+			raise ValueError(e.format(coords[0], coords[1]))
 
 
 	@property

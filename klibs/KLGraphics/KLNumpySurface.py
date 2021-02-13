@@ -4,28 +4,13 @@ from copy import copy
 
 import numpy as np
 from PIL import Image
-from PIL import ImageOps
+from PIL import ImageOps, ImageChops
 import aggdraw
 
 from klibs.KLConstants import NS_BACKGROUND, NS_FOREGROUND, BL_TOP_RIGHT, BL_TOP_LEFT
 from .utils import (_build_registrations, aggdraw_to_array, image_file_to_array, add_alpha,
 	rgb_to_rgba)
 
-
-def grey_scale_to_alpha(source):
-		"""
-
-		:param source:
-		:return: :raise TypeError:
-		"""
-		if type(source) is NumpySurface:
-			source = source.render()
-		elif type(source) is str:
-			source = image_file_to_array(source)
-		elif type(source) is not np.ndarray:
-			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
-		source[0: -1, 0: -1, 3] = source[0: -1, 0: -1, 0]
-		return source
 
 
 def aggdraw_to_numpy_surface(surface):
@@ -42,6 +27,7 @@ def aggdraw_to_numpy_surface(surface):
 	return NumpySurface(aggdraw_to_array(surface))
 
 
+
 class NumpySurface(object):
 
 	def __init__(self, content=None, fg_offset=None, width=None, height=None, fill=(0,0,0,0)):
@@ -50,14 +36,12 @@ class NumpySurface(object):
 			raise ValueError('If no content given, surface width and height must both be provided.')
 		for i in (width, height):
 			if i != None and int(i) < 1:
-				raise ValueError('NumpySurface width and height must both be >= 1px.')
+				raise ValueError('NumpySurface width and height must both be >= 1.')
 		if not len(fill) in (3, 4):
 			raise TypeError("Fill color must be a tuple of RGB or RGBA values.")
 
 		self.__content = None
 		self.__foreground_offset__ = None
-		self.__foreground_mask__ = None
-		self.__foreground_unmask__ = None
 		self.__height = None
 		self.__width = None
 		self.__fill = rgb_to_rgba(fill)
@@ -230,88 +214,73 @@ class NumpySurface(object):
 		return False if self.foreground is None else True
 
 
-	def mask(self, mask, location=[0,0], grey_scale=False, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
-		"""
+	def mask(self, mask, registration=7, location=(0,0), complete=False, invert=True):
+		"""Applies a transparency mask to the surface at a given location.
+		
+		If 'invert' is True (the default), the opacity of the mask is subtracted from the opacity
+		of the surface, making the surface fully transparent wherever the mask is fully opaque
+		(and vice versa). If 'invert' is False, this replaces the surface's transparency layer with
+		the mask's alpha for the region covered by the mask.
 
-		:param mask:
-		:param location:
-		:param grey_scale:
-		:param layer:
-		:param auto_truncate:
-		:raise ValueError:
+		If an RGBA mask is provided, this function will use its alpha channel for masking. If a
+		greyscale ('L') mask is provided, it will be used directly. If a mask in any other format
+		is provided, the values from its first channel (e.g. 'R' for RGB, 'C' for CMYK) will be
+		used.
+
+		Args:
+			mask (:obj:`NumpySurface`, :obj:`numpy.ndarray`): The image or array to use as a
+				transparency mask.
+			registration (int, optional): An integer from 1 to 9 indicating which location on the
+				mask should be aligned to the location coordinates (see manual for more info).
+			location ([int, int], optional): The (x, y) pixel coordinates on the target surface
+				at which to place the mask. Defaults to (0, 0).
+			complete (bool, optional): If True, the entire surface outside of the mask region
+				will be made transparent. Defaults to False.				
+			invert (bool, optional): Whether the alpha values in the mask region should be
+				the inverse of the mask's alpha instead of the same. Defaults to True.
+
 		"""
+		from .KLDraw import Drawbject
+
 		if type(mask) is NumpySurface:
-			mask = mask.render()
-		elif type(mask) is str:
-			mask = image_file_to_array(mask)
-		elif type(mask) is not np.ndarray:
-			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
-		if grey_scale:
-			mask = grey_scale_to_alpha(mask)
-		if layer == NS_FOREGROUND:
-			self.__foreground_unmask__ = copy(self.foreground)
-			self.__foreground_mask__ = mask
-			self.__ensure_writeable__(NS_FOREGROUND)
-			if auto_truncate:
-				try:
-					iter(location)
-					location = [location[0], location[1]]
-				except AttributeError:
-					print("Argument 'location' must be iterable set of polar coordinates.")
-				new_pos = [0, 0]
-				mask_x1 = 0
-				mask_x2 = 0
-				mask_y1 = 0
-				mask_y2 = 0
-				# make sure location isn't impossible (ie. not off right-hand or bottom edge)
-				if location[0] >= 0:
-					if (mask.shape[0] + location[1]) > self.foreground.shape[0]:
-						mask_x1 = self.foreground.shape[0] - location[1]
-					else:
-						mask_x1 = 0
-					if mask.shape[1] + location[0] > self.foreground.shape[1]:
-						mask_x2 = self.foreground.shape[1] - location[0]
-					else:
-						mask_x2 = mask.shape[1] + location[0]
-					new_pos[0] = location[0]
-				else:
-					mask_x1 = abs(location[0])
-					if abs(location[0]) + mask.shape[1] > self.foreground.shape[1]:
-						mask_x2 = self.foreground.shape[1] + abs(location[0])
-					else:
-						mask_x2 = self.foreground.shape[1] - (abs(location[0]) + mask.shape[1])
-					new_pos[0] = 0
+			mask = Image.fromarray(mask.content)
+		elif type(mask) is np.ndarray:
+			mask = Image.fromarray(mask.astype(np.uint8))
+		elif isinstance(mask, Drawbject):
+			mask = mask.draw()
+		elif not isinstance(mask, Image.Image):
+			typename = type(mask).__name__
+			raise TypeError("'{0}' is not a valid mask type.".format(typename))
 
+		# For handling legacy code where location was second argument
+		if hasattr(registration, '__iter__') and not isinstance(registration, str):
+			location = registration
+			registration = 7
 
-				if location[1] >= 0:
-					mask_y1 = location[1]
-					if mask.shape[0] + location[1] > self.foreground.shape[0]:
-						mask_y2 = self.foreground.shape[0] - location[1]
-					else:
-						mask_y2 = mask.shape[0] + location[1]
-					new_pos[1] = location[1]
-				else:
-					mask_y1 = abs(location[1])
-					if abs(location[1]) + mask.shape[0] > self.foreground.shape[0]:
-						mask_y2 = self.foreground.shape[0] + abs(location[1])
-					else:
-						mask_y2 = self.foreground.shape[0] - (abs(location[1]) + mask.shape[0])
-					new_pos[1] = 0
+		registration = _build_registrations(mask.height, mask.width)[registration]
+		location = (int(location[0] + registration[0]), int(location[1] + registration[1]))
 
-				mask = mask[mask_y1: mask_y2, mask_x1: mask_x2]
-				location = new_pos
+		# Initialize surface and mask
+		surface_content = Image.fromarray(self.content)
+		surface_alpha = surface_content.getchannel('A')
+		if mask.mode != 'L':
+			try:
+				mask = mask.getchannel('A')
+			except:
+				mask = mask.getchannel(0)
+		if invert == True:
+			mask = ImageChops.invert(mask)
 
-			alpha_map = np.ones(mask.shape[:-1]) * 255 - mask[..., 3]
-			fg_x1 = location[0]
-			fg_x2 = alpha_map.shape[1] + location[0]
-			fg_y1 = location[1]
-			fg_y2 = alpha_map.shape[0] + location[1]
-			flat_map = alpha_map.flatten()
-			flat_fg = self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3].flatten()
-			zipped_arrays = zip(flat_map, flat_fg)
-			flat_masked_region = np.asarray([min(x, y) for x, y in zipped_arrays])
-			masked_region = flat_masked_region.reshape(alpha_map.shape)
-			self.__content[fg_y1: fg_y2, fg_x1: fg_x2, 3] = masked_region
+		# Create a new surface-sized alpha layer and place the mask on it
+		mask_alpha = Image.new('L', surface_content.size, 0 if complete else 255)
+		mask_alpha.paste(mask, location)
+
+		# Merge the surface/mask alpha layers and replace surface alpha with result
+		new_alpha = ImageChops.darker(surface_alpha, mask_alpha)
+		surface_content.putalpha(new_alpha)
+		self.__content = np.array(surface_content)
+
+		return self
 
 
 	def prerender(self):
@@ -320,7 +289,7 @@ class NumpySurface(object):
 
 		:return:
 		"""
-		return self.render(True)
+		return self.render()
 
 
 	def resize(self, dimensions=None, registration=BL_TOP_LEFT, fill=[0, 0, 0, 0]):
@@ -368,20 +337,15 @@ class NumpySurface(object):
 		return self
 
 
-	def render(self, prerendering=False):
-		# todo: add functionality for not using a copy, ie. permanently render
+	def render(self):
+		"""Renders and returns the contents of the NumpySurface as an RGBA texture.
+
+		Returns:
+			:obj:`numpy.ndarray`: A 3-dimensional Numpy array of an RGBA texture.
+
 		"""
-
-		:param prerendering:  Legacy argument; left in for backwards compatibility
-		:return: :raise ValueError:
-		"""
-
-		if self.foreground is None:
-			raise ValueError('Nothing to render; NumpySurface has been initialized but not content has been added.')
-		else:
-			render_surface = copy(self.foreground)
-
-		self.rendered = render_surface.astype(np.uint8)
+		surftype = self.content.dtype
+		self.rendered = self.content if surftype == np.uint8 else self.content.astype(np.uint8)
 		return self.rendered
 
 

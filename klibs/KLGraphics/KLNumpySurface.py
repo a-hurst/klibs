@@ -83,8 +83,8 @@ class NumpySurface(object):
 			raise TypeError("Fill color must be a tuple of RGB or RGBA values.")
 
 		self.__content = None
-		self.__height = None
-		self.__width = None
+		self.__height = height
+		self.__width = width
 		self.__fill = rgb_to_rgba(fill)
 
 		self.__init_content(content)
@@ -125,7 +125,9 @@ class NumpySurface(object):
 		elif type(new).__name__ == 'Draw': # aggdraw surface
 			new_arr = aggdraw_to_array(new)
 		else:
-			TypeError("Invalid type for initializing a NumpySurface object.")
+			typename = type(new).__name__
+			e = "Cannot create a NumpySurface from an object of type '{0}'."
+			raise TypeError(e.format(typename))
 
 		self.__content = new_arr.astype(np.uint8)
 		self.__update_shape()
@@ -231,7 +233,7 @@ class NumpySurface(object):
 		if blend == True:
 			img = Image.fromarray(self.content)
 			src = Image.fromarray(source[sy1:sy2, sx1:sx2, :])
-			img.alpha_composite(src, (cx1, cx2))
+			img.alpha_composite(src, (cx1, cy1))
 			self.__content = np.array(img)
 		else:
 			self.__content[cy1:cy2, cx1:cx2, :] = source[sy1:sy2, sx1:sx2, :]
@@ -338,6 +340,59 @@ class NumpySurface(object):
 		return self
 
 
+	def trim(self):
+		"""Trims the surface to fit the content, discarding any transparent padding.
+
+		Raises:
+			RuntimeError: If the entire surface is transparent.
+
+		"""
+		img = Image.fromarray(self.content)
+		contentbounds = img.getbbox()
+		if contentbounds == None:
+			raise RuntimeError('Cannot trim transparent padding from a fully transparent surface.')
+
+		x1, y1, x2, y2 = contentbounds
+		self.__content = self.content[y1:y2, x1:x2, :]
+		self.__update_shape()
+
+		return self
+
+
+	def flip_left(self):
+		"""Flips the surface 90 degrees to the left.
+
+		"""
+		self.__content = np.rot90(self.content)
+		self.__update_shape()
+		return self
+
+
+	def flip_right(self):
+		"""Flips the surface 90 degrees to the right.
+
+		"""
+		self.__content = np.rot90(self.content, k=3)
+		self.__update_shape()
+		return self
+
+
+	def flip_x(self):
+		"""Flips the surface contents along the x-axis.
+
+		"""
+		self.__content = np.fliplr(self.content)
+		return self
+
+
+	def flip_y(self):
+		"""Flips the surface contents along the y-axis.
+
+		"""
+		self.__content = np.flipud(self.content)
+		return self
+
+
 	def get_pixel_value(self, coords):
 		"""Retrieves the RGBA colour value of a given pixel of the surface.
 
@@ -379,7 +434,7 @@ class NumpySurface(object):
 		"""tuple(int, int): The (x, y) coordinates of the center of the surface.
 
 		"""
-		return (int(self.width//2), int(self.height//2))
+		return (int(self.width // 2), int(self.height // 2))
 	
 
 	@property
@@ -392,7 +447,7 @@ class NumpySurface(object):
 
 	@property
 	def content(self):
-		""":obj:`numpy.ndarray`: The contents of the NumpySurface.
+		""":obj:`numpy.ndarray`: The current contents of the surface.
 
 		"""
 		return self.__content
@@ -400,8 +455,9 @@ class NumpySurface(object):
 
 	@property
 	def average_color(self):
-		"""tuple of ints: The average RGBA colour of the NumpySurface.
+		"""tuple(int, int, int, int): The average RGBA colour of the surface.
 
 		"""
 		img = Image.fromarray(self.content.astype(np.uint8))
-		return img.resize((1,1), Image.ANTIALIAS).getpixel((0,0))
+		return img.resize((1, 1), Image.ANTIALIAS).getpixel((0, 0))
+

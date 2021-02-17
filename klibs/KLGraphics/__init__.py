@@ -42,14 +42,11 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 			TypeError: If the 'source' object passed is not one of the accepted types.
 
 		"""
-		
+		# TODO: Add reference to location/registration explanation in the docstring once it's written
 		if isinstance(source, NumpySurface):
 			height = source.height
 			width = source.width
-			if source.rendered is None:
-				content = source.render()
-			else:
-				content = source.rendered
+			content = source.render()
 
 		elif isinstance(source, Image.Image):
 			# is this a good idea? will be slower in most cases than using np.asarray() on Image

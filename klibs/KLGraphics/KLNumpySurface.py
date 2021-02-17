@@ -4,761 +4,460 @@ from copy import copy
 
 import numpy as np
 from PIL import Image
-from PIL import ImageOps
+from PIL import ImageOps, ImageChops
 import aggdraw
 
 from klibs.KLConstants import NS_BACKGROUND, NS_FOREGROUND, BL_TOP_RIGHT, BL_TOP_LEFT
-from klibs.KLGraphics import _build_registrations
+from .utils import (_build_registrations, aggdraw_to_array, image_file_to_array, add_alpha,
+	rgb_to_rgba)
 
 
-"""
-These next few functions just wrap aggdraw's stupid API :S
-"""
 
+def aggdraw_to_numpy_surface(surface):
+	"""Converts an :obj:`aggdraw.Draw` object to an RGBA :obj:`~NumpySurface` of the same size.
 
-def canvas(width, height, mode='RGBA', background=(0, 0, 0, 0)):
+	Args:
+		surface (:obj:`aggdraw.Draw`): The aggdraw surface to convert.
+
+	Returns:
+		:obj:`~NumpySurface`: A NumpySurface of the given aggdraw surface.
+
 	"""
+	# NOTE: Legacy function, should be undocumented and eventually removed
+	return NumpySurface(aggdraw_to_array(surface))
 
-	:param width:
-	:param height:
-	:param mode:
-	:param background:
-	:return:
-	"""
-	bg = []
-	bg.append(n for n in background)
-	if len(bg) == 3: bg.append(0)
-	return aggdraw.Draw(mode, (width, height), tuple(background))
-
-
-def ad_fill(color, opacity=255):
-	"""
-
-	:param color:
-	:param opacity:
-	:return:
-	"""
-	col = list()
-	col.append(n for n in color)
-	if len(col) == 4:
-		opacity = col[3]
-		col = col[0:2]
-	else:
-		col = color
-	return aggdraw.Brush(tuple(col), opacity)
-
-
-def ad_stroke(color, width=1, opacity=255):
-	"""
-
-	:param color:
-	:param width:
-	:param opacity:
-	:return:
-	"""
-	col = list()
-	col.append(n for n in color)
-	if len(col) == 4:
-		opacity = col[3]
-		col = col[0:3]
-	return aggdraw.Pen(color, width, opacity)
-
-
-def add_alpha_channel(numpy_array, alpha_value=255):
-	try:
-		with_alpha = np.zeros((numpy_array.shape[0], numpy_array.shape[1], 4))
-		with_alpha[:, :, :3] = numpy_array
-		with_alpha[:, :, 3] = alpha_value
-		return with_alpha
-	except ValueError:
-		return numpy_array
-	# try:
-	# 	if numpy_array.shape[2] == 3:
-	# 		return numpy.insert(numpy_array, 3, alpha_value, 2)
-	# 	else:
-	# 		return numpy_array
-	# except IndexError:
-	# 	raise ValueError("Invalid data supplied; too few dimensions or wrong data type.")
-
-
-def import_image_file(path):
-		return add_alpha_channel(np.array(Image.open(path)))
-
-
-def grey_scale_to_alpha(source):
-		"""
-
-		:param source:
-		:return: :raise TypeError:
-		"""
-		if type(source) is NumpySurface:
-			source = source.render()
-		elif type(source) is str:
-			source = import_image_file(source)
-		elif type(source) is not np.ndarray:
-			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
-		source[0: -1, 0: -1, 3] = source[0: -1, 0: -1, 0]
-		return source
 
 
 class NumpySurface(object):
-	# todo: save states! save diffs between operations! so cool and unnecessary!
-	# todo: default alpha value for render
-	# todo: fg/bg dichotomy stupid and unwieldy; just use indexed layers
+	"""A flexible object for working with images and other textures. Can be used for loading
+	image files, converting images into a :func:`~klibs.KLGraphics.blit`-able format, applying
+	transparency masks to images, merging multiple images into one, resizing images, and more. 
 
-	def __init__(self, foreground=None, background=None, fg_offset=None, bg_offset=None, width=None, height=None):
-		self.__foreground__ = None
-		self.__foreground_offset__ = None
-		self.__foreground_mask__ = None
-		self.__foreground_unmask__ = None
-		self.__fg_mask_pos__ = None
-		self.__background__ = None
-		self.__background_offset__ = None
-		self.__background_mask__ = None
-		self.__background_unmask__ = None
-		self.__bg_mask_location__ = None
-		self.__height__ = None
-		self.__width__ = None
-		self.__bg_color__ = None
-		self.rendered = None
-		self.bg = None
-		self.fg = None
-		self.bg_offset = None
-		self.fg_offset = None
-		self.width = width
-		self.height = height
-		self.fg_offset = fg_offset
-		self.bg_offset = bg_offset
-		self.foreground = foreground
-		self.background = background
-		self.layers = {NS_FOREGROUND: self.__foreground__, NS_BACKGROUND:self.__background__}
-		self.init_canvas()
+	By default, the height and width of the surface will be inferred from the input content. If
+	a width and height are provided, the content will be stretched to fit the given size. If
+	only one dimension is provided, the content will be scaled to that size preserving the
+	aspect ratio of the image. If a surface is created without any content, both a width and
+	height must be specified.
+
+	All NumpySurface objects use the RGBA colour format, and any valid input types in other
+	formats (e.g. RGB) will be coerced to RGBA when the NumpySurface is created.
+
+	Supported input types:
+
+	* Pillow Image (:obj:`PIL.Image.Image`)
+
+	* RGB or RGBA Numpy array (:obj:`numpy.ndarray`)
+
+	* Shape from :mod:`~klibs.KLGraphics.KLDraw` (:obj:`~klibs.KLGraphics.KLDraw.Drawbject`)
+
+	* Aggdraw drawing context (:obj:`aggdraw.Draw`)
+
+	* NumpySurface object (:obj:`~NumpySurface`)
+
+	* A string specifying the full path to an image file
+
+	* A string specifying the path to an image file relative to the project's 
+	  `ExpAssets/Resources/image` directory
+
+	* :obj:`NoneType` (initializes a new surface with a given width, height, and fill)
+
+	A list of supported formats for images loaded via file path can be found
+	`here <https://pillow.readthedocs.io/en/5.1.x/handbook/image-file-formats.html>`_.
+
+	Args:
+		content (optional): The image, shape, or other texture to create the surface with.
+		width (int, optional): The width of the new surface.
+		height (int, optional): The height of the new surface.
+		fill (:obj:`tuple` or :obj:`list`, optional): The fill colour of the new surface. 
+			Defaults to fully transparent.
+
+	"""
+	def __init__(self, content=None, width=None, height=None, fill=(0,0,0,0)):
+
+		if content is None and not (width and height):
+			raise ValueError('If no content given, surface width and height must both be provided.')
+		for i in (width, height):
+			if i != None and int(i) < 1:
+				raise ValueError('NumpySurface width and height must both be >= 1.')
+		if not len(fill) in (3, 4):
+			raise TypeError("Fill color must be a tuple of RGB or RGBA values.")
+
+		self.__content = None
+		self.__height = height
+		self.__width = width
+		self.__fill = rgb_to_rgba(fill)
+
+		self.__init_content(content)
+		if content is not None and (width or height):
+			self.scale(width, height)
+
+
+	def __repr__(self):
+		s = "<klibs.KLGraphics.NumpySurface(width={0}, height={1}) at {2}>"
+		return s.format(self.width, self.height, hex(id(self)))
+
 
 	def __str__(self):
-		return "klibs.NumpySurface, ({0} x {1}) at {2}".format(self.width, self.height, hex(id(self)))
+		return "NumpySurface(width={0}, height={1})".format(self.width, self.height)
 
-	def __ensure_writeable__(self, layer=NS_FOREGROUND):
-		if layer == NS_FOREGROUND:
-			try:
-				self.foreground.setflags(write=1)
-			except AttributeError:
-				self.foreground = np.zeros((self.width, self.height, 4))
-				self.__ensure_writeable__(NS_FOREGROUND)
-		else:
-			try:
-				self.background.setflags(write=1)
-			except AttributeError:
-				self.background = np.zeros((self.width, self.height, 4))
-				self.__ensure_writeable__(NS_BACKGROUND)
 
-	def __fetch_layer__(self, layer):
-		if layer == NS_FOREGROUND:
-			if self.foreground is not None:
-				return self.foreground
+	def __init_content(self, new):
+		from .KLDraw import Drawbject
+
+		if new is None:
+			new = Image.new('RGBA', (self.width, self.height), self.__fill)
+			new_arr = np.asarray(new)
+		elif isinstance(new, np.ndarray):
+			new_arr = add_alpha(new)
+		elif isinstance(new, NumpySurface):
+			new_arr = new.content
+		elif isinstance(new, Drawbject):
+			new_arr = new.render()
+		elif isinstance(new, Image.Image):
+			if new.mode == 'RGB':
+				new_arr = add_alpha(np.array(new))
 			else:
-				raise ValueError("klibs.NS_FOREGROUND given for 'layer' argument, but foreground attribute is not set.")
-		elif layer == NS_BACKGROUND:
-			if self.background is not None:
-				return self.background
-			else:
-				raise ValueError("klibs.NS_BACKGROUND given for 'layer' argument, but background attribute is not set.")
+				if new.mode != 'RGBA':
+					new = new.convert('RGBA')
+				new_arr = np.array(new)
+		elif type(new).__name__ in ('str', 'unicode'):
+			new_arr = image_file_to_array(new)
+		elif type(new).__name__ == 'Draw': # aggdraw surface
+			new_arr = aggdraw_to_array(new)
 		else:
-			raise TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
+			typename = type(new).__name__
+			e = "Cannot create a NumpySurface from an object of type '{0}'."
+			raise TypeError(e.format(typename))
 
-	def init_canvas(self):
-		if all(i is None for i in [self.background, self.foreground, self.width, self.height]):
-			self.foreground = np.zeros((1,1,4))
-			self.background = np.zeros((1,1,4))
-		else:
-			if self.foreground is None:
-				try:
-					fg_width = self.background.shape[1] if self.background.shape[1] > self.width else self.width
-				except AttributeError:
-					fg_width = self.width
-				try:
-					fg_height = self.background.shape[0] if self.background.shape[0] > self.height else self.height
-				except AttributeError:
-					fg_height = self.height
-				self.foreground = np.zeros((fg_height, fg_width, 4))
+		self.__content = new_arr.astype(np.uint8)
+		self.__update_shape()
 
-			if self.background is None:
-				try:
-					bg_width = self.foreground.shape[1] if self.foreground.shape[1] > self.width else self.width
-				except AttributeError:
-					bg_width = self.width
-				try:
-					bg_height = self.foreground.shape[0] if self.foreground.shape[0] > self.height else self.height
-				except AttributeError:
-					bg_height = self.height
 
-				self.background = np.zeros((bg_height, bg_width, 4))
-		self.__update_shape__()
-
-	def average_color(self, layer=None):
-		# nope, doesn't work; were working it out with Ross but then you couldn't finish
+	def __update_shape(self):
 		try:
-			px = self.rendered if not layer else self.layers[layer]
-			iter(px)
-		except TypeError:
-			px = self.render()
-		px_count = px.shape[0] * px.shape[1]
-		new_px = px.reshape((px_count,4))
-		print(new_px.shape)
-
-	def blit(self, source, layer=NS_FOREGROUND, registration=7, location=(0, 0), behavior=None):
-		# todo: implement layer logic here
-		"""
-
-		:param source:
-		:param layer:
-		:param registration:
-		:param location:
-		:raise ValueError:
-		"""
-		try:
-			source.foreground = source.foreground.astype(np.uint8)
-			source = source.render()
+			self.__width = self.__content.shape[1]
+			self.__height = self.__content.shape[0]
 		except AttributeError:
 			pass
-		try:
-			source = add_alpha_channel(source)
-		except:
-			raise TypeError("Argument 'source' must be either of klibs.NumpySurface or numpy.ndarray.")
 
-		source_height = source.shape[0]
-		source_width = source.shape[1]
 
-		registration = _build_registrations(source_height, source_width)[registration]
+	def render(self):
+		"""Renders and returns the contents of the NumpySurface as an RGBA texture.
+
+		Returns:
+			:obj:`numpy.ndarray`: A 3-dimensional RGBA array of the surface content.
+
+		"""
+		surftype = self.content.dtype
+		return self.content if surftype == np.uint8 else self.content.astype(np.uint8)
+
+
+	def copy(self):
+		"""Returns a copy of the current surface as a new NumpySurface object.
+
+		Returns:
+			:obj:`~NumpySurface`: A copy of the current surface.
+
+		"""
+		return NumpySurface(self.content.astype(np.uint8))
+
+
+	def blit(self, source, registration=7, location=(0,0), clip=True, blend=True):
+		"""Draws a shape, image, or other texture at a given location on the surface.
+
+		Valid source content types include :obj:`NumpySurface` objects, :obj:`Drawbject` shapes,
+		and :obj:`numpy.ndarray` or :obj:`Pillow.Image` objects in RGBA format.
+
+		Args:
+			source: The content to draw to the surface.
+			registration (int, optional): An integer from 1 to 9 indicating which point on the
+				source to align to the location coordinates. Defaults to 7 (top-left corner).
+			location([int, int], optional): The (x, y) pixel coordinates indicating where the 
+				content should be placed on the surface. Defaults to (0, 0).
+			clip (bool, optional): Whether to clip content that exceeds the bounds of the surface
+				to fit instead of raising an exception. Defaults to True.
+				exceed the margins of the surface, or return an error instead. Defaults to True.
+			blend (bool, optional): Whether to blend the image with the existing background or
+				simply replace the contents of the target region (faster). Defaults to True
+				(blend source with surface).
+
+		Raises:
+			ValueError: if the source does not fit on the surface with the given registration
+				and location.
+
+		"""
+		# TODO: Add reference to location/registration explanation in the docstring once it's written
+		if isinstance(source, np.ndarray):
+			source = add_alpha(source)
+		elif isinstance(source, NumpySurface):
+			source = source.render()
+		else:
+			try:
+				source = NumpySurface(source)
+				source = source.render()
+			except TypeError:
+				e = "'{0} is not a supported NumpySurface content format."
+				raise TypeError(e.format(type(source).__name__))
+
+		# Calculate top-left corner for source, using location, registration, & size
+		source_h, source_w = (source.shape[0], source.shape[1])
+		r_x, r_y = _build_registrations(source_h, source_w)[registration]
+		location = (int(location[0] + r_x), int(location[1] + r_y))
+		
+		# Get source dimensions (sx/sy) and source bounding box on surface (cx/cy)
+		sx1, sy1, sx2, sy2 = (0, 0, source_w, source_h)
+		cx1, cy1, cx2, cy2 = location + (location[0] + source_w, location[1] + source_h)
+
+		# Make sure location/registration actually place source on surface
+		if cx1 > self.width or cy1 > self.height or cx2 < 0 or cy2 < 0:
+			e = ("Provided blit location ({0}, {1}) and registration ({2}) place source "
+				"completely outside surface bounds.")
+			raise ValueError(e.format(cx1, cy1, registration))
+
+		# If source is partly outside surface, adjust dimensions & bounding box to clip
+		if clip == True:
+			if cx1 < 0: sx1, cx1 = (abs(cx1), 0)
+			if cy1 < 0: sy1, cy1 = (abs(cy1), 0)
+			if cx2 > self.width: sx2, cx2 = (sx2 + (self.width - cx2), self.width)
+			if cy2 > self.height: sy2, cy2 = (sy2 + (self.height - cy2), self.height)
+		else:
+			if source_h > self.height or source_w > self.width:
+				e = "Source ({0}x{1}) is larger than the destination surface ({2}x{3})"
+				raise ValueError(e.format(source_w, source_h, self.width, self.height))
+			elif cx1 < 0 or cy1 < 0 or cx2 > self.width or cy2 > self.height:
+				e = ("Provided blit location ({0}, {1}) and registration ({2}) place source "
+					"partially outside surface bounds.")
+				raise ValueError(e.format(cx1, cy1, registration))
+
+		# Add source to surface, optionally blending alpha channels
+		if blend == True:
+			img = Image.fromarray(self.content)
+			src = Image.fromarray(source[sy1:sy2, sx1:sx2, :])
+			img.alpha_composite(src, (cx1, cy1))
+			self.__content = np.array(img)
+		else:
+			self.__content[cy1:cy2, cx1:cx2, :] = source[sy1:sy2, sx1:sx2, :]
+
+		return self
+
+
+	def scale(self, width=None, height=None):
+		"""Scales the surface and its contents to a given size. If only one dimension is provided,
+		the contents will be scaled to that size preserving the surface's aspect ratio. If both
+		height and width are provided, the surface contents will be stretched to fit.
+
+		Args:
+			width (int, optional): The width in pixels to scale the surface to.
+			height (int, optional): The height in pixels to scale the surface to.
+
+		Raises:
+			ValueError: if neither height or width are provided.
+		
+		"""
+		aspect = self.width / float(self.height)
+		if width != None:
+			size = (width, height) if height != None else (width, int(round(width / aspect)))
+		elif height != None:
+			size = (int(round(height * aspect)), height)
+		else:
+			raise ValueError("At least one of 'height' or 'width' must be provided.")
+
+		img = Image.fromarray(self.content)
+		self.__content = np.array(img.resize(size, Image.ANTIALIAS))
+		self.__update_shape()
+
+		return self
+
+
+	def mask(self, mask, registration=7, location=(0,0), complete=False, invert=True):
+		"""Applies a transparency mask to the surface at a given location.
+		
+		If 'invert' is True (the default), the opacity of the mask is subtracted from the opacity
+		of the surface, making the surface fully transparent wherever the mask is fully opaque
+		(and vice versa). If 'invert' is False, this replaces the surface's transparency layer with
+		the mask's alpha for the region covered by the mask.
+
+		If an RGBA mask is provided, this function will use its alpha channel for masking. If a
+		greyscale ('L') mask is provided, it will be used directly. If a mask in any other format
+		is provided, the values from its first channel (e.g. 'R' for RGB, 'C' for CMYK) will be
+		used.
+
+		Args:
+			mask (:obj:`NumpySurface`, :obj:`numpy.ndarray`): The image or array to use as a
+				transparency mask.
+			registration (int, optional): An integer from 1 to 9 indicating which point on the
+				mask to align to the location coordinates. Defaults to 7 (top-left corner).
+			location ([int, int], optional): The (x, y) pixel coordinates indicating where the 
+				mask should be placed on the surface. Defaults to (0, 0).
+			complete (bool, optional): If True, the entire surface outside of the mask region
+				will be made transparent. Defaults to False.				
+			invert (bool, optional): Whether the alpha values in the mask region should be
+				the inverse of the mask's alpha instead of the same. Defaults to True.
+
+		"""
+		# TODO: Add reference to location/registration explanation in the docstring once it's written
+		from .KLDraw import Drawbject
+
+		if type(mask) is NumpySurface:
+			mask = Image.fromarray(mask.content)
+		elif type(mask) is np.ndarray:
+			mask = Image.fromarray(mask.astype(np.uint8))
+		elif isinstance(mask, Drawbject):
+			mask = mask.draw()
+		elif not isinstance(mask, Image.Image):
+			typename = type(mask).__name__
+			raise TypeError("'{0}' is not a valid mask type.".format(typename))
+
+		# For handling legacy code where location was second argument
+		if hasattr(registration, '__iter__') and not isinstance(registration, str):
+			location = registration
+			registration = 7
+
+		# Calculate top-left corner for mask, using location, registration, & size
+		registration = _build_registrations(mask.height, mask.width)[registration]
 		location = (int(location[0] + registration[0]), int(location[1] + registration[1]))
 
-		# don't attempt the blit if source can't fit
-		if behavior is None:
-			if source_height > self.height or source_width > self.width:
-				e_msg = "Source ({0} x {1}) is larger than destination ({2} x {3})".format(source_width, source_height, self.width, self.height)
-				raise ValueError(e_msg)
-			elif source_height + location[1] > self.height or source_width + location[0] > self.width:
-				raise ValueError("Source cannot be blit to location; destination bounds exceeded.")
-		x1 = location[0]
-		x2 = location[0] + int(source_width)
-		y1 = location[1]
-		y2 = location[1] + int(source_height)
-		# print "Position: {0}: ".format(location)
-		# print "Blit Coords: {0}: ".format([y1,y2,x1,x2])
-
-		self.__ensure_writeable__(layer)
-		# todo: find out why this won't accept a 3rd dimension (ie. color)
-		if behavior == "resize":
-			if source_width > self.width: self.resize([self.height, source_width])
-			if source_height > self.height: self.resize([self.width, source_height])
-		# todo: make a "clip" behavior
-		# print "ForegroundShape: {0}, SourceShape: {1}".format(self.foreground.shape, source.shape)
-		blit_region = self.foreground[y1: y2, x1: x2, :]
-		# print "Blit_region of fg: {0}".format(blit_region.shape)
-		if layer == NS_FOREGROUND:
-			self.foreground[y1: y2, x1: x2, :] = source
-		else:
-			self.background[y1: y2, x1: x2] = source
-
-		return self
-
-	def scale(self, size, layer=None):
-		# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
-		if not self.has_content():
-			return
-
-		if layer == NS_FOREGROUND or layer is None:
+		# Initialize surface and mask
+		surface_content = Image.fromarray(self.content)
+		surface_alpha = surface_content.getchannel('A')
+		if mask.mode != 'L':
 			try:
-				layer_image = Image.fromarray(self.foreground.astype(np.uint8))
-				scaled_image = layer_image.resize(size, Image.ANTIALIAS)
-				self.foreground = np.asarray(scaled_image)
-			except AttributeError as e:
-				if str(e) != "'NoneType' object has no attribute '__array_interface__'":
-					raise e
-			except TypeError:
-				pass
-		#
-		# if layer == NS_BACKGROUND or layer is None:
-		# 	try:
-		# 		layer_image = Image.fromarray(self.background.astype(np.uint8))
-		# 		scaled_image = layer_image.resize(size, Image.ANTIALIAS)
-		# 		self.foreground = np.asarray(scaled_image)
-		# 	except AttributeError as e:
-		# 		if e.message != "'NoneType' object has no attribute '__array_interface__'":
-		# 			raise e
-		# 	except TypeError:
-		# 		pass
+				mask = mask.getchannel('A')
+			except:
+				mask = mask.getchannel(0)
+		if invert == True:
+			mask = ImageChops.invert(mask)
 
-		self.__update_shape__()
-		# self.resize(size)
+		# Create a new surface-sized alpha layer and place the mask on it
+		mask_alpha = Image.new('L', surface_content.size, 0 if complete else 255)
+		mask_alpha.paste(mask, location)
+
+		# Merge the surface/mask alpha layers and replace surface alpha with result
+		new_alpha = ImageChops.darker(surface_alpha, mask_alpha)
+		surface_content.putalpha(new_alpha)
+		self.__content = np.array(surface_content)
 
 		return self
 
-	def rotate(self, angle, layer=None):
-	# TODO: expand this considerably;  http://pillow.readthedocs.org/en/3.0.x/reference/ImageOps.html
-		if not self.has_content():
-			return
 
-		if layer == NS_FOREGROUND or layer is None:
-			try:
-				layer_image = Image.fromarray(self.foreground.astype(np.uint8))
-				scaled_image = layer_image.Image.rotate(angle, Image.ANTIALIAS)
-				self.foreground = np.asarray(scaled_image)
-			except AttributeError as e:
-				if str(e) != "'NoneType' object has no attribute '__array_interface__'":
-					raise e
-			except TypeError:
-				pass
-		self.__update_shape__()
+	def trim(self):
+		"""Trims the surface to fit the content, discarding any transparent padding.
+
+		Raises:
+			RuntimeError: If the entire surface is transparent.
+
+		"""
+		img = Image.fromarray(self.content)
+		contentbounds = img.getbbox()
+		if contentbounds == None:
+			raise RuntimeError('Cannot trim transparent padding from a fully transparent surface.')
+
+		x1, y1, x2, y2 = contentbounds
+		self.__content = self.content[y1:y2, x1:x2, :]
+		self.__update_shape()
+
 		return self
 
-	def layer_from_file(self, image, layer=NS_FOREGROUND, location=None):
-		# todo: better error handling; check if the file has a valid image extension, make sure path is a valid type
+
+	def flip_left(self):
+		"""Flips the surface 90 degrees to the left.
+
 		"""
-
-		:param image:
-		:param layer:
-		:param location:
-		:return: :raise TypeError:
-		"""
-		image_content = add_alpha_channel(np.array(Image.open(image)))
-
-		if layer == NS_FOREGROUND:
-			self.foreground = image_content
-		elif layer == NS_BACKGROUND:
-			self.__set_background__(image_content)
-		else:
-			TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
-
-		self.__update_shape__()  # only needed if resize not called; __update_shape called at the end of resize
+		self.__content = np.rot90(self.content)
+		self.__update_shape()
 		return self
 
-	def location_in_layer_bounds(self, location, layer=None):
-		"""
 
-		:param location:
-		:param layer:
-		:return: :raise ValueError:
+	def flip_right(self):
+		"""Flips the surface 90 degrees to the right.
+
 		"""
-		layer = NS_FOREGROUND if type(layer) is None else layer
-		target = self.__fetch_layer__(layer)
+		self.__content = np.rot90(self.content, k=3)
+		self.__update_shape()
+		return self
+
+
+	def flip_x(self):
+		"""Flips the surface contents along the x-axis.
+
+		"""
+		self.__content = np.fliplr(self.content)
+		return self
+
+
+	def flip_y(self):
+		"""Flips the surface contents along the y-axis.
+
+		"""
+		self.__content = np.flipud(self.content)
+		return self
+
+
+	def get_pixel_value(self, coords):
+		"""Retrieves the RGBA colour value of a given pixel of the surface.
+
+		Args:
+			coords([int, int]): The (x, y) coordinates of the pixel to retrieve.
+
+		Returns:
+			tuple: The RGBA value of the specified pixel.
+
+		Raises:
+			ValueError: If the given coords do not correspond to a pixel on the surface.
+
+		"""
 		try:
-			location_iter = iter(location)
-			if layer == NS_FOREGROUND:
-				target = self.foreground
-			elif layer == NS_BACKGROUND:
-				target = self.background
-			else:
-				raise TypeError("Argument 'layer' must be either NS_FOREGROUND (ie. 1) or NS_BACKGROUND (ie. 0).")
-		except:
-			raise ValueError("Argument 'location' must be an iterable representation of  x, y coordinates.")
+			return tuple(self.content[coords[1]][coords[0]])
+		except IndexError:
+			e = "Coordinates ({0}, {1}) do not correspond to a pixel on the surface."
+			raise ValueError(e.format(coords[0], coords[1]))
 
-		return location[0] < target.shape[1] and location[1] < target.shape[0]
-
-	def region_in_layer_bounds(self, region, offset=0, layer=NS_FOREGROUND):
-		"""
-
-		:param region:
-		:param offset:
-		:param layer:
-		:return: :raise TypeError:
-		"""
-		bounding_coords = [0, 0, 0, 0]  # ie. x1, y1, x2, y2
-		target = self.__fetch_layer__(layer)
-		if type(offset) is int:
-			offset = (offset, offset)
-		elif type(offset) in (tuple, list) and len(offset) == 2 and all(type(i) is int and i > 0 for i in offset):
-			bounding_coords[0] = offset[0]
-			bounding_coords[1] = offset[1]
-
-		if type(region) is NumpySurface:
-			bounding_coords[2] = region.width + offset[0]
-			bounding_coords[3] = region.height + offset[1]
-		elif type(region) is np.ndarray:
-			bounding_coords[2] = region.shape[1] + offset[0]
-			bounding_coords[3] = region.shape[0] + offset[1]
-		else:
-			raise TypeError("Argument 'region' must be either a numpy.ndarray or a klibs.NumpySurface object.")
-		in_bounds = True
-		for coord in bounding_coords:
-			in_bounds = self.location_in_layer_bounds(coord)
-
-		return in_bounds
-
-	def get_pixel_value(self, location, layer=NS_FOREGROUND):
-		"""
-
-		:param location:
-		:param layer:
-		:return:
-		"""
-		if self.location_in_layer_bounds(location, layer):
-			return self.__fetch_layer__(layer)[location[1]][location[0]]
-		else:
-			return False
-
-	def has_content(self):
-		return False if self.foreground is None and self.background is None else True
-
-	def mask(self, mask, location=[0,0], grey_scale=False, layer=NS_FOREGROUND, auto_truncate=True):  # YOU ALLOW NEGATIVE POSITIONING HERE
-		"""
-
-		:param mask:
-		:param location:
-		:param grey_scale:
-		:param layer:
-		:param auto_truncate:
-		:raise ValueError:
-		"""
-		if type(mask) is NumpySurface:
-			mask = mask.render()
-		elif type(mask) is str:
-			mask = import_image_file(mask)
-		elif type(mask) is not np.ndarray:
-			raise TypeError("Argument 'mask' must be a NumpySurface, numpy.ndarray or a path string of an image file.")
-		if grey_scale:
-			mask = grey_scale_to_alpha(mask)
-		if layer == NS_FOREGROUND:
-			self.__foreground_unmask__ = copy(self.foreground)
-			self.__foreground_mask__ = mask
-			self.__ensure_writeable__(NS_FOREGROUND)
-			if auto_truncate:
-				try:
-					iter(location)
-					location = [location[0], location[1]]
-				except AttributeError:
-					print("Argument 'location' must be iterable set of polar coordinates.")
-				new_pos = [0, 0]
-				mask_x1 = 0
-				mask_x2 = 0
-				mask_y1 = 0
-				mask_y2 = 0
-				# make sure location isn't impossible (ie. not off right-hand or bottom edge)
-				if location[0] >= 0:
-					if (mask.shape[0] + location[1]) > self.foreground.shape[0]:
-						mask_x1 = self.foreground.shape[0] - location[1]
-					else:
-						mask_x1 = 0
-					if mask.shape[1] + location[0] > self.foreground.shape[1]:
-						mask_x2 = self.foreground.shape[1] - location[0]
-					else:
-						mask_x2 = mask.shape[1] + location[0]
-					new_pos[0] = location[0]
-				else:
-					mask_x1 = abs(location[0])
-					if abs(location[0]) + mask.shape[1] > self.foreground.shape[1]:
-						mask_x2 = self.foreground.shape[1] + abs(location[0])
-					else:
-						mask_x2 = self.foreground.shape[1] - (abs(location[0]) + mask.shape[1])
-					new_pos[0] = 0
-
-
-				if location[1] >= 0:
-					mask_y1 = location[1]
-					if mask.shape[0] + location[1] > self.foreground.shape[0]:
-						mask_y2 = self.foreground.shape[0] - location[1]
-					else:
-						mask_y2 = mask.shape[0] + location[1]
-					new_pos[1] = location[1]
-				else:
-					mask_y1 = abs(location[1])
-					if abs(location[1]) + mask.shape[0] > self.foreground.shape[0]:
-						mask_y2 = self.foreground.shape[0] + abs(location[1])
-					else:
-						mask_y2 = self.foreground.shape[0] - (abs(location[1]) + mask.shape[0])
-					new_pos[1] = 0
-
-				mask = mask[mask_y1: mask_y2, mask_x1: mask_x2]
-				location = new_pos
-
-			elif self.region_in_layer_bounds(mask, location, NS_FOREGROUND):
-				self.__fg_mask_pos__ = location
-			else:
-				raise ValueError("Mask falls outside of layer bounds; reduce size or relocation.")
-
-			alpha_map = np.ones(mask.shape[:-1]) * 255 - mask[..., 3]
-			fg_x1 = location[0]
-			fg_x2 = alpha_map.shape[1] + location[0]
-			fg_y1 = location[1]
-			fg_y2 = alpha_map.shape[0] + location[1]
-			flat_map = alpha_map.flatten()
-			flat_fg = self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3].flatten()
-			zipped_arrays = zip(flat_map, flat_fg)
-			flat_masked_region = np.asarray([min(x, y) for x, y in zipped_arrays])
-			masked_region = flat_masked_region.reshape(alpha_map.shape)
-			self.foreground[fg_y1: fg_y2, fg_x1: fg_x2, 3] = masked_region
-
-	def prerender(self):
-		"""
-
-
-		:return:
-		"""
-		return self.render(True)
-
-	def resize(self, dimensions=None, registration=BL_TOP_LEFT, fill=[0, 0, 0, 0]):
-		# todo: add "extend" function, which wraps this
-		"""
-
-		:param dimensions:
-		:param fill: Transparent by default, can be any rgba value
-		:return:
-		"""
-
-		from klibs.KLGraphics import rgb_to_rgba
-		try:
-			fill = rgb_to_rgba(fill)
-		except (AttributeError, IndexError):
-			raise ValueError("Argument fill must be a rgb or rgba color iterable.")
-
-		if dimensions is None:
-			return self.__update_shape__()
-
-		# create some empty arrays of the new dimensions and ascertain clipping values if needed
-		try:
-			new_fg = np.zeros((dimensions[1], dimensions[0], 4))  # ie. new foreground
-			fg_clip = [	new_fg.shape[0] - (self.fg_offset[1] + self.foreground.shape[0]),
-						new_fg.shape[1] - (self.fg_offset[0] + self.foreground.shape[1]) ]
-			for clip in fg_clip:
-				axis = fg_clip.index(clip)
-				if clip >= 0:
-					fg_clip[axis] = self.foreground.shape[axis] + self.fg_offset[axis]
-
-			new_bg = np.zeros((dimensions[1], dimensions[0], 4))
-			bg_clip = [new_bg.shape[0] - (self.bg_offset[1] + self.background.shape[0]),
-					   new_bg.shape[1] - (self.bg_offset[0] + self.background.shape[1])]
-			for clip in bg_clip:
-				if clip >= 0:
-					index = bg_clip.index(clip)
-					offset_index = 0 if index == 1 else 1
-					bg_clip[index] = self.background.shape[index] + self.bg_offset[offset_index]
-		except (AttributeError, IndexError):
-			raise ValueError("Argument dimensions must be a an iterable integer pair (height x width) ")
-
-		# apply clipping if needed
-		self.foreground = self.foreground[0:fg_clip[0], 0:fg_clip[1]]
-		self.background = self.background[0:bg_clip[0], 0:bg_clip[1]]
-
-		# insert old background and foreground into their positions on new arrays
-		y1 = self.bg_offset[1]
-		y2 = self.background.shape[0]
-		x1 = self.bg_offset[0]
-		x2 = self.background.shape[1]
-		new_bg[y1: y2, x1: x2, :] = self.background
-
-		y1 = self.fg_offset[1]
-		y2 = self.foreground.shape[0]
-		x1 = self.fg_offset[0]
-		x2 = self.foreground.shape[1]
-		new_fg[y1:y2, x1:x2, :] = self.foreground
-
-		self.foreground = new_fg
-		self.background = new_bg
-
-		# self.__update_shape()
-
-		return self
-
-	def render(self, prerendering=False):
-		# todo: add functionality for not using a copy, ie. permanently render
-		"""
-
-		:param prerendering:  Legacy argument; left in for backwards compatibility
-		:return: :raise ValueError:
-		"""
-
-		if self.background is None and self.foreground is None:
-			raise ValueError('Nothing to render; NumpySurface has been initialized but not content has been added.')
-		if self.background is None:
-			render_surface = copy(self.foreground)
-		else:  # flatten background and foreground together
-			render_surface = np.zeros((self.height, self.width, 4))
-			bg_x1 = self.__background_offset__[0]
-			bg_x2 = bg_x1 + self.background.shape[1]
-			bg_y1 = self.__background_offset__[1]
-			bg_y2 = bg_y1 + self.background.shape[0]
-
-			fg_x1 = self.__foreground_offset__[0]
-			fg_x2 = fg_x1 + self.foreground.shape[1]
-			fg_y1 = self.__foreground_offset__[1]
-			fg_y2 = fg_y1 + self.foreground.shape[0]
-
-			render_surface[bg_y1: bg_y2, bg_x1: bg_x2] = self.background
-			render_surface[fg_y1: fg_y2, fg_x1: fg_x2] = self.foreground
-
-		self.rendered = render_surface.astype(np.uint8)
-		return self.rendered
-
-	def __update_shape__(self):
-		for surface in [self.foreground, self.background]:
-			try:
-				if self.width < surface.shape[1]:
-					self.width = surface.shape[1]
-				if self.height < surface.shape[0]:
-					self.height = surface.shape[0]
-			except AttributeError:
-				pass
-
-		return True
-
-	def __set_foreground__(self, foreground_content=None):
-		if foreground_content.shape[1] > self.width:
-			self.width = foreground_content.shape[1]
-		if foreground_content.shape[0] > self.height:
-			self.height = foreground_content.shape[0]
-		self.__foreground__ = foreground_content
-		self.fg = self.__foreground__  # convenience alias
-
-	def __set_background__(self, background_content):
-		if background_content.shape[1] > self.width:
-			self.width = background_content.shape[1]
-		if background_content.shape[0] > self.height:
-			self.height = background_content.shape[0]
-		self.__background__ = background_content
-		self.bg = self.__background__  # convenience alias
 
 	@property
 	def height(self):
-		return self.__height__
+		"""int: The current height (in pixels) of the NumpySurface.
 
-	@height.setter
-	def height(self, height_value):
-		try:
-			if int(height_value) > 0:
-				self.__height__ = int(height_value)
-			else:
-				raise ValueError
-		except (ValueError, TypeError):
-			self.__height__ = 0
+		"""
+		return self.__height
+
 
 	@property
 	def width(self):
-		return self.__width__
+		"""int: The current width (in pixels) of the NumpySurface.
 
-	@width.setter
-	def width(self, width_value):
-		try:
-			if int(width_value) > 0:
-				self.__width__ = int(width_value)
-			else:
-				raise ValueError
-		except (ValueError, TypeError):
-			self.__width__ = 0
+		"""
+		return self.__width
 
+	
 	@property
-	def foreground(self):
-		return self.__foreground__
+	def surface_c(self):
+		"""tuple(int, int): The (x, y) coordinates of the center of the surface.
 
-	@foreground.setter
-	def foreground(self, foreground_content):
-		from klibs.KLGraphics import aggdraw_to_array
-		if foreground_content is None:
-			self.__foreground__ = None
-			self.fg = self.__foreground__
-			return
-		try:
-			fg_array = add_alpha_channel(foreground_content)  # ie. numpy.ndarray
-		except AttributeError:
-			try:
-				self.layer_from_file(foreground_content, True, self.fg_offset)  # ie. path (string)
-				return
-			except AttributeError:
-				try:
-					fg_array = foreground_content.foreground  # ie. KLNumpySurface.NumpySurface
-				except AttributeError:
-					try:
-						fg_array = foreground_content.render()  # ie. KLDraw.Drawbject
-					except AttributeError:
-						try:
-							fg_array = aggdraw_to_array(foreground_content)
-						except:
-							raise TypeError("Invalid type for initializing a NumpySurface layer.")
-		if fg_array.shape[1] > self.width:
-			self.width = fg_array.shape[1]
-		if fg_array.shape[0] > self.height:
-			self.height = fg_array.shape[0]
-		self.__foreground__ = fg_array
-		self.fg = self.__foreground__  # convenience alias
-
-
-	@property
-	def background(self):
-		return self.__background__
-
-	@background.setter
-	def background(self, background_content):
-		from klibs.KLGraphics import aggdraw_to_array
-		if background_content is None:
-			self.__background__ = None
-			self.bg = self.__background__
-			return
-		try:
-			bg_array = add_alpha_channel(background_content)  # ie. numpy.ndarray
-		except AttributeError:
-			try:
-				self.layer_from_file(background_content, True, self.bg_offset)  # ie. path (string)
-				return
-			except AttributeError:
-				try:
-					bg_array = background_content.background  # ie. KLNumpySurface.NumpySurface
-				except AttributeError:
-					try:
-						bg_array = background_content.render().background  # ie. KLDraw.Drawbject
-					except AttributeError:
-						try:
-							bg_array = aggdraw_to_array(background_content)
-						except:
-							raise TypeError("Invalid type for initializing a NumpySurface layer.")
-		if bg_array.shape[1] > self.width:
-			self.width = bg_array.shape[1]
-		if bg_array.shape[0] > self.height:
-			self.height = bg_array.shape[0]
-		self.__background__ = bg_array
-		self.bg = self.__background__  # convenience alias
-
-	@property
-	def background_color(self):
-		return self.__bg_color__
-
-	@background_color.setter
-	def background_color(self, color):
-		if type(color) is tuple and len(color) in (3, 4):
-			if len(color) == 3:
-				color[3] = 255
-			self.__bg_color__ = color
-		else:
-			raise TypeError("NumpySurface.background_color must be a tuple of integers (ie. rgb or rgba color value).")
+		"""
+		return (int(self.width // 2), int(self.height // 2))
+	
 
 	@property
 	def dimensions(self):
-		return [self.width, self.height]
+		"""tuple(int, int): The current size of the NumpySurface, in the format (width, height).
+
+		"""
+		return (self.width, self.height)
+
 
 	@property
-	def fg_offset(self):
-		return self.__foreground_offset__
+	def content(self):
+		""":obj:`numpy.ndarray`: The current contents of the surface.
 
-	@fg_offset.setter
-	def fg_offset(self, offset):
-		try:
-			iter(offset)
-			self.__foreground_offset__ = offset
-		except TypeError:
-			if offset is None:
-				self.__foreground_offset__ = (0, 0)
-			else:
-				raise ValueError("Background and foreground offsets must be iterable.")
+		"""
+		return self.__content
+
 
 	@property
-	def bg_offset(self):
-		return self.__background_offset__
+	def average_color(self):
+		"""tuple(int, int, int, int): The average RGBA colour of the surface.
 
-	@bg_offset.setter
-	def bg_offset(self, offset):
-		try:
-			iter(offset)
-			self.__background_offset__ = offset
-		except TypeError:
-			if offset is None:
-				self.__background_offset__ = (0, 0)
-			else:
-				raise ValueError("Background and foreground offsets must be iterable.")
+		"""
+		img = Image.fromarray(self.content.astype(np.uint8))
+		return img.resize((1, 1), Image.ANTIALIAS).getpixel((0, 0))
 

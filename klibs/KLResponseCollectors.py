@@ -18,7 +18,8 @@ from klibs.KLEventQueue import pump, flush
 from klibs.KLUserInterface import ui_request, show_mouse_cursor, hide_mouse_cursor, mouse_pos
 from klibs.KLUtilities import angle_between
 from klibs.KLBoundary import BoundaryInspector, AnnulusBoundary
-from klibs.KLGraphics import flip, aggdraw_to_array
+from klibs.KLGraphics import flip
+from klibs.KLGraphics.utils import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import Annulus, ColorWheel, Drawbject
 from klibs.KLAudio import PYAUDIO_AVAILABLE
 

@@ -104,7 +104,7 @@ def image_file_to_array(path):
 	
 	"""
 	# Check if path is relative to project's image directory
-	if os.path.isfile(os.path.join(P.image_dir, path)):
+	if P.image_dir and os.path.isfile(os.path.join(P.image_dir, path)):
 		path = os.path.join(P.image_dir, path)
 	elif not os.path.isfile(path):
 		raise IOError("Unable to locate image file at ({0})".format(path))

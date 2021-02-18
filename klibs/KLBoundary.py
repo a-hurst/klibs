@@ -17,39 +17,88 @@ your own custom boundary shapes by subclassing the :class:`Boundary` object.
 
 """
 
+# NOTE: it would be much more sane for boundaries to only have labels when added to an inspector,
+#       but is there any way of changing this without breaking the API?
 
 class BoundaryInspector(object):
 	"""A class for managing and inspecting multiple :class:`Boundary` objects.
 
-	"""
-	def __init__(self):
-		self.boundaries = OrderedDict()
+	For example, you can use a BoundaryInspector to check which of three locations
+	a participant's mouse cursor is hovering over::
 
-	def add_boundary(self, label, bounds=None, shape=None):
-		"""Adds a boundary to the inspector. Boundaries can either be :class:`Boundary` objects 
-		(e.g. a :class:`RectangleBoundary`), or specified using the label, bounds, and shape
-		arguments.
+		from klibs.KLUserInterface import mouse_pos, get_clicks
+
+		# Create boundaries and add to new inspector
+		button1 = RectangleBoundary('yes', (200, 200), (300, 300))
+		button2 = RectangleBoundary('no', (400, 200), (500, 300))
+		button3 = RectangleBoundary('maybe', (600, 200), (700, 300))
+		bounds =  BoundaryInspector([button1, button2, button3])
+
+		# Check which button (if any) mouse is currently over
+		p = mouse_pos()
+		over_boundary = bounds.which_boundary(p)
+		if over_boundary != None:
+			print(over_boundary)
+
+	Additionally, you can check whether a point is within a specific boundary::
+
+		for click in get_clicks():
+			if bounds.within_boundary('yes', click):
+				print("Clicked 'yes'")
+			elif bounds.within_boundary('no', click):
+				print("Clicked 'no'")
+
+	Args:
+		boundaries (:obj:`List`): A list of :obj:`Boundary` objects to add to the inspector.
+
+	"""
+
+	def __init__(self, boundaries=[]):
+		self.boundaries = OrderedDict()
+		self.add_boundaries(boundaries)
+
+
+	def __verify_label(self, label):
+		if label not in self.boundaries.keys():
+			e = "No boundary with the label '{0}' has been added to the inspector."
+			raise KeyError(e.format(label))
+
+
+	def add_boundary(self, boundary, bounds=None, shape=None):
+		"""Adds a boundary to the inspector.
+		
+		For legacy purposes, boundaries can be added using the label, bounds, and shape
+		arguments. Support for this is deprecated, and may be removed in a future version:
+
+		=============== ========================== ===========================
+		Boundary Type   Shape                      Bounds
+		=============== ========================== ===========================
+		Rectangle       ``klibs.RECT_BOUNDARY``    [(x1, y1), (x2, y2)]
+		--------------- -------------------------- ---------------------------
+		Circle          ``klibs.CIRCLE_BOUNDARY``  [(x, y), radius]
+		--------------- -------------------------- ---------------------------
+		Annulus         ``klibs.ANNULUS_BOUNDARY`` [(x, y), radius, thickness]
+		=============== ========================== ===========================
 
 		Args:
-			label (:class:`Boundary` or :obj:`str`): A valid :class:`Boundary` object if passing
-				an existing boundary, otherwise an informative label to use for the boundary.
-			bounds (:obj:`List`, optional): A List specifying the boundary for the given boundary
-				shape (see the documentation for the 'bounds' attribute for the boundary shape you
-				are creating). Not required if passing an existing :class:`Boundary` object.
-			shape (:obj:`str`): The shape of the new boundary. Can be 'Rectangle',
-				'Circle', or 'Annulus' (case-insensitive). Not required if passing an existing 
-				:class:`Boundary` object.
+			boundary (:obj:`Boundary` or :obj:`str`): A :class:`Boundary` object to add to the
+				inspector. May also be a label string if adding a boundary using the legacy method.
+			bounds (:obj:`List`, optional): A List specifying the size and location of the new
+				boundary (see the 'Bounds' column in the above table). For legacy use only.
+			shape (:obj:`str`, optional): The type of the new boundary (see the 'Shape' column in
+				the above table). For legacy use only.
 
 		Raises:
-			ValueError: If 'bounds' or 'shape' are not provided and 'label' is not a
+			ValueError: If 'bounds' or 'shape' are not provided and 'boundary' is not a
 				:class:`Boundary` object.
 			ValueError: If 'shape' is not one of 'Rectangle', 'Circle', or 'Annulus'.
 		
 		"""
-		if isinstance(label, Boundary): # allow direct adding of boundary objects
-			b = label
+		if isinstance(boundary, Boundary):
+			b = boundary
 			label = b.label
 		else:
+			label = boundary
 			if bounds == None or type(shape) != str:
 				e = "'bounds' and 'shape' must be given if not adding an existing Boundary object."
 				raise ValueError(e)	
@@ -63,13 +112,12 @@ class BoundaryInspector(object):
 				raise ValueError("'shape' must be one of 'Rectangle', 'Circle', or 'Annulus'.")
 		self.boundaries[label] = b
 
+
 	def add_boundaries(self, boundaries):
-		"""Adds one or more boundaries to the inspector. Boundaries can either be lists in the
-		format [label, bounds, shape] (see :meth:`add_boundary` for more info) or :class:`Boundary`
-		objects (e.g. a :class:`RectangleBoundary`).
+		"""Adds multiple boundaries to the inspector (see :meth:`add_boundary` for more info).
 
 		Args:
-			boundaries (:obj:`List`): A list containing the boundaries to add to the inspector.
+			boundaries (:obj:`List`): A list of :obj:`Boundary` objects to add to the inspector.
 		
 		"""
 		for b in boundaries:
@@ -78,60 +126,72 @@ class BoundaryInspector(object):
 			else:
 				self.add_boundary(*b)
 
+
 	def within_boundary(self, label, p):
 		"""Determines whether a given point is within a specific boundary.
 
 		Args:
 			label (:obj:`str`): The label of the boundary to inspect.
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to check for the
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to check for the
 				presence of within the boundary.
 		
 		Returns:
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
-			BoundaryError: If the boundary specified by 'label' is currently disabled.
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			KeyError: If no boundary with the given label exists within the inspector.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
-		if not self.boundaries[label].active:
-			raise BoundaryError("Boundary '{0}' is not active for searching.".format(label))
+		self.__verify_label(label)
 		return self.boundaries[label].within(p)
 
-	def which_boundary(self, p, labels=None):
-		"""Determines whether a given point is within any of the active boundaries, or alteratively
-		whether it is within any of a list of specific boundaries. Unlike :meth:`within_boundary`,
-		which returns either True or False, this method returns either the label of the boundary
-		the point is currently within, or 'None' if it is not in any of the boundaries.
+
+	def which_boundary(self, p, labels=None, ignore=[]):
+		"""Determines which of the current boundaries (if any) a given point is within.
 		
-		If two boundaries overlap, and the point is within both of them, this will return the label
-		of whichever boundary was added to the inspector first.
+		Unlike :meth:`within_boundary`, which returns either True or False, this method returns
+		the label of the boundary that the point is currently within, or 'None' if the point is
+		not within any of the current boundaries. If the point falls within more than one boundary,
+		the label of whichever boundary was added most recently will be returned.
+
+		By default, the point will be tested against all boundaries in the inspector. To inspect
+		only a subset of the available boundaries, you can provide a list of boundaries to test
+		using the `labels` argument. Alternatively, you can specify a list of boundaries to ignore
+		using the `ignore` argument.
 
 		Args:
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to check for the
-				presence of within the boundaries.
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to test against
+				the boundaries within the inspector.
 			labels (:obj:`List`, optional): A list containing the labels of the boundaries to
-				inspect. All active boundaries are inspected if no list of labels provided.
+				inspect. All boundaries will be inspected if no list of labels provided.
+			ignore (:obj:`List`, optional): A list containing the labels of any boundaries to
+				ignore. Defaults to an empty list (no ignored boundaries).
 		
 		Returns:
-			:obj:`str` or None: If the point is within one of the boundaries, that boundary's label
-				is returned. Otherwise, returns None. 
+			:obj:`str` or None: The label of the boundary that the point is within, or None if the
+				point does not fall within any boundary.
 		
 		Raises:
-			BoundaryError: If any boundaries specified by 'labels' are currently disabled.
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			KeyError: If any given labels do not correspond to boundaries within the inspector.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
-		for l in labels if labels else self.boundaries:
-			try:
-				if self.boundaries[l].within(p):
-					return l
-			except BoundaryError:
-				if not labels:
-					pass
-				else:
-					raise
-		return None
+		if not labels:
+			labels = list(self.boundaries.keys())
+		if not iterable(ignore):
+			ignore = [ignore]
+
+		boundary = None
+		for l in self.boundaries.keys():
+			if l in ignore or not l in labels:
+				continue
+			self.__verify_label(l)
+			if self.boundaries[l].within(p):
+				boundary = l
+
+		return boundary
+
 
 	def remove_boundaries(self, labels):
 		"""Removes one or more boundaries from the inspector.
@@ -140,14 +200,14 @@ class BoundaryInspector(object):
 			labels (:obj:`List`): A list containing the labels of the boundaries to remove.
 		
 		Raises:
-			KeyError: If a boundary with the given label does not exist within the inspector.
+			KeyError: If any given labels do not correspond to boundaries within the inspector.
 		
 		"""
 		if not iterable(labels): labels = [labels]
 		for label in labels:
-			retval = self.boundaries.pop(label, None)
-			if retval == None:
-				raise KeyError("Key '{0}' not found; No such boundary exists!".format(label))
+			self.__verify_label(label)
+			self.boundaries.pop(label, None)
+
 
 	def clear_boundaries(self, preserve=[]):
 		"""Removes all boundaries from the inspector.
@@ -155,12 +215,18 @@ class BoundaryInspector(object):
 		Args:
 			preserve (:obj:`List`, optional): A list containing the labels of any boundaries
 				that should remain in the inspector after the clear.
+
+		Raises:
+			KeyError: If any given labels do not correspond to boundaries within the inspector.
 		
 		"""
+		if not iterable(preserve): preserve = [preserve]
 		preserved = OrderedDict()
 		for i in preserve:
+			self.__verify_label(i)
 			preserved[i] = self.boundaries[i]
 		self.boundaries = preserved
+
 
 	def draw_boundaries(self, labels=None):
 		"""Blits one or more boundaries to the display buffer. If no individual boundaries are
@@ -174,74 +240,55 @@ class BoundaryInspector(object):
 			labels (:obj:`List`, optional): A list containing the labels of the boundaries to draw.
 				If no labels are specified or labels == None, all enabled boundaries in the
 				inspector will be drawn.
+
+		Raises:
+			KeyError: If any given labels do not correspond to boundaries within the inspector.
 		
 		"""
 		raise NotImplementedError("Boundary drawing will be implemented in a future version.")
-	
-	def disable_boundaries(self, labels):
-		"""Disables one or more boundaries. If a boundary is disabled, it will not be inspected
-		when calling :meth:~`within_boundaries` and will raise an exception if it is inspected by
-		label. Disabled boundaries can be re-enabled using :meth:~`enable_boundaries`.
 
-		Args:
-			labels (:obj:`List`): A list containing the labels of the boundaries to disable.
-		
-		"""
-		if not iterable(labels): labels = [labels]
-		for label in labels:
-			self.boundaries[label].active = False
-
-	def enable_boundaries(self, labels):
-		"""Re-enables one or more disabled boundaries. If called for a boundary that is already
-		enabled, it will have no effect on it.
-
-		Args:
-			labels (:obj:`List`): A list containing the labels of the boundaries to enable.
-		
-		"""
-		if not iterable(labels): labels = [labels]
-		for label in labels:
-			self.boundaries[label].active = True
 
 	@property
-	def active_boundaries(self):
-		active = []
-		for label in self.boundaries.keys():
-			if self.boundaries[label].active:
-				active.append(label)
-		return active
+	def labels(self):
+		""":obj:`List`: The names of all active boundaries within the inspector.
+
+		"""
+		return list(self.boundaries.keys())
+	
 
 
 class Boundary(object):
-	"""A base class defining the required attributes and functions of a Boundary object. You will
-	only need to use this class if you want to create your own custom Boundary type. Otherwise, you
-	can use the existing :class:`RectangleBoundary`, :class:`CircleBoundary`, and
-	:class:`AnnulusBoundary` classes instead.
+	"""A base class defining the required attributes and functions of a Boundary object.
+	
+	You will only need to use this class if you want to create your own custom Boundary type.
+	Otherwise, you can use the existing :class:`RectangleBoundary`, :class:`CircleBoundary`,
+	and :class:`AnnulusBoundary` classes instead.
 
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
-	
-	Attributes:
-		active (bool): Indicates whether the boundary is currently active (used by
-			:class:`BoundaryInspector` objects).
 
 	"""
-
+	# TODO: remove 'bounds' setter/getter, add abstract 'update_bounds' method?
+	# TODO: Add docstrings for abstract class to better explain how to implement it?
 	__name__ = "KLBoundary"
-	__shape__ = None
 
 	def __init__(self, label):
 		super(Boundary, self).__init__()
 		self.__label = label
-		self.active = True
+
+	def __repr__(self):
+		s = "<klibs.KLBoundary.{0} at {1}>"
+		return s.format(self.__str__, hex(id(self)))
+
+	def __str__(self):
+		return "Boundary()"
 
 	@property
 	def label(self):
-		return self.__label
+		""":obj:`str`: The label of the boundary (e.g. 'start_button', 'left_target').
 
-	@property
-	def shape(self):
-		return self.__shape__
+		"""
+		return self.__label
 
 	@property
 	def bounds(self):
@@ -256,18 +303,18 @@ class Boundary(object):
 		pass
 
 
+
 class RectangleBoundary(Boundary):
 	"""A rectangular :obj:`Boundary` object. Can be used to determine whether a point is within a
 	given rectangular region on a surface (e.g. the screen).
 	
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
-		p1 (:obj:`Tuple`): The (x,y) coordinates of the top-left corner of the boundary.
-		p2 (:obj:`Tuple`): The (x,y) coordinates of the bottom-right corner of the boundary.
+		p1 (:obj:`Tuple`): The (x, y) coordinates of the top-left corner of the boundary.
+		p2 (:obj:`Tuple`): The (x, y) coordinates of the bottom-right corner of the boundary.
 
 	"""
 	__name__ = "RectangleBoundary"
-	__shape__ = RECT_BOUNDARY
 
 	def __init__(self, label, p1, p2):
 		super(RectangleBoundary, self).__init__(label)
@@ -275,6 +322,9 @@ class RectangleBoundary(Boundary):
 		self.__p2 = None
 		self.bounds = [p1, p2]
 		self.__center = midpoint(*self.bounds)
+
+	def __str__(self):
+		return "RectangleBoundary(p1={0}, p2={1})".format(str(self.p1), str(self.p2))
 
 	@property
 	def bounds(self):
@@ -299,31 +349,32 @@ class RectangleBoundary(Boundary):
 			raise ValueError("Rectangle boundaries must be given in the format [p1, p2].")
 
 		if not all([valid_coords(p) for p in boundary]):
-			raise ValueError("'p1' and 'p2' must both be valid sets of (x,y) coordinates.")
+			raise ValueError("'p1' and 'p2' must both be valid (x, y) coordinates.")
 
 		if x1 >= x2 or y1 >= y2:
 			raise ValueError("'p1' must be above and to the left of 'p2'.")
 
-		self.__p1 = boundary[0]
-		self.__p2 = boundary[1]
+		self.__p1 = tuple(boundary[0])
+		self.__p2 = tuple(boundary[1])
 
 	@property
 	def p1(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the top-left corner of the boundary rectangle.
+		""":obj:`Tuple`: The (x, y) coordinates of the top-left corner of the boundary rectangle.
 
 		"""
 		return self.__p1
 
 	@property
 	def p2(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the bottom-right corner of the boundary rectangle.
+		""":obj:`Tuple`: The (x, y) coordinates of the bottom-right corner of the boundary
+		rectangle.
 
 		"""
 		return self.__p2
 
 	@property
 	def center(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the center of the boundary rectangle.
+		""":obj:`Tuple`: The (x, y) coordinates of the center of the boundary rectangle.
 
 		"""
 		return self.__center
@@ -332,20 +383,21 @@ class RectangleBoundary(Boundary):
 		"""Determines whether a given point is within the boundary.
 
 		Args:
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to check for the
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to check for the
 				presence of within the boundary.
 		
 		Returns:
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
 		if not valid_coords(p):
-			raise ValueError("The given value must be a valid set of (x,y) coordinates.")
+			raise ValueError("The given value must be a valid set of (x, y) coordinates.")
 			
 		return (self.__p1[0] <= p[0] <= self.__p2[0]) and (self.__p1[1] <= p[1] <= self.__p2[1])
+
 
 
 class CircleBoundary(Boundary):
@@ -354,18 +406,20 @@ class CircleBoundary(Boundary):
 	
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
-		center (:obj:`Tuple`): The (x,y) coordinates of the center of the circle.
+		center (:obj:`Tuple`): The (x, y) coordinates of the center of the circle.
 		radius (int or float): The radius of the circle.
 
 	"""
 	__name__ = "CircleBoundary"
-	__shape__ = CIRCLE_BOUNDARY
 
 	def __init__(self, label, center, radius):
 		super(CircleBoundary, self).__init__(label)
 		self.__c = None
 		self.__r = None
 		self.bounds = [center, radius]
+
+	def __str__(self):
+		return "CircleBoundary(center={0}, radius={1})".format(str(self.center), self.radius)
 
 	@property
 	def bounds(self):
@@ -374,7 +428,7 @@ class CircleBoundary(Boundary):
 
 		Raises:
 			ValueError: If the value is not a list in the format [center, radius].
-			ValueError: If 'c' is not a valid pair of (x,y) coordinates.
+			ValueError: If 'c' is not a valid pair of (x, y) coordinates.
 			ValueError: If the given radius is not a number greater than zero.
 
 		"""
@@ -392,10 +446,10 @@ class CircleBoundary(Boundary):
 
 	@property
 	def center(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the center of the boundary circle.
+		""":obj:`Tuple`: The (x, y) coordinates of the center of the boundary circle.
 		
 		Raises:
-			ValueError: If the given value is not a valid pair of (x,y) coordinates.
+			ValueError: If the given value is not a valid pair of (x, y) coordinates.
 
 		"""
 		return self.__c
@@ -403,9 +457,9 @@ class CircleBoundary(Boundary):
 	@center.setter
 	def center(self, coords):
 		if valid_coords(coords):
-			self.__c = coords
+			self.__c = tuple(coords)
 		else:
-			raise ValueError("The center must be a valid set of (x,y) coordinates.")
+			raise ValueError("The center must be a valid set of (x, y) coordinates.")
 
 	@property
 	def radius(self):
@@ -428,20 +482,21 @@ class CircleBoundary(Boundary):
 		"""Determines whether a given point is within the boundary.
 
 		Args:
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to check for the
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to check for the
 				presence of within the boundary.
 		
 		Returns:
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
 		if not valid_coords(p):
-			raise ValueError("The given value must be a valid set of (x,y) coordinates.")
+			raise ValueError("The given value must be a valid set of (x, y) coordinates.")
 
 		return line_segment_len(p, self.__c) <= self.__r
+
 
 
 class AnnulusBoundary(Boundary):
@@ -450,13 +505,12 @@ class AnnulusBoundary(Boundary):
 	
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
-		center (:obj:`Tuple`): The (x,y) coordinates of the center of the annulus.
+		center (:obj:`Tuple`): The (x, y) coordinates of the center of the annulus.
 		radius (int or float): The outer radius of the annulus.
 		thickness (int or float): The thickness of the annulus.
 
 	"""
 	__name__ = "AnnulusBoundary"
-	__shape__ = ANNULUS_BOUNDARY
 
 	def __init__(self, label, center, radius, thickness):
 		super(AnnulusBoundary, self).__init__(label)
@@ -465,6 +519,10 @@ class AnnulusBoundary(Boundary):
 		self.__thickness = None
 		self.bounds = [center, radius, thickness]
 
+	def __str__(self):
+		s = "AnnulusBoundary(center={0}, radius={1}, thickness={2})"
+		return s.format(str(self.center), self.outer_radius, self.thickness)
+
 	@property
 	def bounds(self):
 		""":obj:`List`: A list containing the center coordinates (c), outer radius (r), and
@@ -472,7 +530,7 @@ class AnnulusBoundary(Boundary):
 
 		Raises:
 			ValueError: If the value is not a list in the format [center, radius, thickness].
-			ValueError: If 'c' is not a valid pair of (x,y) coordinates.
+			ValueError: If 'c' is not a valid pair of (x, y) coordinates.
 			ValueError: If the given radius and thickness are not numbers greater than zero,
 				or if the thickness is equal to or greater than the radius in size.
 
@@ -488,7 +546,7 @@ class AnnulusBoundary(Boundary):
 			raise ValueError(msg)
 		
 		if not valid_coords(center):
-			raise ValueError("The center must be a valid set of (x,y) coordinates.")
+			raise ValueError("The center must be a valid set of (x, y) coordinates.")
 		
 		if type(radius) not in [int, float] or radius <= 0:
 			raise ValueError("The boundary radius must be a number greater than zero.")
@@ -497,13 +555,13 @@ class AnnulusBoundary(Boundary):
 		if thickness >= radius:
 			raise ValueError("The boundary thickness must be smaller than its radius.")
 
-		self.__center = center
+		self.__center = tuple(center)
 		self.__r_outer = radius
 		self.__thickness = thickness
 
 	@property
 	def center(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the center of the boundary annulus.
+		""":obj:`Tuple`: The (x, y) coordinates of the center of the boundary annulus.
 
 		"""
 		return self.__center
@@ -533,17 +591,17 @@ class AnnulusBoundary(Boundary):
 		"""Determines whether a given point is within the boundary.
 
 		Args:
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to check for the
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to check for the
 				presence of within the boundary.
 		
 		Returns:
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
 		if not valid_coords(p):
-			raise ValueError("The given value must be a valid set of (x,y) coordinates.")
+			raise ValueError("The given value must be a valid set of (x, y) coordinates.")
 
 		return self.inner_radius <= line_segment_len(p, self.__center) <= self.outer_radius

@@ -146,6 +146,51 @@ def mouse_clicked(button=None, released=False, within=None, queue=None):
 	return clicked
 
 
+def get_clicks(button=None, released=False, queue=None):
+	"""Gets the (x, y) pixel coordinates of any mouse clicks within the event queue.
+	
+	If a button is specified, this function will only return the pixel coordinates for clicks
+	of that button. Otherwise, this function will return click coordinates for all buttons.
+	Valid button names are ``'left'``, ``'right'``, and ``'middle'``. If an event queue is not
+	provided, :func:`~klibs.KLEventQueue.pump` will be called and the returned event queue will
+	be used.
+
+	Args:
+		button (str, optional): The name of the button to check for clicks. Defaults to ``None``
+			(returns clicks from all buttons).
+		released (bool, optional): If True, this function will return the coordinates for mouse
+			button release events instead of mouse button click events. Defaults to False.
+		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to check
+			for valid mouse button events.
+
+	Returns:
+		:obj:`List`: A list containing the (x, y) coordinates of any matching mouse click events.
+
+	Raises:
+		ValueError: If an invalid button name is provided.
+
+	"""
+	buttons = {
+		'left': SDL_BUTTON_LEFT, 'right': SDL_BUTTON_RIGHT, 'middle': SDL_BUTTON_MIDDLE
+	}
+	if button:
+		if not button in buttons.keys():
+			raise ValueError("'{0}' is not a valid mouse button name.".format(button))
+		button = buttons[button]
+
+	clicks = []
+	if queue == None:
+		queue = pump(True)
+	for e in queue:
+		if e.type == SDL_KEYDOWN:
+			ui_request(e.key.keysym)
+		elif e.type == (SDL_MOUSEBUTTONUP if released else SDL_MOUSEBUTTONDOWN):
+			if not button or e.button.button == button:
+				clicks.append((e.button.x, e.button.y))
+
+	return clicks
+
+
 def hide_mouse_cursor():
 	"""Hides the mouse cursor if it is currently shown. Otherwise, this function does nothing.
 	

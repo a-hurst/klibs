@@ -125,7 +125,7 @@ def mouse_clicked(button=None, released=False, within=None, queue=None):
 	bounds = within
 	if bounds != None:
 		try:
-			bounds.bounds
+			bounds.within((0, 0))
 		except (AttributeError, NotImplementedError):
 			raise TypeError("the provided boundary must be a valid KLibs Boundary object.")
 

@@ -2,9 +2,9 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import sys
 import random
+import itertools
 from collections import OrderedDict
 from copy import copy, deepcopy
-from itertools import product
 from os.path import exists, join
 		
 from klibs import P
@@ -102,20 +102,26 @@ class TrialFactory(object):
 		self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
 
 
+	def __get_factor_set(self, factors):
+		"""Generates a full set of factor combinations for a given set of factors.
+
+		Each factor combination is stored as a dictionary, with the keys being the factor names
+		and values being the factor values for that combination.
+
+		"""
+		if len(factors) == 0:
+			return [{}]
+
+		factor_set = []
+		for combination in itertools.product(*factors.values()):
+			factor_set.append(dict(zip(factors.keys(), combination)))
+		
+		return factor_set
+
+
 	def __generate_trials(self, factors, block_count, trial_count):
 
-		factor_list = []
-		for name, values in factors.items(): # convert dict to list
-			factor_list.append([name, values])
-
-		trial_tuples = list(product(*[factor[1][:] for factor in factor_list]))
-		if len(trial_tuples) == 0:
-			trial_tuples = [ [] ]
-		# convert each trial tuple to a list
-		trial_set = []
-		for t in trial_tuples:
-			trial_set.append( list(t) )
-
+		trial_set = self.__get_factor_set(factors)
 		trial_set_count = len(trial_set)
 		trials = copy(trial_set)
 		random.shuffle(trials)
@@ -229,7 +235,8 @@ class TrialFactory(object):
 				log_f.write("Block {0}\n".format(block_num))
 				trial_num = 1
 				for t in b:
-					log_f.write("\tTrial {0}: {1} \n".format(trial_num, t))
+					vals = [t[factor] for factor in self.exp_factors.keys()]
+					log_f.write("\tTrial {0}: {1} \n".format(trial_num, vals))
 					trial_num += 1
 				block_num += 1
 				log_f.write("\n")

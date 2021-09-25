@@ -9,24 +9,24 @@ KLibs also aims to make the distribution, replication, and modification of parad
 
 ## Dependencies
 
-The only dependencies needed to install KLibs on macOS or Windows are Git and a supported version of Python. KLibs requires either Python 3.5 (or newer) or Python 2.7 to run.
+The only major dependency needed to install KLibs on macOS, Windows, or Linux (x86 or x64) is a supported version of Python. KLibs requires either Python 3.5 (or newer) or Python 2.7 to run. For other platforms (e.g. FreeBSD, ARM Linux), you will also need to install the SDL2, SDL2\_ttf, and SDL2\_mixer binaries for your system in order for KLibs to work.
 
-For Linux and other platforms, you will also need to install the SDL2, SDL2\_ttf, and SDL2\_mixer binaries for your system in order for KLibs to work. Under Debian/Ubuntu linux, the key dependencies can be installed using apt-get:
-
-```
-sudo apt-get install git python-pip libsdl2-2.0-0 libsdl2-ttf-2.0-0 libsdl2-mixer-2.0-0
-```
-
-You will also need the pip Python package manager to install KLibs on your system. If running 'pip --version' on your system results in a "command not found" message, you can install it using the [official instructions](https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py).
+In addition to Python, you will need the pip Python package manager to install KLibs on your system. If running 'pip --version' on your system results in a "command not found" message, you can install it using the [official instructions](https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py).
 
 In order to use the optional AudioResponse response collector or to interface with an SR Research EyeLink eye tracker, you will need to install some [additional dependencies](https://github.com/a-hurst/klibs/wiki/Installing-Optional-Dependencies).
 
 ## Installation
 
-After all the prerequisites have been installed, you can run the following command to install KLibs and all its Python dependencies:
+After all the prerequisites have been installed, you can install the latest release of klibs by running the following command in a terminal window:
 
 ```
-pip install git+https://github.com/a-hurst/klibs.git
+python -m pip install https://github.com/a-hurst/klibs/releases/latest/download/klibs.tar.gz
+```
+
+Alternatively, you can install the latest development version of klibs (provided that you have Git installed):
+
+```
+python -m pip install git+https://github.com/a-hurst/klibs.git
 ```
 
 If you want to use the Slack messaging feature in KLibs, you will need to install the 'slacker' package by running ```pip install slacker```.

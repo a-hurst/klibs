@@ -3,7 +3,6 @@ __author__ = 'Austin Hurst & Jonathan Mulle'
 import os
 import re
 import sys
-import time
 import argparse
 import traceback
 import binascii
@@ -18,6 +17,8 @@ except:
 	print(traceback.print_exception(exc_type, exc_value, exc_traceback, limit=5, file=sys.stdout))
 	sys.exit()
 
+
+# TODO: Reorganize this module so I can add proper unit tests
 if __name__ == '__main__':
 	cli()
 
@@ -301,6 +302,11 @@ def create(name, path):
 
 
 def run(screen_size, path, condition, devmode, no_tracker, seed):
+
+	# Ensure the specified screen size is valid
+	if screen_size <= 0:
+		err("Invalid screen size '{0}'. Size must be the diagonal size of the screen in "
+			"inches (e.g. 'klibs run 21.5' for a 21.5 inch screen).".format(screen_size))
 
 	cso("\n<green>*** Now Loading KLibs Environment ***</green>\n")
 
@@ -712,7 +718,6 @@ def cli():
 	reset_parser.set_defaults(func=hard_reset)
 
 	args = vars(parser.parse_args())
-
 
 	arg_dict = {}
 	for key in args:

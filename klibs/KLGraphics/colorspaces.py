@@ -5,25 +5,31 @@ The colorspaces module defines some colour spaces that can be used with the Colo
 and elsewhere. Alternative colour spaces can be created using the 'colormath' Python module.
 
 Attributes:
-	rgb (:obj:`List`): A list containing an RGB colour spectrum in RGBA format. Luminance is not
-		constant across the colour space, and it is not perceptually uniform (i.e. the distance
-		between two values in the colour space is not always equal to their perceptual distance).
-	const_lum (:obj:`List`): A list containing a constant-luminance CIELUV colour spectrum in RGBA
-		format. The CIELUV colorspace is modeled to be roughly perceptually-uniform, although the
-		uniformity will necessarily vary between monitors and colour calibrations. This is the
-		recommended colour space for most situations.
+	COLORSPACE_RGB (:obj:`List`): A list containing an RGB colour spectrum in RGBA
+		format. Luminance is not constant across the colour space, and it is not
+		perceptually uniform (i.e. the distance between two values in the colour space
+		is not always equal to their perceptual distance).
+	COLORSPACE_CONST (:obj:`List`): A list containing a constant-luminance CIELUV
+		colour spectrum in RGBA format. The CIELUV colorspace is modeled to be roughly
+		perceptually-uniform, although the uniformity will necessarily vary between
+		monitors and colour calibrations. This is the recommended colour space for most
+		situations.
 
 """
 
-rgb = []
-for i in range(0, 256):
-	rgb.append((255-i, i ,0, 255))
-for i in range(1, 256):
-	rgb.append((0, 255-i, 0+i, 255))
-for i in range(1, 255):
-	rgb.append((0+i, 0, 255-i, 255))
+# TODO: COLORSPACE_CONST isn't uniform in terms of saturation or hue, need to
+# regenerate a better default
 
-const_lum = [
+
+COLORSPACE_RGB = []
+for i in range(0, 256):
+	COLORSPACE_RGB.append((255-i, i ,0, 255))
+for i in range(1, 256):
+	COLORSPACE_RGB.append((0, 255-i, 0+i, 255))
+for i in range(1, 255):
+	COLORSPACE_RGB.append((0+i, 0, 255-i, 255))
+
+COLORSPACE_CONST = [
 	(211, 63, 106, 255), (210, 64, 104, 255), (210, 65, 101, 255), (209, 66, 99, 255),
 	(209, 67, 96, 255), (208, 68, 94, 255), (208, 69, 91, 255), (207, 70, 89, 255),
 	(207, 71, 86, 255), (206, 72, 84, 255), (206, 73, 81, 255), (205, 74, 78, 255),
@@ -115,3 +121,9 @@ const_lum = [
 	(213, 56, 123, 255), (213, 57, 121, 255), (213, 58, 119, 255), (212, 59, 117, 255),
 	(212, 60, 115, 255), (212, 61, 113, 255), (211, 62, 110, 255), (211, 62, 108, 255)
 ]
+
+
+# Old colorspace names (for compatibility)
+
+rgb = COLORSPACE_RGB
+const_lum = COLORSPACE_CONST

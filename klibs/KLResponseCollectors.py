@@ -17,7 +17,8 @@ from klibs.KLUtilities import (pump, flush, hide_mouse_cursor, show_mouse_cursor
 	full_trace, iterable, angle_between)
 from klibs.KLUserInterface import ui_request
 from klibs.KLBoundary import BoundaryInspector, AnnulusBoundary
-from klibs.KLGraphics import flip, aggdraw_to_array
+from klibs.KLGraphics import flip
+from klibs.KLGraphics.utils import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import Annulus, ColorWheel, Drawbject
 
 

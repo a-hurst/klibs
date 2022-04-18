@@ -204,7 +204,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 
 	from klibs import P
 	from klibs import env
-	from klibs.KLGraphics import display_init
+	from klibs.KLGraphics.core import display_init
 	from klibs.KLDatabase import DatabaseManager
 	from klibs.KLEventInterface import EventManager
 	from klibs.KLText import TextManager

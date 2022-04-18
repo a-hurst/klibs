@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-from klibs.KLConstants import *
-import klibs.KLEnvironment as env
-import klibs.KLParams as P
-from klibs.KLExperiment import Experiment
+from .KLConstants import *
+from klibs import KLEnvironment as env
+from klibs import KLParams as P
+from .KLExperiment import Experiment

@@ -2,8 +2,8 @@ Changelog
 =========
 This is a log of the latest changes and improvements to KLibs.
 
-0.7.5a10
---------
+0.7.6a1
+-------
 
 Released on XXXX-XX-XX.
 
@@ -64,6 +64,9 @@ API Changes:
   ratio of the surface.
 * The :attr:`~klibs.KLGraphics.NumpySurface.average_color` of a NumpySurface is
   now an attribute instead of a method.
+* The `rgb` and `const_lum` colorspaces have been renamed to `COLORSPACE_RGB`
+  and `COLORSPACE_CONST`, respectively. They can still be accessed by their
+  original names for backwards compatibility.
 
 
 Fixed Bugs:

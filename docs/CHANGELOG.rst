@@ -76,6 +76,9 @@ API Changes:
   :class:`~klibs.KLGraphics.NumpySurface` class. For rotating images at anything
   other than 90-degree angles, please use the ``Image`` class from the Pillow
   library instead.
+* Invalid key names for :class:`~klibs.KLJSON_Object.KLJSON_Object` now raise a
+  ``ValueError`` instead of a ``RuntimeError``. Conversely, importing a
+  malformed JSON file now raises a ``RuntimeError`` instead of a ``ValueError``.
 
 
 Fixed Bugs:
@@ -86,3 +89,5 @@ Fixed Bugs:
   reliably catching quit events.
 * Fixed runtime info detection on macOS Big Sur and later.
 * Rewrote the broken NumpySurface `scale` method to be usable.
+* Improved reliability of checks in :class:`~klibs.KLJSON_Object.KLJSON_Object`
+  that verify all JSON keys are valid Python attribute names.

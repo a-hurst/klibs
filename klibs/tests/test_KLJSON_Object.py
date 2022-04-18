@@ -48,7 +48,7 @@ def test_JSON_Object(tmpdir):
     }
     """)
     testpath = os.path.join(test2.dirname, test2.basename)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(AttributeError):
         t2 = json_obj.JSON_Object(testpath)
 
     # Test error handling of non-JSON files
@@ -59,5 +59,5 @@ def test_JSON_Object(tmpdir):
     json != file
     """)
     testpath = os.path.join(test3.dirname, test3.basename)
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError):
         t3 = json_obj.JSON_Object(testpath)

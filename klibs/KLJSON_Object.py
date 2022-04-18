@@ -6,14 +6,14 @@ import json
 
 
 class AttributeDict(dict):
-	'''A Python dictionary that lets you access items like you would object attributes.
+	"""A Python dictionary that lets you access items like you would object attributes.
 	For example, for the following AttributeDict::
 	
 		 d = {'one': 1, 'two': 2}
 	
 	you could get the value of 'one' through either d['one'] or d.one.
 	
-	'''
+	"""
 	def __getattr__(self, key):
 		return self[key]
 
@@ -22,7 +22,7 @@ class AttributeDict(dict):
 
 
 class JSON_Object(AttributeDict):
-	'''A class for importing JSON objects such that you can access their attributes the same way
+	"""A class for importing JSON objects such that you can access their attributes the same way
 	you would a Python object. For example, if you imported a .json file with the following
 	contents:
 	
@@ -64,7 +64,7 @@ class JSON_Object(AttributeDict):
 	Args:
 		json_file_path (:obj:`str`): The path of the JSON file to import.
 
-	'''
+	"""
 
 	def __init__(self, json_file_path):
 		try:
@@ -73,14 +73,17 @@ class JSON_Object(AttributeDict):
 			for key in json_dict:
 				setattr(self, key, json_dict[key])
 		except ValueError:
-			raise ValueError("JSON file is poorly formatted. Please check syntax.")
+			err = "'{0}' is not a valid JSON file.".format(json_file_path)
+			raise RuntimeError(err)
+		except AttributeError as e:
+			raise ValueError(e)
 	
 	def __objectify(self, dict_obj):
 		# Check if JSON object name is a valid Python class attribute name
-		valid_attr_name = re.compile(r"[A-Za-z_](?:[A-Za-z0-9_]{2,30})?|(__.*__)")
+		valid_attr_name = re.compile(r"^[A-Za-z_]+([A-Za-z0-9_]+)?$")
 		for key in dict_obj.keys():
 			if re.match(valid_attr_name, key) == None:
-				print(u"Error: '{0}' is not a valid Python class attribute name ".format(key) +
-					u"(try removing special characters).\n")
-				raise RuntimeError("Error encountered loading json_object")
+				e = u"'{0}' is not a valid Python class attribute name ".format(key)
+				e += u"(try removing spaces and special characters)."
+				raise AttributeError(e)
 		return AttributeDict(dict_obj)

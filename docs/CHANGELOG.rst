@@ -7,11 +7,63 @@ This is a log of the latest changes and improvements to KLibs.
 
 Released on XXXX-XX-XX.
 
+
 New Features:
 
 * Greatly improved runtime info detection for Linux, adding proper distro
   and release number detection. Overall OS name and version detection cleaned
   up and improved across platforms.
+* :class:`~klibs.KLGraphics.NumpySurface` objects now support blitting with
+  alpha blending, which is enabled by default. To use the old (and slightly
+  faster) method of overwriting existing alpha during blit, you can set the new
+  `blend` argument to `False`.
+* :class:`~klibs.KLGraphics.NumpySurface` objects now support clipping during
+  blit, which is enabled by default. This allows for blitting images that
+  exceed the bounds of the surface, which would previously result in an error.
+* Blank :class:`~klibs.KLGraphics.NumpySurface` objects can now be created by
+  specifying a given height, width, and fill color.
+* Greatly expanded the :meth:`~klibs.KLGraphics.NumpySurface.mask` method for
+  NumpySurface objects, allowing mask inversion, the use of greyscale masks,
+  specifying a registration for the mask location, and more.
+* The :meth:`~klibs.KLGraphics.NumpySurface.blit` and
+  :meth:`~klibs.KLGraphics.NumpySurface.mask` methods of the NumpySurface class
+  now support the same wide array of source formats as the NumpySurface class
+  itself.
+* Added a new :meth:`klibs.KLGraphics.NumpySurface.copy` method that allows
+  creating a copy of a NumpySurface that won't be modified by future changes to
+  the original.
+* Added a new :meth:`klibs.KLGraphics.NumpySurface.trim` method that allows
+  automatic trimming of any transparent pixels surrounding the surface content.
+* Added new :meth:`~klibs.KLGraphics.NumpySurface.flip_left`,
+  :meth:`~klibs.KLGraphics.NumpySurface.flip_right`,
+  :meth:`~klibs.KLGraphics.NumpySurface.flip_x`, and
+  :meth:`~klibs.KLGraphics.NumpySurface.flip_y` method to the NumpySurface class
+  for fast 90-degree rotation and mirroring along the axes, respectively.
+* Added new :attr:`~klibs.KLGraphics.NumpySurface.dimensions` and
+  :attr:`~klibs.KLGraphics.NumpySurface.surface_c` attributes to the
+  NumpySurface class for retrieving the current dimensions and midpoint of a
+  surface, respectively.
+
+
+API Changes:
+
+* The initalization arguments for the :class:`~klibs.KLGraphics.NumpySurface`
+  class have been heavily revised, removing all arguments related to foreground
+  and background layers and adding a new argument specifying a default surface
+  fill.
+* Removed the `rendered`, `foreground`, and `background` attributes from
+  the :class:`~klibs.KLGraphics.NumpySurface` class, as NumpySurface objects
+  no longer require rendering or have any concept of layers. To access the
+  contents of a surface's underlying Numpy array, use the new `content`
+  attribute instead.
+* All :class:`~klibs.KLGraphics.NumpySurface` arguments related to layers have
+  been removed.
+* The :meth:`~klibs.KLGraphics.NumpySurface.scale` method for NumpySurface
+  objects now accepts height and width as separate arguments instead of a tuple,
+  allowing users to specify a single dimension and scale preserving the aspect
+  ratio of the surface.
+* The :attr:`~klibs.KLGraphics.NumpySurface.average_color` of a NumpySurface is
+  now an attribute instead of a method.
 
 
 Fixed Bugs:
@@ -21,3 +73,4 @@ Fixed Bugs:
 * Fixed a bug that prevented :func:`~klibs.KLUserInterface.key_pressed` from
   reliably catching quit events.
 * Fixed runtime info detection on macOS Big Sur and later.
+* Rewrote the broken NumpySurface `scale` method to be usable.

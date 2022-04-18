@@ -8,7 +8,9 @@ def test_get_sysinfo():
     sysinfo = klibs.KLRuntimeInfo.get_sysinfo()
     assert isinstance(sysinfo['python'], str)
     assert isinstance(sysinfo['os'], str)
-    print(sysinfo)
+    print("System Info:")
+    print(" - OS: " + sysinfo['os'])
+    print(" - Python: " + sysinfo['python'])
 
 
 def test_runtime_info_init():

@@ -1,6 +1,7 @@
 **/*.pyc
 **/.*
 !.gitignore
+!.github
 build
 build/*
 dist

@@ -77,7 +77,7 @@ class JSON_Object(AttributeDict):
 	
 	def __objectify(self, dict_obj):
 		# Check if JSON object name is a valid Python class attribute name
-		valid_attr_name = re.compile(r"[A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__)")
+		valid_attr_name = re.compile(r"[A-Za-z_](?:[A-Za-z0-9_]{2,30})?|(__.*__)")
 		for key in dict_obj.keys():
 			if re.match(valid_attr_name, key) == None:
 				print(u"Error: '{0}' is not a valid Python class attribute name ".format(key) +

@@ -15,13 +15,19 @@ from klibs.KLConstants import (STROKE_CENTER, STROKE_INNER, STROKE_OUTER,
 from klibs import P
 from klibs.KLUtilities import point_pos, rotate_points, translate_points, canvas_size_from_points
 from klibs.KLGraphics.utils import rgb_to_rgba, aggdraw_to_array
-from klibs.KLGraphics.colorspaces import const_lum
+from klibs.KLGraphics.colorspaces import COLORSPACE_CONST
 
 ##########################################################################
 #                                                                        #
 #  aggdraw Documentation: http://effbot.org/zone/pythondoc-aggdraw.html  #
 #                                                                        #
 ##########################################################################
+
+__all__ = [
+	"drift_correct_target", "Drawbject",
+	"Rectangle", "Ellipse", "Circle", "Triangle",  "Annulus", "Line", 
+	"Arrow", "FixationCross", "Asterisk", "SquareAsterisk", "ColorWheel"
+]
 
 
 def cursor(color=None):
@@ -857,7 +863,7 @@ class ColorWheel(Drawbject):
 
 	def __init__(self, diameter, thickness=None, colors=None, rotation=0, auto_draw=True):
 		if colors == None:
-			colors = const_lum
+			colors = COLORSPACE_CONST
 		self.__colors = None
 		self.colors = colors
 		self.diameter = diameter

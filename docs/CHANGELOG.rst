@@ -64,9 +64,14 @@ API Changes:
   ratio of the surface.
 * The :attr:`~klibs.KLGraphics.NumpySurface.average_color` of a NumpySurface is
   now an attribute instead of a method.
-* The `rgb` and `const_lum` colorspaces have been renamed to `COLORSPACE_RGB`
-  and `COLORSPACE_CONST`, respectively. They can still be accessed by their
-  original names for backwards compatibility.
+* The ``rgb`` and ``const_lum`` colorspaces have been renamed to
+  ``COLORSPACE_RGB`` and ``COLORSPACE_CONST``, respectively. They can still be
+  accessed by their original names for backwards compatibility.
+* The :mod:`~klibs.KLGraphics` module now exports the names of its submodules'
+  most common functions and classes. This means you typically no longer need to
+  specify a submodule when importing from :mod:`~klibs.KLGraphics` (e.g.
+  ``from klibs.KLGraphics import NumpySurface`` instead of
+  ``from klibs.KLGraphics.KLNumpySurface import NumpySurface``).
 
 
 Fixed Bugs:

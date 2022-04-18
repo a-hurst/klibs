@@ -74,7 +74,6 @@ def key_pressed(key=None, queue=None):
 			ui_request(e.key.keysym)
 			if not keycode or e.key.keysym.sym == keycode:
 				pressed = True
-				break
 
 	return pressed
 

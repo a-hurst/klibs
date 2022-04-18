@@ -72,6 +72,10 @@ API Changes:
   specify a submodule when importing from :mod:`~klibs.KLGraphics` (e.g.
   ``from klibs.KLGraphics import NumpySurface`` instead of
   ``from klibs.KLGraphics.KLNumpySurface import NumpySurface``).
+* Removed the broken and problematic ``rotate`` method from the
+  :class:`~klibs.KLGraphics.NumpySurface` class. For rotating images at anything
+  other than 90-degree angles, please use the ``Image`` class from the Pillow
+  library instead.
 
 
 Fixed Bugs:

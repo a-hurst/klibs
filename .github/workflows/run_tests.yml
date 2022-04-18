@@ -118,6 +118,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pytest mock
+          python -m pip install --prefer-binary aggdraw
 
       - name: Install and test KLibs
         run: |

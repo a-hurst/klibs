@@ -17,7 +17,7 @@ from sdl2 import (SDL_PumpEvents, SDL_StartTextInput, SDL_StopTextInput,
 from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, QUERY_ACTION_UPPERCASE,
 	QUERY_ACTION_HASH)
 import klibs.KLParams as P
-from klibs.KLJSON_Object import JSON_Object, AttributeDict
+from klibs.KLJSON_Object import import_json, AttributeDict
 from klibs.KLUtilities import pretty_list, now, pump, flush, iterable, utf8, make_hash
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLDatabase import EntryTemplate
@@ -142,7 +142,7 @@ def init_messaging():
 
 	# Load the user_queries file in and store the queries in an object
 	try:
-		user_queries = JSON_Object(P.user_queries_file_path)
+		user_queries = import_json(P.user_queries_file_path)
 		# After loading in queries, verify that all required sections are present
 		required_sections = ['default_strings', 'demographic', 'experimental']
 		for req in required_sections:

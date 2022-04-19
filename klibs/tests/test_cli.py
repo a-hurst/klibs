@@ -100,3 +100,9 @@ def test_initialize_path(tmpdir):
     with patch("klibs.cli.err", tst_err):
         expt_name = cli.initialize_path(expt_path)
         assert expt_name == "TestExpt"
+
+    # Test with a name containing an underscore
+    expt_path = create_experiment("Test_Expt", tmpdir)
+    with patch("klibs.cli.err", tst_err):
+        expt_name = cli.initialize_path(expt_path)
+        assert expt_name == "Test_Expt"

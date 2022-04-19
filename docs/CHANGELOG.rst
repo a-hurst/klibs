@@ -90,3 +90,4 @@ Fixed Bugs:
 * Rewrote the broken NumpySurface `scale` method to be usable.
 * Improved reliability of checks in :class:`~klibs.KLJSON_Object.KLJSON_Object`
   that verify all JSON keys are valid Python attribute names.
+* Fixed a bug preventing projects with underscores in their name from opening.

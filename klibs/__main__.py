@@ -15,8 +15,6 @@ except:
 	print(traceback.print_exception(exc_type, exc_value, exc_traceback, limit=5, file=sys.stdout))
 	sys.exit()
 
-if __name__ == '__main__':
-	cli()
 
 
 # The function that gets run when klibs is launched from the command line
@@ -177,3 +175,7 @@ def cli():
 		if key != "func": arg_dict[key] = args[key]
 
 	args["func"](**arg_dict)
+
+
+if __name__ == '__main__':
+	cli()

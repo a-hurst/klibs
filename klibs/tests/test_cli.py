@@ -29,7 +29,7 @@ def create_experiment(name, path):
     with patch("klibs.cli.getinput", tst_getinput):
         with patch("klibs.cli.err", tst_err):
             with patch("klibs.cli.cso", tst_cso):
-                cli.create(name, path)
+                cli.create(name, str(path))
                 expt_path = os.path.join(path, name)
                 assert os.path.isdir(expt_path)
 
@@ -48,22 +48,22 @@ def test_create(tmpdir):
 
                 # Test creating a new project
                 _input_queue += ["Test Name", "Y"]
-                cli.create("TestExperiment", tmpdir)
+                cli.create("TestExperiment", str(tmpdir))
                 assert os.path.isdir(os.path.join(tmpdir, "TestExperiment"))
 
                 # Test cancelling project creation
                 _input_queue += ["Test Name", "Q"]
-                cli.create("TestExperiment2", tmpdir)
+                cli.create("TestExperiment2", str(tmpdir))
                 assert not os.path.isdir(os.path.join(tmpdir, "TestExperiment2"))
 
                 # Test error on invalid name
                 with pytest.raises(RuntimeError) as exc_info:
-                    cli.create("bad name", tmpdir)
+                    cli.create("bad name", str(tmpdir))
                 assert "valid project name" in exc_info.value.args[0]
 
                 # Test error on existing project name
                 with pytest.raises(RuntimeError) as exc_info:
-                    cli.create("TestExperiment", tmpdir)
+                    cli.create("TestExperiment", str(tmpdir))
                 assert "already exists" in exc_info.value.args[0]
 
 

@@ -24,6 +24,10 @@ from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
 
 from klibs.KLConstants import DATETIME_STAMP, TK_S, TK_MS
 from klibs import P
+from klibs.KLInternal import (
+	boolean_to_logical, colored_stdout, full_trace, log, now, iterable, utf8,
+	valid_coords
+)
 
 
 def arg_error_str(arg_name, given, expected, kw=True):
@@ -43,15 +47,6 @@ def bool_to_int(boolean_val):
 	if boolean_val is False: return 0
 	if boolean_val is True: return 1
 	raise ValueError("Non-boolean value passed ('{0}')".format(type(boolean_val)))
-
-
-def boolean_to_logical(value, convert_integers=False):
-	if convert_integers and value in [0, 1, '0', '1']:
-		value = bool(int(value))
-	logical = utf8(value).upper()
-	if logical not in ['TRUE', 'FALSE']:
-		return None
-	return str(logical)
 
 
 def bounded_by(pos, left, right, top, bottom):
@@ -121,91 +116,6 @@ def clip(value, minimum, maximum):
 	return value
 
 
-def colored_stdout(string, print_string=True):
-	"""Generates and optionally prints colour text to the terminal, with colours and other styles
-	being specified using HTML-style open/close tags (e.g. "<red>hello</red>").
-
-	The following styles and colours are currently supported:
-
-	================== ====================== ======================
-	Style / Colour     Style Code             ANSI Code
-	================== ====================== ======================
-	Red                ``red``                ``\033[91m``
-	------------------ ---------------------- ----------------------
-	Green              ``green``              ``\033[92m``
-	------------------ ---------------------- ----------------------
-	Blue               ``blue``               ``\033[94m``
-	------------------ ---------------------- ----------------------
-	Purple             ``purple``             ``\033[95m``
-	------------------ ---------------------- ----------------------
-	Cyan               ``cyan``               ``\033[96m``
-	------------------ ---------------------- ----------------------
-	Dark Red           ``red_d``              ``\033[31m``
-	------------------ ---------------------- ----------------------
-	Dark Green         ``green_d``            ``\033[32m``
-	------------------ ---------------------- ----------------------
-	Dark Blue          ``blue_d``             ``\033[34m``
-	------------------ ---------------------- ----------------------
-	Dark Purple        ``purple_d``           ``\033[35m``
-	------------------ ---------------------- ----------------------
-	Dark Cyan          ``cyan_d``             ``\033[36m``
-	------------------ ---------------------- ----------------------
-	Bold               ``bold``               ``\033[1m``
-	================== ====================== ======================
-
-	Args:
-		string (str): A string to style with ANSI colour codes.
-		print_string (bool, optional): If True, the string will be printed immediately after
-			being formatted. Defaults to True.
-
-	Return:
-		str: The formatted output string.
-
-	"""
-	code_pattern = r"(</?[a-z_]+>)"
-	codes = {
-		"purple": '\033[95m',
-		"purple_d": '\033[35m',
-		"blue": '\033[94m',
-		"blue_d": '\033[34m',
-		"green": '\033[92m',
-		"green_d": '\033[32m',
-		"red": '\033[91m',
-		"red_d": '\033[31m',
-		"cyan": '\033[96m',
-		"cyan_d": '\033[36m',
-		"bold": '\033[1m'
-	}
-
-	out = ""
-	stack = []
-	for s in re.split(code_pattern, string):
-		if re.match(code_pattern, s) and P.color_output:
-			code = re.findall(r"</?([a-z_]+)>", s)[0]
-			if not code in codes.keys():
-				continue
-			if s[:2] == "</":
-				if code == "bold" and "bold" in stack:
-					stack.remove("bold")
-					out += "\033[0m"
-				if len(stack) and stack[-1] == code:
-					stack.pop()
-				out += codes[stack[-1]] if len(stack) else "\033[0m"
-			else:
-				stack.append(code)
-				out += codes[code]   
-		else:
-			out += s
-
-	if P.color_output:
-		out += "\033[0m"  # Ensure text style reset to normal at end
-	
-	if print_string:
-		print(out)
-
-	return out
-
-
 def deg_to_px(deg, even=False):
 	"""Converts degrees of visual angle to pixels, based on the diagonal size of the screen in
 	inches and the viewing distance from the screen (set at launch and with `P.viewing_distance`
@@ -233,18 +143,6 @@ def flush():
 	"""
 	pump()
 	SDL_FlushEvents(SDL_FIRSTEVENT, SDL_LASTEVENT)
-
-
-def full_trace():
-	exception_list = traceback.format_stack()
-	exception_list = exception_list[:-2]
-	exception_list.extend(traceback.format_tb(exc_info()[2]))
-	exception_list.extend(traceback.format_exception_only(exc_info()[0], exc_info()[1]))
-
-	exception_str = "Traceback (most recent call last):\n"
-	exception_str += "".join(exception_list)
-	# Removing the last \n
-	return exception_str[:-1]
 
 
 def getinput(*args, **kwargs):
@@ -283,30 +181,6 @@ def interpolated_path_len(points):
 			p2 = [1.0 * points[0][0], 1.0 * points[0][1]]
 			path_len += line_segment_len(p1, p2)
 	return path_len
-
-
-def iterable(obj, exclude_strings=True):
-	"""Determines whether a variable is iterable (i.e. whether it can be iterated over in a
-	'for' loop, such as a :obj:`List` or :obj:`Tuple`).
-
-	Args:
-		obj: The object to check the iterability of.
-		exclude_strings (bool, optional): If True, this function will return False for strings,
-			which are otherwise considered iterable in Python. Defualts to True.
-
-	Returns:
-		True if the given object is iterable (and not a string, if exclude_strings is True),
-		otherwise False.
-
-	"""
-	if exclude_strings:
-		return hasattr(obj, '__iter__') and not isinstance(obj, str)
-	else:
-		try:
-			iter(obj)
-			return True
-		except AttributeError:
-			return False
 
 
 def linear_intersection(line_1, line_2):
@@ -474,10 +348,6 @@ def mouse_angle(pump_event_queue=True, reference=None, rotation=0, clockwise=Fal
 	if reference is None:
 		reference = P.screen_c
 	return angle_between(reference, mouse_pos(), rotation, clockwise)
-
-
-def now(format_time=False, format_template=DATETIME_STAMP):
-	return datetime.datetime.fromtimestamp(time.time()).strftime(format_template) if format_time else time.time()
 
 
 def peak(v1, v2):
@@ -785,40 +655,6 @@ def type_str(var):
 
 	"""
 	return type(var).__name__
-
-
-def utf8(x):
-	'''A Python 2/3 agnostic function for converting things to unicode strings. Equivalent to
-	unicode() in Python 2 and str() in Python 3.
-	
-	Args:
-		x: The number, string, or other object to convert to unicode.
-	
-	Returns:
-		unicode or str: a unicode string in Python 2, and a regular (unicode) string in Python 3.
-	
-	'''
-	try:
-		return unicode(x)
-	except NameError:
-		return str(x)
-
-
-def valid_coords(coords):
-	"""Checks whether a variable is a valid pair of (x,y) coordinates.
-	
-	Args:
-		coords: The variable to check for being a valid pair of coordinates.
-	
-	Returns:
-		bool: True if coords is a two-item iterable (e.g. a List or Tuple) that contains only
-			ints or floats, otherwise False.
-	
-	"""
-	try:
-		return len(coords) == 2 and all([type(i) in [int, float] for i in coords])
-	except TypeError:
-		return False
 
 		
 def smart_sleep(interval, units=TK_MS):

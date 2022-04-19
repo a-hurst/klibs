@@ -19,7 +19,7 @@ def tst_getinput(prompt):
     return _input_queue.pop(0)
 
 def tst_cso(string, print_string=False):
-    return
+    return string
 
 def create_experiment(name, path):
 
@@ -51,9 +51,20 @@ def test_create(tmpdir):
                 cli.create("TestExperiment", tmpdir)
                 assert os.path.isdir(os.path.join(tmpdir, "TestExperiment"))
 
-                # Test errors on bad input
-                with pytest.raises(RuntimeError):
+                # Test cancelling project creation
+                _input_queue += ["Test Name", "Q"]
+                cli.create("TestExperiment2", tmpdir)
+                assert not os.path.isdir(os.path.join(tmpdir, "TestExperiment2"))
+
+                # Test error on invalid name
+                with pytest.raises(RuntimeError) as exc_info:
                     cli.create("bad name", tmpdir)
+                assert "valid project name" in exc_info.value.args[0]
+
+                # Test error on existing project name
+                with pytest.raises(RuntimeError) as exc_info:
+                    cli.create("TestExperiment", tmpdir)
+                assert "already exists" in exc_info.value.args[0]
 
 
 def test_ensure_directory_structure(tmpdir):
@@ -95,14 +106,35 @@ def test_ensure_directory_structure(tmpdir):
 
 def test_initialize_path(tmpdir):
 
-    # Test the most basic use case
-    expt_path = create_experiment("TestExpt", tmpdir)
     with patch("klibs.cli.err", tst_err):
+
+        # Test the most basic use case
+        expt_path = create_experiment("TestExpt", tmpdir)
         expt_name = cli.initialize_path(expt_path)
         assert expt_name == "TestExpt"
 
-    # Test with a name containing an underscore
-    expt_path = create_experiment("Test_Expt", tmpdir)
-    with patch("klibs.cli.err", tst_err):
+        # Test with a name containing an underscore
+        expt_path = create_experiment("Test_Expt", tmpdir)
         expt_name = cli.initialize_path(expt_path)
         assert expt_name == "Test_Expt"
+
+        # Test error on missing experiment.py
+        exp_py_path = os.path.join(expt_path, "experiment.py")
+        config_path = os.path.join(expt_path, "ExpAssets", "Config")
+        os.rename(exp_py_path, os.path.join(expt_path, "tmp.py"))
+        with pytest.raises(RuntimeError) as exc_info:
+            cli.initialize_path(expt_path)
+        assert "experiment.py" in exc_info.value.args[0]
+        os.rename(os.path.join(expt_path, "tmp.py"), exp_py_path)
+
+        # Test error on missing config folder
+        os.rename(config_path, os.path.join(expt_path, "ExpAssets", "tmp"))
+        with pytest.raises(RuntimeError) as exc_info:
+            cli.initialize_path(expt_path)
+        assert "ExpAssets/Config" in exc_info.value.args[0]
+        os.rename(os.path.join(expt_path, "ExpAssets", "tmp"), config_path)
+
+@pytest.mark.skip("not implemented")
+def test_run(tmpdir):
+    # NOTE: will require a lot of patching
+    pass

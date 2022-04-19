@@ -161,7 +161,7 @@ def create(name, path):
 			return create(name, path)
 		elif response == "q":
 			cso("\n<green_d>Fine. Be that way. But I think we both know you'll be back.</green_d>")
-			sys.exit()
+			return
 		else:
 			cso("\n<green_d>Pardon? I didn't catch that.</green_d>\n")
 
@@ -236,7 +236,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 				ensure_directory_structure(dir_structure, path, create_missing=True)
 				break
 			elif action == "q":
-				sys.exit()
+				return
 			else:
 				cso("\n<red>Please enter a valid response.</red>")
 
@@ -294,13 +294,13 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 		try:
 			env.el = KLEyeTracking.Tracker()
 		except RuntimeError:
-			sys.exit()
+			return
 	try:
 		env.db = DatabaseManager()
 	except DatabaseException as e:
 		if e.message != "Quitting.":
 			cso("<red>Unable to load database.</red>")
-		sys.exit()
+		return
 	env.evm = EventManager()
 
 	try:
@@ -331,7 +331,6 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 			traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]) + 
 			traceback.format_tb(sys.exc_info()[2])
 		))
-		sys.exit()
 
 
 def export(path, table=None, combined=False, join=None):

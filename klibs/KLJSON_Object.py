@@ -21,10 +21,41 @@ class AttributeDict(dict):
 		self[key] = value
 
 
+def _json_to_attributedict(dict_obj):
+	# Private method for helping json.load() return an attributedict
+	# Check if JSON object name is a valid Python class attribute name
+	valid_attr_name = re.compile(r"^[A-Za-z_]+([A-Za-z0-9_]+)?$")
+	for key in dict_obj.keys():
+		if re.match(valid_attr_name, key) == None:
+			e = u"'{0}' is not a valid Python class attribute name ".format(key)
+			e += u"(try removing spaces and special characters)."
+			raise AttributeError(e)
+	return AttributeDict(dict_obj)
+
+
 class JSON_Object(AttributeDict):
-	"""A class for importing JSON objects such that you can access their attributes the same way
-	you would a Python object. For example, if you imported a .json file with the following
-	contents:
+	# Deprecated: replaced by the more-flexible import_json function
+	def __init__(self, json_file_path):
+		try:
+			json_file = io.open(json_file_path, encoding='utf-8')
+			json_dict = json.load(json_file, object_hook=_json_to_attributedict)
+			for key in json_dict:
+				setattr(self, key, json_dict[key])
+		except ValueError:
+			err = "'{0}' is not a valid JSON file.".format(json_file_path)
+			raise RuntimeError(err)
+		except AttributeError as e:
+			raise ValueError(e)
+
+
+def import_json(filepath):
+	"""Imports a JSON file into a Python-friendly format.
+
+	This function converts the imported JSON structure into :obj:`AttributeDict`
+	objects where possible, allowing elements to be accessed as Python object
+	attributes as well as traditional dictionary keys.
+
+	For example, if you imported a .json file with the following contents:
 	
 	.. code-block:: json
 
@@ -39,51 +70,36 @@ class JSON_Object(AttributeDict):
 			]
 		}
 
-
 	you could then import and access its contents like this::
 
-		# import the JSON file to a JSON_Object
+		# Import the JSON file
 		wordbank_path = os.path.join('path', 'to', 'wordbank.json')
-		wordbank = JSON_Object(wordbank_path)
+		wordbank = import_json(wordbank_path)
 
-		# access the elements of the JSON_Object as object attributes
+		# Access the elements of the JSON_Object as object attributes
 		for word in wordbank.study_words:
 			print(word.word, word.syllables, word.type)
 
-
-	Alternatively, you could access the objects' contents like you would a Python dictonary::
+	Alternatively, you can access the contents like you would a Python dictonary::
 
 		for word in wordbank['foil_words']:
 			print(word['word'], word['syllables'], word['type'])
-	
 
-	Note that all objects and variable names in the imported JSON file must be valid Python
-	object attribute names (i.e. no spaces, periods, special characters, etc.), and will result
-	in a ValueError during import if an invalid attribute name is encountered.
+	Note that all key names in the imported JSON must be valid Python attribute names
+	(i.e. no spaces, periods, special characters, etc.). If a non-valid key is
+	encountered, a ValueError will be raised.
 
 	Args:
-		json_file_path (:obj:`str`): The path of the JSON file to import.
+		filepath (:obj:`str`): The path of the JSON file to import.
 
 	"""
-
-	def __init__(self, json_file_path):
-		try:
-			json_file = io.open(json_file_path, encoding='utf-8')
-			json_dict = json.load(json_file, object_hook=self.__objectify)
-			for key in json_dict:
-				setattr(self, key, json_dict[key])
-		except ValueError:
-			err = "'{0}' is not a valid JSON file.".format(json_file_path)
-			raise RuntimeError(err)
-		except AttributeError as e:
-			raise ValueError(e)
+	try:
+		json_io = io.open(filepath, encoding='utf-8')
+		converted = json.load(json_io, object_hook=_json_to_attributedict)
+	except ValueError:
+		err = "'{0}' is not a valid JSON file.".format(filepath)
+		raise RuntimeError(err)
+	except AttributeError as e:
+		raise ValueError(e)
 	
-	def __objectify(self, dict_obj):
-		# Check if JSON object name is a valid Python class attribute name
-		valid_attr_name = re.compile(r"^[A-Za-z_]+([A-Za-z0-9_]+)?$")
-		for key in dict_obj.keys():
-			if re.match(valid_attr_name, key) == None:
-				e = u"'{0}' is not a valid Python class attribute name ".format(key)
-				e += u"(try removing spaces and special characters)."
-				raise AttributeError(e)
-		return AttributeDict(dict_obj)
+	return converted

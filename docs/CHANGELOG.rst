@@ -76,9 +76,8 @@ API Changes:
   :class:`~klibs.KLGraphics.NumpySurface` class. For rotating images at anything
   other than 90-degree angles, please use the ``Image`` class from the Pillow
   library instead.
-* Invalid key names for :class:`~klibs.KLJSON_Object.KLJSON_Object` now raise a
-  ``ValueError`` instead of a ``RuntimeError``. Conversely, importing a
-  malformed JSON file now raises a ``RuntimeError`` instead of a ``ValueError``.
+* :class:`~klibs.KLJSON_Object.KLJSON_Object` has been deprecated in favour of a
+  new JSON import function, :func:`~klibs.KLJSON_Object.import_json`.
 
 
 Fixed Bugs:

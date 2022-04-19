@@ -29,7 +29,7 @@ def create_experiment(name, path):
     with patch("klibs.cli.getinput", tst_getinput):
         with patch("klibs.cli.err", tst_err):
             with patch("klibs.cli.cso", tst_cso):
-                cli.create(name, str(path))
+                cli.create(name, path)
                 expt_path = os.path.join(path, name)
                 assert os.path.isdir(expt_path)
 
@@ -41,6 +41,7 @@ def create_experiment(name, path):
 def test_create(tmpdir):
 
     global _input_queue
+    tmpdir = str(tmpdir)
 
     with patch("klibs.cli.getinput", tst_getinput):
         with patch("klibs.cli.err", tst_err):
@@ -48,28 +49,29 @@ def test_create(tmpdir):
 
                 # Test creating a new project
                 _input_queue += ["Test Name", "Y"]
-                cli.create("TestExperiment", str(tmpdir))
+                cli.create("TestExperiment", tmpdir)
                 assert os.path.isdir(os.path.join(tmpdir, "TestExperiment"))
 
                 # Test cancelling project creation
                 _input_queue += ["Test Name", "Q"]
-                cli.create("TestExperiment2", str(tmpdir))
+                cli.create("TestExperiment2", tmpdir)
                 assert not os.path.isdir(os.path.join(tmpdir, "TestExperiment2"))
 
                 # Test error on invalid name
                 with pytest.raises(RuntimeError) as exc_info:
-                    cli.create("bad name", str(tmpdir))
+                    cli.create("bad name", tmpdir)
                 assert "valid project name" in exc_info.value.args[0]
 
                 # Test error on existing project name
                 with pytest.raises(RuntimeError) as exc_info:
-                    cli.create("TestExperiment", str(tmpdir))
+                    cli.create("TestExperiment", tmpdir)
                 assert "already exists" in exc_info.value.args[0]
 
 
 def test_ensure_directory_structure(tmpdir):
 
     global _input_queue
+    tmpdir = str(tmpdir)
     dir_structure = {
 		"ExpAssets": {
 			".versions": None,
@@ -106,6 +108,7 @@ def test_ensure_directory_structure(tmpdir):
 
 def test_initialize_path(tmpdir):
 
+    tmpdir = str(tmpdir)
     with patch("klibs.cli.err", tst_err):
 
         # Test the most basic use case
@@ -133,6 +136,7 @@ def test_initialize_path(tmpdir):
             cli.initialize_path(expt_path)
         assert "ExpAssets/Config" in exc_info.value.args[0]
         os.rename(os.path.join(expt_path, "ExpAssets", "tmp"), config_path)
+
 
 @pytest.mark.skip("not implemented")
 def test_run(tmpdir):

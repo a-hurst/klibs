@@ -91,3 +91,5 @@ Fixed Bugs:
 * Improved reliability of checks in :class:`~klibs.KLJSON_Object.KLJSON_Object`
   that verify all JSON keys are valid Python attribute names.
 * Fixed a bug preventing projects with underscores in their name from opening.
+* Removed dependency on the deprecated ``imp`` module for Python 3, removing
+  a runtime warning.

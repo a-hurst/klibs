@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+import os
 import re
+import sys
 import time
+import binascii
 import traceback
 from sys import exc_info
 from datetime import datetime
@@ -68,7 +71,7 @@ def iterable(obj, exclude_strings=True):
 
 
 def utf8(x):
-	'''A Python 2/3 agnostic function for converting things to unicode strings.
+	"""A Python 2/3 agnostic function for converting things to unicode strings.
     
     Equivalent to ``unicode()`` in Python 2 and ``str()`` in Python 3.
 	
@@ -78,11 +81,65 @@ def utf8(x):
 	Returns:
 		unicode or str: a unicode string in Python 2, and a regular (unicode) string in Python 3.
 	
-	'''
+	"""
 	try:
 		return unicode(x)
 	except NameError:
 		return str(x)
+
+
+def load_source(filepath):
+	"""Imports the variables from a Python source file into a dict.
+
+	Args:
+		filepath (str): Path of the Python source file to load.
+
+	Returns:
+		dict: the names and values of the source file's variables.
+
+	"""
+	# Generate a random module name, ensuring it won't conflict with other imports
+	mod_name = "mod_{0}".format(binascii.b2a_hex(os.urandom(4)))
+
+	# Load Python file as a module
+	if sys.version_info.major == 3:
+		from importlib.util import spec_from_file_location, module_from_spec
+		spec = spec_from_file_location(mod_name, filepath)
+		src = module_from_spec(spec)
+		spec.loader.exec_module(src)
+	else:
+		import imp
+		src = imp.load_source(mod_name, filepath)
+
+	# Filter out modules and internal Python stuff from imported attributes
+	attributes = {}
+	for key, val in vars(src).items():
+		if not (key.startswith('_') or type(val).__name__ == "module"):
+			attributes[key] = val
+
+	return attributes
+
+
+def package_available(name):
+	"""Checks whether a given package is installed.
+
+    Written to be Python 2/3 agnostic.
+
+	Args:
+		name (str): Name of the Python package to search for.
+
+	Returns:
+		bool: True if the package is available, otherwise False.
+
+	"""
+	if sys.version_info.major == 3:
+		from importlib.util import find_spec
+	else:
+		from imp import find_module as find_spec
+	try:
+		return find_spec(name) != None
+	except (ValueError, ImportError):
+		return False
 
 
 def boolean_to_logical(value, convert_integers=False):

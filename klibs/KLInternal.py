@@ -68,7 +68,7 @@ def iterable(obj, exclude_strings=True):
 
 
 def utf8(x):
-	'''A Python 2/3 agnostic function for converting things to unicode strings.
+	"""A Python 2/3 agnostic function for converting things to unicode strings.
     
     Equivalent to ``unicode()`` in Python 2 and ``str()`` in Python 3.
 	
@@ -78,11 +78,33 @@ def utf8(x):
 	Returns:
 		unicode or str: a unicode string in Python 2, and a regular (unicode) string in Python 3.
 	
-	'''
+	"""
 	try:
 		return unicode(x)
 	except NameError:
 		return str(x)
+
+
+def package_available(name):
+	"""Checks whether a given package is installed.
+
+    Written to be Python 2/3 agnostic.
+
+	Args:
+		name (str): Name of the Python package to search for.
+
+	Returns:
+		bool: True if the package is available, otherwise False.
+
+	"""
+	if sys.version_info.major == 3:
+		from importlib.util import find_spec
+	else:
+		from imp import find_module as find_spec
+	try:
+		return find_spec(name) != None
+	except (ValueError, ImportError):
+		return False
 
 
 def boolean_to_logical(value, convert_integers=False):

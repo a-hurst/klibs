@@ -3,11 +3,11 @@ __author__ = 'Austin Hurst & Jonathan Mulle'
 import os
 import re
 import sys
-import imp
 import time
 import traceback
 
 from klibs.KLExceptions import DatabaseException
+from klibs.KLInternal import load_source
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLUtilities import getinput
 from klibs import P
@@ -251,7 +251,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 
 	# import params defined in project's local params file in ExpAssets/Config
 	try:
-		for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
+		for k, v in load_source(P.params_file_path).items():
 			setattr(P, k, v)
 	except IOError:
 		err("Unable to locate the experiment's '_params.py' file. Please ensure that this "
@@ -260,7 +260,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 
 	# if a local params file exists, do the same:
 	if os.path.exists(P.params_local_file_path) and not P.dm_ignore_local_overrides:
-		for k, v in imp.load_source("*", P.params_local_file_path).__dict__.items():
+		for k, v in load_source(P.params_local_file_path).items():
 			setattr(P, k, v)
 
 	# If a condition has been specified, make sure it's a valid condition as per params.py
@@ -308,8 +308,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 		init_messaging()
 
 		# finally, import the project's Experiment class and instantiate
-		experiment_file = imp.load_source(path, "experiment.py")
-		experiment = getattr(experiment_file, project_name)
+		experiment = load_source("experiment.py")[project_name]
 		env.exp = experiment()
 
 		# create a display context if everything's gone well so far
@@ -348,7 +347,7 @@ def export(path, table=None, combined=False, join=None):
 		os.makedirs(P.incomplete_data_dir)
 
 	# import params defined in project's local params file in ExpAssets/Config
-	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
+	for k, v in load_source(P.params_file_path).items():
 		setattr(P, k, v)
 	multi_file = combined != True
 	DatabaseManager().export(table, multi_file, join)
@@ -365,7 +364,7 @@ def rebuild_db(path):
 	P.setup(project_name)
 
 	# import params defined in project's local params file in ExpAssets/Config
-	for k, v in imp.load_source("*", P.params_file_path).__dict__.items():
+	for k, v in load_source(P.params_file_path).items():
 		setattr(P, k, v)
 	DatabaseManager().rebuild()
 

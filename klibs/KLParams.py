@@ -11,8 +11,6 @@ from random import seed
 from os.path import join
 from pkg_resources import resource_filename, resource_string
 
-from klibs.KLConstants import (DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
-	FACTORS_EXT, PARAMS_EXT, BACK_EXT)
 
 klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
 
@@ -26,7 +24,6 @@ session_number = 1
 recycle_count = 0 # reset on a per-block basis
 
 # State variables
-initialized = False
 display_initialized = False
 demographics_collected = False
 in_trial = False
@@ -178,18 +175,17 @@ def init_project():
 	global schema_file_path
 	global user_queries_file_path
 
-	global initialized
+	# Initialize project file names
+	database_filename = "{0}.db".format(project_name)
+	database_local_filename = "{0}_{1}.db".format(project_name, random_seed)
+	database_backup_filename = "{0}.db.backup".format(project_name)
+	params_filename = "{0}_params.py".format(project_name)
+	ind_vars_filename = "{0}_independent_variables.py".format(project_name)
+	schema_filename = "{0}_schema.sql".format(project_name)
+	user_queries_filename = "{0}_user_queries.json".format(project_name)
+	log_filename = "{0}_log.txt".format(project_name)
 
-	# File names
-	database_filename = str(project_name) + DB_EXT
-	database_local_filename = str(project_name) + str(random_seed) + DB_EXT
-	schema_filename = str(project_name) + SCHEMA_EXT
-	user_queries_filename = str(project_name) + USER_QUERIES_EXT
-	log_filename = str(project_name) + LOG_EXT
-	ind_vars_filename = str(project_name) + FACTORS_EXT
-	params_filename = str(project_name) + PARAMS_EXT
-
-	# Project paths
+	# Initialize project file paths
 	data_dir = join(asset_dir, "Data")
 	local_dir = join(asset_dir, "Local")
 	edf_dir = join(asset_dir, "EDF")  # todo: write edf management
@@ -199,7 +195,7 @@ def init_project():
 	user_queries_file_path = join(config_dir, user_queries_filename)
 	database_path = join(asset_dir, database_filename)
 	database_local_path = join(tempfile.gettempdir(), database_local_filename)
-	database_backup_path = database_path + BACK_EXT
+	database_backup_path = join(asset_dir, database_backup_filename)
 	incomplete_data_dir = join(data_dir, "incomplete")
 	ind_vars_file_path = join(config_dir, ind_vars_filename)
 	ind_vars_file_local_path = join(local_dir, ind_vars_filename)
@@ -210,9 +206,6 @@ def init_project():
 
 	# Font folder info
 	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
-
-	initialized = True
-	return True
 
 
 def setup(project_name_str, seed_value=None):
@@ -241,5 +234,5 @@ def setup(project_name_str, seed_value=None):
 	config_dir = join(asset_dir, "Config")
 	logo_file_path = resource_filename('klibs', 'resources/splash.png')
 
-	return init_project()
+	init_project()
 	

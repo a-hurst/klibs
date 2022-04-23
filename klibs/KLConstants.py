@@ -86,17 +86,6 @@ BL_BOTTOM = 2
 BL_BOTTOM_LEFT = 1
 BL_BOTTOM_RIGHT = 3
 
-# File Extensions
-DB_EXT = ".db"
-EDF_EXT = ".EDF"
-DATA_EXT = ".txt"
-BACK_EXT = ".backup"
-LOG_EXT = "_log.txt"
-SCHEMA_EXT = "_schema.sql"
-USER_QUERIES_EXT = "_user_queries.json"
-FACTORS_EXT = "_independent_variables.py"
-PARAMS_EXT = "_params.py"
-
 # KLText Constants
 TEXT_PT = "pt"
 TEXT_PX = "px"

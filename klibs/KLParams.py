@@ -12,7 +12,6 @@ from os.path import join
 from pkg_resources import resource_filename, resource_string
 
 
-klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
 
 # Runtime Variables
 participant_id = None
@@ -22,6 +21,11 @@ trial_number = 0
 block_number = 0
 session_number = 1
 recycle_count = 0 # reset on a per-block basis
+
+# Runtime Attributes
+project_name = None
+random_seed = None
+klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
 
 # State variables
 display_initialized = False
@@ -122,22 +126,27 @@ verbosity = -1
 #log_to_file = True
 #log_level = logging.INFO
 
-# Default Paths & Filenames (filled in by setup() and init_project() below)
-project_name = None
-asset_dir = None
-config_dir = None
-data_dir = None
-incomplete_data_dir = None
-edf_dir = None
-incomplete_edf_dir = None
-audio_dir = None
-code_dir = None
-image_dir = None
-local_dir = None
-resources_dir = None
-versions_dir = None
-version_dir = None
+# Project Directories
+asset_dir = "ExpAssets"
+config_dir = join(asset_dir, "Config")
+data_dir = join(asset_dir, "Data")
+edf_dir = join(asset_dir, "EDF")  # TODO: Improve EDF file management
+local_dir = join(asset_dir, "Local")
+resources_dir = join(asset_dir, "Resources")
+versions_dir = join(asset_dir, ".versions")
 
+# Project Subdirectories
+incomplete_data_dir = join(data_dir, "incomplete")
+incomplete_edf_dir = join(edf_dir, "incomplete")
+audio_dir = join(resources_dir, "audio")
+code_dir = join(resources_dir, "code")
+image_dir = join(resources_dir, "image")
+logs_dir = join(local_dir, "logs")
+exp_font_dir = join(resources_dir, "font")
+version_dir = None  # Dynamically set at runtime
+font_dirs = None  # Dynamically set at runtime
+
+# Project Filepaths (dynamically set at runtime)
 database_path = None
 database_local_path = None
 database_backup_path = None
@@ -150,18 +159,9 @@ schema_file_path = None
 user_queries_file_path = None
 logo_file_path = None
 
-random_seed = None
-
 
 def init_project():
 
-	global data_dir
-	global incomplete_data_dir
-	global edf_dir
-	global incomplete_edf_dir
-	global local_dir
-	global logs_dir
-	global versions_dir
 	global font_dirs
 	
 	global database_path
@@ -186,23 +186,16 @@ def init_project():
 	log_filename = "{0}_log.txt".format(project_name)
 
 	# Initialize project file paths
-	data_dir = join(asset_dir, "Data")
-	local_dir = join(asset_dir, "Local")
-	edf_dir = join(asset_dir, "EDF")  # todo: write edf management
-	incomplete_edf_dir = join(data_dir, "incomplete")
 	log_file_path = join(asset_dir, log_filename)
 	schema_file_path = join(config_dir, schema_filename)
 	user_queries_file_path = join(config_dir, user_queries_filename)
 	database_path = join(asset_dir, database_filename)
 	database_local_path = join(tempfile.gettempdir(), database_local_filename)
 	database_backup_path = join(asset_dir, database_backup_filename)
-	incomplete_data_dir = join(data_dir, "incomplete")
 	ind_vars_file_path = join(config_dir, ind_vars_filename)
 	ind_vars_file_local_path = join(local_dir, ind_vars_filename)
 	params_file_path = join(config_dir, params_filename)
 	params_local_file_path = join(local_dir, params_filename)
-	versions_dir = join(asset_dir, ".versions")
-	logs_dir = join(local_dir, "logs")
 
 	# Font folder info
 	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
@@ -212,26 +205,12 @@ def setup(project_name_str, seed_value=None):
 
 	global project_name
 	global random_seed
-	global asset_dir
-	global audio_dir
-	global code_dir
-	global exp_font_dir
-	global image_dir
-	global config_dir
-	global resources_dir
 	global logo_file_path
 
 	random_seed = seed_value
 	
 	seed(random_seed)
 	project_name = project_name_str
-	asset_dir = "ExpAssets"
-	resources_dir = join(asset_dir, "Resources")
-	audio_dir = join(resources_dir, "audio")
-	code_dir = join(resources_dir, "code")
-	exp_font_dir = join(resources_dir, "font")
-	image_dir = join(resources_dir, "image")
-	config_dir = join(asset_dir, "Config")
 	logo_file_path = resource_filename('klibs', 'resources/splash.png')
 
 	init_project()

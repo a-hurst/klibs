@@ -6,11 +6,8 @@ be included in the user's template of the params file, then autogenerate the tem
 runtime params from that dict (this was Jon's idea, is it worth the effort / likely API breaking?)
 """
 
-import logging, tempfile
-from random import seed
+import logging
 from os.path import join
-from pkg_resources import resource_filename, resource_string
-
 
 
 # Runtime Variables
@@ -25,7 +22,7 @@ recycle_count = 0 # reset on a per-block basis
 # Runtime Attributes
 project_name = None
 random_seed = None
-klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
+klibs_commit = None
 
 # State variables
 display_initialized = False
@@ -160,12 +157,11 @@ user_queries_file_path = None
 logo_file_path = None
 
 
-def init_project():
+def initialize_paths(exp_name):
 
-	global font_dirs
+	global project_name
 	
 	global database_path
-	global database_local_path
 	global database_backup_path
 	global ind_vars_file_path
 	global ind_vars_file_local_path
@@ -175,9 +171,11 @@ def init_project():
 	global schema_file_path
 	global user_queries_file_path
 
+	# Set experiment name globally in module
+	project_name = exp_name
+
 	# Initialize project file names
 	database_filename = "{0}.db".format(project_name)
-	database_local_filename = "{0}_{1}.db".format(project_name, random_seed)
 	database_backup_filename = "{0}.db.backup".format(project_name)
 	params_filename = "{0}_params.py".format(project_name)
 	ind_vars_filename = "{0}_independent_variables.py".format(project_name)
@@ -190,28 +188,38 @@ def init_project():
 	schema_file_path = join(config_dir, schema_filename)
 	user_queries_file_path = join(config_dir, user_queries_filename)
 	database_path = join(asset_dir, database_filename)
-	database_local_path = join(tempfile.gettempdir(), database_local_filename)
 	database_backup_path = join(asset_dir, database_backup_filename)
 	ind_vars_file_path = join(config_dir, ind_vars_filename)
 	ind_vars_file_local_path = join(local_dir, ind_vars_filename)
 	params_file_path = join(config_dir, params_filename)
 	params_local_file_path = join(local_dir, params_filename)
 
-	# Font folder info
-	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
 
+def initialize_runtime(exp_name, randseed):
 
-def setup(project_name_str, seed_value=None):
+	import random
+	import tempfile
+	from pkg_resources import resource_filename, resource_string
 
-	global project_name
 	global random_seed
+	global klibs_commit
+
+	global database_local_path
 	global logo_file_path
+	global font_dirs
 
-	random_seed = seed_value
-	
-	seed(random_seed)
-	project_name = project_name_str
+	# Initialize Python's random number generator with a reproducible seed
+	random_seed = randseed
+	random.seed(random_seed)
+
+	# Initialize project paths
+	initialize_paths(exp_name)
+	database_local_filename = "{0}_{1}.db".format(project_name, random_seed)
+	database_local_path = join(tempfile.gettempdir(), database_local_filename)
+
+	# Load extra resources from KLibs package
+	klibs_commit_raw = resource_string('klibs', 'resources/current_commit.txt')
+	klibs_commit = str(klibs_commit_raw.decode('utf-8'))
 	logo_file_path = resource_filename('klibs', 'resources/splash.png')
-
-	init_project()
+	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
 	

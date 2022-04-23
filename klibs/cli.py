@@ -241,7 +241,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 				cso("\n<red>Please enter a valid response.</red>")
 
 	# set initial param values for project's context
-	P.setup(project_name, seed)
+	P.initialize_runtime(project_name, seed)
 
 	# Add ExpAssets/Resources/code to pythonpath for easy importing
 	sys.path.append(P.code_dir)
@@ -340,7 +340,7 @@ def export(path, table=None, combined=False, join=None):
 	project_name = initialize_path(path)
 
 	# set initial param values for project's context
-	P.setup(project_name)
+	P.initialize_paths(project_name)
 
 	# ensure that 'Data' and 'Data/incomplete' directories exist, creating if missing
 	if not os.path.isdir(P.incomplete_data_dir):
@@ -361,7 +361,7 @@ def rebuild_db(path):
 	project_name = initialize_path(path)
 
 	# set initial param values for project's context
-	P.setup(project_name)
+	P.initialize_paths(project_name)
 
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in load_source(P.params_file_path).items():

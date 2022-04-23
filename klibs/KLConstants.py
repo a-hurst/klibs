@@ -96,7 +96,6 @@ SCHEMA_EXT = "_schema.sql"
 USER_QUERIES_EXT = "_user_queries.json"
 FACTORS_EXT = "_independent_variables.py"
 PARAMS_EXT = "_params.py"
-MESSSAGING_EXT = "_messaging.csv"
 
 # KLText Constants
 TEXT_PT = "pt"

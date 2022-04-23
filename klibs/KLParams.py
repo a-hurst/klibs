@@ -15,7 +15,7 @@ from os.path import exists, join, expanduser
 from pkg_resources import resource_filename, resource_string
 
 from klibs.KLConstants import (TAB, DATETIME_STAMP, DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
-	FACTORS_EXT, PARAMS_EXT, MESSSAGING_EXT, BACK_EXT)
+	FACTORS_EXT, PARAMS_EXT, BACK_EXT)
 
 klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
 
@@ -153,8 +153,6 @@ database_filename = None
 database_path = None
 database_local_path = None
 database_backup_path = None
-events_filename = None
-events_file_path = None
 ind_vars_filename = None
 ind_vars_file_path = None
 ind_vars_file_local_path = None
@@ -187,8 +185,6 @@ def init_project():
 	global database_path
 	global database_local_path
 	global database_backup_path
-	global events_filename
-	global events_file_path
 	global ind_vars_filename
 	global ind_vars_file_path
 	global ind_vars_file_local_path
@@ -212,7 +208,6 @@ def init_project():
 	log_filename = str(project_name) + LOG_EXT
 	ind_vars_filename = str(project_name) + FACTORS_EXT
 	params_filename = str(project_name) + PARAMS_EXT
-	events_filename = str(project_name) + MESSSAGING_EXT
 
 	# Project paths
 	data_dir = join(asset_dir, "Data")
@@ -230,7 +225,6 @@ def init_project():
 	ind_vars_file_local_path = join(local_dir, ind_vars_filename)
 	params_file_path = join(config_dir, params_filename)
 	params_local_file_path = join(local_dir, params_filename)
-	events_file_path = join(config_dir, events_filename)
 	versions_dir = join(asset_dir, ".versions")
 	logs_dir = join(local_dir, "logs")
 

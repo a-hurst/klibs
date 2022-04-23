@@ -158,7 +158,18 @@ logo_file_path = None
 
 
 def initialize_paths(exp_name):
+	"""Initializes the experiment's file paths within the Params module.
 
+	Since the names of various files required by a KLibs experiment are based on
+	the experiment name, they need to be dynamically determined at runtime. This
+	internal function initializes the full paths to those files in the Params
+	module based on the given experient name.
+
+	Args:
+		exp_name (str): The name of the Experiment class in the project's
+			``experiment.py`` file.
+
+	"""
 	global project_name
 	
 	global database_path
@@ -196,14 +207,28 @@ def initialize_paths(exp_name):
 
 
 def initialize_runtime(exp_name, randseed):
+	"""Initializes all runtime paths and attributes within the Params module.
 
+	In addition to the basic initialization done by :func:`initialize_paths`,
+	this function sets the runtime's random seed and loads additional internal
+	resources only required when actually running the experiment.
+	
+	Since the loading of package resources can be noticably slow, the
+	separation of this function from `initialize_paths` allows KLibs to avoid
+	unnecessary lag when calling things like ``klibs export`` or ``klibs -h``.
+
+	Args:
+		exp_name (str): The name of the Experiment class in the project's
+			``experiment.py`` file.
+		randseed (int): The random seed to use for the experiment runtime.
+
+	"""
 	import random
 	import tempfile
 	from pkg_resources import resource_filename, resource_string
 
 	global random_seed
 	global klibs_commit
-
 	global database_local_path
 	global logo_file_path
 	global font_dirs

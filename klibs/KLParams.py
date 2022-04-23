@@ -6,15 +6,12 @@ be included in the user's template of the params file, then autogenerate the tem
 runtime params from that dict (this was Jon's idea, is it worth the effort / likely API breaking?)
 """
 
-import sys
-import logging, time, tempfile
+import logging, tempfile
 from random import seed
-from datetime import datetime
-from os import makedirs, environ
-from os.path import exists, join, expanduser
+from os.path import join
 from pkg_resources import resource_filename, resource_string
 
-from klibs.KLConstants import (TAB, DATETIME_STAMP, DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
+from klibs.KLConstants import (DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
 	FACTORS_EXT, PARAMS_EXT, BACK_EXT)
 
 klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
@@ -119,7 +116,6 @@ dm_auto_threshold = True # for audio responses
 dm_ignore_local_overrides = False
 dm_show_gaze_dot = True
 #debug_level = 3 # (not implemented)
-#dm_suppress_debug_pane = False # (debug pane was never implemented but maybe a good idea)
 #dm_print_log = True # (not implemented)
 #dm_print_events = True # (not implemented)
 
@@ -128,10 +124,6 @@ verbose_mode = False
 verbosity = -1
 #log_to_file = True
 #log_level = logging.INFO
-
-# default strings for communicating with participant (is this still useful?)
-no_answer_string = None
-invalid_answer_string = None
 
 # Default Paths & Filenames (filled in by setup() and init_project() below)
 project_name = None
@@ -149,24 +141,18 @@ resources_dir = None
 versions_dir = None
 version_dir = None
 
-database_filename = None
 database_path = None
 database_local_path = None
 database_backup_path = None
-ind_vars_filename = None
 ind_vars_file_path = None
 ind_vars_file_local_path = None
-log_filename = None
 log_file_path = None
 params_file_path = None
 params_local_file_path = None
-schema_filename = None
 schema_file_path = None
-user_queries_filename = None
 user_queries_file_path = None
 logo_file_path = None
 
-anonymous_username = None
 random_seed = None
 
 
@@ -181,21 +167,15 @@ def init_project():
 	global versions_dir
 	global font_dirs
 	
-	global database_filename
 	global database_path
 	global database_local_path
 	global database_backup_path
-	global ind_vars_filename
 	global ind_vars_file_path
 	global ind_vars_file_local_path
-	global log_filename
 	global log_file_path
-	global params_filename
 	global params_file_path
 	global params_local_file_path
-	global schema_filename
 	global schema_file_path
-	global user_queries_filename
 	global user_queries_file_path
 
 	global initialized
@@ -239,7 +219,6 @@ def setup(project_name_str, seed_value=None):
 
 	global project_name
 	global random_seed
-	global anonymous_username
 	global asset_dir
 	global audio_dir
 	global code_dir
@@ -249,8 +228,6 @@ def setup(project_name_str, seed_value=None):
 	global resources_dir
 	global logo_file_path
 
-	timestamp = datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP)
-	anonymous_username = "demo_user_{0}".format(timestamp)
 	random_seed = seed_value
 	
 	seed(random_seed)

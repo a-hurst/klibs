@@ -6,7 +6,7 @@ import sqlite3
 from copy import copy
 from itertools import chain
 from os import remove, rename
-from os.path import join, isfile
+from os.path import join, isfile, basename
 from argparse import ArgumentParser
 from collections import OrderedDict
 
@@ -682,8 +682,9 @@ class DatabaseManager(EnvAgent):
 			print("\nDatabase successfully rebuilt! Please make sure to update your experiment.py "
 				  "to reflect any changes you might have made to tables or column names.\n")
 		except (sqlite3.ProgrammingError, sqlite3.OperationalError, ValueError) as e:
+			schema_filename = basename(P.schema_file_path)
 			cso("\n<red>Syntax error encountered in '{0}'. Please double-check the formatting of "
-				"the schema and try again.</red>\n".format(P.schema_filename))
+				"the schema and try again.</red>\n".format(schema_filename))
 			self.__master._drop_tables(self.__master.table_list)
 			self.__restore__()
 			raise e

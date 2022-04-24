@@ -73,10 +73,6 @@ The independent_varables.py file is where you define the names, types, and possi
 \* (for now)
 
 
-##### ExpAssets/Config/MyProject\_messaging.csv
-
-*NOTE: This is currently unused by KLibs, but appears to have been intended as way to facilitate messaging between EyeLink eye trackers and EEG setups. Might implement eventually or just remove.* 
-
 ##### ExpAssets/Config/MyProject\_params.py
 The \_params.py file serves as a configuration file for the experiment program, allowing you to easily enable and disable functions such as eye-tracking, demographics collection, practice blocks, and more. This is the file where you specify the number of trials and trials per block. You can also change properties such as the default background fill and stimulus colours for the experiment, along with default font and default font size.
 

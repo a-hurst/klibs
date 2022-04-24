@@ -1,23 +1,26 @@
 # -*- coding: utf-8 -*-
+"""Contains the user-facing (and internal) runtime variables for the KLibs environment.
+
+The purpose of KLParams is to make useful experiment configuration and runtime
+variables easily accessible through a single module. Things like the current trial
+number, block number, screen resolution (in pixels), asset folder paths, and custom
+paramaters defined in a project's ``_params.py`` file are all accessible through
+KLParams.
+
+For convenience, this module can be imported through the main klibs namespace with
+the alias ``P`` (e.g. ``from klibs import P``). 
+
+"""
+
 __author__ = 'Jonathan Mulle & Austin Hurst'
-"""
-TODO: set this up such that all vars are in a dict with a key representing whether the var should
-be included in the user's template of the params file, then autogenerate the template doc. AND the
-runtime params from that dict (this was Jon's idea, is it worth the effort / likely API breaking?)
-"""
 
-import sys
-import logging, time, tempfile
-from random import seed
-from datetime import datetime
-from os import makedirs, environ
-from os.path import exists, join, expanduser
-from pkg_resources import resource_filename, resource_string
+import logging
+from os.path import join
 
-from klibs.KLConstants import (TAB, DATETIME_STAMP, DB_EXT, SCHEMA_EXT, USER_QUERIES_EXT, LOG_EXT,
-	FACTORS_EXT, PARAMS_EXT, MESSSAGING_EXT, BACK_EXT)
+# TODO: Try making the Params "P" an object or AttributeDict? Could set attributes
+# dynamically but also allow for sanity checks and renaming variables w/o breaking
+# backwards compatibility. Would also help with documentation.
 
-klibs_commit = str(resource_string('klibs', 'resources/current_commit.txt').decode('utf-8'))
 
 # Runtime Variables
 participant_id = None
@@ -28,8 +31,12 @@ block_number = 0
 session_number = 1
 recycle_count = 0 # reset on a per-block basis
 
+# Runtime Attributes
+project_name = None
+random_seed = None
+klibs_commit = None
+
 # State variables
-initialized = False
 display_initialized = False
 demographics_collected = False
 in_trial = False
@@ -119,7 +126,6 @@ dm_auto_threshold = True # for audio responses
 dm_ignore_local_overrides = False
 dm_show_gaze_dot = True
 #debug_level = 3 # (not implemented)
-#dm_suppress_debug_pane = False # (debug pane was never implemented but maybe a good idea)
 #dm_print_log = True # (not implemented)
 #dm_print_events = True # (not implemented)
 
@@ -129,146 +135,128 @@ verbosity = -1
 #log_to_file = True
 #log_level = logging.INFO
 
-# default strings for communicating with participant (is this still useful?)
-no_answer_string = None
-invalid_answer_string = None
+# Project Directories
+asset_dir = "ExpAssets"
+config_dir = join(asset_dir, "Config")
+data_dir = join(asset_dir, "Data")
+edf_dir = join(asset_dir, "EDF")  # TODO: Improve EDF file management
+local_dir = join(asset_dir, "Local")
+resources_dir = join(asset_dir, "Resources")
+versions_dir = join(asset_dir, ".versions")
 
-# Default Paths & Filenames (filled in by setup() and init_project() below)
-project_name = None
-asset_dir = None
-config_dir = None
-data_dir = None
-incomplete_data_dir = None
-edf_dir = None
-incomplete_edf_dir = None
-audio_dir = None
-code_dir = None
-image_dir = None
-local_dir = None
-resources_dir = None
-versions_dir = None
-version_dir = None
+# Project Subdirectories
+incomplete_data_dir = join(data_dir, "incomplete")
+incomplete_edf_dir = join(edf_dir, "incomplete")
+audio_dir = join(resources_dir, "audio")
+code_dir = join(resources_dir, "code")
+image_dir = join(resources_dir, "image")
+logs_dir = join(local_dir, "logs")
+exp_font_dir = join(resources_dir, "font")
+version_dir = None  # Dynamically set at runtime
+font_dirs = None  # Dynamically set at runtime
 
-database_filename = None
+# Project Filepaths (dynamically set at runtime)
 database_path = None
-database_local_path = None
 database_backup_path = None
-events_filename = None
-events_file_path = None
-ind_vars_filename = None
-ind_vars_file_path = None
-ind_vars_file_local_path = None
-log_filename = None
-log_file_path = None
+database_local_path = None
 params_file_path = None
 params_local_file_path = None
-schema_filename = None
+ind_vars_file_path = None
+ind_vars_file_local_path = None
 schema_file_path = None
-user_queries_filename = None
 user_queries_file_path = None
+log_file_path = None
 logo_file_path = None
 
-anonymous_username = None
-random_seed = None
 
+def initialize_paths(exp_name):
+	"""Initializes the experiment's file paths within the Params module.
 
-def init_project():
+	Since the names of various files required by a KLibs experiment are based on
+	the experiment name, they need to be dynamically determined at runtime. This
+	internal function initializes the full paths to those files in the Params
+	module based on the given experient name.
 
-	global data_dir
-	global incomplete_data_dir
-	global edf_dir
-	global incomplete_edf_dir
-	global local_dir
-	global logs_dir
-	global versions_dir
-	global font_dirs
+	Args:
+		exp_name (str): The name of the Experiment class in the project's
+			``experiment.py`` file.
+
+	"""
+	global project_name
 	
-	global database_filename
 	global database_path
-	global database_local_path
 	global database_backup_path
-	global events_filename
-	global events_file_path
-	global ind_vars_filename
-	global ind_vars_file_path
-	global ind_vars_file_local_path
-	global log_filename
-	global log_file_path
-	global params_filename
 	global params_file_path
 	global params_local_file_path
-	global schema_filename
+	global ind_vars_file_path
+	global ind_vars_file_local_path
 	global schema_file_path
-	global user_queries_filename
 	global user_queries_file_path
+	global log_file_path
 
-	global initialized
+	# Set experiment name globally in module
+	project_name = exp_name
 
-	# File names
-	database_filename = str(project_name) + DB_EXT
-	database_local_filename = str(project_name) + str(random_seed) + DB_EXT
-	schema_filename = str(project_name) + SCHEMA_EXT
-	user_queries_filename = str(project_name) + USER_QUERIES_EXT
-	log_filename = str(project_name) + LOG_EXT
-	ind_vars_filename = str(project_name) + FACTORS_EXT
-	params_filename = str(project_name) + PARAMS_EXT
-	events_filename = str(project_name) + MESSSAGING_EXT
+	# Initialize project file names
+	database_filename = "{0}.db".format(project_name)
+	database_backup_filename = "{0}.db.backup".format(project_name)
+	params_filename = "{0}_params.py".format(project_name)
+	ind_vars_filename = "{0}_independent_variables.py".format(project_name)
+	schema_filename = "{0}_schema.sql".format(project_name)
+	user_queries_filename = "{0}_user_queries.json".format(project_name)
+	log_filename = "{0}_log.txt".format(project_name)
 
-	# Project paths
-	data_dir = join(asset_dir, "Data")
-	local_dir = join(asset_dir, "Local")
-	edf_dir = join(asset_dir, "EDF")  # todo: write edf management
-	incomplete_edf_dir = join(data_dir, "incomplete")
-	log_file_path = join(asset_dir, log_filename)
-	schema_file_path = join(config_dir, schema_filename)
-	user_queries_file_path = join(config_dir, user_queries_filename)
+	# Initialize project file paths
 	database_path = join(asset_dir, database_filename)
-	database_local_path = join(tempfile.gettempdir(), database_local_filename)
-	database_backup_path = database_path + BACK_EXT
-	incomplete_data_dir = join(data_dir, "incomplete")
-	ind_vars_file_path = join(config_dir, ind_vars_filename)
-	ind_vars_file_local_path = join(local_dir, ind_vars_filename)
+	database_backup_path = join(asset_dir, database_backup_filename)
 	params_file_path = join(config_dir, params_filename)
 	params_local_file_path = join(local_dir, params_filename)
-	events_file_path = join(config_dir, events_filename)
-	versions_dir = join(asset_dir, ".versions")
-	logs_dir = join(local_dir, "logs")
-
-	# Font folder info
-	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
-
-	initialized = True
-	return True
+	ind_vars_file_path = join(config_dir, ind_vars_filename)
+	ind_vars_file_local_path = join(local_dir, ind_vars_filename)
+	schema_file_path = join(config_dir, schema_filename)
+	user_queries_file_path = join(config_dir, user_queries_filename)
+	log_file_path = join(asset_dir, log_filename)
 
 
-def setup(project_name_str, seed_value=None):
+def initialize_runtime(exp_name, randseed):
+	"""Initializes all runtime paths and attributes within the Params module.
 
-	global project_name
-	global random_seed
-	global anonymous_username
-	global asset_dir
-	global audio_dir
-	global code_dir
-	global exp_font_dir
-	global image_dir
-	global config_dir
-	global resources_dir
-	global logo_file_path
-
-	timestamp = datetime.fromtimestamp(time.time()).strftime(DATETIME_STAMP)
-	anonymous_username = "demo_user_{0}".format(timestamp)
-	random_seed = seed_value
+	In addition to the basic initialization done by :func:`initialize_paths`,
+	this function sets the runtime's random seed and loads additional internal
+	resources only required when actually running the experiment.
 	
-	seed(random_seed)
-	project_name = project_name_str
-	asset_dir = "ExpAssets"
-	resources_dir = join(asset_dir, "Resources")
-	audio_dir = join(resources_dir, "audio")
-	code_dir = join(resources_dir, "code")
-	exp_font_dir = join(resources_dir, "font")
-	image_dir = join(resources_dir, "image")
-	config_dir = join(asset_dir, "Config")
-	logo_file_path = resource_filename('klibs', 'resources/splash.png')
+	Since the loading of package resources can be noticably slow, the
+	separation of this function from `initialize_paths` allows KLibs to avoid
+	unnecessary lag when calling things like ``klibs export`` or ``klibs -h``.
 
-	return init_project()
+	Args:
+		exp_name (str): The name of the Experiment class in the project's
+			``experiment.py`` file.
+		randseed (int): The random seed to use for the experiment runtime.
+
+	"""
+	import random
+	import tempfile
+	from pkg_resources import resource_filename, resource_string
+
+	global random_seed
+	global klibs_commit
+	global database_local_path
+	global logo_file_path
+	global font_dirs
+
+	# Initialize Python's random number generator with a reproducible seed
+	random_seed = randseed
+	random.seed(random_seed)
+
+	# Initialize project paths
+	initialize_paths(exp_name)
+	database_local_filename = "{0}_{1}.db".format(project_name, random_seed)
+	database_local_path = join(tempfile.gettempdir(), database_local_filename)
+
+	# Load extra resources from KLibs package
+	klibs_commit_raw = resource_string('klibs', 'resources/current_commit.txt')
+	klibs_commit = str(klibs_commit_raw.decode('utf-8'))
+	logo_file_path = resource_filename('klibs', 'resources/splash.png')
+	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
 	

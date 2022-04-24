@@ -67,6 +67,8 @@ New Features:
 * Replaced an unnecessary runtime warning about PyAudio on launch (regardless of
   whether the project required audio input) with a ``RuntimeError`` if trying to
   collect an :class:`~klibs.KLResponseCollectors.AudioResponse` without PyAudio.
+* Raise an error instead of entering the missing database prompt when trying to
+  export data or rebuild the database for a project without a database file.
 
 
 API Changes:

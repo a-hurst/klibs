@@ -7,17 +7,15 @@ from copy import copy
 from itertools import chain
 from os import remove, rename
 from os.path import join, isfile, basename
-from argparse import ArgumentParser
 from collections import OrderedDict
 
 from klibs.KLEnvironment import EnvAgent
-from klibs.KLExceptions import DatabaseException
 from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_DELIM_STR,
 	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR, SQL_BIN, SQL_KEY, SQL_NULL,
 	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID)
 from klibs import P
 from klibs.KLUtilities import (full_trace, type_str, iterable, bool_to_int, boolean_to_logical,
-	snake_to_camel, getinput, utf8)
+	snake_to_camel, utf8)
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLRuntimeInfo import session_info_schema
 
@@ -358,7 +356,8 @@ class DatabaseManager(EnvAgent):
 	def __init__(self):
 		super(DatabaseManager, self).__init__()
 		self.__set_type_conversions()
-		self.__load_master__()
+		shutil.copy(P.database_path, P.database_backup_path)
+		self.__master = Database(P.database_path)
 		if P.multi_user:
 			print("Local database: {0}".format(P.database_local_path))
 			shutil.copy(P.database_path, P.database_local_path)
@@ -367,39 +366,6 @@ class DatabaseManager(EnvAgent):
 			self.__current = self.__local
 		else:
 			self.__current = self.__master
-			
-	def __catch_db_not_found__(self):
-		cso("\n<green_d>No database file was present at '{0}'.</green_d>".format(P.database_path))
-		err_string = cso(
-			"<green_d>You can "
-			"<purple>(c)</purple>reate it, "
-			"<purple>(s)</purple>upply a different path or "
-			"<purple>(q)</purple>uit: </green_d>", print_string=False
-		)
-		db_action = ArgumentParser()
-		db_action.add_argument('action', type=str, choices=['c', 's', 'q'])
-		response = getinput(err_string).lower()
-		response = response[0] if len(response) > 1 else response
-		action = db_action.parse_args([response]).action
-
-		if action == DB_SUPPLY_PATH:
-			# TODO: error checking for this
-			P.database_path = getinput(cso("<green_d>Great. Where might it be?</green_d>", False))
-			self.__load_master__()
-		elif action == DB_CREATE:
-			open(P.database_path, "a").close()
-			self.__load_master__()
-		elif action == "q":
-			raise DatabaseException("Quitting.")
-		else:
-			raise DatabaseException("No valid response.")
-	
-	def __load_master__(self):
-		if isfile(P.database_path):
-			shutil.copy(P.database_path, P.database_backup_path)
-			self.__master = Database(P.database_path)
-		else:
-			self.__catch_db_not_found__()
 	
 	def __restore__(self):
 		# restores database file from the back-up of it

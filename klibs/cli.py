@@ -6,7 +6,6 @@ import sys
 import time
 import traceback
 
-from klibs.KLExceptions import DatabaseException
 from klibs.KLInternal import load_source
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLUtilities import getinput
@@ -79,6 +78,39 @@ def initialize_path(path):
 			"Experiment class defined in 'experiment.py'.".format(suffix))
 		
 	return project_name
+
+
+def validate_database_path(db_path, prompt=False):
+
+	if prompt == False and not os.path.isfile(db_path):
+		err("unable to locate project database at '{0}'.\nIt may have been renamed, "
+			"or may not exist yet.".format(db_path))
+
+	while not os.path.isfile(db_path):
+		cso("\n<green_d>No database file was present at '{0}'.</green_d>".format(db_path))
+		db_prompt = cso(
+			"<green_d>You can "
+			"<purple>(c)</purple>reate it, "
+			"<purple>(s)</purple>upply a different path or "
+			"<purple>(q)</purple>uit: </green_d>", print_string=False
+		)
+		response = getinput(db_prompt).lower()
+		
+		while response not in ['c', 's', 'q']:
+			err_prompt = cso("<red>\nPlease respond with one of 'c', 's', or 'q': </red>", False)
+			response = getinput(err_prompt).lower()
+
+		if response == "c":
+			open(db_path, "a").close()
+		elif response == "s":
+			db_path = getinput(cso("<green_d>\nGreat, where might it be?: </green_d>", False))
+			db_path = os.path.normpath(db_path)
+		elif response == "q":
+			print("")
+			sys.exit()
+	
+	return db_path
+
 
 
 # Actual CLI Functions #
@@ -242,6 +274,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 
 	# set initial param values for project's context
 	P.initialize_runtime(project_name, seed)
+	P.database_path = validate_database_path(P.database_path, prompt=True)
 
 	# Add ExpAssets/Resources/code to pythonpath for easy importing
 	sys.path.append(P.code_dir)
@@ -295,12 +328,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 			env.el = KLEyeTracking.Tracker()
 		except RuntimeError:
 			return
-	try:
-		env.db = DatabaseManager()
-	except DatabaseException as e:
-		if e.message != "Quitting.":
-			cso("<red>Unable to load database.</red>")
-		return
+	env.db = DatabaseManager()
 	env.evm = EventManager()
 
 	try:
@@ -350,6 +378,9 @@ def export(path, table=None, combined=False, join=None):
 	for k, v in load_source(P.params_file_path).items():
 		setattr(P, k, v)
 	multi_file = combined != True
+
+	# Validate database path and export
+	P.database_path = validate_database_path(P.database_path)
 	DatabaseManager().export(table, multi_file, join)
 
 
@@ -366,6 +397,9 @@ def rebuild_db(path):
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in load_source(P.params_file_path).items():
 		setattr(P, k, v)
+
+	# Validate database path and rebuild
+	P.database_path = validate_database_path(P.database_path)
 	DatabaseManager().rebuild()
 
 

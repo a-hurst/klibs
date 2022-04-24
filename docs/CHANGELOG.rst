@@ -64,6 +64,9 @@ New Features:
   their ``center`` attribute to a set of pixel coordinates.
 * :obj:`~klibs.KLBoundary.RectangleBoundary` objects now have ``height`` and
   ``width`` attributes.
+* Replaced an unnecessary runtime warning about PyAudio on launch (regardless of
+  whether the project required audio input) with a ``RuntimeError`` if trying to
+  collect an :class:`~klibs.KLResponseCollectors.AudioResponse` without PyAudio.
 
 
 API Changes:

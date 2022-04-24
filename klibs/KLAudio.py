@@ -52,20 +52,18 @@ class AudioManager(object):
 		if not sdl2.SDL_WasInit(sdl2.SDL_INIT_AUDIO):
 			sdl2.SDL_Init(sdl2.SDL_INIT_AUDIO)
 			sdl2.sdlmixer.Mix_OpenAudio(44100, sdl2.sdlmixer.MIX_DEFAULT_FORMAT, 2, 1024)
+		self.input = None
+		self.stream = None
 		if PYAUDIO_AVAILABLE:
 			try:
 				self.input = pyaudio.PyAudio()
 				self.device_name = self.input.get_default_input_device_info()['name']
 				self.stream = AudioStream(self.input)
 			except IOError:
-				print("Warning: Could not find a valid audio input device, audio input will "
-					"not be available.")
+				print("* Warning: Could not find a valid audio input device, audio input will "
+					"not be available.\n")
 				self.input = None
 				self.stream = None
-		else:
-			print("\t* Warning: PyAudio library not found; audio input will not be available.")
-			self.input = None
-			self.stream = None
 
 	def calibrate(self):
 		"""Determines a threshold loudness to use for vocal responses based on sample input from

@@ -3,16 +3,22 @@ __author__ = 'Austin Hurst & Jonathan Mulle'
 import os
 import re
 import sys
-import time
 import traceback
 
 from klibs.KLInternal import load_source
-from klibs.KLUtilities import colored_stdout as cso
-from klibs.KLUtilities import getinput
+from klibs.KLInternal import colored_stdout as cso
 from klibs import P
 
 
 # Utility Functions #
+
+def getinput(*args, **kwargs):
+	# Python 2/3-agnostic function for getting console input.
+	try:
+		return raw_input(*args, **kwargs)
+	except NameError:
+		return input(*args, **kwargs)
+
 
 def err(err_string):
 	cso("<red>\nError: " + err_string + "</red>\n")
@@ -406,7 +412,7 @@ def rebuild_db(path):
 def hard_reset(path):
 	import shutil
 	from os.path import join
-	from klibs.KLUtilities import iterable
+	from klibs.KLInternal import iterable
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)

@@ -154,12 +154,7 @@ class Database(EnvAgent):
 		self.db.text_factory = sqlite3.OptimizedUnicode
 		self.cursor = self.db.cursor()
 		if len(self._tables()) == 0:
-			if isfile(P.schema_file_path):
-				self._deploy_schema(P.schema_file_path)
-			else:
-				print("\nError: No SQL schema found at '{0}'. Please make sure there is a valid "
-					"schema file at this location and try again.\n".format(P.schema_file_path))
-				raise RuntimeError("Database schema could not be found.")
+			self._deploy_schema(P.schema_file_path)
 		self.build_table_schemas()
 
 	def _tables(self):
@@ -523,7 +518,6 @@ class DatabaseManager(EnvAgent):
 			with io.open(file_path, 'w+', encoding='utf-8') as out:
 				out.write(u"\n".join([header, column_names, "\n".join(combined_data)]))
 			print("    - Data for {0} participants successfully exported.".format(p_count))
-		print("") # newline between export info and next prompt for aesthetics' sake
 
 
 	def export_header(self, user_id=None):
@@ -635,21 +629,11 @@ class DatabaseManager(EnvAgent):
 
 
 	def rebuild(self):
-		if not isfile(P.schema_file_path):
-			print("Error: No SQL schema found at '{0}'. Please make sure there is a valid "
-				  "schema file at this location and try again.\n".format(P.schema_file_path))
-			return False
-
 		self.__master._drop_tables()
 		try:
 			self.__master._deploy_schema(P.schema_file_path)
 			self.__master.build_table_schemas()
-			print("\nDatabase successfully rebuilt! Please make sure to update your experiment.py "
-				  "to reflect any changes you might have made to tables or column names.\n")
 		except (sqlite3.ProgrammingError, sqlite3.OperationalError, ValueError) as e:
-			schema_filename = basename(P.schema_file_path)
-			cso("\n<red>Syntax error encountered in '{0}'. Please double-check the formatting of "
-				"the schema and try again.</red>\n".format(schema_filename))
 			self.__master._drop_tables(self.__master.table_list)
 			self.__restore__()
 			raise e

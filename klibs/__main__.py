@@ -174,6 +174,7 @@ def cli():
 	for key in args:
 		if key != "func": arg_dict[key] = args[key]
 
+	print("") # Add a blank line before any CLI output
 	args["func"](**arg_dict)
 
 

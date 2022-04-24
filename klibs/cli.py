@@ -21,7 +21,7 @@ def getinput(*args, **kwargs):
 
 
 def err(err_string):
-	cso("<red>\nError: " + err_string + "</red>\n")
+	cso("<red>Error: " + err_string + "</red>\n")
 	sys.exit()
 
 
@@ -93,7 +93,7 @@ def validate_database_path(db_path, prompt=False):
 			"or may not exist yet.".format(db_path))
 
 	while not os.path.isfile(db_path):
-		cso("\n<green_d>No database file was present at '{0}'.</green_d>".format(db_path))
+		cso("<green_d>No database file was present at '{0}'.</green_d>".format(db_path))
 		db_prompt = cso(
 			"<green_d>You can "
 			"<purple>(c)</purple>reate it, "
@@ -101,18 +101,18 @@ def validate_database_path(db_path, prompt=False):
 			"<purple>(q)</purple>uit: </green_d>", print_string=False
 		)
 		response = getinput(db_prompt).lower()
+		print("")
 		
 		while response not in ['c', 's', 'q']:
-			err_prompt = cso("<red>\nPlease respond with one of 'c', 's', or 'q': </red>", False)
+			err_prompt = cso("<red>Please respond with one of 'c', 's', or 'q': </red>", False)
 			response = getinput(err_prompt).lower()
 
 		if response == "c":
 			open(db_path, "a").close()
 		elif response == "s":
-			db_path = getinput(cso("<green_d>\nGreat, where might it be?: </green_d>", False))
+			db_path = getinput(cso("<green_d>Great, where might it be?: </green_d>", False))
 			db_path = os.path.normpath(db_path)
 		elif response == "q":
-			print("")
 			sys.exit()
 	
 	return db_path
@@ -171,7 +171,7 @@ def create(name, path):
 			"your project a different name and try again.".format(name, path))
 
 	# Get author name for adding to project files
-	author = getinput(cso("\n<green_d>Please provide your first and last name: </green_d>", False))
+	author = getinput(cso("<green_d>Please provide your first and last name: </green_d>", False))
 	if len(author.split()) < 2:
 		one_name_peeps = ["Madonna", "Prince", "Cher", "Bono", "Sting"]
 		cso("<red>\nOk {0}, take it easy.</red> "
@@ -229,7 +229,7 @@ def create(name, path):
 
 def run(screen_size, path, condition, devmode, no_tracker, seed):
 
-	cso("\n\n<green>*** Now Loading KLibs Environment ***</green>\n")
+	cso("\n<green>*** Now Loading KLibs Environment ***</green>\n")
 
 	from klibs import P
 	from klibs import env
@@ -372,6 +372,7 @@ def export(path, table=None, combined=False, join=None):
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)
+	cso("\n<green>*** Exporting data from {0} ***</green>\n".format(project_name))
 
 	# set initial param values for project's context
 	P.initialize_paths(project_name)
@@ -423,7 +424,7 @@ def hard_reset(path):
 	]
 
 	reset_prompt = cso(
-		"\n<red>Warning: doing a hard reset will delete all collected data, "
+		"<red>Warning: doing a hard reset will delete all collected data, "
 		"all logs, all copies of experiment.py and Config files in the .versions folder "
 		"that previous participants were run with, and reset the project's database. "
 		"Are you sure you want to continue?</red> (Y/N): ", False
@@ -442,7 +443,7 @@ def hard_reset(path):
 		if os.path.isfile(f):
 			os.remove(f)
 	
-	cso("\nProject reset successfully.")
+	cso("\nProject reset successfully.\n")
 
 
 def update(branch='default'):
@@ -474,7 +475,7 @@ def update(branch='default'):
 	
 	update_cmd = 'install -U git+{0}#egg=klibs --upgrade-strategy only-if-needed'.format(git_repo)
 	update_prompt = cso(
-		"\n<green_d>Updating will replace the current install of KLibs with the most "
+		"<green_d>Updating will replace the current install of KLibs with the most "
 		"recent commit of the <purple>{0}</purple> branch of <purple>'{1}'</purple>. "
 		"Are you sure you want to continue? (Y/N): </green_d>".format(branch, git_repo_short),
 		False

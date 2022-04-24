@@ -501,7 +501,6 @@ class DatabaseManager(EnvAgent):
 		except TypeError:
 			join_tables = []
 
-		cso("\n<green>*** Exporting data from {0} ***</green>\n".format(P.project_name))
 		self.__set_type_conversions(export=True)
 		column_names, data = self.collect_export_data(multi_file, join_tables)
 

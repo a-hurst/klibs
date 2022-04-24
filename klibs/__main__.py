@@ -137,13 +137,13 @@ def cli():
 	)
 	export_parser.set_defaults(func=export)
 
-	update_parser = subparsers.add_parser('update',
-		help='Update KLibs to the newest available version',
-		usage='klibs update [branch] [-h]'
+	update_parser = subparsers.add_parser('update', formatter_class=CustomHelpFormatter,
+		help='Update KLibs to the latest available version',
+		usage='klibs update [-b <branch>] [-h]'
 	)
-	update_parser.add_argument('branch', default='default', nargs="?", type=str,
-		help=("The branch of the KLibs GitHub repository from which to install the latest version. "
-		"The default branch is used if none is specified.")
+	update_parser.add_argument('-b', '--branch', nargs="?", type=str, metavar="name",
+		help=("The branch of the a-hurst/klibs repository from which to update KLibs. "
+		"Installs the latest stable release if not specified.")
 	)
 	update_parser.set_defaults(func=update)
 

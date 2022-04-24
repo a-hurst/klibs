@@ -459,48 +459,41 @@ def hard_reset(path):
 	cso("\nProject reset successfully.\n")
 
 
-def update(branch='default'):
-    # NOTE: This is a bad idea and should be removed.
-	import logging
-	import pip
-	try:
-		from pip import main as pip_main
-	except ImportError:
-		from pip._internal import main as pip_main
+def update(branch=None):
+	import subprocess as sub
 
-	# Avoid unnecessary terminal clutter by suppressing alerts for non-upgraded dependencies
-	class pipFilter(logging.Filter):
-		def filter(self, record):
-			return not record.getMessage().startswith('Requirement not upgraded')
-	try:
-		pip.req.req_set.logger.addFilter(pipFilter())
-	except AttributeError:
-		pip_logger = logging.getLogger('pip._internal.operations.prepare')
-		pip_logger.addFilter(pipFilter())
+	git_repo = 'a-hurst/klibs'
+	if branch:
+		url = 'https://github.com/{0}.git@{1}'.format(git_repo, branch)
+		cmd = ['pip', 'install', '-U', 'git+{0}#egg=klibs'.format(url)]
+		msg1 = "most recent commit\nfrom the <purple>{0}</purple> branch of"
+		msg1 = msg1.format(branch)
+		msg2 = "commit from '{0}'".format(branch)
+	else:
+		url = "https://github.com/{0}/releases/latest/download/klibs.tar.gz"
+		cmd = ['pip', 'install', url.format(git_repo)]
+		msg1 = "latest release\nfrom"
+		msg2 = "release from '{0}'".format(git_repo)
 
-	#TODO: This should really be able to compare the version/commit/origin of the current KLibs
-	#install and the one about to be installed to make sure you can't unintentionally overwrite
-	#a newer local version or install from a different branch.
-	git_repo_short = 'github.com/a-hurst'
-	git_repo = 'https://{0}/klibs.git'.format(git_repo_short)
-	if branch != 'default':
-		git_repo += "@{0}".format(branch)
-	
-	update_cmd = 'install -U git+{0}#egg=klibs --upgrade-strategy only-if-needed'.format(git_repo)
 	update_prompt = cso(
-		"<green_d>Updating will replace the current install of KLibs with the most "
-		"recent commit of the <purple>{0}</purple> branch of <purple>'{1}'</purple>. "
-		"Are you sure you want to continue? (Y/N): </green_d>".format(branch, git_repo_short),
+		"<green_d>Updating will replace the current install of KLibs with the "
+		"{0} <purple>'{1}'</purple></green_d>.\n\n"
+		"Are you sure you want to continue? (Y/N): ".format(msg1, git_repo),
 		False
 	)
-	if getinput(update_prompt).lower() == "y":
+	if getinput(update_prompt).lower() != "y":
 		print("")
-		cso("<green_d>Updating klibs to latest commit from {0}...</green_d>".format(git_repo_short))
-		try:
-			pip_main(update_cmd.split(' '))
-		except OSError:
-			cso("<red>Root permissions required to reinstall klibs.</red>")
-			sys.exit()
+		return
+
+	# Set environment variable to avoid pip update warnings & run update command
+	cso("\n<green_d>Updating to the latest {0}...</green_d>\n".format(msg2))
+	env = os.environ.copy()
+	env['PIP_DISABLE_PIP_VERSION_CHECK'] = '1'
+	p = sub.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr, env=env)
+	p.communicate()
+
+	# Indicate whether update succeeded
+	if p.returncode != 0:
+		cso("\n<red>Errors encountered during KLibs update.</red>\n")
 	else:
-		print("")
-		sys.exit()
+		cso("\n<green_d>Update completed successfully!</green_d>\n")

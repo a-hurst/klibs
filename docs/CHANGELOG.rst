@@ -69,6 +69,8 @@ New Features:
   collect an :class:`~klibs.KLResponseCollectors.AudioResponse` without PyAudio.
 * Raise an error instead of entering the missing database prompt when trying to
   export data or rebuild the database for a project without a database file.
+* ``klibs update`` now installs the latest GitHub release of KLibs instead of
+  the latest commit from the default branch.
 
 
 API Changes:

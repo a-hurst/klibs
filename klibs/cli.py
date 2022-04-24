@@ -409,7 +409,10 @@ def hard_reset(path):
 	from klibs.KLUtilities import iterable
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
-	initialize_path(path)
+	project_name = initialize_path(path)
+
+	# Initialize file paths for the project
+	P.initialize_paths(project_name)
 
 	reset_prompt = cso(
 		"\n<red>Warning: doing a hard reset will delete all collected data, "
@@ -425,11 +428,13 @@ def hard_reset(path):
 				shutil.rmtree(join(path, "ExpAssets", d))
 			except OSError:
 				pass
+		for f in [P.database_path, P.database_backup_path]:
+			if os.path.isfile(f):
+				os.remove(f)
 		os.makedirs(join(path, "ExpAssets", "Data", "incomplete"))
 		os.makedirs(join(path, "ExpAssets", "EDF", "incomplete"))
 		os.mkdir(join(path, "ExpAssets", "Local", "logs"))
 		os.mkdir(join(path, "ExpAssets", ".versions"))
-		rebuild_db(path)
 	print("")
 
 

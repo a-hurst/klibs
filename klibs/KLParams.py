@@ -1,13 +1,25 @@
 # -*- coding: utf-8 -*-
+"""Contains the user-facing (and internal) runtime variables for the KLibs environment.
+
+The purpose of KLParams is to make useful experiment configuration and runtime
+variables easily accessible through a single module. Things like the current trial
+number, block number, screen resolution (in pixels), asset folder paths, and custom
+paramaters defined in a project's ``_params.py`` file are all accessible through
+KLParams.
+
+For convenience, this module can be imported through the main klibs namespace with
+the alias ``P`` (e.g. ``from klibs import P``). 
+
+"""
+
 __author__ = 'Jonathan Mulle & Austin Hurst'
-"""
-TODO: set this up such that all vars are in a dict with a key representing whether the var should
-be included in the user's template of the params file, then autogenerate the template doc. AND the
-runtime params from that dict (this was Jon's idea, is it worth the effort / likely API breaking?)
-"""
 
 import logging
 from os.path import join
+
+# TODO: Try making the Params "P" an object or AttributeDict? Could set attributes
+# dynamically but also allow for sanity checks and renaming variables w/o breaking
+# backwards compatibility. Would also help with documentation.
 
 
 # Runtime Variables

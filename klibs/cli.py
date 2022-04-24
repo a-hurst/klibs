@@ -411,14 +411,16 @@ def rebuild_db(path):
 
 def hard_reset(path):
 	import shutil
-	from os.path import join
-	from klibs.KLInternal import iterable
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)
 
-	# Initialize file paths for the project
+	# Initialize file paths for the project & list ones to remove/rebuild
 	P.initialize_paths(project_name)
+	reset_files = [P.database_path, P.database_backup_path]
+	reset_dirs = [
+		P.incomplete_data_dir, P.incomplete_edf_dir, P.logs_dir, P.versions_dir
+	]
 
 	reset_prompt = cso(
 		"\n<red>Warning: doing a hard reset will delete all collected data, "
@@ -426,22 +428,21 @@ def hard_reset(path):
 		"that previous participants were run with, and reset the project's database. "
 		"Are you sure you want to continue?</red> (Y/N): ", False
 	)
-	if getinput(reset_prompt).lower() == "y":
-		for d in ['Data', 'EDF', '.versions', ('Local', 'logs')]:
-			if iterable(d):
-				d = join(*d)
-			try:
-				shutil.rmtree(join(path, "ExpAssets", d))
-			except OSError:
-				pass
-		for f in [P.database_path, P.database_backup_path]:
-			if os.path.isfile(f):
-				os.remove(f)
-		os.makedirs(join(path, "ExpAssets", "Data", "incomplete"))
-		os.makedirs(join(path, "ExpAssets", "EDF", "incomplete"))
-		os.mkdir(join(path, "ExpAssets", "Local", "logs"))
-		os.mkdir(join(path, "ExpAssets", ".versions"))
-	print("")
+	if getinput(reset_prompt).lower() != "y":
+		return
+	
+	# Remove and replace folders to reset
+	for d in reset_dirs:
+		if os.path.isdir(d):
+			shutil.rmtree(d)
+		os.makedirs(d)
+
+	# Remove (but don't replace) files to reset
+	for f in reset_files:
+		if os.path.isfile(f):
+			os.remove(f)
+	
+	cso("\nProject reset successfully.")
 
 
 def update(branch='default'):

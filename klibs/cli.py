@@ -25,27 +25,41 @@ def err(err_string):
 	sys.exit()
 
 
-def ensure_directory_structure(dir_map, root, parents=[], create_missing=False):
+def ensure_directory_structure(root, create_missing=False):
+
+	dir_structure = {
+		"ExpAssets": {
+			".versions": [],
+			"Config": [],
+			"Resources": ["audio", "code", "font", "image"],
+			"Local": ["logs"],
+			"Data": ["incomplete"],
+			"EDF": ["incomplete"],
+		}
+	}
+
+	def _get_dir_paths(dir_map, root):
+		paths = []
+		if isinstance(dir_map, list):
+			return [os.path.join(root, d) for d in dir_map]
+		else:
+			for d, subdirs in dir_map.items():
+				dpath = os.path.join(root, d)
+				paths += [dpath]
+				paths += _get_dir_paths(subdirs, dpath)
+		return paths
+
 	missing_dirs = []
-	if dir_map is None:
-		return missing_dirs
-	parent_path = os.path.join(*parents) if len(parents) else ""
-	for d in dir_map:
-		dir_full_path = os.path.join(root, parent_path, d)
-		subdirs = dir_map[d]
-		if not os.path.exists(dir_full_path):
-			if not create_missing:
-				missing_dirs.append(dir_full_path)
-			else:
-				try:
-					os.makedirs(dir_full_path)
-				except OSError as e:
-					cso("failed")
-					cso(dir_map, parents)
-					sys.exit()
-		new_parents = [p for p in parents]
-		new_parents.append(d)
-		missing_dirs += ensure_directory_structure(subdirs, root, new_parents, create_missing)
+	for d in _get_dir_paths(dir_structure, root):
+		if not os.path.isdir(d):
+			d = d.replace(root, "").strip(os.path.sep)
+			missing_dirs.append(d)
+	
+	if create_missing:
+		for d in missing_dirs:
+			dpath = os.path.join(root, d)
+			os.makedirs(dpath, exist_ok=True)
+
 	return missing_dirs
 
 
@@ -128,16 +142,6 @@ def create(name, path):
 	from tempfile import mkdtemp
 	from pkg_resources import resource_filename
 
-	dir_structure = {
-		"ExpAssets": {
-			".versions": None,
-			"Config": None,
-			"Resources": {"audio": None, "code": None, "font": None, "image": None},
-			"Local": {"logs": None},
-			"Data": {"incomplete": None},
-			"EDF": {"incomplete": None}
-		}
-	}
 	template_files = [
 		("schema.sql", ["ExpAssets", "Config"]),
 		("independent_variables.py", ["ExpAssets", "Config"]),
@@ -206,7 +210,7 @@ def create(name, path):
 	# Create temporary folder and assemble project template inside it
 	tmp_path = mkdtemp(prefix='klibs_')
 	tmp_dir = os.path.split(tmp_path)[1]
-	ensure_directory_structure(dir_structure, tmp_path, create_missing=True)
+	ensure_directory_structure(tmp_path, create_missing=True)
 	cso("  <cyan>...Project template folders successfully created.</cyan>")
 
 	source_path = resource_filename('klibs', 'resources/template')
@@ -243,40 +247,30 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 	project_name = initialize_path(path)
 
 	# create any missing project directories
-	dir_structure = {
-		"ExpAssets": {
-			".versions": None,
-			"Config": None,
-			"Resources": {"audio": None, "code": None, "font": None, "image": None},
-			"Local": {"logs": None},
-			"Data": {"incomplete": None},
-			"EDF": {"incomplete": None}}
-	}
-
-	missing_dirs = ensure_directory_structure(dir_structure, path)
+	missing_dirs = ensure_directory_structure(path)
 	if len(missing_dirs):
-		print("")
 		cso("<red>Some expected or required directories for this project appear to be missing.</red>")
 		while True:
 			query = cso(
 				"<green_d>You can "
 				"<purple>(c)</purple>reate them automatically, view a "
-				"<purple>(r)</purple>eport on the missing directories, or "
+				"<purple>(r)</purple>eport on the missing directories,\nor "
 				"<purple>(q)</purple>uit klibs: </green_d>", False
 			)
 			action = getinput(query).lower()
 			action = action[0] if len(action) > 1 else action # only check first letter of input
 			if action == "r":
-				cso("<green_d>The following expected directories were not found:</green_d>")
+				cso("\n<green_d>The following required directories were not found:</green_d>")
 				for md in missing_dirs:
-					cso("\t<purple>{0}</purple>".format(md))
+					cso("<purple> - {0}</purple>".format(md))
 			elif action == "c":
-				ensure_directory_structure(dir_structure, path, create_missing=True)
+				ensure_directory_structure(path, create_missing=True)
 				break
 			elif action == "q":
 				return
 			else:
 				cso("\n<red>Please enter a valid response.</red>")
+			print("")
 
 	# set initial param values for project's context
 	P.initialize_runtime(project_name, seed)

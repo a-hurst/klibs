@@ -383,7 +383,6 @@ def export(path, table=None, combined=False, join=None):
 	# Validate database path and export
 	P.database_path = validate_database_path(P.database_path)
 	DatabaseManager().export(table, multi_file, join)
-	print("") # newline between export info and next prompt for aesthetics' sake
 
 
 def rebuild_db(path):
@@ -405,14 +404,14 @@ def rebuild_db(path):
 	try:
 		DatabaseManager().rebuild()
 		cso("Database successfully rebuilt! Please make sure to update experiment.py\n"
-			"to reflect any changes you might have made to tables or column names.\n")
+			"to reflect any changes you might have made to tables or column names.")
 	except Exception as e:
 		exc_txt = traceback.format_exc().split("\n")[-2]
 		schema_filename = os.path.basename(P.schema_file_path)
 		err = (
 			"<red>Syntax error encountered in database schema ('{0}'):</red>\n\n"
 			"  {1}\n\n"
-			"<red>Please double-check the file's formatting and try again.</red>\n"
+			"<red>Please double-check the file's formatting and try again.</red>"
 		)
 		cso(err.format(schema_filename, exc_txt))
 
@@ -450,7 +449,7 @@ def hard_reset(path):
 		if os.path.isfile(f):
 			os.remove(f)
 	
-	cso("\nProject reset successfully.\n")
+	cso("\nProject reset successfully.")
 
 
 def update(branch=None):
@@ -476,7 +475,6 @@ def update(branch=None):
 		False
 	)
 	if getinput(update_prompt).lower() != "y":
-		print("")
 		return
 
 	# Set environment variable to avoid pip update warnings & run update command
@@ -488,6 +486,6 @@ def update(branch=None):
 
 	# Indicate whether update succeeded
 	if p.returncode != 0:
-		cso("\n<red>Errors encountered during KLibs update.</red>\n")
+		cso("\n<red>Errors encountered during KLibs update.</red>")
 	else:
-		cso("\n<green_d>Update completed successfully!</green_d>\n")
+		cso("\n<green_d>Update completed successfully!</green_d>")

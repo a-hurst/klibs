@@ -176,6 +176,7 @@ def cli():
 
 	print("") # Add a blank line before any CLI output
 	args["func"](**arg_dict)
+	print("") # Add a blank line after any CLI output
 
 
 if __name__ == '__main__':

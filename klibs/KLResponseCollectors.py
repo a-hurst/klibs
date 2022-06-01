@@ -601,8 +601,8 @@ class CursorResponse(ResponseListener, BoundaryInspector):
 		"""See :meth:`ResponseListener.init`.
 
 		"""
-		if len(self.active_boundaries) == 0:
-			e = "The ClickResponse listener must contain at least one active boundary to be used."
+		if len(self.boundaries) == 0:
+			e = "The ClickResponse listener must contain at least one boundary to check."
 			raise BoundaryError(e)
 		show_mouse_cursor()
 

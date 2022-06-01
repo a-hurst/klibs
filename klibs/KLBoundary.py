@@ -25,6 +25,11 @@ class BoundaryInspector(object):
 	def __init__(self):
 		self.boundaries = OrderedDict()
 
+	def __verify_label(self, label):
+		if label not in self.boundaries.keys():
+			e = "No boundary with the label '{0}' has been added to the inspector."
+			raise KeyError(e.format(label))
+
 	def add_boundary(self, boundary, bounds=None, shape=None):
 		"""Adds a boundary to the inspector.
 		
@@ -100,48 +105,58 @@ class BoundaryInspector(object):
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
-			BoundaryError: If the boundary specified by 'label' is currently disabled.
+			KeyError: If no boundary with the given label exists within the inspector.
 			ValueError: If the given point is not a valid set of (x,y) coordinates.
 		
 		"""
-		if not self.boundaries[label].active:
-			raise BoundaryError("Boundary '{0}' is not active for searching.".format(label))
+		self.__verify_label(label)
 		return self.boundaries[label].within(p)
 
-	def which_boundary(self, p, labels=None):
-		"""Determines whether a given point is within any of the active boundaries, or alteratively
-		whether it is within any of a list of specific boundaries. Unlike :meth:`within_boundary`,
-		which returns either True or False, this method returns either the label of the boundary
-		the point is currently within, or 'None' if it is not in any of the boundaries.
-		
-		If two boundaries overlap, and the point is within both of them, this will return the label
-		of whichever boundary was added to the inspector first.
+	def which_boundary(self, p, labels=None, ignore=[]):
+		"""Determines which boundary (if any) a given point is within.
+
+		Unlike :meth:`within_boundary`, which checks whether a point is within a
+		`specific` boundary, this method returns the name of the boundary (if any) a
+		given point is within (e.g. 'left_button'). If the point falls within multiple
+		boundaries, the label of the boundary that was added most recently will be
+		returned.
+
+		By default, the point will be tested against all boundaries in the inspector.
+		To check only a subset of the boundaries, you can specify the names of the
+		boundaries to check using the ``labels`` argument. Conversely, you can exclude
+		specific boundaries from the search using the ``ignore`` argument.
 
 		Args:
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to check for the
-				presence of within the boundaries.
-			labels (:obj:`List`, optional): A list containing the labels of the boundaries to
-				inspect. All active boundaries are inspected if no list of labels provided.
+			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to test
+				against the inspector's boundaries.
+			labels (:obj:`List`, optional): A list containing the labels of the
+				boundaries to inspect. Defaults to inspecting all boundaries.
+			ignore (:obj:`List`, optional): A list containing the labels of any
+				boundaries to ignore. Defaults to an empty list (no ignored boundaries).
 		
 		Returns:
-			:obj:`str` or None: If the point is within one of the boundaries, that boundary's label
-				is returned. Otherwise, returns None. 
+			:obj:`str` or None: The label of the boundary that the point is within, or
+			``None`` if the point does not fall within any boundary.
 		
 		Raises:
-			BoundaryError: If any boundaries specified by 'labels' are currently disabled.
+			KeyError: If any given labels do not correspond to a boundary within the inspector.
 			ValueError: If the given point is not a valid set of (x,y) coordinates.
 		
 		"""
-		for l in labels if labels else self.boundaries:
-			try:
-				if self.boundaries[l].within(p):
-					return l
-			except BoundaryError:
-				if not labels:
-					pass
-				else:
-					raise
-		return None
+		if not labels:
+			labels = list(self.boundaries.keys())
+		if not iterable(ignore):
+			ignore = [ignore]
+
+		boundary = None
+		for l in self.boundaries.keys():
+			if l in ignore or not l in labels:
+				continue
+			self.__verify_label(l)
+			if self.boundaries[l].within(p):
+				boundary = l
+
+		return boundary
 
 	def remove_boundaries(self, labels):
 		"""Removes one or more boundaries from the inspector.
@@ -150,14 +165,13 @@ class BoundaryInspector(object):
 			labels (:obj:`List`): A list containing the labels of the boundaries to remove.
 		
 		Raises:
-			KeyError: If a boundary with the given label does not exist within the inspector.
+			KeyError: If any label does not correspond to a boundary within the inspector.
 		
 		"""
 		if not iterable(labels): labels = [labels]
 		for label in labels:
-			retval = self.boundaries.pop(label, None)
-			if retval == None:
-				raise KeyError("Key '{0}' not found; No such boundary exists!".format(label))
+			self.__verify_label(label)
+			self.boundaries.pop(label, None)
 
 	def clear_boundaries(self, preserve=[]):
 		"""Removes all boundaries from the inspector.
@@ -165,11 +179,17 @@ class BoundaryInspector(object):
 		Args:
 			preserve (:obj:`List`, optional): A list containing the labels of any boundaries
 				that should remain in the inspector after the clear.
+
+		Raises:
+			KeyError: If any given labels do not correspond to boundaries within the inspector.
 		
 		"""
+		if not iterable(preserve):
+			preserve = [preserve]
 		preserved = OrderedDict()
-		for i in preserve:
-			preserved[i] = self.boundaries[i]
+		for label in preserve:
+			self.__verify_label(label)
+			preserved[label] = self.boundaries[label]
 		self.boundaries = preserved
 
 	def draw_boundaries(self, labels=None):
@@ -187,39 +207,6 @@ class BoundaryInspector(object):
 		
 		"""
 		raise NotImplementedError("Boundary drawing will be implemented in a future version.")
-
-	def disable_boundaries(self, labels):
-		"""Disables one or more boundaries. If a boundary is disabled, it will not be inspected
-		when calling :meth:~`within_boundaries` and will raise an exception if it is inspected by
-		label. Disabled boundaries can be re-enabled using :meth:~`enable_boundaries`.
-
-		Args:
-			labels (:obj:`List`): A list containing the labels of the boundaries to disable.
-		
-		"""
-		if not iterable(labels): labels = [labels]
-		for label in labels:
-			self.boundaries[label].active = False
-
-	def enable_boundaries(self, labels):
-		"""Re-enables one or more disabled boundaries. If called for a boundary that is already
-		enabled, it will have no effect on it.
-
-		Args:
-			labels (:obj:`List`): A list containing the labels of the boundaries to enable.
-		
-		"""
-		if not iterable(labels): labels = [labels]
-		for label in labels:
-			self.boundaries[label].active = True
-
-	@property
-	def active_boundaries(self):
-		active = []
-		for label in self.boundaries.keys():
-			if self.boundaries[label].active:
-				active.append(label)
-		return active
 
 
 

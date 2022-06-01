@@ -13,6 +13,9 @@ def test_rectangle_boundary():
     pos = klb.RectangleBoundary('test2', (10, 10), (50, 50))
     floats = klb.RectangleBoundary('test3', p1=(10.4, 10.8), p2=(50.5, 50.2))
 
+    # Test string
+    assert str(rect) == "RectangleBoundary(p1=(10, 10), p2=(50, 50))"
+
     # Test boundary attributes
     assert rect.label == 'test1'
     assert rect.p1 == (10, 10)
@@ -43,6 +46,9 @@ def test_circle_boundary():
     pos = klb.CircleBoundary('test2', (100, 100), 50)
     floats = klb.CircleBoundary('test3', center=(99.5, 100), radius=43.5)
 
+    # Test string
+    assert str(circle) == "CircleBoundary(center=(100, 100), radius=50)"
+
     # Test boundary attributes
     assert circle.label == 'test1'
     assert circle.center == (100, 100)
@@ -72,6 +78,9 @@ def test_annulus_boundary():
     # Test position arguments and boundaries with floats
     pos = klb.AnnulusBoundary('test2', (100, 100), 50, 10)
     floats = klb.AnnulusBoundary('test3', center=(99.5, 100), radius=43.5, thickness=4.6)
+
+    # Test string
+    assert str(ring) == "AnnulusBoundary(center=(100, 100), radius=50, thickness=10)"
 
     # Test boundary attributes
     assert ring.label == 'test1'
@@ -157,6 +166,15 @@ def test_boundary_inspector():
     assert inspector.within_boundary('test1', (20, 40)) == True
     assert inspector.within_boundary('test2', (20, 40)) == False
     assert inspector.within_boundary('test3', (20, 40)) == True
+
+    # Test combined boundary tests
+    inspector = klb.BoundaryInspector()
+    inspector.add_boundaries([tst1, tst2, tst3])
+    assert inspector.which_boundary((20, 40)) == 'test3'
+    assert inspector.which_boundary((20, 40), ignore='test3') == 'test1'
+    assert inspector.which_boundary((20, 40), ignore=['test3']) == 'test1'
+    assert inspector.which_boundary((20, 40), labels=['test1', 'test2']) == 'test1'
+    assert inspector.which_boundary((20, 40), labels=['test2']) == None
 
     # Test exceptions
     inspector = klb.BoundaryInspector()

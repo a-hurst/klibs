@@ -44,8 +44,13 @@ New Features:
   NumpySurface class for retrieving the current dimensions and midpoint of a
   surface, respectively.
 * Improved the loading speed of the ``klibs`` command line.
-* Added proper `repr` methods for all built-in :obj:`~klibs.KLBoundary.Boundary`
+* Added proper print methods for all built-in :obj:`~klibs.KLBoundary.Boundary`
   types.
+* Added a new argument ``ignore`` to the
+  :obj:`~klibs.KLBoundary.BoundaryInspector.which_boundary` method of the
+  ``BoundaryInspector`` class, allowing easy exclusion of specific boundaries
+  from the search and replacing the functionality of the now-removed
+  ``disable_boundaries`` and ``enable_boundaries`` methods.
 
 
 API Changes:
@@ -85,6 +90,12 @@ API Changes:
   tuples for storing/returning (x, y) pixel coordinates.
 * Removed the legacy ``shape`` attribute from :obj:`~klibs.KLBoundary.Boundary`
   (use ``isinstance`` to check boundary types instead).
+* :obj:`~klibs.KLBoundary.BoundaryInspector` methods now raise ``KeyError``
+  exceptions instead of ``BoundaryError`` exceptions when given a boundary label
+  that does not exist within the inspector.
+* Removed the ``enable_boundaries`` and ``disable_boundaries`` methods as well
+  as the ``active_boundaries`` attribute from the 
+  :obj:`~klibs.KLBoundary.BoundaryInspector` class.
 
 
 Fixed Bugs:

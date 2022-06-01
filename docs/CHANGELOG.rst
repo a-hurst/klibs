@@ -44,6 +44,8 @@ New Features:
   NumpySurface class for retrieving the current dimensions and midpoint of a
   surface, respectively.
 * Improved the loading speed of the ``klibs`` command line.
+* Added proper `repr` methods for all built-in :obj:`~klibs.KLBoundary.Boundary`
+  types.
 
 
 API Changes:
@@ -79,6 +81,8 @@ API Changes:
   library instead.
 * :class:`~klibs.KLJSON_Object.KLJSON_Object` has been deprecated in favour of a
   new JSON import function, :func:`~klibs.KLJSON_Object.import_json`.
+* Standardized built-in :obj:`~klibs.KLBoundary.Boundary` types to always use
+  tuples for storing/returning (x, y) pixel coordinates.
 
 
 Fixed Bugs:

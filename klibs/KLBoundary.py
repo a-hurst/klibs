@@ -5,7 +5,8 @@ from collections import OrderedDict
 
 from klibs.KLConstants import RECT_BOUNDARY, CIRCLE_BOUNDARY, ANNULUS_BOUNDARY
 from klibs.KLExceptions import BoundaryError
-from klibs.KLUtilities import iterable, midpoint, line_segment_len, valid_coords
+from klibs.KLInternal import valid_coords, iterable
+from klibs.KLUtilities import midpoint, line_segment_len
 
 """A module containing different types of boundaries that can you can use to see if a given point
 is within a given region or not. These boundaries can be used as individual objects, or
@@ -234,6 +235,13 @@ class Boundary(object):
 		self.__label = label
 		self.active = True
 
+	def __repr__(self):
+		s = "<klibs.KLBoundary.{0} at {1}>"
+		return s.format(self.__str__, hex(id(self)))
+
+	def __str__(self):
+		return "Boundary()"
+
 	@property
 	def label(self):
 		return self.__label
@@ -255,6 +263,7 @@ class Boundary(object):
 		pass
 
 
+
 class RectangleBoundary(Boundary):
 	"""A rectangular :obj:`Boundary` object. Can be used to determine whether a point is within a
 	given rectangular region on a surface (e.g. the screen).
@@ -274,6 +283,9 @@ class RectangleBoundary(Boundary):
 		self.__p2 = None
 		self.bounds = [p1, p2]
 		self.__center = midpoint(*self.bounds)
+
+	def __str__(self):
+		return "RectangleBoundary(p1={0}, p2={1})".format(str(self.p1), str(self.p2))
 
 	@property
 	def bounds(self):
@@ -298,13 +310,13 @@ class RectangleBoundary(Boundary):
 			raise ValueError("Rectangle boundaries must be given in the format [p1, p2].")
 
 		if not all([valid_coords(p) for p in boundary]):
-			raise ValueError("'p1' and 'p2' must both be valid sets of (x,y) coordinates.")
+			raise ValueError("'p1' and 'p2' must both be valid (x,y) coordinates.")
 
 		if x1 >= x2 or y1 >= y2:
 			raise ValueError("'p1' must be above and to the left of 'p2'.")
 
-		self.__p1 = boundary[0]
-		self.__p2 = boundary[1]
+		self.__p1 = tuple(boundary[0])
+		self.__p2 = tuple(boundary[1])
 
 	@property
 	def p1(self):
@@ -347,6 +359,7 @@ class RectangleBoundary(Boundary):
 		return (self.__p1[0] <= p[0] <= self.__p2[0]) and (self.__p1[1] <= p[1] <= self.__p2[1])
 
 
+
 class CircleBoundary(Boundary):
 	"""A circle :obj:`Boundary` object. Can be used to determine whether a point is within a
 	given circular region on a surface (e.g. the screen).
@@ -365,6 +378,9 @@ class CircleBoundary(Boundary):
 		self.__c = None
 		self.__r = None
 		self.bounds = [center, radius]
+
+	def __str__(self):
+		return "CircleBoundary(center={0}, radius={1})".format(str(self.center), self.radius)
 
 	@property
 	def bounds(self):
@@ -402,7 +418,7 @@ class CircleBoundary(Boundary):
 	@center.setter
 	def center(self, coords):
 		if valid_coords(coords):
-			self.__c = coords
+			self.__c = tuple(coords)
 		else:
 			raise ValueError("The center must be a valid set of (x,y) coordinates.")
 
@@ -443,6 +459,7 @@ class CircleBoundary(Boundary):
 		return line_segment_len(p, self.__c) <= self.__r
 
 
+
 class AnnulusBoundary(Boundary):
 	"""An annulus :obj:`Boundary` object. Can be used to determine whether a point is within a
 	ring-shaped region on a surface (e.g. the screen).
@@ -463,6 +480,10 @@ class AnnulusBoundary(Boundary):
 		self.__r_outer = None
 		self.__thickness = None
 		self.bounds = [center, radius, thickness]
+
+	def __str__(self):
+		s = "AnnulusBoundary(center={0}, radius={1}, thickness={2})"
+		return s.format(str(self.center), self.outer_radius, self.thickness)
 
 	@property
 	def bounds(self):
@@ -496,7 +517,7 @@ class AnnulusBoundary(Boundary):
 		if thickness >= radius:
 			raise ValueError("The boundary thickness must be smaller than its radius.")
 
-		self.__center = center
+		self.__center = tuple(center)
 		self.__r_outer = radius
 		self.__thickness = thickness
 

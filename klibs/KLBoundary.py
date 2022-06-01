@@ -25,31 +25,41 @@ class BoundaryInspector(object):
 	def __init__(self):
 		self.boundaries = OrderedDict()
 
-	def add_boundary(self, label, bounds=None, shape=None):
-		"""Adds a boundary to the inspector. Boundaries can either be :class:`Boundary` objects 
-		(e.g. a :class:`RectangleBoundary`), or specified using the label, bounds, and shape
-		arguments.
+	def add_boundary(self, boundary, bounds=None, shape=None):
+		"""Adds a boundary to the inspector.
+		
+		For legacy purposes, boundaries can be added using the label, bounds, and shape
+		arguments. Support for this is deprecated, and may be removed in a future version:
+
+		=============== ========================== ===========================
+		Boundary Type   Shape                      Bounds
+		=============== ========================== ===========================
+		Rectangle       ``klibs.RECT_BOUNDARY``    [(x1, y1), (x2, y2)]
+		--------------- -------------------------- ---------------------------
+		Circle          ``klibs.CIRCLE_BOUNDARY``  [(x, y), radius]
+		--------------- -------------------------- ---------------------------
+		Annulus         ``klibs.ANNULUS_BOUNDARY`` [(x, y), radius, thickness]
+		=============== ========================== ===========================
 
 		Args:
-			label (:class:`Boundary` or :obj:`str`): A valid :class:`Boundary` object if passing
-				an existing boundary, otherwise an informative label to use for the boundary.
-			bounds (:obj:`List`, optional): A List specifying the boundary for the given boundary
-				shape (see the documentation for the 'bounds' attribute for the boundary shape you
-				are creating). Not required if passing an existing :class:`Boundary` object.
-			shape (:obj:`str`): The shape of the new boundary. Can be 'Rectangle',
-				'Circle', or 'Annulus' (case-insensitive). Not required if passing an existing 
-				:class:`Boundary` object.
+			boundary (:obj:`Boundary` or :obj:`str`): A :class:`Boundary` object to add to the
+				inspector. May also be a label string if adding a boundary using the legacy method.
+			bounds (:obj:`List`, optional): A List specifying the size and location of the new
+				boundary (see the 'Bounds' column in the above table). For legacy use only.
+			shape (:obj:`str`, optional): The type of the new boundary (see the 'Shape' column in
+				the above table). For legacy use only.
 
 		Raises:
-			ValueError: If 'bounds' or 'shape' are not provided and 'label' is not a
+			ValueError: If 'bounds' or 'shape' are not provided and 'boundary' is not a
 				:class:`Boundary` object.
 			ValueError: If 'shape' is not one of 'Rectangle', 'Circle', or 'Annulus'.
 		
 		"""
-		if isinstance(label, Boundary): # allow direct adding of boundary objects
-			b = label
+		if isinstance(boundary, Boundary):
+			b = boundary
 			label = b.label
 		else:
+			label = boundary
 			if bounds == None or type(shape) != str:
 				e = "'bounds' and 'shape' must be given if not adding an existing Boundary object."
 				raise ValueError(e)	
@@ -177,7 +187,7 @@ class BoundaryInspector(object):
 		
 		"""
 		raise NotImplementedError("Boundary drawing will be implemented in a future version.")
-	
+
 	def disable_boundaries(self, labels):
 		"""Disables one or more boundaries. If a boundary is disabled, it will not be inspected
 		when calling :meth:~`within_boundaries` and will raise an exception if it is inspected by
@@ -210,6 +220,7 @@ class BoundaryInspector(object):
 			if self.boundaries[label].active:
 				active.append(label)
 		return active
+
 
 
 class Boundary(object):

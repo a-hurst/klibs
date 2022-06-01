@@ -224,10 +224,20 @@ class BoundaryInspector(object):
 
 
 class Boundary(object):
-	"""A base class defining the required attributes and functions of a Boundary object. You will
-	only need to use this class if you want to create your own custom Boundary type. Otherwise, you
-	can use the existing :class:`RectangleBoundary`, :class:`CircleBoundary`, and
-	:class:`AnnulusBoundary` classes instead.
+	"""An abstract base class defining the required properties of a boundary.
+	
+	You will only need to use this class if you want to create your own custom Boundary
+	type. To do this, you will need to subclass this class and override its `within`
+	and `center` methods. This will define the functions that check whether a point is
+	within the custom boundary and update the location of the boundary's center,
+	respectively.
+
+	In addition to the `within` method, you can also check if a point is within a
+	boundary using Python's ``in`` operator::
+
+		boundary = CircleBoundary('start_button', center=(100, 100), radius=50)
+		if mouse_pos() in boundary:
+			print("mouse over start button")
 
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
@@ -237,28 +247,25 @@ class Boundary(object):
 	def __init__(self, label):
 		super(Boundary, self).__init__()
 		self.__label = label
+		self.__center = (0, 0)
 
 	def __repr__(self):
 		s = "<klibs.KLBoundary.{0} at {1}>"
-		return s.format(self.__str__, hex(id(self)))
+		return s.format(self, hex(id(self)))
 
 	def __str__(self):
 		return "Boundary()"
-
+		
 	def __contains__(self, p):
  		return self.within(p)
 
 	@property
 	def label(self):
+		""":obj:`str`: The label of the boundary (e.g. 'start_button', 'left_target').
+
+		"""
 		return self.__label
 
-	@property
-	def bounds(self):
-		raise NotImplementedError
-
-	@bounds.setter
-	def bounds(self, boundary):
-		raise NotImplementedError
 
 	@property
 	def center(self):
@@ -276,7 +283,20 @@ class Boundary(object):
 
 	@abc.abstractmethod
 	def within(self, p):
-		pass
+		"""Determines whether a given point is within the boundary.
+
+		Args:
+			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to
+				check against the boundary.
+		
+		Returns:
+			bool: True if the point falls within the boundary, otherwise False.
+		
+		Raises:
+			ValueError: If the given point is not a valid set of (x,y) coordinates.
+		
+		"""
+		raise NotImplementedError
 
 
 

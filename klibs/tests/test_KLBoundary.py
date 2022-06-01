@@ -157,7 +157,7 @@ def test_boundary_inspector():
     inspector.add_boundaries([tst1, tst2, tst3])
     inspector.clear_boundaries(preserve=['test2'])
     assert len(inspector.boundaries) == 1
-    assert 'test2' in inspector.boundaries.keys()
+    assert 'test2' in inspector.labels
 
     # Test individual boundary tests
     inspector = klb.BoundaryInspector()

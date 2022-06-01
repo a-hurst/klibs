@@ -214,6 +214,13 @@ class BoundaryInspector(object):
 		"""
 		raise NotImplementedError("Boundary drawing will be implemented in a future version.")
 
+	@property
+	def labels(self):
+		""":obj:`List`: The names of all boundaries currently within the inspector.
+
+		"""
+		return list(self.boundaries.keys())
+	
 
 
 class Boundary(object):

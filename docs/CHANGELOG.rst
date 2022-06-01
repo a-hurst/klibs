@@ -47,13 +47,16 @@ New Features:
 * Added proper print methods for all built-in :obj:`~klibs.KLBoundary.Boundary`
   types.
 * Added a new argument ``ignore`` to the
-  :obj:`~klibs.KLBoundary.BoundaryInspector.which_boundary` method of the
+  :meth:`~klibs.KLBoundary.BoundaryInspector.which_boundary` method of the
   ``BoundaryInspector`` class, allowing easy exclusion of specific boundaries
   from the search and replacing the functionality of the now-removed
   ``disable_boundaries`` and ``enable_boundaries`` methods.
 * Added a new ``boundaries`` argument to the
   :obj:`~klibs.KLBoundary.BoundaryInspector` class to allow initializing an
   inspector with a given set of boundaries.
+* Added a new :attr:`~klibs.KLBoundary.BoundaryInspector.labels` attribute to
+  the ``BoundaryInspector`` class to easily retrieve the names of all
+  boundaries currently within the inspector.
 
 
 API Changes:

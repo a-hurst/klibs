@@ -28,6 +28,8 @@ def test_rectangle_boundary():
     assert rect.within((35.3, 35)) == True
     assert rect.within((10, 10)) == True
     assert rect.within((50, 50)) == True
+    assert (10, 10) in rect
+    assert not (0, 0) in rect
 
     # Test boundary exceptions
     with pytest.raises(ValueError):
@@ -61,6 +63,8 @@ def test_circle_boundary():
     assert circle.within((99.7, 100)) == True
     assert circle.within((50, 100)) == True
     assert circle.within((100, 150)) == True
+    assert (50, 100) in circle
+    assert not (0, 0) in circle
 
     # Test boundary exceptions
     with pytest.raises(ValueError):
@@ -100,6 +104,8 @@ def test_annulus_boundary():
     assert ring.within((60, 100)) == True
     assert ring.within((100, 150)) == True
     assert ring.within((100, 140)) == True
+    assert (55, 100) in ring
+    assert not (0, 0) in ring
 
     # Test boundary exceptions
     with pytest.raises(ValueError):

@@ -57,6 +57,9 @@ New Features:
 * Added a new :attr:`~klibs.KLBoundary.BoundaryInspector.labels` attribute to
   the ``BoundaryInspector`` class to easily retrieve the names of all
   boundaries currently within the inspector.
+* Added support for using Python's ``in`` operator with
+  :obj:`~klibs.KLBoundary.Boundary` objects (e.g. ``if point in circle``
+  instead of ``if circle.within(point)``).
 
 
 API Changes:

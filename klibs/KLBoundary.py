@@ -231,19 +231,12 @@ class Boundary(object):
 
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
-	
-	Attributes:
-		active (bool): Indicates whether the boundary is currently active (used by
-			:class:`BoundaryInspector` objects).
 
 	"""
-
-	__name__ = "KLBoundary"
 
 	def __init__(self, label):
 		super(Boundary, self).__init__()
 		self.__label = label
-		self.active = True
 
 	def __repr__(self):
 		s = "<klibs.KLBoundary.{0} at {1}>"
@@ -251,6 +244,9 @@ class Boundary(object):
 
 	def __str__(self):
 		return "Boundary()"
+
+	def __contains__(self, p):
+ 		return self.within(p)
 
 	@property
 	def label(self):

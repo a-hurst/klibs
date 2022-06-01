@@ -60,6 +60,8 @@ New Features:
 * Added support for using Python's ``in`` operator with
   :obj:`~klibs.KLBoundary.Boundary` objects (e.g. ``if point in circle``
   instead of ``if circle.within(point)``).
+* :obj:`~klibs.KLBoundary.Boundary` objects can now be relocated by setting
+  their ``center`` attribute to a set of pixel coordinates.
 
 
 API Changes:

@@ -260,6 +260,20 @@ class Boundary(object):
 	def bounds(self, boundary):
 		raise NotImplementedError
 
+	@property
+	def center(self):
+		""":obj:`Tuple`: The (x,y) coordinates of the center of the boundary.
+
+		Raises:
+			ValueError: If the given value is not a valid pair of (x,y) coordinates.
+
+		"""
+		return self.__center
+
+	@center.setter
+	def center(self, coords):
+		raise NotImplementedError
+
 	@abc.abstractmethod
 	def within(self, p):
 		pass
@@ -275,15 +289,18 @@ class RectangleBoundary(Boundary):
 		p1 (:obj:`Tuple`): The (x,y) coordinates of the top-left corner of the boundary.
 		p2 (:obj:`Tuple`): The (x,y) coordinates of the bottom-right corner of the boundary.
 
+	Raises:
+		ValueError: If either p1 or p2 are not valid (x,y) coordinates.
+		ValueError: If p2 (the bottom-right point) is above or to the left of p1 (the top-left
+			point).
+
 	"""
-	__name__ = "RectangleBoundary"
 
 	def __init__(self, label, p1, p2):
 		super(RectangleBoundary, self).__init__(label)
 		self.__p1 = None
 		self.__p2 = None
 		self.bounds = [p1, p2]
-		self.__center = midpoint(*self.bounds)
 
 	def __str__(self):
 		return "RectangleBoundary(p1={0}, p2={1})".format(str(self.p1), str(self.p2))
@@ -318,27 +335,41 @@ class RectangleBoundary(Boundary):
 
 		self.__p1 = tuple(boundary[0])
 		self.__p2 = tuple(boundary[1])
+		self.__center = midpoint(self.__p1, self.__p2)
 
 	@property
 	def p1(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the top-left corner of the boundary rectangle.
+		""":obj:`Tuple`: The (x,y) coordinates of the top-left corner of the rectangle.
 
 		"""
 		return self.__p1
 
 	@property
 	def p2(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the bottom-right corner of the boundary rectangle.
+		""":obj:`Tuple`: The (x,y) coordinates of the bottom-right corner of the rectangle.
 
 		"""
 		return self.__p2
 
 	@property
 	def center(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the center of the boundary rectangle.
+		""":obj:`Tuple`: The (x,y) coordinates of the center of the rectangle.
+
+		Raises:
+			ValueError: If the given value is not a valid pair of (x,y) coordinates.
 
 		"""
 		return self.__center
+
+	@center.setter
+	def center(self, coords):
+		if not valid_coords(coords):
+			raise ValueError("Boundary center must be a valid set of (x,y) coordinates.")
+		dx = coords[0] - self.__center[0]
+		dy = coords[1] - self.__center[1]
+		self.__p1 = (self.p1[0] + dx, self.p1[1] + dy)
+		self.__p2 = (self.p2[0] + dx, self.p2[1] + dy)
+		self.__center = tuple(coords)
 
 	def within(self, p):
 		"""Determines whether a given point is within the boundary.
@@ -370,12 +401,15 @@ class CircleBoundary(Boundary):
 		center (:obj:`Tuple`): The (x,y) coordinates of the center of the circle.
 		radius (int or float): The radius of the circle.
 
+	Raises:
+		ValueError: If 'center' is not a valid pair of (x,y) coordinates.
+		ValueError: If the given radius is not a number greater than zero.
+
 	"""
-	__name__ = "CircleBoundary"
 
 	def __init__(self, label, center, radius):
 		super(CircleBoundary, self).__init__(label)
-		self.__c = None
+		self.__center = None
 		self.__r = None
 		self.bounds = [center, radius]
 
@@ -407,20 +441,20 @@ class CircleBoundary(Boundary):
 
 	@property
 	def center(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the center of the boundary circle.
+		""":obj:`Tuple`: The (x,y) coordinates of the center of the circle.
 		
 		Raises:
 			ValueError: If the given value is not a valid pair of (x,y) coordinates.
 
 		"""
-		return self.__c
+		return self.__center
+
 
 	@center.setter
 	def center(self, coords):
-		if valid_coords(coords):
-			self.__c = tuple(coords)
-		else:
+		if not valid_coords(coords):
 			raise ValueError("The center must be a valid set of (x,y) coordinates.")
+		self.__center = tuple(coords)
 
 	@property
 	def radius(self):
@@ -456,7 +490,7 @@ class CircleBoundary(Boundary):
 		if not valid_coords(p):
 			raise ValueError("The given value must be a valid set of (x,y) coordinates.")
 
-		return line_segment_len(p, self.__c) <= self.__r
+		return line_segment_len(p, self.center) <= self.radius
 
 
 
@@ -470,8 +504,12 @@ class AnnulusBoundary(Boundary):
 		radius (int or float): The outer radius of the annulus.
 		thickness (int or float): The thickness of the annulus.
 
+	Raises:
+		ValueError: If 'center' is not a valid pair of (x,y) coordinates.
+		ValueError: If the given radius and thickness are not numbers greater than zero,
+			or if the thickness is equal to or greater than the radius in size.
+
 	"""
-	__name__ = "AnnulusBoundary"
 
 	def __init__(self, label, center, radius, thickness):
 		super(AnnulusBoundary, self).__init__(label)
@@ -505,9 +543,8 @@ class AnnulusBoundary(Boundary):
 		except (ValueError, TypeError):
 			msg = 'Annulus boundaries must be given in the format [center, radius, thickness].'
 			raise ValueError(msg)
-		
-		if not valid_coords(center):
-			raise ValueError("The center must be a valid set of (x,y) coordinates.")
+	
+		self.center = center
 		
 		if type(radius) not in [int, float] or radius <= 0:
 			raise ValueError("The boundary radius must be a number greater than zero.")
@@ -522,10 +559,18 @@ class AnnulusBoundary(Boundary):
 
 	@property
 	def center(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the center of the boundary annulus.
+		""":obj:`Tuple`: The (x,y) coordinates of the center of the annulus.
 
 		"""
 		return self.__center
+
+
+	@center.setter
+	def center(self, coords):
+		if not valid_coords(coords):
+			raise ValueError("The center must be a valid set of (x,y) coordinates.")
+		self.__center = tuple(coords)
+
 
 	@property
 	def thickness(self):
@@ -565,4 +610,4 @@ class AnnulusBoundary(Boundary):
 		if not valid_coords(p):
 			raise ValueError("The given value must be a valid set of (x,y) coordinates.")
 
-		return self.inner_radius <= line_segment_len(p, self.__center) <= self.outer_radius
+		return self.inner_radius <= line_segment_len(p, self.center) <= self.outer_radius

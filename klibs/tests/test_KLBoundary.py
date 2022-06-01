@@ -31,9 +31,18 @@ def test_rectangle_boundary():
     assert (10, 10) in rect
     assert not (0, 0) in rect
 
+    # Test boundary movement
+    rect.center = (50, 60)
+    assert rect.p1 == (30, 40)
+    assert rect.p2 == (70, 80)
+    assert rect.within((10, 10)) == False
+    assert rect.within((70, 80)) == True
+
     # Test boundary exceptions
     with pytest.raises(ValueError):
         rect.within(5)
+    with pytest.raises(ValueError):
+        rect.center = (0, 0, 0)
     with pytest.raises(ValueError):
         klb.RectangleBoundary('test4', p1=(60, 60), p2=(50, 50))
     with pytest.raises(ValueError):
@@ -66,9 +75,17 @@ def test_circle_boundary():
     assert (50, 100) in circle
     assert not (0, 0) in circle
 
+    # Test boundary movement
+    circle.center = (50, 50)
+    assert circle.center == (50, 50)
+    assert circle.within((100, 150)) == False
+    assert circle.within((50, 1)) == True
+
     # Test boundary exceptions
     with pytest.raises(ValueError):
         circle.within(5)
+    with pytest.raises(ValueError):
+        circle.center = (0, 0, 0)
     with pytest.raises(ValueError):
         klb.CircleBoundary('test4', center=(100, 100), radius=-4)
     with pytest.raises(ValueError):
@@ -107,9 +124,17 @@ def test_annulus_boundary():
     assert (55, 100) in ring
     assert not (0, 0) in ring
 
+    # Test boundary movement
+    ring.center = (50, 50)
+    assert ring.center == (50, 50)
+    assert ring.within((100, 150)) == False
+    assert ring.within((50, 1)) == True
+
     # Test boundary exceptions
     with pytest.raises(ValueError):
         ring.within(5)
+    with pytest.raises(ValueError):
+        ring.center = (0, 0, 0)
     with pytest.raises(ValueError):
         klb.AnnulusBoundary('test4', center=(100, 100), radius=-4, thickness=10)
     with pytest.raises(ValueError):

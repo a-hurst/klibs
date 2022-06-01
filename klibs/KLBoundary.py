@@ -21,9 +21,15 @@ your own custom boundary shapes by subclassing the :class:`Boundary` object.
 class BoundaryInspector(object):
 	"""A class for managing and inspecting multiple :class:`Boundary` objects.
 
+	Args:
+		boundaries (:obj:`List`, optional): A list of :obj:`Boundary` objects with which
+			to initialize the inspector.
+
 	"""
-	def __init__(self):
+
+	def __init__(self, boundaries=[]):
 		self.boundaries = OrderedDict()
+		self.add_boundaries(boundaries)
 
 	def __verify_label(self, label):
 		if label not in self.boundaries.keys():

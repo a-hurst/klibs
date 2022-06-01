@@ -142,8 +142,7 @@ def test_boundary_inspector():
     assert len(inspector.boundaries) == 3
 
     # Test removing boundaries from the inspector
-    inspector = klb.BoundaryInspector()
-    inspector.add_boundaries([tst1, tst2, tst3])
+    inspector = klb.BoundaryInspector([tst1, tst2, tst3])
     assert len(inspector.boundaries) == 3
     inspector.remove_boundaries('test1')
     assert len(inspector.boundaries) == 2

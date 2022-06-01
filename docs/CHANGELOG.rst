@@ -51,6 +51,9 @@ New Features:
   ``BoundaryInspector`` class, allowing easy exclusion of specific boundaries
   from the search and replacing the functionality of the now-removed
   ``disable_boundaries`` and ``enable_boundaries`` methods.
+* Added a new ``boundaries`` argument to the
+  :obj:`~klibs.KLBoundary.BoundaryInspector` class to allow initializing an
+  inspector with a given set of boundaries.
 
 
 API Changes:

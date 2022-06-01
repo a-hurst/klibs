@@ -228,7 +228,6 @@ class Boundary(object):
 	"""
 
 	__name__ = "KLBoundary"
-	__shape__ = None
 
 	def __init__(self, label):
 		super(Boundary, self).__init__()
@@ -245,10 +244,6 @@ class Boundary(object):
 	@property
 	def label(self):
 		return self.__label
-
-	@property
-	def shape(self):
-		return self.__shape__
 
 	@property
 	def bounds(self):
@@ -275,7 +270,6 @@ class RectangleBoundary(Boundary):
 
 	"""
 	__name__ = "RectangleBoundary"
-	__shape__ = RECT_BOUNDARY
 
 	def __init__(self, label, p1, p2):
 		super(RectangleBoundary, self).__init__(label)
@@ -371,7 +365,6 @@ class CircleBoundary(Boundary):
 
 	"""
 	__name__ = "CircleBoundary"
-	__shape__ = CIRCLE_BOUNDARY
 
 	def __init__(self, label, center, radius):
 		super(CircleBoundary, self).__init__(label)
@@ -472,7 +465,6 @@ class AnnulusBoundary(Boundary):
 
 	"""
 	__name__ = "AnnulusBoundary"
-	__shape__ = ANNULUS_BOUNDARY
 
 	def __init__(self, label, center, radius, thickness):
 		super(AnnulusBoundary, self).__init__(label)

@@ -83,6 +83,8 @@ API Changes:
   new JSON import function, :func:`~klibs.KLJSON_Object.import_json`.
 * Standardized built-in :obj:`~klibs.KLBoundary.Boundary` types to always use
   tuples for storing/returning (x, y) pixel coordinates.
+* Removed the legacy ``shape`` attribute from :obj:`~klibs.KLBoundary.Boundary`
+  (use ``isinstance`` to check boundary types instead).
 
 
 Fixed Bugs:

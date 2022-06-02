@@ -17,6 +17,8 @@ your own custom boundary shapes by subclassing the :class:`Boundary` object.
 
 """
 
+# NOTE: it would be much more sane for boundaries to only have labels when added to an inspector,
+#       but is there any way of changing this without breaking the API?
 
 class BoundaryInspector(object):
 	"""A class for managing and inspecting multiple :class:`Boundary` objects.
@@ -85,12 +87,13 @@ class BoundaryInspector(object):
 		self.boundaries[label] = b
 
 	def add_boundaries(self, boundaries):
-		"""Adds one or more boundaries to the inspector. Boundaries can either be lists in the
-		format [label, bounds, shape] (see :meth:`add_boundary` for more info) or :class:`Boundary`
-		objects (e.g. a :class:`RectangleBoundary`).
+		"""Adds multiple boundaries to the inspector.
+		
+		See :meth:`add_boundary` for more info.
 
 		Args:
-			boundaries (:obj:`List`): A list containing the boundaries to add to the inspector.
+			boundaries (:obj:`List`): A list of :obj:`Boundary` objects to add to the
+				inspector.
 		
 		"""
 		for b in boundaries:
@@ -104,15 +107,15 @@ class BoundaryInspector(object):
 
 		Args:
 			label (:obj:`str`): The label of the boundary to inspect.
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to check for the
-				presence of within the boundary.
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to
+				check against the boundary.
 		
 		Returns:
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
 			KeyError: If no boundary with the given label exists within the inspector.
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
 		self.__verify_label(label)
@@ -133,7 +136,7 @@ class BoundaryInspector(object):
 		specific boundaries from the search using the ``ignore`` argument.
 
 		Args:
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to test
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to test
 				against the inspector's boundaries.
 			labels (:obj:`List`, optional): A list containing the labels of the
 				boundaries to inspect. Defaults to inspecting all boundaries.
@@ -146,7 +149,7 @@ class BoundaryInspector(object):
 		
 		Raises:
 			KeyError: If any given labels do not correspond to a boundary within the inspector.
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
 		if not labels:
@@ -183,11 +186,11 @@ class BoundaryInspector(object):
 		"""Removes all boundaries from the inspector.
 
 		Args:
-			preserve (:obj:`List`, optional): A list containing the labels of any boundaries
-				that should remain in the inspector after the clear.
+			preserve (:obj:`List`, optional): A list containing the labels of any
+				boundaries that should remain in the inspector after the clear.
 
 		Raises:
-			KeyError: If any given labels do not correspond to boundaries within the inspector.
+			KeyError: If any label does not correspond to a boundary within the inspector.
 		
 		"""
 		if not iterable(preserve):
@@ -210,6 +213,9 @@ class BoundaryInspector(object):
 			labels (:obj:`List`, optional): A list containing the labels of the boundaries to draw.
 				If no labels are specified or labels == None, all enabled boundaries in the
 				inspector will be drawn.
+
+		Raises:
+			KeyError: If any label does not correspond to a boundary within the inspector.
 		
 		"""
 		raise NotImplementedError("Boundary drawing will be implemented in a future version.")
@@ -227,12 +233,12 @@ class Boundary(object):
 	"""An abstract base class defining the required properties of a boundary.
 	
 	You will only need to use this class if you want to create your own custom Boundary
-	type. To do this, you will need to subclass this class and override its `within`
-	and `center` methods. This will define the functions that check whether a point is
+	type. To do this, you will need to subclass this class and override its ``within``
+	and ``center`` methods. This will define the functions that check whether a point is
 	within the custom boundary and update the location of the boundary's center,
 	respectively.
 
-	In addition to the `within` method, you can also check if a point is within a
+	In addition to the ``within`` method, you can also check if a point is within a
 	boundary using Python's ``in`` operator::
 
 		boundary = CircleBoundary('start_button', center=(100, 100), radius=50)
@@ -269,10 +275,10 @@ class Boundary(object):
 
 	@property
 	def center(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the center of the boundary.
+		""":obj:`Tuple`: The (x, y) coordinates of the center of the boundary.
 
 		Raises:
-			ValueError: If the given value is not a valid pair of (x,y) coordinates.
+			ValueError: If the given value is not a valid pair of (x, y) coordinates.
 
 		"""
 		return self.__center
@@ -286,14 +292,14 @@ class Boundary(object):
 		"""Determines whether a given point is within the boundary.
 
 		Args:
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to
 				check against the boundary.
 		
 		Returns:
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
 		raise NotImplementedError
@@ -306,11 +312,11 @@ class RectangleBoundary(Boundary):
 	
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
-		p1 (:obj:`Tuple`): The (x,y) coordinates of the top-left corner of the boundary.
-		p2 (:obj:`Tuple`): The (x,y) coordinates of the bottom-right corner of the boundary.
+		p1 (:obj:`Tuple`): The (x, y) coordinates of the top-left corner of the boundary.
+		p2 (:obj:`Tuple`): The (x, y) coordinates of the bottom-right corner of the boundary.
 
 	Raises:
-		ValueError: If either p1 or p2 are not valid (x,y) coordinates.
+		ValueError: If either p1 or p2 are not valid (x, y) coordinates.
 		ValueError: If p2 (the bottom-right point) is above or to the left of p1 (the top-left
 			point).
 
@@ -328,7 +334,7 @@ class RectangleBoundary(Boundary):
 	def _init_boundary(self, p1, p2):
 
 		if not all([valid_coords(p1), valid_coords(p2)]):
-			raise ValueError("'p1' and 'p2' must both be valid (x,y) coordinates.")
+			raise ValueError("'p1' and 'p2' must both be valid (x, y) coordinates.")
 
 		if p1[0] >= p2[0] or p1[1] >= p2[1]:
 			raise ValueError("'p1' must be above and to the left of 'p2'.")
@@ -339,24 +345,24 @@ class RectangleBoundary(Boundary):
 
 	@property
 	def p1(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the top-left corner of the rectangle.
+		""":obj:`Tuple`: The (x, y) coordinates of the top-left corner of the rectangle.
 
 		"""
 		return self.__p1
 
 	@property
 	def p2(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the bottom-right corner of the rectangle.
+		""":obj:`Tuple`: The (x, y) coordinates of the bottom-right corner of the rectangle.
 
 		"""
 		return self.__p2
 
 	@property
 	def center(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the center of the rectangle.
+		""":obj:`Tuple`: The (x, y) coordinates of the center of the rectangle.
 
 		Raises:
-			ValueError: If the given value is not a valid pair of (x,y) coordinates.
+			ValueError: If the given value is not a valid pair of (x, y) coordinates.
 
 		"""
 		return self.__center
@@ -364,7 +370,7 @@ class RectangleBoundary(Boundary):
 	@center.setter
 	def center(self, coords):
 		if not valid_coords(coords):
-			raise ValueError("Boundary center must be a valid set of (x,y) coordinates.")
+			raise ValueError("Boundary center must be a valid set of (x, y) coordinates.")
 		dx = coords[0] - self.__center[0]
 		dy = coords[1] - self.__center[1]
 		self.__p1 = (self.p1[0] + dx, self.p1[1] + dy)
@@ -375,18 +381,18 @@ class RectangleBoundary(Boundary):
 		"""Determines whether a given point is within the boundary.
 
 		Args:
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to check for the
-				presence of within the boundary.
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to
+				check against the boundary.
 		
 		Returns:
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
 		if not valid_coords(p):
-			raise ValueError("The given value must be a valid set of (x,y) coordinates.")
+			raise ValueError("The given value must be a valid set of (x, y) coordinates.")
 			
 		return (self.__p1[0] <= p[0] <= self.__p2[0]) and (self.__p1[1] <= p[1] <= self.__p2[1])
 
@@ -398,11 +404,11 @@ class CircleBoundary(Boundary):
 	
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
-		center (:obj:`Tuple`): The (x,y) coordinates of the center of the circle.
+		center (:obj:`Tuple`): The (x, y) coordinates of the center of the circle.
 		radius (int or float): The radius of the circle.
 
 	Raises:
-		ValueError: If 'center' is not a valid pair of (x,y) coordinates.
+		ValueError: If 'center' is not a valid pair of (x, y) coordinates.
 		ValueError: If the given radius is not a number greater than zero.
 
 	"""
@@ -422,10 +428,10 @@ class CircleBoundary(Boundary):
 
 	@property
 	def center(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the center of the circle.
+		""":obj:`Tuple`: The (x, y) coordinates of the center of the circle.
 		
 		Raises:
-			ValueError: If the given value is not a valid pair of (x,y) coordinates.
+			ValueError: If the given value is not a valid pair of (x, y) coordinates.
 
 		"""
 		return self.__center
@@ -433,7 +439,7 @@ class CircleBoundary(Boundary):
 	@center.setter
 	def center(self, coords):
 		if not valid_coords(coords):
-			raise ValueError("The center must be a valid set of (x,y) coordinates.")
+			raise ValueError("The center must be a valid set of (x, y) coordinates.")
 		self.__center = tuple(coords)
 
 	@property
@@ -456,18 +462,18 @@ class CircleBoundary(Boundary):
 		"""Determines whether a given point is within the boundary.
 
 		Args:
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to check for the
-				presence of within the boundary.
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to
+				check against the boundary.
 		
 		Returns:
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
 		if not valid_coords(p):
-			raise ValueError("The given value must be a valid set of (x,y) coordinates.")
+			raise ValueError("The given value must be a valid set of (x, y) coordinates.")
 
 		return line_segment_len(p, self.center) <= self.radius
 
@@ -479,12 +485,12 @@ class AnnulusBoundary(Boundary):
 	
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
-		center (:obj:`Tuple`): The (x,y) coordinates of the center of the annulus.
+		center (:obj:`Tuple`): The (x, y) coordinates of the center of the annulus.
 		radius (int or float): The outer radius of the annulus.
 		thickness (int or float): The thickness of the annulus.
 
 	Raises:
-		ValueError: If 'center' is not a valid pair of (x,y) coordinates.
+		ValueError: If 'center' is not a valid pair of (x, y) coordinates.
 		ValueError: If the given radius and thickness are not numbers greater than zero,
 			or if the thickness is equal to or greater than the radius in size.
 
@@ -516,10 +522,10 @@ class AnnulusBoundary(Boundary):
 
 	@property
 	def center(self):
-		""":obj:`Tuple`: The (x,y) coordinates of the center of the annulus.
+		""":obj:`Tuple`: The (x, y) coordinates of the center of the annulus.
 
 		Raises:
-			ValueError: If the given value is not a valid pair of (x,y) coordinates.
+			ValueError: If the given value is not a valid pair of (x, y) coordinates.
 
 		"""
 		return self.__center
@@ -527,7 +533,7 @@ class AnnulusBoundary(Boundary):
 	@center.setter
 	def center(self, coords):
 		if not valid_coords(coords):
-			raise ValueError("The center must be a valid set of (x,y) coordinates.")
+			raise ValueError("The center must be a valid set of (x, y) coordinates.")
 		self.__center = tuple(coords)
 
 	@property
@@ -555,17 +561,17 @@ class AnnulusBoundary(Boundary):
 		"""Determines whether a given point is within the boundary.
 
 		Args:
-			p (:obj:`Tuple` or :obj:`List`): The (x,y) coordinates of the point to check for the
-				presence of within the boundary.
+			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to
+				check against the boundary.
 		
 		Returns:
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
-			ValueError: If the given point is not a valid set of (x,y) coordinates.
+			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
 		if not valid_coords(p):
-			raise ValueError("The given value must be a valid set of (x,y) coordinates.")
+			raise ValueError("The given value must be a valid set of (x, y) coordinates.")
 
 		return self.inner_radius <= line_segment_len(p, self.center) <= self.outer_radius

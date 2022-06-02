@@ -107,6 +107,8 @@ API Changes:
 * Removed the ``enable_boundaries`` and ``disable_boundaries`` methods as well
   as the ``active_boundaries`` attribute from the 
   :obj:`~klibs.KLBoundary.BoundaryInspector` class.
+* Removed the convoluted ``bounds`` getter/setter attribute from all
+  :obj:`~klibs.KLBoundary.Boundary` subclasses.
 
 
 Fixed Bugs:

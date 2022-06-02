@@ -220,7 +220,7 @@ class BoundaryInspector(object):
 
 		"""
 		return list(self.boundaries.keys())
-	
+
 
 
 class Boundary(object):
@@ -320,42 +320,22 @@ class RectangleBoundary(Boundary):
 		super(RectangleBoundary, self).__init__(label)
 		self.__p1 = None
 		self.__p2 = None
-		self.bounds = [p1, p2]
+		self._init_boundary(p1, p2)
 
 	def __str__(self):
 		return "RectangleBoundary(p1={0}, p2={1})".format(str(self.p1), str(self.p2))
 
-	@property
-	def bounds(self):
-		""":obj:`List`: A list containing the top-left (p1) and bottom-right (p2) x,y coordinates
-		that define the boundary rectangle, in the format [p1, p2].
+	def _init_boundary(self, p1, p2):
 
-		Raises:
-			ValueError: If the value is not a list in the format [p1, p2].
-			ValueError: If p1 or p2 are not Tuples or contain non-numeric values.
-			ValueError: If the bottom-right coordinates are above or to the left of the top-left
-				coordinates.
-
-		"""
-		return [self.__p1, self.__p2]
-
-	@bounds.setter
-	def bounds(self, boundary):
-		try:
-			x1, y1 = boundary[0]
-			x2, y2 = boundary[1]
-		except (IndexError, ValueError, TypeError):
-			raise ValueError("Rectangle boundaries must be given in the format [p1, p2].")
-
-		if not all([valid_coords(p) for p in boundary]):
+		if not all([valid_coords(p1), valid_coords(p2)]):
 			raise ValueError("'p1' and 'p2' must both be valid (x,y) coordinates.")
 
-		if x1 >= x2 or y1 >= y2:
+		if p1[0] >= p2[0] or p1[1] >= p2[1]:
 			raise ValueError("'p1' must be above and to the left of 'p2'.")
 
-		self.__p1 = tuple(boundary[0])
-		self.__p2 = tuple(boundary[1])
-		self.__center = midpoint(self.__p1, self.__p2)
+		self.__p1 = tuple(p1)
+		self.__p2 = tuple(p2)
+		self.__center = midpoint(p1, p2)
 
 	@property
 	def p1(self):
@@ -431,31 +411,12 @@ class CircleBoundary(Boundary):
 		super(CircleBoundary, self).__init__(label)
 		self.__center = None
 		self.__r = None
-		self.bounds = [center, radius]
+		self._init_boundary(center, radius)
 
 	def __str__(self):
 		return "CircleBoundary(center={0}, radius={1})".format(str(self.center), self.radius)
 
-	@property
-	def bounds(self):
-		""":obj:`List`: A list containing the center coordinates (c) and radius (r) of the circle
-		that defines the boundary, in the format [c, r].
-
-		Raises:
-			ValueError: If the value is not a list in the format [center, radius].
-			ValueError: If 'c' is not a valid pair of (x,y) coordinates.
-			ValueError: If the given radius is not a number greater than zero.
-
-		"""
-		return [self.__c, self.__r]
-
-	@bounds.setter
-	def bounds(self, boundary):
-		try:
-			center, radius = boundary
-		except (ValueError, TypeError):
-			raise ValueError('Circle boundaries must be given in the format [center, radius].')
-
+	def _init_boundary(self, center, radius):
 		self.center = center
 		self.radius = radius
 
@@ -469,7 +430,6 @@ class CircleBoundary(Boundary):
 		"""
 		return self.__center
 
-
 	@center.setter
 	def center(self, coords):
 		if not valid_coords(coords):
@@ -478,8 +438,8 @@ class CircleBoundary(Boundary):
 
 	@property
 	def radius(self):
-		"""int or float: The radius of the boundary circle.
-		
+		"""float: The radius of the circle.
+
 		Raises:
 			ValueError: If the given radius is not a number greater than zero.
 
@@ -488,10 +448,9 @@ class CircleBoundary(Boundary):
 
 	@radius.setter
 	def radius(self, r):
-		if type(r) in [int, float] and r > 0:
-			self.__r = r
-		else:
-			raise ValueError("The boundary radius must be a number greater than zero.")
+		if not (type(r) in [int, float] and r > 0):
+			raise ValueError("Radius must be a number greater than zero.")
+		self.__r = r
 
 	def within(self, p):
 		"""Determines whether a given point is within the boundary.
@@ -536,35 +495,13 @@ class AnnulusBoundary(Boundary):
 		self.__center = None
 		self.__r_outer = None
 		self.__thickness = None
-		self.bounds = [center, radius, thickness]
+		self._init_boundary(center, radius, thickness)
 
 	def __str__(self):
 		s = "AnnulusBoundary(center={0}, radius={1}, thickness={2})"
 		return s.format(str(self.center), self.outer_radius, self.thickness)
 
-	@property
-	def bounds(self):
-		""":obj:`List`: A list containing the center coordinates (c), outer radius (r), and
-		thickness (t) of the annulus that defines the boundary, in the format [c, r, t].
-
-		Raises:
-			ValueError: If the value is not a list in the format [center, radius, thickness].
-			ValueError: If 'c' is not a valid pair of (x,y) coordinates.
-			ValueError: If the given radius and thickness are not numbers greater than zero,
-				or if the thickness is equal to or greater than the radius in size.
-
-		"""
-		return [self.__center, self.__r_outer, self.__thickness]
-
-	@bounds.setter
-	def bounds(self, boundary):
-		try:
-			center, radius, thickness = boundary
-		except (ValueError, TypeError):
-			msg = 'Annulus boundaries must be given in the format [center, radius, thickness].'
-			raise ValueError(msg)
-	
-		self.center = center
+	def _init_boundary(self, center, radius, thickness):
 		
 		if type(radius) not in [int, float] or radius <= 0:
 			raise ValueError("The boundary radius must be a number greater than zero.")
@@ -573,7 +510,7 @@ class AnnulusBoundary(Boundary):
 		if thickness >= radius:
 			raise ValueError("The boundary thickness must be smaller than its radius.")
 
-		self.__center = tuple(center)
+		self.center = center
 		self.__r_outer = radius
 		self.__thickness = thickness
 
@@ -581,16 +518,17 @@ class AnnulusBoundary(Boundary):
 	def center(self):
 		""":obj:`Tuple`: The (x,y) coordinates of the center of the annulus.
 
+		Raises:
+			ValueError: If the given value is not a valid pair of (x,y) coordinates.
+
 		"""
 		return self.__center
-
 
 	@center.setter
 	def center(self, coords):
 		if not valid_coords(coords):
 			raise ValueError("The center must be a valid set of (x,y) coordinates.")
 		self.__center = tuple(coords)
-
 
 	@property
 	def thickness(self):

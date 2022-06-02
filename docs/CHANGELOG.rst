@@ -124,3 +124,5 @@ Fixed Bugs:
 * Fixed a bug preventing projects with underscores in their name from opening.
 * Removed dependency on the deprecated ``imp`` module for Python 3, removing
   a runtime warning.
+* Fixed :meth:`~klibs.KLBoundary.BoundaryInspector.clear_boundaries` to always
+  keep preserved boundaries in the same order as they were added.

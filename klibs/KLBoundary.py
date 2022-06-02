@@ -198,7 +198,9 @@ class BoundaryInspector(object):
 		preserved = OrderedDict()
 		for label in preserve:
 			self.__verify_label(label)
-			preserved[label] = self.boundaries[label]
+		for label in self.labels:
+			if label in preserve:
+				preserved[label] = self.boundaries[label]
 		self.boundaries = preserved
 
 	def draw_boundaries(self, labels=None):
@@ -271,7 +273,6 @@ class Boundary(object):
 
 		"""
 		return self.__label
-
 
 	@property
 	def center(self):

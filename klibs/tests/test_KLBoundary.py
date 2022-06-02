@@ -189,6 +189,12 @@ def test_boundary_inspector():
     inspector.clear_boundaries(preserve=['test2'])
     assert len(inspector.boundaries) == 1
     assert 'test2' in inspector.labels
+    
+    # Test that preserved boundaries during clear keep same order
+    inspector.add_boundaries([tst1, tst2, tst3])
+    inspector.clear_boundaries(preserve=['test3', 'test1'])
+    assert len(inspector.boundaries) == 2
+    assert inspector.labels == ['test1', 'test3']
 
     # Test individual boundary tests
     inspector = klb.BoundaryInspector()

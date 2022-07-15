@@ -8,7 +8,7 @@ import binascii
 
 try:
 	from klibs import P
-	from klibs.cli import create, run, export, rebuild_db, hard_reset, update
+	from klibs import cli
 except:
 	print("\n\033[91m*** Fatal Error: Unable to load KLibs ***\033[0m\n\nStack Trace:")
 	exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -19,7 +19,7 @@ except:
 
 # The function that gets run when klibs is launched from the command line
 
-def cli(): 
+def klibs_main():
 
 	sys.dont_write_bytecode = True # suppress creation of useless .pyc files
 
@@ -62,7 +62,8 @@ def cli():
         epilog="For help on how to use a specific command, try 'klibs (command) --help'."
 	)
 	subparsers = parser.add_subparsers(
-		title='commands', metavar='                                    ' # fixes indentation issue
+		dest='command', title='commands',
+		metavar='                                    ' # fixes indentation issue
 	)
 
 	create_parser = subparsers.add_parser('create', 
@@ -78,7 +79,6 @@ def cli():
 		help=("The path where the new project should be created. "
 		"Defaults to current working directory.")
 	)
-	create_parser.set_defaults(func=create)
 
 	run_parser = subparsers.add_parser('run', formatter_class=CustomHelpFormatter,
 		help='Run a KLibs experiment',
@@ -113,7 +113,6 @@ def cli():
 	#run_parser.add_argument('-v', '--verbose', action="store_true",
 	#	help="Logs extra klibs debug information to the terminal."
 	#)
-	run_parser.set_defaults(func=run)
 
 	export_parser = subparsers.add_parser('export', formatter_class=CustomHelpFormatter,
 		help='Export data to ExpAssets/Data/',
@@ -135,7 +134,6 @@ def cli():
 		help=("Additional tables to be joined to the data output. "
 		"Only 'participant' and 'data' tables are joined by default.")
 	)
-	export_parser.set_defaults(func=export)
 
 	update_parser = subparsers.add_parser('update', formatter_class=CustomHelpFormatter,
 		help='Update KLibs to the latest available version',
@@ -145,7 +143,6 @@ def cli():
 		help=("The branch of the a-hurst/klibs repository from which to update KLibs. "
 		"Installs the latest stable release if not specified.")
 	)
-	update_parser.set_defaults(func=update)
 
 	rebuild_parser = subparsers.add_parser('db-rebuild',
 		help='Delete and rebuild the database',
@@ -155,7 +152,6 @@ def cli():
 		help=("Path to the directory containing the KLibs project. "
 		"Defaults to current working directory.")
 	)
-	rebuild_parser.set_defaults(func=rebuild_db)
 
 	reset_parser = subparsers.add_parser('hard-reset',
 		help='Delete all collected data',
@@ -165,19 +161,27 @@ def cli():
 		help=("Path to the directory containing the KLibs project. "
 		"Defaults to current working directory.")
 	)
-	reset_parser.set_defaults(func=hard_reset)
 
+	# Load the provided command and arguments, printing usage info if none given
 	args = vars(parser.parse_args())
+	cmd = args.pop("command", None)
+	if not cmd:
+		parser.print_usage()
+		return
 
-
-	arg_dict = {}
-	for key in args:
-		if key != "func": arg_dict[key] = args[key]
-
+	# Actually run the requested command
+	commands = {
+		"create": cli.create,
+		"run": cli.run,
+		"export": cli.export,
+		"db-rebuild": cli.rebuild_db,
+		"hard-reset": cli.hard_reset,
+		"update": cli.update,
+	}
 	print("") # Add a blank line before any CLI output
-	args["func"](**arg_dict)
+	commands[cmd](**args)
 	print("") # Add a blank line after any CLI output
 
 
 if __name__ == '__main__':
-	cli()
+	klibs_main()

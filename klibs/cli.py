@@ -34,7 +34,6 @@ def ensure_directory_structure(root, create_missing=False):
 			"Resources": ["audio", "code", "font", "image"],
 			"Local": ["logs"],
 			"Data": ["incomplete"],
-			"EDF": ["incomplete"],
 		}
 	}
 
@@ -150,6 +149,8 @@ def create(name, path):
 		("experiment.py", []),
 		(".gitignore", [])
 	]
+
+	# TODO: Prompt user if project involves eye tracking & configure params accordingly
 
 	# Validate name (must be valid Python identifier)
 	valid_name = re.match(re.compile(r"^[A-Za-z_]+([A-Za-z0-9_]+)?$"), name) != None
@@ -453,7 +454,7 @@ def hard_reset(path):
 	for d in reset_dirs:
 		if os.path.isdir(d):
 			shutil.rmtree(d)
-		os.makedirs(d)
+	ensure_directory_structure(path, create_missing=True)
 
 	# Remove (but don't replace) files to reset
 	for f in reset_files:

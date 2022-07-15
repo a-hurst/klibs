@@ -71,6 +71,8 @@ New Features:
   export data or rebuild the database for a project without a database file.
 * ``klibs update`` now installs the latest GitHub release of KLibs instead of
   the latest commit from the default branch.
+* ``EDF`` folder is no longer created by default for new projects. It is now
+  created only if needed when saving data from an eye tracking experiment.
 
 
 API Changes:

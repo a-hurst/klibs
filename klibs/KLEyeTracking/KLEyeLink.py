@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+import os
 import time
-from os.path import join
 from klibs.KLEyeTracking import PYLINK_AVAILABLE
 
 from klibs.KLExceptions import TrialException, EyeTrackerError
@@ -154,8 +154,11 @@ class EyeLink(BaseEyeLink, EyeTracker):
                 subfolder of the eye tracker data directory ('ExpAssets/EDF'). Defaults to False.
 
 		"""
-		# Determine whether EDF should go to 'incomplete' subfolder or not
+		# Determine destination path for EDF (creating parent folder if needed)
 		edf_dir = P.incomplete_edf_dir if incomplete else P.edf_dir
+		if not os.path.isdir(edf_dir):
+			os.makedirs(edf_dir)
+		edf_path = os.path.join(edf_dir, self.edf_filename)
 
 		self._quitting = True
 		if self.isRecording() == 0:
@@ -164,7 +167,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		self.setOfflineMode()
 		msecDelay(500)
 		self.closeDataFile()
-		self.receiveDataFile(self.edf_filename, join(edf_dir, self.edf_filename))
+		self.receiveDataFile(self.edf_filename, edf_path)
 		return self.close()
 
 

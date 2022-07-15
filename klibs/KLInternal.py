@@ -212,9 +212,9 @@ def colored_stdout(string, print_string=True):
 	out = ""
 	stack = []
 	for s in re.split(code_pattern, string):
-		if re.match(code_pattern, s) and P.color_output:
+		if re.match(code_pattern, s):
 			code = re.findall(r"</?([a-z_]+)>", s)[0]
-			if not code in codes.keys():
+			if not (code in codes.keys() and P.color_output):
 				continue
 			if s[:2] == "</":
 				if code == "bold" and "bold" in stack:

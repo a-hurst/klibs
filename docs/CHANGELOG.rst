@@ -140,3 +140,5 @@ Fixed Bugs:
   a runtime warning.
 * Fixed :meth:`~klibs.KLBoundary.BoundarySet.clear_boundaries` to always
   keep preserved boundaries in the same order as they were added.
+* Fixed suppression of colorized console output on terminals that don't support
+  it.

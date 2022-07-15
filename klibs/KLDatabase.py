@@ -1,12 +1,11 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+import os
 import io
 import shutil
 import sqlite3
 from copy import copy
 from itertools import chain
-from os import remove, rename
-from os.path import join, isfile, basename
 from collections import OrderedDict
 
 from klibs.KLEnvironment import EnvAgent
@@ -14,9 +13,8 @@ from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_
 	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR, SQL_BIN, SQL_KEY, SQL_NULL,
 	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID)
 from klibs import P
-from klibs.KLUtilities import (full_trace, type_str, iterable, bool_to_int, boolean_to_logical,
-	snake_to_camel, utf8)
-from klibs.KLUtilities import colored_stdout as cso
+from klibs.KLInternal import full_trace, iterable, utf8
+from klibs.KLInternal import colored_stdout as cso
 from klibs.KLRuntimeInfo import session_info_schema
 
 
@@ -364,8 +362,8 @@ class DatabaseManager(EnvAgent):
 	
 	def __restore__(self):
 		# restores database file from the back-up of it
-		remove(P.database_path)
-		rename(P.database_backup_path, P.database_path)
+		os.remove(P.database_path)
+		os.rename(P.database_backup_path, P.database_path)
 	
 	
 	def __set_type_conversions(self, export=False):
@@ -602,8 +600,8 @@ class DatabaseManager(EnvAgent):
 			if incomplete: suffix = "_incomplete" + suffix
 			if duplicate_count: suffix = "_{0}".format(duplicate_count) + suffix
 			fname = basename + suffix
-			filepath = join(P.incomplete_data_dir if incomplete else P.data_dir, fname)
-			if isfile(filepath):
+			filepath = os.path.join(P.incomplete_data_dir if incomplete else P.data_dir, fname)
+			if os.path.isfile(filepath):
 				duplicate_count += 1
 			else:
 				break

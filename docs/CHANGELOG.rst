@@ -44,6 +44,26 @@ New Features:
   NumpySurface class for retrieving the current dimensions and midpoint of a
   surface, respectively.
 * Improved the loading speed of the ``klibs`` command line.
+* Added proper print methods for all built-in :obj:`~klibs.KLBoundary.Boundary`
+  types.
+* Added a new argument ``ignore`` to the
+  :meth:`~klibs.KLBoundary.BoundarySet.which_boundary` method of the
+  ``BoundarySet`` class, allowing easy exclusion of specific boundaries
+  from the search and replacing the functionality of the now-removed
+  ``disable_boundaries`` and ``enable_boundaries`` methods.
+* Added a new ``boundaries`` argument to the
+  :obj:`~klibs.KLBoundary.BoundarySet` class to allow initializing a boundary
+  set with a given set of boundaries.
+* Added a new :attr:`~klibs.KLBoundary.BoundarySet.labels` attribute to
+  the ``BoundarySet`` class to easily retrieve the names of all
+  boundaries currently within the set.
+* Added support for using Python's ``in`` operator with
+  :obj:`~klibs.KLBoundary.Boundary` objects (e.g. ``if point in circle``
+  instead of ``if circle.within(point)``).
+* :obj:`~klibs.KLBoundary.Boundary` objects can now be relocated by setting
+  their ``center`` attribute to a set of pixel coordinates.
+* :obj:`~klibs.KLBoundary.RectangleBoundary` objects now have ``height`` and
+  ``width`` attributes.
 
 
 API Changes:
@@ -79,6 +99,23 @@ API Changes:
   library instead.
 * :class:`~klibs.KLJSON_Object.KLJSON_Object` has been deprecated in favour of a
   new JSON import function, :func:`~klibs.KLJSON_Object.import_json`.
+* Standardized built-in :obj:`~klibs.KLBoundary.Boundary` types to always use
+  tuples for storing/returning (x, y) pixel coordinates.
+* Removed the legacy ``shape`` attribute from :obj:`~klibs.KLBoundary.Boundary`
+  (use ``isinstance`` to check boundary types instead).
+* Renamed ``BoundaryInspector`` to :obj:`~klibs.KLBoundary.BoundarySet` to
+  better represent its purpose.
+* :obj:`~klibs.KLBoundary.BoundarySet` methods now raise ``KeyError``
+  exceptions instead of ``BoundaryError`` exceptions when given a boundary label
+  that does not exist within the set.
+* Removed the ``enable_boundaries`` and ``disable_boundaries`` methods as well
+  as the ``active_boundaries`` attribute from the 
+  :obj:`~klibs.KLBoundary.BoundarySet` class.
+* Removed the convoluted ``bounds`` getter/setter attribute from all
+  :obj:`~klibs.KLBoundary.Boundary` subclasses.
+* :obj:`~klibs.KLBoundary.RectangleBoundary` objects no longer raise an error
+  if ``p2`` is above or to the left of ``p1`` and instead swaps the x and y
+  values such that ``p1`` is always the top-leftmost coordinate.
 
 
 Fixed Bugs:
@@ -94,3 +131,5 @@ Fixed Bugs:
 * Fixed a bug preventing projects with underscores in their name from opening.
 * Removed dependency on the deprecated ``imp`` module for Python 3, removing
   a runtime warning.
+* Fixed :meth:`~klibs.KLBoundary.BoundarySet.clear_boundaries` to always
+  keep preserved boundaries in the same order as they were added.

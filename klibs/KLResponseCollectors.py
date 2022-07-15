@@ -16,7 +16,7 @@ from klibs.KLKeyMap import KeyMap
 from klibs.KLUtilities import (pump, flush, hide_mouse_cursor, show_mouse_cursor, mouse_pos,
 	full_trace, iterable, angle_between)
 from klibs.KLUserInterface import ui_request
-from klibs.KLBoundary import BoundaryInspector, AnnulusBoundary
+from klibs.KLBoundary import BoundarySet, AnnulusBoundary
 from klibs.KLGraphics import flip
 from klibs.KLGraphics.utils import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import Annulus, ColorWheel, Drawbject
@@ -565,10 +565,11 @@ class MouseButtonResponse(ResponseListener):
 			raise ValueError('Property on_release must be either True or False.')
 
 
-class CursorResponse(ResponseListener, BoundaryInspector):
-	"""A response listener that listens for mouse clicks within one or more boundaries on the
-	screen. See the documentation for the :class:`BoundaryInspector` class for information on
-	how to add, enable, disable, and remove boundaries from this listener.
+class CursorResponse(ResponseListener, BoundarySet):
+	"""Listens for mouse clicks within one or more boundaries on the screen.
+	
+	See the documentation for the :class:`BoundarySet` class for information on how to
+	add and remove boundaries from this listener.
 
 	**ResponseCollector attribute:** 
 	
@@ -593,7 +594,7 @@ class CursorResponse(ResponseListener, BoundaryInspector):
 
 	def __init__(self):
 		super(CursorResponse, self).__init__('cursor_listener')
-		BoundaryInspector.__init__(self)
+		BoundarySet.__init__(self)
 		self.__event_type = SDL_MOUSEBUTTONDOWN
 		self.return_coords = False
 
@@ -601,8 +602,8 @@ class CursorResponse(ResponseListener, BoundaryInspector):
 		"""See :meth:`ResponseListener.init`.
 
 		"""
-		if len(self.active_boundaries) == 0:
-			e = "The ClickResponse listener must contain at least one active boundary to be used."
+		if len(self.boundaries) == 0:
+			e = "The ClickResponse listener must contain at least one boundary to check."
 			raise BoundaryError(e)
 		show_mouse_cursor()
 
@@ -845,7 +846,7 @@ class ColorWheelResponse(ResponseListener):
 		self.__wheel.rotation = angle
 
 
-class DrawResponse(ResponseListener, BoundaryInspector):
+class DrawResponse(ResponseListener, BoundarySet):
 	"""A response listener that collects (and optionally renders) a drawing made by the cursor
 	on screen.
 	
@@ -868,7 +869,7 @@ class DrawResponse(ResponseListener, BoundaryInspector):
 
 	def __init__(self):
 		super(DrawResponse, self).__init__(RC_DRAW)
-		BoundaryInspector.__init__(self)
+		BoundarySet.__init__(self)
 		# Internal use variables
 		self.points = []
 		self.started = False

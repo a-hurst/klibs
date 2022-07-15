@@ -235,6 +235,12 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 
 	cso("\n<green>*** Now Loading KLibs Environment ***</green>\n")
 
+	# Suppresses possible pysdl2-dll warning message on import
+	import warnings
+	with warnings.catch_warnings():	
+		warnings.simplefilter("ignore")
+		import sdl2
+
 	from klibs import P
 	from klibs import env
 	from klibs.KLGraphics.core import display_init

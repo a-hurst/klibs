@@ -43,7 +43,7 @@ New Features:
   :attr:`~klibs.KLGraphics.NumpySurface.surface_c` attributes to the
   NumpySurface class for retrieving the current dimensions and midpoint of a
   surface, respectively.
-* Improved the loading speed of the ``klibs`` command line.
+* Significantly improved the speed of the ``klibs`` command line interface.
 * Added proper print methods for all built-in :obj:`~klibs.KLBoundary.Boundary`
   types.
 * Added a new argument ``ignore`` to the

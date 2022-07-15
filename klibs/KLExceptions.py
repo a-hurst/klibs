@@ -40,7 +40,7 @@ class EyeTrackerError(Exception):
 
 class BoundaryError(Exception):
 	"""Raised when a problem relating to the use of :obj:`~klibs.KLBoundary.Boundary` objects
-	within a :obj:`~klibs.KLBoundary.BoundaryInspector` is encountered.
+	within a :obj:`~klibs.KLBoundary.BoundarySet` is encountered.
 
 	"""
 	def __init__(self, msg):

@@ -155,9 +155,9 @@ def test_annulus_boundary():
         klb.AnnulusBoundary('test7', center=100, radius=50, thickness=10)
 
 
-def test_boundary_inspector():
+def test_boundary_set():
 
-    inspector = klb.BoundaryInspector()
+    inspector = klb.BoundarySet()
     tst1 = klb.RectangleBoundary('test1', p1=(10, 10), p2=(50, 50))
     tst2 = klb.RectangleBoundary('test2', p1=(60, 60), p2=(100, 100))
     tst3 = klb.RectangleBoundary('test3', p1=(10, 30), p2=(50, 70))
@@ -176,14 +176,14 @@ def test_boundary_inspector():
     assert len(inspector.boundaries) == 3
 
     # Test current method of adding boundaries to inspector
-    inspector = klb.BoundaryInspector()
+    inspector = klb.BoundarySet()
     inspector.add_boundary(tst1)
     assert len(inspector.boundaries) == 1
     inspector.add_boundaries([tst2, tst3])
     assert len(inspector.boundaries) == 3
 
     # Test removing boundaries from the inspector
-    inspector = klb.BoundaryInspector([tst1, tst2, tst3])
+    inspector = klb.BoundarySet([tst1, tst2, tst3])
     assert len(inspector.boundaries) == 3
     inspector.remove_boundaries('test1')
     assert len(inspector.boundaries) == 2
@@ -191,7 +191,7 @@ def test_boundary_inspector():
     assert len(inspector.boundaries) == 0
 
     # Test clearing boundaries from the inspector
-    inspector = klb.BoundaryInspector()
+    inspector = klb.BoundarySet()
     inspector.add_boundaries([tst1, tst2, tst3])
     inspector.clear_boundaries()
     assert len(inspector.boundaries) == 0
@@ -207,14 +207,14 @@ def test_boundary_inspector():
     assert inspector.labels == ['test1', 'test3']
 
     # Test individual boundary tests
-    inspector = klb.BoundaryInspector()
+    inspector = klb.BoundarySet()
     inspector.add_boundaries([tst1, tst2, tst3])
     assert inspector.within_boundary('test1', (20, 40)) == True
     assert inspector.within_boundary('test2', (20, 40)) == False
     assert inspector.within_boundary('test3', (20, 40)) == True
 
     # Test combined boundary tests
-    inspector = klb.BoundaryInspector()
+    inspector = klb.BoundarySet()
     inspector.add_boundaries([tst1, tst2, tst3])
     assert inspector.which_boundary((20, 40)) == 'test3'
     assert inspector.which_boundary((20, 40), ignore='test3') == 'test1'
@@ -223,7 +223,7 @@ def test_boundary_inspector():
     assert inspector.which_boundary((20, 40), labels=['test2']) == None
 
     # Test exceptions
-    inspector = klb.BoundaryInspector()
+    inspector = klb.BoundarySet()
     with pytest.raises(ValueError):
         inspector.add_boundary('hello')
     with pytest.raises(ValueError):

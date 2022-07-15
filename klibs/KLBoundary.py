@@ -9,7 +9,7 @@ from klibs.KLUtilities import midpoint, line_segment_len # KLGeometry for math/s
 
 """A module containing different types of boundaries that can you can use to see if a given point
 is within a given region or not. These boundaries can be used as individual objects, or
-aggregated and managed together using :class:`BoundaryInspector` class.
+aggregated and managed together using the :class:`BoundarySet` class.
 
 Only rectangle, circle, and annulus-shaped boundaries are currently available, but you can define
 your own custom boundary shapes by subclassing the :class:`Boundary` object.
@@ -24,12 +24,12 @@ your own custom boundary shapes by subclassing the :class:`Boundary` object.
 #     - Alternatively, don't need to subclass Boundary?
 
 
-class BoundaryInspector(object): # BoundarySet?
+class BoundarySet(object):
 	"""A class for managing and inspecting multiple :class:`Boundary` objects.
 
 	Args:
 		boundaries (:obj:`List`, optional): A list of :obj:`Boundary` objects with which
-			to initialize the inspector.
+			to initialize the boundary set.
 
 	"""
 
@@ -39,11 +39,11 @@ class BoundaryInspector(object): # BoundarySet?
 
 	def __verify_label(self, label):
 		if label not in self.boundaries.keys():
-			e = "No boundary with the label '{0}' has been added to the inspector."
+			e = "No boundary with the label '{0}' has been added to the boundary set."
 			raise KeyError(e.format(label))
 
 	def add_boundary(self, boundary, bounds=None, shape=None):
-		"""Adds a boundary to the inspector.
+		"""Adds a boundary to the set.
 		
 		For legacy purposes, boundaries can be added using the label, bounds, and shape
 		arguments. Support for this is deprecated, and may be removed in a future version:
@@ -60,7 +60,7 @@ class BoundaryInspector(object): # BoundarySet?
 
 		Args:
 			boundary (:obj:`Boundary` or :obj:`str`): A :class:`Boundary` object to add to the
-				inspector. May also be a label string if adding a boundary using the legacy method.
+				set. May also be a label string if adding a boundary using the legacy method.
 			bounds (:obj:`List`, optional): A List specifying the size and location of the new
 				boundary (see the 'Bounds' column in the above table). For legacy use only.
 			shape (:obj:`str`, optional): The type of the new boundary (see the 'Shape' column in
@@ -91,13 +91,12 @@ class BoundaryInspector(object): # BoundarySet?
 		self.boundaries[label] = b
 
 	def add_boundaries(self, boundaries):
-		"""Adds multiple boundaries to the inspector.
+		"""Adds multiple boundaries to the set.
 		
 		See :meth:`add_boundary` for more info.
 
 		Args:
-			boundaries (:obj:`List`): A list of :obj:`Boundary` objects to add to the
-				inspector.
+			boundaries (:obj:`List`): A list of :obj:`Boundary` objects to add to the set.
 		
 		"""
 		for b in boundaries:
@@ -118,7 +117,7 @@ class BoundaryInspector(object): # BoundarySet?
 			bool: True if the point falls within the boundary, otherwise False.
 		
 		Raises:
-			KeyError: If no boundary with the given label exists within the inspector.
+			KeyError: If no boundary with the given label exists within the set.
 			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
@@ -134,14 +133,14 @@ class BoundaryInspector(object): # BoundarySet?
 		boundaries, the label of the boundary that was added most recently will be
 		returned.
 
-		By default, the point will be tested against all boundaries in the inspector.
+		By default, the point will be tested against all boundaries in the set.
 		To check only a subset of the boundaries, you can specify the names of the
 		boundaries to check using the ``labels`` argument. Conversely, you can exclude
 		specific boundaries from the search using the ``ignore`` argument.
 
 		Args:
 			p (:obj:`Tuple` or :obj:`List`): The (x, y) coordinates of the point to test
-				against the inspector's boundaries.
+				against the set's boundaries.
 			labels (:obj:`List`, optional): A list containing the labels of the
 				boundaries to inspect. Defaults to inspecting all boundaries.
 			ignore (:obj:`List`, optional): A list containing the labels of any
@@ -152,7 +151,7 @@ class BoundaryInspector(object): # BoundarySet?
 			``None`` if the point does not fall within any boundary.
 		
 		Raises:
-			KeyError: If any given labels do not correspond to a boundary within the inspector.
+			KeyError: If any given labels do not correspond to a boundary within the set.
 			ValueError: If the given point is not a valid set of (x, y) coordinates.
 		
 		"""
@@ -172,13 +171,13 @@ class BoundaryInspector(object): # BoundarySet?
 		return boundary
 
 	def remove_boundaries(self, labels):
-		"""Removes one or more boundaries from the inspector.
+		"""Removes one or more boundaries from the boundary set.
 
 		Args:
 			labels (:obj:`List`): A list containing the labels of the boundaries to remove.
 		
 		Raises:
-			KeyError: If any label does not correspond to a boundary within the inspector.
+			KeyError: If any label does not correspond to a boundary within the set.
 		
 		"""
 		if not iterable(labels): labels = [labels]
@@ -187,14 +186,14 @@ class BoundaryInspector(object): # BoundarySet?
 			self.boundaries.pop(label, None)
 
 	def clear_boundaries(self, preserve=[]):
-		"""Removes all boundaries from the inspector.
+		"""Removes all boundaries from the boundary set.
 
 		Args:
 			preserve (:obj:`List`, optional): A list containing the labels of any
-				boundaries that should remain in the inspector after the clear.
+				boundaries that should remain in the set after the clear.
 
 		Raises:
-			KeyError: If any label does not correspond to a boundary within the inspector.
+			KeyError: If any label does not correspond to a boundary within the set.
 		
 		"""
 		if not iterable(preserve):
@@ -208,31 +207,34 @@ class BoundaryInspector(object): # BoundarySet?
 		self.boundaries = preserved
 
 	def draw_boundaries(self, labels=None):
-		"""Blits one or more boundaries to the display buffer. If no individual boundaries are
-		specified, all enabled boundaries will be drawn. Must be called between
-		:func:`~klibs.KLGraphics.fill` and :func:`~klibs.KLGraphics.flip` within your code for
-		the boundaries to be drawn.
+		"""Blits one or more boundaries to the display buffer.
+		
+		If no individual boundaries are specified, all enabled boundaries will be drawn.
+		Must be called between :func:`~klibs.KLGraphics.fill` and
+		:func:`~klibs.KLGraphics.flip` for the boundaries to be visible.
 
 		NOTE: This is not currently implemented, and will raise an exception if it is used.
 
 		Args:
 			labels (:obj:`List`, optional): A list containing the labels of the boundaries to draw.
-				If no labels are specified or labels == None, all enabled boundaries in the
-				inspector will be drawn.
+				If no labels are specified or labels == None, all enabled boundaries in the set
+				will be drawn.
 
 		Raises:
-			KeyError: If any label does not correspond to a boundary within the inspector.
+			KeyError: If any label does not correspond to a boundary within the set.
 		
 		"""
 		raise NotImplementedError("Boundary drawing will be implemented in a future version.")
 
 	@property
 	def labels(self):
-		""":obj:`List`: The names of all boundaries currently within the inspector.
+		""":obj:`List`: The names of all boundaries currently within the set.
 
 		"""
 		return list(self.boundaries.keys())
 
+
+BoundaryInspector = BoundarySet  # For preserving backwards compatibility
 
 
 class Boundary(object):

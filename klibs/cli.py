@@ -233,6 +233,11 @@ def create(name, path):
 
 def run(screen_size, path, condition, devmode, no_tracker, seed):
 
+	# Ensure the specified screen size is valid
+	if screen_size <= 0:
+		err("Invalid screen size '{0}'. Size must be the diagonal size of the screen\n"
+			"in inches (e.g. 'klibs run 24' for a 24-inch screen).".format(screen_size))
+
 	cso("\n<green>*** Now Loading KLibs Environment ***</green>\n")
 
 	# Suppresses possible pysdl2-dll warning message on import

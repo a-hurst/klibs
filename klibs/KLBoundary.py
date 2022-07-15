@@ -4,9 +4,8 @@ import abc
 from collections import OrderedDict
 
 from klibs.KLConstants import RECT_BOUNDARY, CIRCLE_BOUNDARY, ANNULUS_BOUNDARY
-from klibs.KLExceptions import BoundaryError
 from klibs.KLInternal import valid_coords, iterable
-from klibs.KLUtilities import midpoint, line_segment_len
+from klibs.KLUtilities import midpoint, line_segment_len # KLGeometry for math/spatial stuff?
 
 """A module containing different types of boundaries that can you can use to see if a given point
 is within a given region or not. These boundaries can be used as individual objects, or
@@ -20,7 +19,12 @@ your own custom boundary shapes by subclassing the :class:`Boundary` object.
 # NOTE: it would be much more sane for boundaries to only have labels when added to an inspector,
 #       but is there any way of changing this without breaking the API?
 
-class BoundaryInspector(object):
+# TODO: Add multi-boundary boundary type
+#     - Will probably need to add a "rect_bounds" property to Boundaries to make the center work
+#     - Alternatively, don't need to subclass Boundary?
+
+
+class BoundaryInspector(object): # BoundarySet?
 	"""A class for managing and inspecting multiple :class:`Boundary` objects.
 
 	Args:
@@ -308,8 +312,10 @@ class Boundary(object):
 
 
 class RectangleBoundary(Boundary):
-	"""A rectangular :obj:`Boundary` object. Can be used to determine whether a point is within a
-	given rectangular region on a surface (e.g. the screen).
+	"""A rectangular :obj:`Boundary` object.
+	
+	Can be used to determine whether a point is within a given rectangular
+	region on a surface (e.g. the screen).
 	
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
@@ -337,12 +343,25 @@ class RectangleBoundary(Boundary):
 		if not all([valid_coords(p1), valid_coords(p2)]):
 			raise ValueError("'p1' and 'p2' must both be valid (x, y) coordinates.")
 
-		if p1[0] >= p2[0] or p1[1] >= p2[1]:
-			raise ValueError("'p1' must be above and to the left of 'p2'.")
+		# Ensure p1 is the upper-leftmost point
+		x1, y1 = p1
+		x2, y2 = p2
+		w = abs(x2 - x1)
+		h = abs(y2 - y1)
+		if x1 > x2:
+			x1 = x2
+			x2 = x1 + w
+		if y1 > y2:
+			y1 = y2
+			y2 = y1 + h
 
-		self.__p1 = tuple(p1)
-		self.__p2 = tuple(p2)
-		self.__center = midpoint(p1, p2)
+		if w == 0 or h == 0:
+			err = "Cannot create a rectangle boundary with a {0} of 0."
+			raise ValueError(err.format("width" if w == 0 else "height"))
+
+		self.__p1 = (x1, y1)
+		self.__p2 = (x2, y2)
+		self.__center = midpoint(self.__p1, self.__p2)
 
 	@property
 	def p1(self):
@@ -357,6 +376,20 @@ class RectangleBoundary(Boundary):
 
 		"""
 		return self.__p2
+
+	@property
+	def width(self):
+		"""float: The width of the rectangle.
+
+		"""
+		return float(self.p2[0] - self.p1[0])
+
+	@property
+	def height(self):
+		"""float: The height of the rectangle.
+
+		"""
+		return float(self.p2[1] - self.p1[1])
 
 	@property
 	def center(self):
@@ -400,8 +433,10 @@ class RectangleBoundary(Boundary):
 
 
 class CircleBoundary(Boundary):
-	"""A circle :obj:`Boundary` object. Can be used to determine whether a point is within a
-	given circular region on a surface (e.g. the screen).
+	"""A circle :obj:`Boundary` object. 
+	
+	Can be used to determine whether a point is within a given circular region
+	on a surface (e.g. the screen).
 	
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.
@@ -481,8 +516,10 @@ class CircleBoundary(Boundary):
 
 
 class AnnulusBoundary(Boundary):
-	"""An annulus :obj:`Boundary` object. Can be used to determine whether a point is within a
-	ring-shaped region on a surface (e.g. the screen).
+	"""An annulus :obj:`Boundary` object.
+	
+	Can be used to determine whether a point is within a ring-shaped region on
+	a surface (e.g. the screen).
 	
 	Args:
 		label (:obj:`str`): An informative label to use for the boundary.

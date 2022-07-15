@@ -62,6 +62,8 @@ New Features:
   instead of ``if circle.within(point)``).
 * :obj:`~klibs.KLBoundary.Boundary` objects can now be relocated by setting
   their ``center`` attribute to a set of pixel coordinates.
+* :obj:`~klibs.KLBoundary.RectangleBoundary` objects now have ``height`` and
+  ``width`` attributes.
 
 
 API Changes:
@@ -109,6 +111,9 @@ API Changes:
   :obj:`~klibs.KLBoundary.BoundaryInspector` class.
 * Removed the convoluted ``bounds`` getter/setter attribute from all
   :obj:`~klibs.KLBoundary.Boundary` subclasses.
+* :obj:`~klibs.KLBoundary.RectangleBoundary` objects no longer raise an error
+  if ``p2`` is above or to the left of ``p1`` and instead swaps the x and y
+  values such that ``p1`` is always the top-leftmost coordinate.
 
 
 Fixed Bugs:

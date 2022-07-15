@@ -21,6 +21,8 @@ def test_rectangle_boundary():
     assert rect.p1 == (10, 10)
     assert rect.p2 == (50, 50)
     assert rect.center == (30, 30)
+    assert rect.width == 40
+    assert rect.height == 40
 
     # Test boundary usage
     assert rect.within((0, 0)) == False
@@ -38,13 +40,21 @@ def test_rectangle_boundary():
     assert rect.within((10, 10)) == False
     assert rect.within((70, 80)) == True
 
+    # Test handling of when p1 > p2
+    swapped = klb.RectangleBoundary('swapped', (50, 50), (10, 10))
+    assert swapped.p1 == (10, 10)
+    assert swapped.p2 == (50, 50)
+    swapped = klb.RectangleBoundary('swapped', (50, 10), (10, 50))
+    assert swapped.p1 == (10, 10)
+    assert swapped.p2 == (50, 50)
+
     # Test boundary exceptions
     with pytest.raises(ValueError):
         rect.within(5)
     with pytest.raises(ValueError):
         rect.center = (0, 0, 0)
     with pytest.raises(ValueError):
-        klb.RectangleBoundary('test4', p1=(60, 60), p2=(50, 50))
+        klb.RectangleBoundary('test4', p1=(60, 60), p2=(60, 50))
     with pytest.raises(ValueError):
         klb.RectangleBoundary('test5', p1=0, p2=(50, 50))
 

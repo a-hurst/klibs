@@ -3,44 +3,63 @@ __author__ = 'Austin Hurst & Jonathan Mulle'
 import os
 import re
 import sys
-import time
 import traceback
 
-from klibs.KLExceptions import DatabaseException
-from klibs.KLInternal import load_source
-from klibs.KLUtilities import colored_stdout as cso
-from klibs.KLUtilities import getinput
+from klibs.KLInternal import load_source, full_trace
+from klibs.KLInternal import colored_stdout as cso
 from klibs import P
 
 
 # Utility Functions #
 
+def getinput(*args, **kwargs):
+	# Python 2/3-agnostic function for getting console input.
+	try:
+		return raw_input(*args, **kwargs)
+	except NameError:
+		return input(*args, **kwargs)
+
+
 def err(err_string):
-	cso("<red>\nError: " + err_string + "</red>\n")
+	cso("<red>Error: " + err_string + "</red>\n")
 	sys.exit()
 
 
-def ensure_directory_structure(dir_map, root, parents=[], create_missing=False):
+def ensure_directory_structure(root, create_missing=False):
+
+	dir_structure = {
+		"ExpAssets": {
+			".versions": [],
+			"Config": [],
+			"Resources": ["audio", "code", "font", "image"],
+			"Local": ["logs"],
+			"Data": ["incomplete"],
+		}
+	}
+
+	def _get_dir_paths(dir_map, root):
+		paths = []
+		if isinstance(dir_map, list):
+			return [os.path.join(root, d) for d in dir_map]
+		else:
+			for d, subdirs in dir_map.items():
+				dpath = os.path.join(root, d)
+				paths += [dpath]
+				paths += _get_dir_paths(subdirs, dpath)
+		return paths
+
 	missing_dirs = []
-	if dir_map is None:
-		return missing_dirs
-	parent_path = os.path.join(*parents) if len(parents) else ""
-	for d in dir_map:
-		dir_full_path = os.path.join(root, parent_path, d)
-		subdirs = dir_map[d]
-		if not os.path.exists(dir_full_path):
-			if not create_missing:
-				missing_dirs.append(dir_full_path)
-			else:
-				try:
-					os.makedirs(dir_full_path)
-				except OSError as e:
-					cso("failed")
-					cso(dir_map, parents)
-					sys.exit()
-		new_parents = [p for p in parents]
-		new_parents.append(d)
-		missing_dirs += ensure_directory_structure(subdirs, root, new_parents, create_missing)
+	for d in _get_dir_paths(dir_structure, root):
+		if not os.path.isdir(d):
+			d = d.replace(root, "").strip(os.path.sep)
+			missing_dirs.append(d)
+	
+	if create_missing:
+		for d in missing_dirs:
+			dpath = os.path.join(root, d)
+			if not os.path.isdir(dpath):
+				os.makedirs(dpath)
+
 	return missing_dirs
 
 
@@ -81,6 +100,39 @@ def initialize_path(path):
 	return project_name
 
 
+def validate_database_path(db_path, prompt=False):
+
+	if prompt == False and not os.path.isfile(db_path):
+		err("unable to locate project database at '{0}'.\nIt may have been renamed, "
+			"or may not exist yet.".format(db_path))
+
+	while not os.path.isfile(db_path):
+		cso("<green_d>No database file was present at '{0}'.</green_d>".format(db_path))
+		db_prompt = cso(
+			"<green_d>You can "
+			"<purple>(c)</purple>reate it, "
+			"<purple>(s)</purple>upply a different path or "
+			"<purple>(q)</purple>uit: </green_d>", print_string=False
+		)
+		response = getinput(db_prompt).lower()
+		print("")
+		
+		while response not in ['c', 's', 'q']:
+			err_prompt = cso("<red>Please respond with one of 'c', 's', or 'q': </red>", False)
+			response = getinput(err_prompt).lower()
+
+		if response == "c":
+			open(db_path, "a").close()
+		elif response == "s":
+			db_path = getinput(cso("<green_d>Great, where might it be?: </green_d>", False))
+			db_path = os.path.normpath(db_path)
+		elif response == "q":
+			sys.exit()
+	
+	return db_path
+
+
+
 # Actual CLI Functions #
 
 def create(name, path):
@@ -90,16 +142,6 @@ def create(name, path):
 	from tempfile import mkdtemp
 	from pkg_resources import resource_filename
 
-	dir_structure = {
-		"ExpAssets": {
-			".versions": None,
-			"Config": None,
-			"Resources": {"audio": None, "code": None, "font": None, "image": None},
-			"Local": {"logs": None},
-			"Data": {"incomplete": None},
-			"EDF": {"incomplete": None}
-		}
-	}
 	template_files = [
 		("schema.sql", ["ExpAssets", "Config"]),
 		("independent_variables.py", ["ExpAssets", "Config"]),
@@ -108,6 +150,8 @@ def create(name, path):
 		("experiment.py", []),
 		(".gitignore", [])
 	]
+
+	# TODO: Prompt user if project involves eye tracking & configure params accordingly
 
 	# Validate name (must be valid Python identifier)
 	valid_name = re.match(re.compile(r"^[A-Za-z_]+([A-Za-z0-9_]+)?$"), name) != None
@@ -133,7 +177,7 @@ def create(name, path):
 			"your project a different name and try again.".format(name, path))
 
 	# Get author name for adding to project files
-	author = getinput(cso("\n<green_d>Please provide your first and last name: </green_d>", False))
+	author = getinput(cso("<green_d>Please provide your first and last name: </green_d>", False))
 	if len(author.split()) < 2:
 		one_name_peeps = ["Madonna", "Prince", "Cher", "Bono", "Sting"]
 		cso("<red>\nOk {0}, take it easy.</red> "
@@ -168,7 +212,7 @@ def create(name, path):
 	# Create temporary folder and assemble project template inside it
 	tmp_path = mkdtemp(prefix='klibs_')
 	tmp_dir = os.path.split(tmp_path)[1]
-	ensure_directory_structure(dir_structure, tmp_path, create_missing=True)
+	ensure_directory_structure(tmp_path, create_missing=True)
 	cso("  <cyan>...Project template folders successfully created.</cyan>")
 
 	source_path = resource_filename('klibs', 'resources/template')
@@ -191,7 +235,18 @@ def create(name, path):
 
 def run(screen_size, path, condition, devmode, no_tracker, seed):
 
-	cso("\n\n<green>*** Now Loading KLibs Environment ***</green>\n")
+	# Ensure the specified screen size is valid
+	if screen_size <= 0:
+		err("Invalid screen size '{0}'. Size must be the diagonal size of the screen\n"
+			"in inches (e.g. 'klibs run 24' for a 24-inch screen).".format(screen_size))
+
+	cso("\n<green>*** Now Loading KLibs Environment ***</green>\n")
+
+	# Suppresses possible pysdl2-dll warning message on import
+	import warnings
+	with warnings.catch_warnings():	
+		warnings.simplefilter("ignore")
+		import sdl2
 
 	from klibs import P
 	from klibs import env
@@ -205,43 +260,34 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 	project_name = initialize_path(path)
 
 	# create any missing project directories
-	dir_structure = {
-		"ExpAssets": {
-			".versions": None,
-			"Config": None,
-			"Resources": {"audio": None, "code": None, "font": None, "image": None},
-			"Local": {"logs": None},
-			"Data": {"incomplete": None},
-			"EDF": {"incomplete": None}}
-	}
-
-	missing_dirs = ensure_directory_structure(dir_structure, path)
+	missing_dirs = ensure_directory_structure(path)
 	if len(missing_dirs):
-		print("")
 		cso("<red>Some expected or required directories for this project appear to be missing.</red>")
 		while True:
 			query = cso(
 				"<green_d>You can "
 				"<purple>(c)</purple>reate them automatically, view a "
-				"<purple>(r)</purple>eport on the missing directories, or "
+				"<purple>(r)</purple>eport on the missing directories,\nor "
 				"<purple>(q)</purple>uit klibs: </green_d>", False
 			)
 			action = getinput(query).lower()
 			action = action[0] if len(action) > 1 else action # only check first letter of input
 			if action == "r":
-				cso("<green_d>The following expected directories were not found:</green_d>")
+				cso("\n<green_d>The following required directories were not found:</green_d>")
 				for md in missing_dirs:
-					cso("\t<purple>{0}</purple>".format(md))
+					cso("<purple> - {0}</purple>".format(md))
 			elif action == "c":
-				ensure_directory_structure(dir_structure, path, create_missing=True)
+				ensure_directory_structure(path, create_missing=True)
 				break
 			elif action == "q":
 				return
 			else:
 				cso("\n<red>Please enter a valid response.</red>")
+			print("")
 
 	# set initial param values for project's context
 	P.initialize_runtime(project_name, seed)
+	P.database_path = validate_database_path(P.database_path, prompt=True)
 
 	# Add ExpAssets/Resources/code to pythonpath for easy importing
 	sys.path.append(P.code_dir)
@@ -295,12 +341,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 			env.el = KLEyeTracking.Tracker()
 		except RuntimeError:
 			return
-	try:
-		env.db = DatabaseManager()
-	except DatabaseException as e:
-		if e.message != "Quitting.":
-			cso("<red>Unable to load database.</red>")
-		return
+	env.db = DatabaseManager()
 	env.evm = EventManager()
 
 	try:
@@ -338,6 +379,7 @@ def export(path, table=None, combined=False, join=None):
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)
+	cso("\n<green>*** Exporting data from {0} ***</green>\n".format(project_name))
 
 	# set initial param values for project's context
 	P.initialize_paths(project_name)
@@ -350,6 +392,9 @@ def export(path, table=None, combined=False, join=None):
 	for k, v in load_source(P.params_file_path).items():
 		setattr(P, k, v)
 	multi_file = combined != True
+
+	# Validate database path and export
+	P.database_path = validate_database_path(P.database_path)
 	DatabaseManager().export(table, multi_file, join)
 
 
@@ -366,81 +411,94 @@ def rebuild_db(path):
 	# import params defined in project's local params file in ExpAssets/Config
 	for k, v in load_source(P.params_file_path).items():
 		setattr(P, k, v)
-	DatabaseManager().rebuild()
+
+	# Validate database path and rebuild
+	P.database_path = validate_database_path(P.database_path)
+	try:
+		DatabaseManager().rebuild()
+		cso("Database successfully rebuilt! Please make sure to update experiment.py\n"
+			"to reflect any changes you might have made to tables or column names.")
+	except Exception as e:
+		exc_txt = traceback.format_exc().split("\n")[-2]
+		schema_filename = os.path.basename(P.schema_file_path)
+		err = (
+			"<red>Syntax error encountered in database schema ('{0}'):</red>\n\n"
+			"  {1}\n\n"
+			"<red>Please double-check the file's formatting and try again.</red>"
+		)
+		cso(err.format(schema_filename, exc_txt))
 
 
 def hard_reset(path):
 	import shutil
-	from os.path import join
-	from klibs.KLUtilities import iterable
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
-	initialize_path(path)
+	project_name = initialize_path(path)
+
+	# Initialize file paths for the project & list ones to remove/rebuild
+	P.initialize_paths(project_name)
+	reset_files = [P.database_path, P.database_backup_path]
+	reset_dirs = [
+		P.incomplete_data_dir, P.incomplete_edf_dir, P.logs_dir, P.versions_dir
+	]
 
 	reset_prompt = cso(
-		"\n<red>Warning: doing a hard reset will delete all collected data, "
+		"<red>Warning: doing a hard reset will delete all collected data, "
 		"all logs, all copies of experiment.py and Config files in the .versions folder "
 		"that previous participants were run with, and reset the project's database. "
 		"Are you sure you want to continue?</red> (Y/N): ", False
 	)
-	if getinput(reset_prompt).lower() == "y":
-		for d in ['Data', 'EDF', '.versions', ('Local', 'logs')]:
-			if iterable(d):
-				d = join(*d)
-			try:
-				shutil.rmtree(join(path, "ExpAssets", d))
-			except OSError:
-				pass
-		os.makedirs(join(path, "ExpAssets", "Data", "incomplete"))
-		os.makedirs(join(path, "ExpAssets", "EDF", "incomplete"))
-		os.mkdir(join(path, "ExpAssets", "Local", "logs"))
-		os.mkdir(join(path, "ExpAssets", ".versions"))
-		rebuild_db(path)
-	print("")
-
-
-def update(branch='default'):
-    # NOTE: This is a bad idea and should be removed.
-	import logging
-	import pip
-	try:
-		from pip import main as pip_main
-	except ImportError:
-		from pip._internal import main as pip_main
-
-	# Avoid unnecessary terminal clutter by suppressing alerts for non-upgraded dependencies
-	class pipFilter(logging.Filter):
-		def filter(self, record):
-			return not record.getMessage().startswith('Requirement not upgraded')
-	try:
-		pip.req.req_set.logger.addFilter(pipFilter())
-	except AttributeError:
-		pip_logger = logging.getLogger('pip._internal.operations.prepare')
-		pip_logger.addFilter(pipFilter())
-
-	#TODO: This should really be able to compare the version/commit/origin of the current KLibs
-	#install and the one about to be installed to make sure you can't unintentionally overwrite
-	#a newer local version or install from a different branch.
-	git_repo_short = 'github.com/a-hurst'
-	git_repo = 'https://{0}/klibs.git'.format(git_repo_short)
-	if branch != 'default':
-		git_repo += "@{0}".format(branch)
+	if getinput(reset_prompt).lower() != "y":
+		return
 	
-	update_cmd = 'install -U git+{0}#egg=klibs --upgrade-strategy only-if-needed'.format(git_repo)
+	# Remove and replace folders to reset
+	for d in reset_dirs:
+		if os.path.isdir(d):
+			shutil.rmtree(d)
+	ensure_directory_structure(path, create_missing=True)
+
+	# Remove (but don't replace) files to reset
+	for f in reset_files:
+		if os.path.isfile(f):
+			os.remove(f)
+	
+	cso("\nProject reset successfully.")
+
+
+def update(branch=None):
+	import subprocess as sub
+
+	git_repo = 'a-hurst/klibs'
+	if branch:
+		url = 'https://github.com/{0}.git@{1}'.format(git_repo, branch)
+		cmd = ['pip', 'install', '-U', 'git+{0}#egg=klibs'.format(url)]
+		msg1 = "most recent commit\nfrom the <purple>{0}</purple> branch of"
+		msg1 = msg1.format(branch)
+		msg2 = "commit from '{0}'".format(branch)
+	else:
+		url = "https://github.com/{0}/releases/latest/download/klibs.tar.gz"
+		cmd = ['pip', 'install', url.format(git_repo)]
+		msg1 = "latest release\nfrom"
+		msg2 = "release from '{0}'".format(git_repo)
+
 	update_prompt = cso(
-		"\n<green_d>Updating will replace the current install of KLibs with the most "
-		"recent commit of the <purple>{0}</purple> branch of <purple>'{1}'</purple>. "
-		"Are you sure you want to continue? (Y/N): </green_d>".format(branch, git_repo_short),
+		"<green_d>Updating will replace the current install of KLibs with the "
+		"{0} <purple>'{1}'</purple></green_d>.\n\n"
+		"Are you sure you want to continue? (Y/N): ".format(msg1, git_repo),
 		False
 	)
-	if getinput(update_prompt).lower() == "y":
-		print("")
-		cso("<green_d>Updating klibs to latest commit from {0}...</green_d>".format(git_repo_short))
-		try:
-			pip_main(update_cmd.split(' '))
-		except OSError:
-			cso("<red>Root permissions required to reinstall klibs.</red>")
-			sys.exit()
+	if getinput(update_prompt).lower() != "y":
+		return
+
+	# Set environment variable to avoid pip update warnings & run update command
+	cso("\n<green_d>Updating to the latest {0}...</green_d>\n".format(msg2))
+	env = os.environ.copy()
+	env['PIP_DISABLE_PIP_VERSION_CHECK'] = '1'
+	p = sub.Popen(cmd, stdout=sys.stdout, stderr=sys.stderr, env=env)
+	p.communicate()
+
+	# Indicate whether update succeeded
+	if p.returncode != 0:
+		cso("\n<red>Errors encountered during KLibs update.</red>")
 	else:
-		print("")
-		sys.exit()
+		cso("\n<green_d>Update completed successfully!</green_d>")

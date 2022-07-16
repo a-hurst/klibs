@@ -35,7 +35,7 @@ setup(
 	url='http://github.com/a-hurst/klibs',
 	packages=['klibs', 'klibs/KLGraphics', 'klibs/KLEyeTracking'],
 	include_package_data=True,
-	entry_points = {'console_scripts': ['klibs = klibs.__main__:cli']},
+	entry_points = {'console_scripts': ['klibs = klibs.__main__:klibs_main']},
 	python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*',
 	install_requires=[
 		'numpy>=1.8.0rc1', 

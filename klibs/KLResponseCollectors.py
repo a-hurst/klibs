@@ -20,6 +20,7 @@ from klibs.KLBoundary import BoundarySet, AnnulusBoundary
 from klibs.KLGraphics import flip
 from klibs.KLGraphics.utils import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import Annulus, ColorWheel, Drawbject
+from klibs.KLAudio import PYAUDIO_AVAILABLE
 
 
 
@@ -386,6 +387,10 @@ class AudioResponse(ResponseListener):
 		super(AudioResponse, self).__init__(RC_AUDIO)
 		self.__threshold = None
 		self._stream_error = False
+		if not PYAUDIO_AVAILABLE:
+			e = ("The 'pyaudio' package must be installed in order to use the "
+				"AudioResponse listener.")
+			raise RuntimeError(e)
 
 	def init(self):
 		"""See :meth:`ResponseListener.init`.

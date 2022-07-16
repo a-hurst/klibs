@@ -43,7 +43,7 @@ New Features:
   :attr:`~klibs.KLGraphics.NumpySurface.surface_c` attributes to the
   NumpySurface class for retrieving the current dimensions and midpoint of a
   surface, respectively.
-* Improved the loading speed of the ``klibs`` command line.
+* Significantly improved the speed of the ``klibs`` command line interface.
 * Added proper print methods for all built-in :obj:`~klibs.KLBoundary.Boundary`
   types.
 * Added a new argument ``ignore`` to the
@@ -64,6 +64,15 @@ New Features:
   their ``center`` attribute to a set of pixel coordinates.
 * :obj:`~klibs.KLBoundary.RectangleBoundary` objects now have ``height`` and
   ``width`` attributes.
+* Replaced an unnecessary runtime warning about PyAudio on launch (regardless of
+  whether the project required audio input) with a ``RuntimeError`` if trying to
+  collect an :class:`~klibs.KLResponseCollectors.AudioResponse` without PyAudio.
+* Raise an error instead of entering the missing database prompt when trying to
+  export data or rebuild the database for a project without a database file.
+* ``klibs update`` now installs the latest GitHub release of KLibs instead of
+  the latest commit from the default branch.
+* ``EDF`` folder is no longer created by default for new projects. It is now
+  created only if needed when saving data from an eye tracking experiment.
 
 
 API Changes:
@@ -133,3 +142,5 @@ Fixed Bugs:
   a runtime warning.
 * Fixed :meth:`~klibs.KLBoundary.BoundarySet.clear_boundaries` to always
   keep preserved boundaries in the same order as they were added.
+* Fixed suppression of colorized console output on terminals that don't support
+  it.

@@ -1,24 +1,20 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+import os
 import io
 import shutil
 import sqlite3
 from copy import copy
 from itertools import chain
-from os import remove, rename
-from os.path import join, isfile, basename
-from argparse import ArgumentParser
 from collections import OrderedDict
 
 from klibs.KLEnvironment import EnvAgent
-from klibs.KLExceptions import DatabaseException
 from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_DELIM_STR,
 	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR, SQL_BIN, SQL_KEY, SQL_NULL,
 	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID)
 from klibs import P
-from klibs.KLUtilities import (full_trace, type_str, iterable, bool_to_int, boolean_to_logical,
-	snake_to_camel, getinput, utf8)
-from klibs.KLUtilities import colored_stdout as cso
+from klibs.KLInternal import full_trace, iterable, utf8
+from klibs.KLInternal import colored_stdout as cso
 from klibs.KLRuntimeInfo import session_info_schema
 
 
@@ -156,12 +152,7 @@ class Database(EnvAgent):
 		self.db.text_factory = sqlite3.OptimizedUnicode
 		self.cursor = self.db.cursor()
 		if len(self._tables()) == 0:
-			if isfile(P.schema_file_path):
-				self._deploy_schema(P.schema_file_path)
-			else:
-				print("\nError: No SQL schema found at '{0}'. Please make sure there is a valid "
-					"schema file at this location and try again.\n".format(P.schema_file_path))
-				raise RuntimeError("Database schema could not be found.")
+			self._deploy_schema(P.schema_file_path)
 		self.build_table_schemas()
 
 	def _tables(self):
@@ -358,7 +349,8 @@ class DatabaseManager(EnvAgent):
 	def __init__(self):
 		super(DatabaseManager, self).__init__()
 		self.__set_type_conversions()
-		self.__load_master__()
+		shutil.copy(P.database_path, P.database_backup_path)
+		self.__master = Database(P.database_path)
 		if P.multi_user:
 			print("Local database: {0}".format(P.database_local_path))
 			shutil.copy(P.database_path, P.database_local_path)
@@ -367,44 +359,11 @@ class DatabaseManager(EnvAgent):
 			self.__current = self.__local
 		else:
 			self.__current = self.__master
-			
-	def __catch_db_not_found__(self):
-		cso("\n<green_d>No database file was present at '{0}'.</green_d>".format(P.database_path))
-		err_string = cso(
-			"<green_d>You can "
-			"<purple>(c)</purple>reate it, "
-			"<purple>(s)</purple>upply a different path or "
-			"<purple>(q)</purple>uit: </green_d>", print_string=False
-		)
-		db_action = ArgumentParser()
-		db_action.add_argument('action', type=str, choices=['c', 's', 'q'])
-		response = getinput(err_string).lower()
-		response = response[0] if len(response) > 1 else response
-		action = db_action.parse_args([response]).action
-
-		if action == DB_SUPPLY_PATH:
-			# TODO: error checking for this
-			P.database_path = getinput(cso("<green_d>Great. Where might it be?</green_d>", False))
-			self.__load_master__()
-		elif action == DB_CREATE:
-			open(P.database_path, "a").close()
-			self.__load_master__()
-		elif action == "q":
-			raise DatabaseException("Quitting.")
-		else:
-			raise DatabaseException("No valid response.")
-	
-	def __load_master__(self):
-		if isfile(P.database_path):
-			shutil.copy(P.database_path, P.database_backup_path)
-			self.__master = Database(P.database_path)
-		else:
-			self.__catch_db_not_found__()
 	
 	def __restore__(self):
 		# restores database file from the back-up of it
-		remove(P.database_path)
-		rename(P.database_backup_path, P.database_path)
+		os.remove(P.database_path)
+		os.rename(P.database_backup_path, P.database_path)
 	
 	
 	def __set_type_conversions(self, export=False):
@@ -535,7 +494,6 @@ class DatabaseManager(EnvAgent):
 		except TypeError:
 			join_tables = []
 
-		cso("\n<green>*** Exporting data from {0} ***</green>\n".format(P.project_name))
 		self.__set_type_conversions(export=True)
 		column_names, data = self.collect_export_data(multi_file, join_tables)
 
@@ -558,7 +516,6 @@ class DatabaseManager(EnvAgent):
 			with io.open(file_path, 'w+', encoding='utf-8') as out:
 				out.write(u"\n".join([header, column_names, "\n".join(combined_data)]))
 			print("    - Data for {0} participants successfully exported.".format(p_count))
-		print("") # newline between export info and next prompt for aesthetics' sake
 
 
 	def export_header(self, user_id=None):
@@ -643,8 +600,8 @@ class DatabaseManager(EnvAgent):
 			if incomplete: suffix = "_incomplete" + suffix
 			if duplicate_count: suffix = "_{0}".format(duplicate_count) + suffix
 			fname = basename + suffix
-			filepath = join(P.incomplete_data_dir if incomplete else P.data_dir, fname)
-			if isfile(filepath):
+			filepath = os.path.join(P.incomplete_data_dir if incomplete else P.data_dir, fname)
+			if os.path.isfile(filepath):
 				duplicate_count += 1
 			else:
 				break
@@ -670,21 +627,11 @@ class DatabaseManager(EnvAgent):
 
 
 	def rebuild(self):
-		if not isfile(P.schema_file_path):
-			print("Error: No SQL schema found at '{0}'. Please make sure there is a valid "
-				  "schema file at this location and try again.\n".format(P.schema_file_path))
-			return False
-
 		self.__master._drop_tables()
 		try:
 			self.__master._deploy_schema(P.schema_file_path)
 			self.__master.build_table_schemas()
-			print("\nDatabase successfully rebuilt! Please make sure to update your experiment.py "
-				  "to reflect any changes you might have made to tables or column names.\n")
 		except (sqlite3.ProgrammingError, sqlite3.OperationalError, ValueError) as e:
-			schema_filename = basename(P.schema_file_path)
-			cso("\n<red>Syntax error encountered in '{0}'. Please double-check the formatting of "
-				"the schema and try again.</red>\n".format(schema_filename))
 			self.__master._drop_tables(self.__master.table_list)
 			self.__restore__()
 			raise e

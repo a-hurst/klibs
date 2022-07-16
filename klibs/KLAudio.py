@@ -18,6 +18,7 @@ from sdl2.sdlmixer import (Mix_LoadWAV, Mix_QuickLoad_RAW, Mix_PlayChannel, Mix_
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_RATE
 from klibs import P
+from klibs.KLInternal import hide_stderr
 from klibs.KLUtilities import pump, flush, peak
 from klibs.KLTime import CountDown
 from klibs.KLUserInterface import ui_request, key_pressed, any_key
@@ -32,6 +33,9 @@ try:
 except ImportError:
 	PYAUDIO_AVAILABLE = False
 	pa_stream = Ellipse # so AudioStream subclassing Stream doesn't break KLAudio if no pyaudio
+
+
+# TODO: This needs a heavy rewrite, both conceptually and implementation-wise
 
 
 class AudioManager(object):
@@ -52,20 +56,18 @@ class AudioManager(object):
 		if not sdl2.SDL_WasInit(sdl2.SDL_INIT_AUDIO):
 			sdl2.SDL_Init(sdl2.SDL_INIT_AUDIO)
 			sdl2.sdlmixer.Mix_OpenAudio(44100, sdl2.sdlmixer.MIX_DEFAULT_FORMAT, 2, 1024)
+		self.input = None
+		self.stream = None
 		if PYAUDIO_AVAILABLE:
 			try:
 				self.input = pyaudio.PyAudio()
 				self.device_name = self.input.get_default_input_device_info()['name']
 				self.stream = AudioStream(self.input)
 			except IOError:
-				print("Warning: Could not find a valid audio input device, audio input will "
-					"not be available.")
+				print("* Warning: Could not find a valid audio input device, audio input will "
+					"not be available.\n")
 				self.input = None
 				self.stream = None
-		else:
-			print("\t* Warning: PyAudio library not found; audio input will not be available.")
-			self.input = None
-			self.stream = None
 
 	def calibrate(self):
 		"""Determines a threshold loudness to use for vocal responses based on sample input from
@@ -343,19 +345,12 @@ class AudioStream(pa_stream, EnvAgent):
 			raise RuntimeError("The PyAudio module is not installed; audio input is not available.")
 		EnvAgent.__init__(self)
 		self.threshold = threshold
-		# Due to using a depricated macOS API, portaudio will print a warning everytime it's called.
-		# The following lines suppress this error.
-		devnull = os.open(os.devnull, os.O_WRONLY)
-		old_stderr = os.dup(2)
-		sys.stderr.flush()
-		os.dup2(devnull, 2)
-		os.close(devnull)
-		pyaudio.Stream.__init__(self, PA_manager=pa_instance,
-			format=pyaudio.paInt16, channels=1, rate=AR_RATE, frames_per_buffer=AR_CHUNK_SIZE,
-			input=True, output=False, start=False
-		)
-		os.dup2(old_stderr, 2)
-		os.close(old_stderr)
+		with hide_stderr(macos_only=True):
+			# hide_stderr is to suppress a macOS API deprecation warning from portaudio
+			pyaudio.Stream.__init__(self, PA_manager=pa_instance,
+				format=pyaudio.paInt16, channels=1, rate=AR_RATE, frames_per_buffer=AR_CHUNK_SIZE,
+				input=True, output=False, start=False
+			)
 
 	def sample(self):
 		"""Fetches the most recent audio sample from the input stream. If the stream is not already

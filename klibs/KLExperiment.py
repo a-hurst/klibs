@@ -3,30 +3,14 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import sys
-import warnings
 from abc import abstractmethod
 from traceback import print_tb, print_stack
 
-# Suppresses possible pysdl2-dll warning message on import
-with warnings.catch_warnings():	
-	warnings.simplefilter("ignore")
-	import sdl2
-
+from klibs import P
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
-from klibs import P
-from klibs.KLKeyMap import KeyMap
-from klibs.KLUtilities import full_trace, pump, flush, now, show_mouse_cursor, hide_mouse_cursor
-from klibs.KLUtilities import colored_stdout as cso
-from klibs.KLTrialFactory import TrialFactory
-from klibs.KLGraphics import flip, blit, fill, clear
-from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
-from klibs.KLGraphics import KLDraw as kld
-from klibs.KLDatabase import EntryTemplate
-from klibs.KLUserInterface import any_key
-from klibs.KLAudio import AudioManager
-from klibs.KLResponseCollectors import ResponseCollector
-from klibs.KLCommunication import message, query, collect_demographics
+from klibs.KLInternal import full_trace
+from klibs.KLInternal import colored_stdout as cso
 
 
 class Experiment(EnvAgent):
@@ -35,10 +19,15 @@ class Experiment(EnvAgent):
 	paused = False
 
 	def __init__(self):
+		from klibs.KLAudio import AudioManager
+		from klibs.KLResponseCollectors import ResponseCollector
+		from klibs.KLTrialFactory import TrialFactory
+
 		super(Experiment, self).__init__()
 
 		self.incomplete = True # flag for keeping track of session completeness
 		self.blocks = None # blocks of trials for the experiment
+		self.tracker_dot = None # overlay of eye tracker gaze location in devmode
 
 		self.audio = AudioManager() # initialize audio management for the experiment
 		self.rc = ResponseCollector() # add default response collector
@@ -54,6 +43,7 @@ class Experiment(EnvAgent):
 		"""For internal use, actually runs the blocks/trials of the experiment in sequence.
 
 		"""
+		from klibs.KLGraphics import clear
 
 		if self.blocks == None:
 			self.blocks = self.trial_factory.export_trials()
@@ -75,7 +65,7 @@ class Experiment(EnvAgent):
 				except TrialException:
 					block.recycle()
 					P.recycle_count += 1
-					clear()
+					clear() # NOTE: is this actually wanted?
 				self.rc.reset()
 		self.clean_up()
 
@@ -89,7 +79,7 @@ class Experiment(EnvAgent):
 		"""
 		Private method; manages a trial.
 		"""
-		pump()
+		from klibs.KLUtilities import pump, show_mouse_cursor, hide_mouse_cursor
 
 		# At start of every trial, before setup_response_collector or trial_prep are run, retrieve
 		# the values of the independent variables (factors) for that trial (as generated earlier by
@@ -99,6 +89,7 @@ class Experiment(EnvAgent):
 			iv_value = trial[factors.index(iv)]
 			setattr(self, iv, iv_value)
 
+		pump()
 		self.setup_response_collector()
 		self.trial_prep()
 		tx = None
@@ -133,10 +124,13 @@ class Experiment(EnvAgent):
 		"""Internal method, logs trial data to database.
 
 		"""
+		from klibs.KLDatabase import EntryTemplate
+
 		trial_template = EntryTemplate('trials')
 		trial_template.log(P.id_field_name, P.participant_id)
 		for attr in trial_data:
 			trial_template.log(attr, trial_data[attr])
+
 		return self.database.insert(trial_template)
 
 
@@ -262,11 +256,9 @@ class Experiment(EnvAgent):
 		function if desired.
 
 		"""
+		from klibs.KLGraphics import blit
+
 		if P.show_gaze_dot and self.el.recording:
-			try:
-				self.tracker_dot
-			except AttributeError:
-				self.tracker_dot = kld.Ellipse(8, stroke=[2, (255,255,255)], fill=(255,0,0)).render()
 			try:
 				blit(self.tracker_dot, 5, self.el.gaze())
 			except RuntimeError:
@@ -278,6 +270,7 @@ class Experiment(EnvAgent):
 		recording is stopped. This, not Python's sys.exit(), should be used to exit an experiment.
 
 		"""
+		import sdl2
 		if P.verbose_mode:
 			print_tb(print_stack(), 6)
 
@@ -317,9 +310,14 @@ class Experiment(EnvAgent):
 		the actual experiment.
 
 		"""
-
-		if P.eye_tracking and not P.manual_eyelink_setup:
-			self.el.setup()
+		from klibs.KLGraphics.KLDraw import Ellipse
+	
+		if P.eye_tracking:
+			RED = (255, 0, 0)
+			WHITE = (255, 255, 255)
+			self.tracker_dot = Ellipse(8, stroke=[2, WHITE], fill=RED).render()
+			if not P.manual_eyelink_setup:
+				self.el.setup()
 
 		self.setup()
 		try:
@@ -331,6 +329,10 @@ class Experiment(EnvAgent):
 
 
 	def show_logo(self):
+		from klibs.KLUtilities import flush
+		from klibs.KLUserInterface import any_key
+		from klibs.KLGraphics import fill, blit, flip
+		from klibs.KLGraphics import NumpySurface as NpS
 		logo = NpS(P.logo_file_path)
 		flush()
 		for i in (1, 2):

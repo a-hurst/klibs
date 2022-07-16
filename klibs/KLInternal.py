@@ -9,6 +9,7 @@ import binascii
 import traceback
 from sys import exc_info
 from datetime import datetime
+from contextlib import contextmanager
 
 from klibs.KLConstants import DATETIME_STAMP
 from klibs import P
@@ -212,9 +213,9 @@ def colored_stdout(string, print_string=True):
 	out = ""
 	stack = []
 	for s in re.split(code_pattern, string):
-		if re.match(code_pattern, s) and P.color_output:
+		if re.match(code_pattern, s):
 			code = re.findall(r"</?([a-z_]+)>", s)[0]
-			if not code in codes.keys():
+			if not (code in codes.keys() and P.color_output):
 				continue
 			if s[:2] == "</":
 				if code == "bold" and "bold" in stack:
@@ -255,6 +256,31 @@ def log(msg, priority):
 	if priority <= P.verbosity:
 		with open(P.log_file_path, 'a') as log_file:
 			log_file.write(str(priority) + ": " + msg)
+
+
+@contextmanager
+def hide_stderr(macos_only=False):
+	"""Temporarily suppresses stderr output.
+	
+	Useful for hiding useless noise from C libraries that can't be hidden through
+	the usual Python ways.
+
+	Args:
+		macos_only (bool, optional): If True, stderr will only be suppressed on macOS.
+			Defaults to False.
+
+	"""
+	# NOTE: Check if this works on Windows
+	if macos_only == False or sys.platform == "darwin":
+		devnull = os.open(os.devnull, os.O_WRONLY)
+		old_stderr = os.dup(2)
+		os.dup2(devnull, 2)
+		yield
+		os.dup2(old_stderr, 2)
+		os.close(devnull)
+		os.close(old_stderr)
+	else:
+		yield
 
 
 def full_trace():

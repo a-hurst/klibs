@@ -72,20 +72,10 @@ def test_ensure_directory_structure(tmpdir):
 
     global _input_queue
     tmpdir = str(tmpdir)
-    dir_structure = {
-		"ExpAssets": {
-			".versions": None,
-			"Config": None,
-			"Resources": {"audio": None, "code": None, "font": None, "image": None},
-			"Local": {"logs": None},
-			"Data": {"incomplete": None},
-			"EDF": {"incomplete": None}
-		}
-	}
     exp_path = create_experiment("TestExpt", tmpdir)
 
     # Make sure no folders missing from freshly-created project
-    missing = cli.ensure_directory_structure(dir_structure, exp_path)
+    missing = cli.ensure_directory_structure(exp_path)
     assert len(missing) == 0
 
     # Remove some folders and make sure they're noticed
@@ -93,14 +83,14 @@ def test_ensure_directory_structure(tmpdir):
     datapath = os.path.join(exp_path, "ExpAssets", "Data")
     shutil.rmtree(logpath)
     shutil.rmtree(datapath)
-    missing = cli.ensure_directory_structure(dir_structure, exp_path)
+    missing = cli.ensure_directory_structure(exp_path)
     assert len(missing) == 3
     assert "logs" in [os.path.basename(f) for f in missing]
     assert "Data" in [os.path.basename(f) for f in missing]
 
     # Try creating the missing folders
-    cli.ensure_directory_structure(dir_structure, exp_path, create_missing=True)
-    missing = cli.ensure_directory_structure(dir_structure, exp_path)
+    cli.ensure_directory_structure(exp_path, create_missing=True)
+    missing = cli.ensure_directory_structure(exp_path)
     assert len(missing) == 0
     assert os.path.isdir(logpath)
     assert os.path.isdir(datapath)

@@ -57,7 +57,8 @@ def ensure_directory_structure(root, create_missing=False):
 	if create_missing:
 		for d in missing_dirs:
 			dpath = os.path.join(root, d)
-			os.makedirs(dpath, exist_ok=True)
+			if not os.path.isdir(dpath):
+				os.makedirs(dpath)
 
 	return missing_dirs
 

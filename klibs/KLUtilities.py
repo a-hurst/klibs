@@ -13,12 +13,9 @@ from hashlib import sha512
 from sys import exc_info
 from math import sin, cos, acos, atan2, radians, pi, degrees, ceil
 
-from sdl2 import (SDL_Event, SDL_PumpEvents, SDL_PushEvent, SDL_FlushEvents, SDL_RegisterEvents,
-	SDL_PeepEvents, SDL_GetError, SDL_GetTicks,
-	SDL_FIRSTEVENT, SDL_LASTEVENT, SDL_GETEVENT, SDL_MOUSEMOTION, 
+from sdl2 import (SDL_PumpEvents, SDL_GetTicks,
 	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
 	KMOD_SHIFT, KMOD_CAPS)
-from sdl2.ext import get_events
 from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
 from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
 
@@ -28,6 +25,7 @@ from klibs.KLInternal import (
 	boolean_to_logical, colored_stdout, full_trace, log, now, iterable, utf8,
 	valid_coords
 )
+from klibs.KLEventQueue import pump, flush
 
 
 def arg_error_str(arg_name, given, expected, kw=True):
@@ -134,15 +132,6 @@ def deg_to_px(deg, even=False):
 	else:
 		px = deg * P.ppd
 	return int(px)
-
-
-def flush():
-	"""Empties the event queue of all unprocessed input events. This should be called before
-	any input-checking loops, to avoid any input events from before the loop being processed.
-	
-	"""
-	pump()
-	SDL_FlushEvents(SDL_FIRSTEVENT, SDL_LASTEVENT)
 
 
 def hide_mouse_cursor():
@@ -392,36 +381,6 @@ def point_pos(origin, amplitude, angle, rotation=0, clockwise=False, return_int=
 		err = "point_pos error (start: {0}, amp: {1}, ang: {2}, rot: {3})"
 		print(err.format(origin, amplitude, angle, rotation))
 		raise
-
-
-def pump(return_events=False):
-
-	"""Pumps the SDL2 event queue and appends its contents to the EventManager log.
-	The SDL2 event queue contains SDL_Event objects representing keypresses, mouse
-	movements, mouse clicks, and other input events that have occured since last
-	check.
-
-	Pumping the SDL2 event queue clears its contents, so be careful of calling it
-	(or functions that call it implicitly) multiple times in the same loop, as it
-	may result in unexpected problems watching for input (e.g if you have two
-	functions checking for mouse clicks within two different boundaries and both
-	call pump(), the second one will only return True if a click within that boundary
-	occurred within the sub-millisecond interval between the first and second functions.)
-	To avoid these problems, you can manually fetch the queue once per loop and pass its
-	contents to each of the functions in the loop inspecting user input.
-
-	Args:
-		return_events (bool): If true, returns the contents of the SDL2 event queue.
-
-	Returns:
-		A list of SDL_Event objects, if return_events=True. Otherwise, the return 
-		value is None.
-
-	"""
-	SDL_PumpEvents()
-
-	if return_events:
-		return get_events()
 
 
 def pretty_list(items, sep=',', space=' ', before_last='or', brackets='[]', pad=True):

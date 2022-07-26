@@ -12,7 +12,8 @@ from math import ceil, floor
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import EYELINK_1000
 from klibs import P
-from klibs.KLUtilities import pump, mouse_pos, clip
+from klibs.KLUtilities import clip, mouse_pos
+from klibs.KLEventQueue import pump
 from klibs.KLUserInterface import ui_request
 from klibs.KLGraphics import fill, flip, blit
 from klibs.KLGraphics.KLDraw import drift_correct_target

@@ -9,11 +9,12 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
 	EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
 	TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 from klibs import P
-from klibs.KLUtilities import (pump, mouse_pos, show_mouse_cursor, hide_mouse_cursor,
+from klibs.KLUtilities import (mouse_pos, show_mouse_cursor, hide_mouse_cursor,
 	iterable, now, mean)
 from klibs.KLBoundary import CircleBoundary
 from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
+from klibs.KLEventQueue import pump
 from klibs.KLUserInterface import ui_request
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
 from klibs.KLEyeTracking.events import GazeSample, EyeEvent, EyeEventTemplate

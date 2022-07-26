@@ -1,11 +1,13 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-from sdl2 import (SDL_GetKeyFromName, SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL,
-	KMOD_GUI, SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
+
+from sdl2 import (SDL_GetKeyFromName,
+	SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL, KMOD_GUI, SDLK_UP,
+	SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
 
 from klibs import P
 from klibs.KLTime import precise_time as time
-from klibs.KLUtilities import pump
+from klibs.KLEventQueue import pump
 
 
 def any_key(allow_mouse_click=True):

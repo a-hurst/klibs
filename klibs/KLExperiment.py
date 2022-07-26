@@ -79,7 +79,8 @@ class Experiment(EnvAgent):
 		"""
 		Private method; manages a trial.
 		"""
-		from klibs.KLUtilities import pump, show_mouse_cursor, hide_mouse_cursor
+		from klibs.KLEventQueue import pump
+		from klibs.KLUtilities import show_mouse_cursor, hide_mouse_cursor
 
 		# At start of every trial, before setup_response_collector or trial_prep are run, retrieve
 		# the values of the independent variables (factors) for that trial (as generated earlier by
@@ -329,7 +330,7 @@ class Experiment(EnvAgent):
 
 
 	def show_logo(self):
-		from klibs.KLUtilities import flush
+		from klibs.KLEventQueue import flush
 		from klibs.KLUserInterface import any_key
 		from klibs.KLGraphics import fill, blit, flip
 		from klibs.KLGraphics import NumpySurface as NpS

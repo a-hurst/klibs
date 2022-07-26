@@ -19,7 +19,8 @@ from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_RATE
 from klibs import P
 from klibs.KLInternal import hide_stderr
-from klibs.KLUtilities import pump, flush, peak
+from klibs.KLEventQueue import pump, flush
+from klibs.KLUtilities import peak
 from klibs.KLTime import CountDown
 from klibs.KLUserInterface import ui_request, key_pressed, any_key
 from klibs.KLGraphics.KLDraw import Ellipse

@@ -9,8 +9,7 @@ from aggdraw import Brush, Draw, Pen, Symbol
 from PIL import Image
 from numpy import asarray
 
-from klibs.KLConstants import (STROKE_CENTER, STROKE_INNER, STROKE_OUTER,
-	KLD_LINE, KLD_MOVE, KLD_ARC, KLD_PATH)
+from klibs.KLConstants import STROKE_CENTER, STROKE_INNER, STROKE_OUTER
 from klibs import P
 from klibs.KLUtilities import point_pos, rotate_points, translate_points, canvas_size_from_points
 from klibs.KLGraphics.utils import rgb_to_rgba, aggdraw_to_array

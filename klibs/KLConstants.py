@@ -22,10 +22,6 @@ ANNULUS_BOUNDARY = "annulus"
 STROKE_INNER = 1
 STROKE_CENTER = 2
 STROKE_OUTER = 3
-KLD_LINE = "line"
-KLD_ARC = "arc"
-KLD_PATH = "path"
-KLD_MOVE = "move"
 
 # ResponseCollector Constants
 RC_AUDIO = 'audio_listener'

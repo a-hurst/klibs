@@ -13,10 +13,7 @@ from hashlib import sha512
 from sys import exc_info
 from math import sin, cos, acos, atan2, radians, pi, degrees, ceil
 
-from sdl2 import (SDL_PumpEvents, SDL_GetTicks,
-	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
-	KMOD_SHIFT, KMOD_CAPS)
-from sdl2.mouse import SDL_ShowCursor, SDL_GetMouseState, SDL_WarpMouseGlobal, SDL_ShowCursor
+from sdl2 import SDL_PumpEvents, KMOD_SHIFT, KMOD_CAPS
 from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
 
 from klibs.KLConstants import DATETIME_STAMP, TK_S, TK_MS
@@ -26,6 +23,7 @@ from klibs.KLInternal import (
 	valid_coords
 )
 from klibs.KLEventQueue import pump, flush
+from klibs.KLUserInterface import show_mouse_cursor, hide_mouse_cursor, mouse_pos, smart_sleep
 
 
 def arg_error_str(arg_name, given, expected, kw=True):
@@ -132,13 +130,6 @@ def deg_to_px(deg, even=False):
 	else:
 		px = deg * P.ppd
 	return int(px)
-
-
-def hide_mouse_cursor():
-	"""Hides the mouse cursor if it is currently shown. Otherwise, this function does nothing.
-	
-	"""
-	SDL_ShowCursor(SDL_DISABLE)
 
 
 def indices_of(element, container, identity_comparison=False):
@@ -280,46 +271,6 @@ def mean(values):
 
 	"""
 	return sum(values) / float(len(values))
-
-
-def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
-	"""Returns the current coordinates of the mouse cursor, or alternatively warps the
-	position of the cursor to a specific location on the screen.
-
-	Args:
-		pump_event_queue (bool, optional): Pumps the SDL2 event queue. See documentation
-			for pump() for more information. Defaults to True.
-		position (None or iter(int,int), optional): The x,y pixel coordinates to warp
-			the cursor to if desired. Defaults to None.
-		return_button_state (bool, optional): If True, return the mouse button currently
-			being pressed (if any) in addition to the current cursor coordinates. Defaults
-			to False.
-
-	Returns:
-		A 2-element Tuple containing the x,y coordinates of the cursor as integer values.
-		If position is not None, this will be the coordinates the cursor was warped to.
-		If return_button_state is True, the function returns a 3-element Tuple containing
-		the x,y coordinates of the cursor and the mouse button state (left pressed = 1,
-		right pressed = 2, middle pressed = 3, none pressed = 0).
-
-	"""
-	if pump_event_queue:
-		SDL_PumpEvents()
-	if not position:
-		x, y = ctypes.c_int(0), ctypes.c_int(0)
-		button_state = SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
-		if return_button_state:
-			if (button_state & SDL_BUTTON(SDL_BUTTON_LEFT)): pressed = 1
-			elif (button_state & SDL_BUTTON(SDL_BUTTON_RIGHT)): pressed = 2
-			elif (button_state & SDL_BUTTON(SDL_BUTTON_MIDDLE)): pressed = 3
-			else: pressed = 0
-			return (x.value, y.value, pressed)
-		else:
-			return (x.value, y.value)
-	else:
-		x, y = [int(n) for n in position]
-		SDL_WarpMouseGlobal(x, y)
-		return position
 
 
 def mouse_angle(pump_event_queue=True, reference=None, rotation=0, clockwise=False):
@@ -477,13 +428,6 @@ def rotate_points(points, origin, angle, clockwise=True, flat=False):
 	return rotated
 
 
-def show_mouse_cursor():
-	"""Unhides the mouse cursor if it is currently hidden. Otherwise, this function does nothing.
-
-	"""
-	SDL_ShowCursor(SDL_ENABLE)
-
-
 def scale(coords, canvas_size, target_size=None, scale=True, center=True):
 	"""Scales and/or centers pixel coordinates intended for use at a given resolution to a
 	smaller or larger resolution, maintaining aspect ratio.
@@ -605,25 +549,6 @@ def type_str(var):
 
 	"""
 	return type(var).__name__
-
-		
-def smart_sleep(interval, units=TK_MS):
-	"""Stops and waits for a given amount of time, ensuring that any 'quit' or 'calibrate' key
-	commands issued during the wait interval are processed.
-
-	Args:
-		interval (float): The number of units of time to pause execution for.
-		units (int, optional): The time unit of 'interval', must be one of `klibs.TK_S` (seconds)
-			or `klibs.TK_MS` (milliseconds). Defaults to milliseconds.
-			
-	"""
-	from klibs.KLUserInterface import ui_request
-	from klibs.KLTime import precise_time
-	if units == TK_MS:
-		interval *= .001
-	start = precise_time()
-	while precise_time() - start < interval:
-		ui_request()
 
 
 def acute_angle(vertex, p1, p2):

@@ -125,6 +125,16 @@ API Changes:
 * :obj:`~klibs.KLBoundary.RectangleBoundary` objects no longer raise an error
   if ``p2`` is above or to the left of ``p1`` and instead swaps the x and y
   values such that ``p1`` is always the top-leftmost coordinate.
+* Moved the :func:`~klibs.KLEventQueue.pump` and
+  :func:`~klibs.KLEventQueue.flush` to a new module :mod:`klibs.KLEventQueue`.
+  For legacy code, these functions can still be imported from
+  :mod:`klibs.KLUtilities`.
+* Moved the :func:`~klibs.KLUserInterface.show_mouse_cursor`,
+  :func:`~klibs.KLUserInterface.hide_mouse_cursor`,
+  :func:`~klibs.KLUserInterface.mouse_pos`, and
+  :func:`~klibs.KLUserInterface.smart_sleep` functions to the 
+  :mod:`klibs.KLUserInterface` module. For legacy code, these functions can
+  still be imported from :mod:`klibs.KLUtilities`.
 
 
 Fixed Bugs:

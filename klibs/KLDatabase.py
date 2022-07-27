@@ -9,7 +9,7 @@ from itertools import chain
 from collections import OrderedDict
 
 from klibs.KLEnvironment import EnvAgent
-from klibs.KLConstants import (DB_CREATE, DB_COL_TITLE, DB_SUPPLY_PATH, SQL_COL_DELIM_STR,
+from klibs.KLConstants import (DB_CREATE, DB_SUPPLY_PATH, SQL_COL_DELIM_STR,
 	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR, SQL_BIN, SQL_KEY, SQL_NULL,
 	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID)
 from klibs import P

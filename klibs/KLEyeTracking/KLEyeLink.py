@@ -15,8 +15,7 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
 from klibs import P
 from klibs.KLInternal import full_trace, valid_coords, now, hide_stderr
 from klibs.KLInternal import colored_stdout as cso
-from klibs.KLUserInterface import ui_request
-from klibs.KLUtilities import hide_mouse_cursor
+from klibs.KLUserInterface import ui_request, hide_cursor
 from klibs.KLGraphics import blit, fill, flip, clear
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
@@ -260,7 +259,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 				perform the drift correct.
 
 		"""
-		hide_mouse_cursor()
+		hide_cursor()
 
 		target = drift_correct_target() if target is None else target
 		draw_target = EL_TRUE if draw_target in [EL_TRUE, True] else EL_FALSE

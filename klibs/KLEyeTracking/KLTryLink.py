@@ -9,12 +9,12 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
 	EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
 	TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 from klibs import P
-from klibs.KLUtilities import (pump, mouse_pos, show_mouse_cursor, hide_mouse_cursor,
-	iterable, now, mean)
+from klibs.KLUtilities import iterable, now, mean
 from klibs.KLBoundary import CircleBoundary
 from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
-from klibs.KLUserInterface import ui_request
+from klibs.KLEventQueue import pump
+from klibs.KLUserInterface import ui_request, mouse_pos, show_cursor, hide_cursor
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
 from klibs.KLEyeTracking.events import GazeSample, EyeEvent, EyeEventTemplate
 
@@ -244,7 +244,7 @@ class TryLink(EyeTracker):
 				Defaults to True.
 
 		"""
-		show_mouse_cursor()
+		show_cursor()
 
 		target = drift_correct_target() if target is None else target
 		draw_target = EL_TRUE if draw_target in [EL_TRUE, True] else EL_FALSE
@@ -264,7 +264,7 @@ class TryLink(EyeTracker):
 				SDL_Delay(2) # required for pump() to reliably return mousebuttondown events
 			for e in event_queue:
 				if e.type == SDL_MOUSEBUTTONDOWN and dc_boundary.within([e.button.x, e.button.y]):
-					hide_mouse_cursor()
+					hide_cursor()
 					if draw_target == EL_TRUE:
 						fill(P.default_fill_color if not fill_color else fill_color)
 						flip()

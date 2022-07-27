@@ -119,9 +119,6 @@ QUERY_INS = "insert"
 QUERY_UPD = "update"
 QUERY_DEL = "delete"
 QUERY_SEL = "select"
-DB_COL_SNAKE = "snake_case"
-DB_COL_CAMEL = "camelCase"
-DB_COL_TITLE = "TitleCase"
 
 # AudioResponse Constants
 AR_CHUNK_SIZE = 1024

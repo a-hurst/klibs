@@ -125,6 +125,25 @@ API Changes:
 * :obj:`~klibs.KLBoundary.RectangleBoundary` objects no longer raise an error
   if ``p2`` is above or to the left of ``p1`` and instead swaps the x and y
   values such that ``p1`` is always the top-leftmost coordinate.
+* Moved the :func:`~klibs.KLEventQueue.pump` and
+  :func:`~klibs.KLEventQueue.flush` to a new module :mod:`klibs.KLEventQueue`.
+  For legacy code, these functions can still be imported from
+  :mod:`klibs.KLUtilities`.
+* Renamed the :func:`show_mouse_cursor` and :func:`hide_mouse_cursor` functions
+  to :func:`~klibs.KLUserInterface.show_cursor` and
+  :func:`~klibs.KLUserInterface.hide_cursor`, respectively, and moved them to
+  the :mod:`klibs.KLUserInterface` module. For legacy code, both functions can
+  still be imported by their old names from :mod:`klibs.KLUtilities`.
+* Moved the :func:`~klibs.KLUserInterface.mouse_pos` and
+  :func:`~klibs.KLUserInterface.smart_sleep` functions to the 
+  :mod:`klibs.KLUserInterface` module. For legacy code, these functions can
+  still be imported from :mod:`klibs.KLUtilities`.
+* Removed deprecated legacy functions :func:`arg_error_str`,
+  :func:`bool_to_int`, :func:`camel_to_snake`, :func:`indices_of`,
+  :func:`list_dimensions`, :func:`mouse_angle`, :func:`sdl_key_code_to_str`,
+  :func:`snake_to_camel`, :func:`snake_to_title`, :func:`str_pad`, :func:`log`,
+  and :func:`type_str` from the :mod:`klibs.KLUtilities` module.
+
 
 
 Fixed Bugs:

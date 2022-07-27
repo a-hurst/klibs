@@ -13,9 +13,9 @@ from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS,
 	NO_RESPONSE, TIMEOUT, TK_S, TK_MS)
 from klibs import P
 from klibs.KLKeyMap import KeyMap
-from klibs.KLUtilities import (pump, flush, hide_mouse_cursor, show_mouse_cursor, mouse_pos,
-	full_trace, iterable, angle_between)
-from klibs.KLUserInterface import ui_request
+from klibs.KLEventQueue import pump, flush
+from klibs.KLUtilities import full_trace, iterable, angle_between
+from klibs.KLUserInterface import ui_request, hide_cursor, show_cursor, mouse_pos
 from klibs.KLBoundary import BoundarySet, AnnulusBoundary
 from klibs.KLGraphics import flip
 from klibs.KLGraphics.utils import aggdraw_to_array
@@ -610,7 +610,7 @@ class CursorResponse(ResponseListener, BoundarySet):
 		if len(self.boundaries) == 0:
 			e = "The ClickResponse listener must contain at least one boundary to check."
 			raise BoundaryError(e)
-		show_mouse_cursor()
+		show_cursor()
 
 	def listen(self, event_queue):
 		"""See :meth:`ResponseListener.listen`.
@@ -631,7 +631,7 @@ class CursorResponse(ResponseListener, BoundarySet):
 
 		"""
 		if not (P.development_mode and P.dm_trial_show_mouse):
-			hide_mouse_cursor()
+			hide_cursor()
 
 	@property
 	def on_release(self):
@@ -718,7 +718,7 @@ class ColorWheelResponse(ResponseListener):
 		if not self.angle_response and not self.color_response:
 			raise ValueError("At least one of 'angle_response' and 'color_response' must be True.")
 		# Show cursor on screen and optionally warp cursor to the center of the wheel
-		show_mouse_cursor()
+		show_cursor()
 		if self.warp_cursor:
 			mouse_pos(position = self.__bounds.center)
 
@@ -753,7 +753,7 @@ class ColorWheelResponse(ResponseListener):
 
 		"""
 		if not (P.development_mode and P.dm_trial_show_mouse):
-			hide_mouse_cursor()	
+			hide_cursor()	
 
 	def set_target(self, target):
 		'''Sets the colour probe Drawbject or target location for listener, which is used to
@@ -904,9 +904,9 @@ class DrawResponse(ResponseListener, BoundarySet):
 			raise ValueError("Start and stop boundaries must be provided for draw listeners.")
 		# Make cursor visible or invisible at collection start, depending on listener options
 		if self.show_inactive_cursor:
-			show_mouse_cursor()
+			show_cursor()
 		else:
-			hide_mouse_cursor()
+			hide_cursor()
 
 
 	def listen(self, event_queue=None):
@@ -924,9 +924,9 @@ class DrawResponse(ResponseListener, BoundarySet):
 				self.started = True
 				self.start_time = self.evm.trial_time
 				if self.show_active_cursor:
-					show_mouse_cursor()
+					show_cursor()
 				else:
-					hide_mouse_cursor()
+					hide_cursor()
 
 		# If started and within stop boundary, check if stop eligible and stop if so
 		elif self.within_boundary(self.stop_boundary, mp):

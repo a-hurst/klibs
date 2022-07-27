@@ -17,6 +17,17 @@ from klibs.KLUserInterface import show_mouse_cursor, hide_mouse_cursor, mouse_po
 
 
 
+def acute_angle(vertex, p1, p2):
+	# this is poorly named: acute angle is any angle under 90 degrees, but this function
+	# calculates the angle between the two lines (vertex -> p1) and (vertex -> p2).
+	# Currently only used once in TraceLab, so can probably rename. Docs would benefit from
+	# an illustration.
+	v_p1 = float(line_segment_len(vertex, p1))
+	v_p2 = float(line_segment_len(vertex, p2))
+	p1_p2 = line_segment_len(p1, p2)
+	return degrees(acos((v_p1**2 + v_p2**2 - p1_p2**2) / (2 * v_p1 * v_p2)))
+
+
 def angle_between(origin, p2, rotation=0, clockwise=False):
 	angle = degrees(atan2(p2[1] - origin[1], p2[0] - origin[0])) + (-rotation if clockwise else rotation)
 	return (angle if clockwise else -angle) % 360
@@ -434,14 +445,3 @@ def translate_points(points, delta, flat=False):
 			dy = point[1] + delta[1]
 			translated.append((dx, dy))
 	return translated
-
-
-def acute_angle(vertex, p1, p2):
-	# this is poorly named: acute angle is any angle under 90 degrees, but this function
-	# calculates the angle between the two lines (vertex -> p1) and (vertex -> p2).
-	# Currently only used once in TraceLab, so can probably rename. Docs would benefit from
-	# an illustration.
-	v_p1 = float(line_segment_len(vertex, p1))
-	v_p2 = float(line_segment_len(vertex, p2))
-	p1_p2 = line_segment_len(p1, p2)
-	return degrees(acos((v_p1**2 + v_p2**2 - p1_p2**2) / (2 * v_p1 * v_p2)))

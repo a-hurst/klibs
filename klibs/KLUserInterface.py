@@ -85,15 +85,19 @@ def key_pressed(key=None, queue=None):
 	return pressed
 
 
-def show_mouse_cursor():
-	"""Unhides the mouse cursor if it is currently hidden. Otherwise, this function does nothing.
+def show_cursor():
+	"""Shows the mouse cursor if it is currently hidden.
+	
+	If the cursor is already visible, this function does nothing.
 
 	"""
 	SDL_ShowCursor(SDL_ENABLE)
 
 
-def hide_mouse_cursor():
-	"""Hides the mouse cursor if it is currently shown. Otherwise, this function does nothing.
+def hide_cursor():
+	"""Hides the mouse cursor if it is currently visible.
+	
+	If the cursor is already hidden, this function does nothing.
 	
 	"""
 	SDL_ShowCursor(SDL_DISABLE)

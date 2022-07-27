@@ -13,7 +13,9 @@ from klibs.KLInternal import (
 	valid_coords
 )
 from klibs.KLEventQueue import pump, flush
-from klibs.KLUserInterface import show_mouse_cursor, hide_mouse_cursor, mouse_pos, smart_sleep
+from klibs.KLUserInterface import mouse_pos, smart_sleep
+from klibs.KLUserInterface import show_cursor as show_mouse_cursor
+from klibs.KLUserInterface import hide_cursor as hide_mouse_cursor
 
 
 

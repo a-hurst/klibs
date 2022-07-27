@@ -129,9 +129,12 @@ API Changes:
   :func:`~klibs.KLEventQueue.flush` to a new module :mod:`klibs.KLEventQueue`.
   For legacy code, these functions can still be imported from
   :mod:`klibs.KLUtilities`.
-* Moved the :func:`~klibs.KLUserInterface.show_mouse_cursor`,
-  :func:`~klibs.KLUserInterface.hide_mouse_cursor`,
-  :func:`~klibs.KLUserInterface.mouse_pos`, and
+* Renamed the :func:`show_mouse_cursor` and :func:`hide_mouse_cursor` functions
+  to :func:`~klibs.KLUserInterface.show_cursor` and
+  :func:`~klibs.KLUserInterface.hide_cursor`, respectively, and moved them to
+  the :mod:`klibs.KLUserInterface` module. For legacy code, both functions can
+  still be imported by their old names from :mod:`klibs.KLUtilities`.
+* Moved the :func:`~klibs.KLUserInterface.mouse_pos` and
   :func:`~klibs.KLUserInterface.smart_sleep` functions to the 
   :mod:`klibs.KLUserInterface` module. For legacy code, these functions can
   still be imported from :mod:`klibs.KLUtilities`.

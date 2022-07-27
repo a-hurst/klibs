@@ -80,7 +80,7 @@ class Experiment(EnvAgent):
 		Private method; manages a trial.
 		"""
 		from klibs.KLEventQueue import pump
-		from klibs.KLUtilities import show_mouse_cursor, hide_mouse_cursor
+		from klibs.KLUserInterface import show_cursor, hide_cursor
 
 		# At start of every trial, before setup_response_collector or trial_prep are run, retrieve
 		# the values of the independent variables (factors) for that trial (as generated earlier by
@@ -96,7 +96,7 @@ class Experiment(EnvAgent):
 		tx = None
 		try:
 			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
-				show_mouse_cursor()
+				show_cursor()
 			self.evm.start_clock()
 			if P.eye_tracking and not P.manual_eyelink_recording:
 				self.el.start(P.trial_number)
@@ -106,7 +106,7 @@ class Experiment(EnvAgent):
 			if P.eye_tracking and not P.manual_eyelink_recording:
 				self.el.stop()
 			if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
-				hide_mouse_cursor()
+				hide_cursor()
 			self.evm.stop_clock()
 			self.trial_clean_up()
 		except TrialException as e:

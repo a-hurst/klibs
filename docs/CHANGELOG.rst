@@ -135,6 +135,12 @@ API Changes:
   :func:`~klibs.KLUserInterface.smart_sleep` functions to the 
   :mod:`klibs.KLUserInterface` module. For legacy code, these functions can
   still be imported from :mod:`klibs.KLUtilities`.
+* Removed deprecated legacy functions :func:`arg_error_str`,
+  :func:`bool_to_int`, :func:`camel_to_snake`, :func:`indices_of`,
+  :func:`list_dimensions`, :func:`mouse_angle`, :func:`sdl_key_code_to_str`,
+  :func:`snake_to_camel`, :func:`snake_to_title`, :func:`str_pad`, :func:`log`,
+  and :func:`type_str` from the :mod:`klibs.KLUtilities` module.
+
 
 
 Fixed Bugs:

@@ -1,22 +1,12 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-import os
 import re
 import math
-import time
-import ctypes
-import datetime
-import traceback
 import base64
 from hashlib import sha512
-from sys import exc_info
 from math import sin, cos, acos, atan2, radians, pi, degrees, ceil
 
-from sdl2 import SDL_PumpEvents, KMOD_SHIFT, KMOD_CAPS
-from sdl2.keyboard import SDL_GetKeyName, SDL_GetModState
-
-from klibs.KLConstants import DATETIME_STAMP, TK_S, TK_MS
 from klibs import P
 from klibs.KLInternal import (
 	boolean_to_logical, colored_stdout, full_trace, log, now, iterable, utf8,
@@ -26,23 +16,10 @@ from klibs.KLEventQueue import pump, flush
 from klibs.KLUserInterface import show_mouse_cursor, hide_mouse_cursor, mouse_pos, smart_sleep
 
 
-def arg_error_str(arg_name, given, expected, kw=True):
-	if kw:
-		err_string = "The keyword argument, '{0}', was expected to be of type '{1}' but '{2}' was given."
-	else:
-		err_string = "The argument, '{0}', was expected to be of type '{1}' but '{2}' was given."
-	return err_string.format(arg_name, type(given), type(expected))
-
 
 def angle_between(origin, p2, rotation=0, clockwise=False):
 	angle = degrees(atan2(p2[1] - origin[1], p2[0] - origin[0])) + (-rotation if clockwise else rotation)
 	return (angle if clockwise else -angle) % 360
-
-
-def bool_to_int(boolean_val):
-	if boolean_val is False: return 0
-	if boolean_val is True: return 1
-	raise ValueError("Non-boolean value passed ('{0}')".format(type(boolean_val)))
 
 
 def bounded_by(pos, left, right, top, bottom):
@@ -50,11 +27,6 @@ def bounded_by(pos, left, right, top, bottom):
 		return (left < pos[0] < right and top < pos[1] < bottom)
 	except TypeError:
 		raise TypeError("'pos' must be [x,y] coordinates, other arguments must be numeric.")
-
-
-def camel_to_snake(string):
-	s = re.sub('([a-z0-9])([A-Z])', r'\1_\2', re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string))
-	return s.lower()
 
 
 def canvas_size_from_points(points, flat=False):
@@ -132,13 +104,6 @@ def deg_to_px(deg, even=False):
 	return int(px)
 
 
-def indices_of(element, container, identity_comparison=False):
-	if identity_comparison:
-		return [i for i, x in enumerate(container) if x is element]
-	else:
-		return [i for i, x in enumerate(container) if x == element]
-
-
 def interpolated_path_len(points):
 	# where points is a list of coordinate tuples
 	path_len = 0
@@ -196,35 +161,6 @@ def line_segment_len(a, b):
 	return math.sqrt(dy**2 + dx**2)
 
 
-def list_dimensions(target, dim=0):
-	"""
-	Tests if testlist is a list and how many dimensions it has
-	returns -1 if it is no list at all, 0 if list is empty
-	and otherwise the dimensions of it
-	http://stackoverflow.com/questions/15985389/python-check-if-list-is-multidimensional-or-one-dimensional, u: bunkus
-	"""
-	if isinstance(target, list):
-		return dim if not len(target) else list_dimensions(target[0], dim + 1)
-	else:
-		return -1 if dim == 0 else dim
-
-
-def log(msg, priority):
-	"""Writes a message to a log file (Note: the way logging in KLibs is handled will probably get
-	rewritten soon, so I'd advise against using this).
-
-	Args:
-		msg (:obj:`str`): The message to record to the log file.
-		priority (int): An integer from 1-10 specifying how important the event is, 1 being most
-			critical and 10 being routine. If set to 0 it will always be printed, regardless of
-			what the user sets verbosity to. You probably shouldn't do that.
-
-	"""
-	if priority <= P.verbosity:
-		with open(P.log_file_path, 'a') as log_file:
-			log_file.write(str(priority) + ": " + msg)
-
-
 def make_hash(x, n_bytes=16):
 	"""Produces a hash string for a given input, with the length of the hash string being
 	determined by the number of bytes (more bytes = longer string).
@@ -271,14 +207,6 @@ def mean(values):
 
 	"""
 	return sum(values) / float(len(values))
-
-
-def mouse_angle(pump_event_queue=True, reference=None, rotation=0, clockwise=False):
-	if pump_event_queue:
-		SDL_PumpEvents()
-	if reference is None:
-		reference = P.screen_c
-	return angle_between(reference, mouse_pos(), rotation, clockwise)
 
 
 def peak(v1, v2):
@@ -479,35 +407,6 @@ def scale(coords, canvas_size, target_size=None, scale=True, center=True):
 	return (x,y)
 
 
-def sdl_key_code_to_str(sdl_keysym):
-	key_name = SDL_GetKeyName(sdl_keysym).replace(b"Keypad ", b"")
-	key_name = str(key_name.decode('utf-8')) # for py3k compatibility
-	if key_name == "Space":
-		return " "
-	if not any(SDL_GetModState() & mod for mod in [KMOD_CAPS, KMOD_SHIFT]):
-		# if not holding Shift or Caps Lock isn't on, make letter lower case.
-		key_name = key_name.lower()
-	return key_name if len(key_name) == 1 else False # if key is not alphanumeric
-
-
-def snake_to_camel(string):
-	words = string.split('_')
-	return words[0] + "".join(x.title() for x in words[1:])
-
-
-def snake_to_title(string):
-	words = string.split('_')
-	return "".join(x.title() for x in words)
-
-
-def str_pad(string, str_len, pad_char=" ", pad_dir="r"):
-	pad_len = str_len - len(string)
-	if pad_len < 1:
-		raise ValueError("Desired string length shorter current string.")
-	padding = "".join([pad_char] * pad_len)
-	return string+padding if pad_dir == "r" else padding+string
-
-
 def translate_points(points, delta, flat=False):
 	"""Translates a list of x,y points in 2d coordinate space.
 
@@ -535,20 +434,6 @@ def translate_points(points, delta, flat=False):
 			dy = point[1] + delta[1]
 			translated.append((dx, dy))
 	return translated
-
-
-def type_str(var):
-	"""Returns the type name of a variable as a string (e.g. 'int' if the passed variable is
-	an int).
-	
-	Args:
-		var: The variable to determine the type of.
-
-	Returns:
-		str: The name of the passed variable's type.
-
-	"""
-	return type(var).__name__
 
 
 def acute_angle(vertex, p1, p2):

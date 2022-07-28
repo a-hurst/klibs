@@ -2,10 +2,12 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
+import ctypes
 from time import time
 from math import sqrt, atan, degrees
 
 import sdl2
+from sdl2.ext.common import raise_sdl_err
 import OpenGL.GL as gl
 import numpy as np
 from PIL import Image
@@ -18,6 +20,34 @@ from .KLNumpySurface import aggdraw_to_numpy_surface, NumpySurface
 from .KLDraw import Drawbject
 
 # This module contains the core functions for drawing things to the screen.
+
+def _init_fullscreen(display):
+
+	# Get the current non-HIDPI resolution and refresh rate of the display
+	display_mode = sdl2.video.SDL_DisplayMode()
+	ret = sdl2.SDL_GetCurrentDisplayMode(display, display_mode)
+	if ret != 0:
+		raise_sdl_err("getting the current display mode")
+	screen_xy = (display_mode.w, display_mode.h)
+
+	# Create the SDL window object and configure it properly for OpenGL
+	SCREEN_FLAGS = (
+		sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP |
+		sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
+	)
+	window = sdl2.ext.Window(P.project_name, screen_xy, flags=SCREEN_FLAGS)
+	sdl2.SDL_GL_CreateContext(window.window)
+	res = window.size
+
+	# Parse and validate refresh rate
+	screen_hz = float(display_mode.refresh_rate)
+	if screen_hz == 0:
+		screen_hz = 60.0
+		print(" - Warning: Unable to detect your monitor's refresh rate, defaulting to 60Hz")
+	elif screen_hz == 59:
+		screen_hz = 59.94 # fix for some Windows monitors
+
+	return (window, res, screen_hz)
 
 
 def display_init(diagonal_in):
@@ -38,31 +68,26 @@ def display_init(diagonal_in):
 		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()
 
-		display_mode = sdl2.video.SDL_DisplayMode()
-		sdl2.SDL_GetCurrentDisplayMode(0, display_mode)
+		# Create a fullscreen window at the current resolution, get display info
+		window, res, hz = _init_fullscreen(display=0)
 
-		P.screen_x = display_mode.w
-		P.screen_y = display_mode.h
+		# Set up the OpenGL context for the window
+		ret = sdl2.SDL_GL_SetSwapInterval(1) # enforce vsync
+		if ret != 0:
+			print(" - Warning: Vsync unsupported, experiment timing may be off")
+		gl.glMatrixMode(gl.GL_PROJECTION)
+		gl.glLoadIdentity()
+		gl.glOrtho(0, res[0], res[1], 0, 0, 1)
+		gl.glMatrixMode(gl.GL_MODELVIEW)
+		gl.glDisable(gl.GL_DEPTH_TEST)
+
+		P.screen_x = res[0]
+		P.screen_y = res[1]
 		P.screen_c = (P.screen_x // 2, P.screen_y // 2)
 		P.screen_x_y = (P.screen_x, P.screen_y)
 
-		P.refresh_rate = float(display_mode.refresh_rate)
-		if P.refresh_rate == 0:
-			P.refresh_rate = 60.0
-			print("\tWarning: Unable to detect your monitor's refresh rate, defaulting to 60Hz.")
-		elif P.refresh_rate == 59:
-			P.refresh_rate = 59.94 # fix for some Windows monitors
+		P.refresh_rate = hz
 		P.refresh_time = 1000.0 / P.refresh_rate
-
-		#TODO: figure out what's actually needed for multi-monitor support
-		for d in P.additional_displays:
-			if d[2]:
-				P.screen_x_y = list(d[1])
-				P.screen_x = d[1][0]
-				P.screen_y = d[1][1]
-
-		if P.screen_origin is None:
-			P.screen_origin = (0, 0)
 
 		# Get conversion factor for pixels to degrees of visual angle based on viewing distance,
 		# screen resolution, and given diagonal screen size
@@ -76,25 +101,12 @@ def display_init(diagonal_in):
 		P.pixels_per_degree = P.screen_x / P.screen_degrees_x
 		P.ppd = P.pixels_per_degree # alias for convenience
 
-		# Create the SDL window object and configure it properly for OpenGL (code from Mike)
-		SCREEN_FLAGS = (
-			sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP |
-			sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
-		)
-		window = sdl2.ext.Window(P.project_name, P.screen_x_y, P.screen_origin, SCREEN_FLAGS)
-		sdl2.SDL_GL_CreateContext(window.window)
-		sdl2.SDL_GL_SetSwapInterval(1) # enforce vsync
-		gl.glMatrixMode(gl.GL_PROJECTION)
-		gl.glLoadIdentity()
-		gl.glOrtho(0, P.screen_x, P.screen_y, 0, 0, 1)
-		gl.glMatrixMode(gl.GL_MODELVIEW)
-		gl.glDisable(gl.GL_DEPTH_TEST)
-
 		# Clear the SDL event queue and open the window, returning the window object
 		sdl2.SDL_PumpEvents()
-		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
+		sdl2.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		window.show()
 		P.display_initialized = True
+
 		return window
 
 

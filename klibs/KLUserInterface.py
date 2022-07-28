@@ -7,7 +7,7 @@ from sdl2 import (SDL_GetKeyFromName, SDL_ShowCursor, SDL_PumpEvents, SDL_BUTTON
 	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
 	SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL, KMOD_GUI, SDLK_UP,
 	SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
-from sdl2.mouse import SDL_GetMouseState, SDL_WarpMouseGlobal
+from sdl2.mouse import SDL_GetMouseState, SDL_GetMouseFocus, SDL_WarpMouseInWindow
 
 from klibs import TK_S, TK_MS
 from klibs import P
@@ -139,7 +139,8 @@ def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
 			return (x.value, y.value)
 	else:
 		x, y = [int(n) for n in position]
-		SDL_WarpMouseGlobal(x, y)
+		window = SDL_GetMouseFocus()
+		SDL_WarpMouseInWindow(window, x, y)
 		return position
 
 

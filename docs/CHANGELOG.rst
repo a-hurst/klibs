@@ -163,3 +163,4 @@ Fixed Bugs:
   keep preserved boundaries in the same order as they were added.
 * Fixed suppression of colorized console output on terminals that don't support
   it.
+* Fixed display stretching and mouse warping on MacBooks with a notch.

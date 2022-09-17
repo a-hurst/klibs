@@ -37,10 +37,11 @@ def any_key(allow_mouse_click=True):
 
 
 def key_pressed(key=None, queue=None):
-	"""Checks an event queue to see if a given key has been pressed. If no key is specified,
-	the function will return True if any key has been pressed. If an event queue is not
-	manually specified, :func:`~klibs.KLUtilities.pump` will be called and the returned event
-	queue will be used.
+	"""Checks an event queue to see if a given key has been pressed.
+	
+	If no key is specified, the function will return True if any key has been pressed. If an
+	event queue is not manually specified, :func:`~klibs.KLEventQueue.pump` will be called
+	and the returned event queue will be used.
 	
 	For a comprehensive list of valid key names, see the 'Name' column of the following 
 	table: https://wiki.libsdl.org/StuartPBentley/CombinedKeyTable
@@ -52,7 +53,7 @@ def key_pressed(key=None, queue=None):
 		key (str or :obj:`sdl2.SDL_Keycode`, optional): The key name or SDL keycode
 			corresponding to the key to check. If not specified, any keypress will return
 			True.
-		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of SDL_Events to check
+		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to check
 			for valid keypress events.
 
 	Returns:
@@ -265,15 +266,17 @@ def ui_request(key_press=None, execute=True, queue=None):
 	- Calibrate Eye Tracker (Ctrl/Command-C): Enter setup mode for the connected eye tracker, 
 	  if eye tracking is enabled for the experiment and not using TryLink simulation.
 	
-	If no event queue from :func:`~klibs.KLUtilities.pump` and no keypress event(s) are
+	If no event queue from :func:`~klibs.KLEventQueue.pump` and no keypress event(s) are
 	supplied to this function, the current contents of the SDL2 event queue will be fetched
-	and processed using :func:`~klibs.KLUtilities.pump`. 
+	and processed using :func:`~klibs.KLEventQueue.pump`. 
 	
 	This function is meant to be called during loops in your experiment where no other input
 	checking occurs, to ensure that you can quit your experiment or recalibrate your eye
-	tracker during those periods. This function is automatically called by other functions that
-	process keyboard/mouse input, such as :func:`any_key` and :func:`key_pressed`, so you will
-	not need to call it yourself in places where one of them is already being called. 
+	tracker during those periods.
+	
+	This function is called implicitly by other functions that process keyboard/mouse input, such
+	as :func:`any_key`, :func:`key_pressed`, and :func:`mouse_clicked` (but not :func:`mouse_pos`),
+	so you will not need to call it yourself in places where one of them is already being called. 
 	In addition, the :obj:`~klibs.KLResponseCollectors.ResponseCollector` collect method also
 	calls this function every loop, meaning that you do not need to include it when writing
 	ResponseCollector callbacks.

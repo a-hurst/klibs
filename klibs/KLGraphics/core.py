@@ -22,21 +22,23 @@ from .KLDraw import Drawbject
 
 # This module contains the core functions for drawing things to the screen.
 
-def _init_fullscreen(display):
+def _init_fullscreen(display, hidpi=False):
 
 	# Get the current non-HIDPI resolution and refresh rate of the display
-	display_mode = sdl2.video.SDL_DisplayMode()
+	display_mode = sdl2.SDL_DisplayMode()
 	ret = sdl2.SDL_GetCurrentDisplayMode(display, display_mode)
 	if ret != 0:
 		raise_sdl_err("getting the current display mode")
 	screen_xy = (display_mode.w, display_mode.h)
 
 	# Create the SDL window object and configure it properly for OpenGL
-	SCREEN_FLAGS = (
-		sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP |
-		sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
+	window_flags = (
+		sdl2.SDL_WINDOW_HIDDEN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP |
+		sdl2.SDL_WINDOW_OPENGL
 	)
-	window = sdl2.ext.Window(P.project_name, screen_xy, flags=SCREEN_FLAGS)
+	if hidpi:
+		window_flags = window_flags | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
+	window = sdl2.ext.Window(P.project_name, screen_xy, flags=window_flags)
 	sdl2.SDL_GL_CreateContext(window.window)
 
 	# Get actual pixel resolution for the window
@@ -57,7 +59,7 @@ def _init_fullscreen(display):
 	return (window, res, screen_hz)
 
 
-def display_init(diagonal_in):
+def display_init(diagonal_in, hidpi):
 		"""Initializes the display and rendering backend, calculating and assigning the values
 		of runtime KLParams variables related to the screen (e.g. P.screen_c, P.refresh_rate,
 		P.pixels_per_degree). Called by 'klibs run' on launch, for internal use only.
@@ -75,7 +77,7 @@ def display_init(diagonal_in):
 		sdl2.SDL_PumpEvents()
 
 		# Create a fullscreen window at the current resolution, get display info
-		window, res, hz = _init_fullscreen(display=0)
+		window, res, hz = _init_fullscreen(display=0, hidpi=hidpi)
 
 		# Set up the OpenGL context for the window
 		ret = sdl2.SDL_GL_SetSwapInterval(1) # enforce vsync

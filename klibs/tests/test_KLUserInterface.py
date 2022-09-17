@@ -14,6 +14,8 @@ from eventfactory import click, keydown, keyup, queue_event
 # NOTE: missing tests for any_key and konami_code
 
 
+# Fixtures and helpers
+
 @pytest.fixture(scope='module')
 def with_sdl():
     sdl2.SDL_ClearError()
@@ -37,6 +39,7 @@ class UIRequestTester(object):
         self.command = 'calibrate'
 
 
+# Actual tests
 
 @pytest.mark.skip("not implemented")
 def test_any_key(with_sdl):
@@ -127,3 +130,26 @@ def test_ui_request(with_sdl):
     assert ui.ui_request(queue=[not_quit], execute=False) == False
     with pytest.raises(TypeError):
         ui.ui_request(normal_keys, queue=[])
+
+    
+def test_smart_sleep(with_sdl):
+
+    # Initialize fake experiment class in environment
+    from klibs import env
+    env.exp = UIRequestTester()
+
+    # Queue a quit event and see if smart_sleep catches it
+    queue_event(keydown('q', mod='ctrl'))
+    start = time.time()
+    ui.smart_sleep(1, units=TK_MS) # 1 millisecond
+    duration = time.time() - start
+    assert duration < 0.002
+    assert env.exp.command == 'quit'
+
+    # Test units of seconds
+    env.exp.command = None
+    start = time.time()
+    ui.smart_sleep(0.001, units=TK_S) # 1 millisecond
+    duration = time.time() - start
+    assert duration < 0.002
+    assert env.exp.command == None

@@ -16,14 +16,19 @@ from klibs.KLEventQueue import pump
 
 
 def any_key(allow_mouse_click=True):
-	"""A function that waits until any keyboard (or mouse, if enabled) input is received
-	before returning. Intended for use in situations when you want to require input before
-	progressing through the experiment (e.g. "To start the next block, press any key..."). 
-	Not to be used for response collection (see :mod:`~klibs.KLResponseCollectors`).
+	"""Stops and waits, continuing only after a key has been pressed.
+
+	Intended for use in situations when you want to require input before progressing
+	through the experiment (e.g. "To start the next block, press any key..."). 
+	Not intended for use during time-sensitive response collection (see
+	:mod:`~klibs.KLResponseCollectors`).
+
+	If ``allow_mouse_click`` is True, this function will also return if a mouse
+	button is clicked and released.
 
 	Args:
-		allow_mouse_click (bool, optional): Whether to return immediately on mouse clicks in
-			addition to key presses.
+		allow_mouse_click (bool, optional): Whether to return immediately on mouse
+			clicks in addition to key presses.
 	
 	"""
 	any_key_pressed = False
@@ -37,11 +42,11 @@ def any_key(allow_mouse_click=True):
 
 
 def key_pressed(key=None, queue=None):
-	"""Checks an event queue to see if a given key has been pressed.
+	"""Checks a given event queue for keypress events.
 	
-	If no key is specified, the function will return True if any key has been pressed. If an
-	event queue is not manually specified, :func:`~klibs.KLEventQueue.pump` will be called
-	and the returned event queue will be used.
+	If no key is specified, the function will return True if any key has been pressed.
+	If an event queue is not manually specified, this function will fetch and clear the
+	current contents of the input event queue.
 	
 	For a comprehensive list of valid key names, see the 'Name' column of the following 
 	table: https://wiki.libsdl.org/StuartPBentley/CombinedKeyTable
@@ -99,14 +104,14 @@ def mouse_clicked(button=None, released=False, within=None, queue=None):
 	this function will fetch and clear the current contents of the input event queue.
 
 	Args:
-		button (str, optional): The name of the button to check for clicks. Defaults to ``None``
-			(checks all buttons for clicks).
-		released (bool, optional): If True, this function will look for mouse button release
-			events instead of mouse button click events. Defaults to False.
-		within (:obj:`~klibs.KLBoundary.Boundary`, optional): A specific region of the screen to
-			check for clicks. Defaults to ``None`` (no boundary).
-		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to check
-			for valid mouse button events.
+		button (str, optional): The name of the button to check for clicks. Defaults to
+			``None`` (checks all buttons for clicks).
+		released (bool, optional): If True, this function will look for mouse button
+			release events instead of mouse button click events. Defaults to False.
+		within (:obj:`~klibs.KLBoundary.Boundary`, optional): A specific region of the
+			screen to check for clicks. Defaults to ``None`` (no boundary).
+		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to
+			check for valid mouse button events.
 
 	Returns:
 		bool: True if the button has been clicked, otherwise False.
@@ -235,6 +240,7 @@ def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
 		right pressed = 2, middle pressed = 3, none pressed = 0).
 
 	"""
+	# NOTE: Should really be split into 2 or 3 functions for UI simplicity
 	if pump_event_queue:
 		SDL_PumpEvents()
 	if not position:
@@ -279,6 +285,7 @@ def konami_code(callback=None, cb_args={}, queue=None):
 		bool: True if sequence was correctly entered, otherwise False.
 
 	"""
+	# TODO: Might actually be useful if you could specify a custom code (e.g. 123)
 	sequence = [
 		SDLK_UP, SDLK_DOWN, SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_LEFT, SDLK_RIGHT,
 		SDLK_b, SDLK_a
@@ -378,13 +385,17 @@ def ui_request(key_press=None, execute=True, queue=None):
 
 
 def smart_sleep(interval, units=TK_MS):
-	"""Stops and waits for a given amount of time, ensuring that any 'quit' or 'calibrate' key
-	commands issued during the wait interval are processed.
+	"""Waits a given duration while still allowing for quit events.
+	s
+	This function is useful when you want your program to stop and wait
+	for an interval while still listening for quit events during that
+	period.
 
 	Args:
 		interval (float): The number of units of time to pause execution for.
-		units (int, optional): The time unit of 'interval', must be one of `klibs.TK_S` (seconds)
-			or `klibs.TK_MS` (milliseconds). Defaults to milliseconds.
+		units (int, optional): The time unit of 'interval', must be one of
+			`klibs.TK_S` (seconds) or `klibs.TK_MS` (milliseconds). Defaults
+			to milliseconds.
 			
 	"""
 	if units == TK_MS:

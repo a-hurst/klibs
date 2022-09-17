@@ -127,6 +127,42 @@ def test_konami_code(with_sdl):
     pass
 
 
+def test_get_clicks(with_sdl):
+
+    # Initialize fake experiment class in environment
+    from klibs import env
+    env.exp = UIRequestTester()
+    
+    # Test basic functionality
+    test_clicks = [
+        click('left', loc=(10, 20)), click('left', loc=(30, 20)),
+        click('middle', loc=(100, 100)), click('right', loc=(45, 432), release=True)
+    ]
+    assert ui.get_clicks(queue=test_clicks) == [(10, 20), (30, 20), (100, 100)]
+    assert ui.get_clicks('left', queue=test_clicks) == [(10, 20), (30, 20)]
+    assert ui.get_clicks('middle', queue=test_clicks) == [(100, 100)]
+    assert ui.get_clicks('right', queue=test_clicks) == []
+    assert ui.get_clicks('left', released=True, queue=test_clicks) == []
+    assert ui.get_clicks('right', released=True, queue=test_clicks) == [(45, 432)]
+
+    # Test without providing queue as argument
+    queue_event(test_clicks[0])
+    assert ui.get_clicks('left') == [(10, 20)]
+    assert ui.get_clicks('left') == []  # queue should be flushed after first call
+
+    # Test intercepting of ui request commands
+    quit_test = [click('left'), keydown('q', mod='ctrl')]
+    ui.get_clicks('left', queue=quit_test)
+    assert env.exp.command == 'quit'
+
+    # Test edge cases
+    assert ui.get_clicks(queue=[]) == []
+    assert ui.get_clicks('left', queue=[]) == []
+    assert ui.get_clicks('left', queue=[keyup('a')]) == []
+    with pytest.raises(ValueError):
+        ui.get_clicks('nope', queue=test_clicks)
+
+
 def test_ui_request(with_sdl):
     
     # Initialize fake experiment and eye tracker classes in environment

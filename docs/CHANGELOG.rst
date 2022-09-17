@@ -74,8 +74,10 @@ New Features:
 * ``EDF`` folder is no longer created by default for new projects. It is now
   created only if needed when saving data from an eye tracking experiment.
 * Added a new function :func:`~klibs.KLUserInferface.mouse_clicked` to easily
-  check the input event queue for clicks and releases of mouse buttons, similar
-  to :func:`~klibs.KLUserInferface.key_pressed` for the keyboard. 
+  check a given input event queue for clicks and releases of mouse buttons,
+  similar to :func:`~klibs.KLUserInferface.key_pressed` for the keyboard. 
+* Added a new function :func:`~klibs.KLUserInferface.get_clicks` to easily
+  fetch the (x, y) coordinates of any mouse clicks in a given input event queue.
 
 
 API Changes:

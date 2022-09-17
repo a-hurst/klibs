@@ -175,6 +175,7 @@ def konami_code(callback=None, cb_args={}, queue=None):
 	if not hasattr(konami_code, "input"):
 		konami_code.input = [] # static variable, stays with the function between calls
 	
+	code_entered = False
 	if queue == None:
 		queue = pump(True)
 	for e in queue:
@@ -184,11 +185,14 @@ def konami_code(callback=None, cb_args={}, queue=None):
 			if konami_code.input != sequence[:len(konami_code.input)]:
 				konami_code.input = [] # reset input if mismatch encountered
 			elif len(konami_code.input) == len(sequence):
-				konami_code.input = []
-				if callable(callback):
-					callback(**cb_args)
-				return True
-	return False
+				code_entered = True
+
+	if code_entered:
+		konami_code.input = []
+		if callable(callback):
+			callback(**cb_args)
+
+	return code_entered
 
 
 def ui_request(key_press=None, execute=True, queue=None):

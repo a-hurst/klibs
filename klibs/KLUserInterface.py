@@ -244,18 +244,21 @@ def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
 	if pump_event_queue:
 		SDL_PumpEvents()
 	if not position:
-		x, y = ctypes.c_int(0), ctypes.c_int(0)
-		button_state = SDL_GetMouseState(ctypes.byref(x), ctypes.byref(y))
+		cx, cy = ctypes.c_int(0), ctypes.c_int(0)
+		button_state = SDL_GetMouseState(ctypes.byref(cx), ctypes.byref(cy))
+		x = cx.value * P.screen_scale_x
+		y = cy.value * P.screen_scale_y
 		if return_button_state:
 			if (button_state & SDL_BUTTON(SDL_BUTTON_LEFT)): pressed = 1
 			elif (button_state & SDL_BUTTON(SDL_BUTTON_RIGHT)): pressed = 2
 			elif (button_state & SDL_BUTTON(SDL_BUTTON_MIDDLE)): pressed = 3
 			else: pressed = 0
-			return (x.value, y.value, pressed)
+			return (x, y, pressed)
 		else:
-			return (x.value, y.value)
+			return (x, y)
 	else:
-		x, y = [int(n) for n in position]
+		x = int(position[0] / P.screen_scale_x)
+		y = int(position[1] / P.screen_scale_y)
 		window = SDL_GetMouseFocus()
 		SDL_WarpMouseInWindow(window, x, y)
 		return position

@@ -5,8 +5,8 @@ import ctypes
 
 from sdl2 import (SDL_GetKeyFromName, SDL_ShowCursor, SDL_PumpEvents, SDL_BUTTON,
 	SDL_DISABLE, SDL_ENABLE, SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_BUTTON_MIDDLE,
-	SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, KMOD_CTRL, KMOD_GUI, SDLK_UP,
-	SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
+	SDL_KEYUP, SDL_KEYDOWN, SDL_MOUSEBUTTONUP, SDL_MOUSEBUTTONDOWN, KMOD_CTRL, KMOD_GUI,
+	SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_a, SDLK_b, SDLK_c, SDLK_p, SDLK_q)
 from sdl2.mouse import SDL_GetMouseState, SDL_GetMouseFocus, SDL_WarpMouseInWindow
 
 from klibs import TK_S, TK_MS
@@ -85,9 +85,71 @@ def key_pressed(key=None, queue=None):
 	return pressed
 
 
+def mouse_clicked(button=None, released=False, within=None, queue=None):
+	"""Checks an event queue to see if a mouse button has been clicked.
+	
+	If a button is specified, this function will only return True when that button has
+	been clicked. Otherwise, this function will return True for any mouse click events.
+	Valid button names are ``'left'``, ``'right'``, and ``'middle'``.
+	
+	If a :obj:`~klibs.KLBoundary.Boundary` object is provided (e.g. a
+	:obj:`~klibs.KLBoundary.RectangleBoundary`), this function will only return True
+	if a click has occured within the boundary. If an event queue is not provided,
+	this function will fetch and clear the current contents of the input event queue.
+
+	Args:
+		button (str, optional): The name of the button to check for clicks. Defaults to ``None``
+			(checks all buttons for clicks).
+		released (bool, optional): If True, this function will look for mouse button release
+			events instead of mouse button click events. Defaults to False.
+		within (:obj:`~klibs.KLBoundary.Boundary`, optional): A specific region of the screen to
+			check for clicks. Defaults to ``None`` (no boundary).
+		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to check
+			for valid mouse button events.
+
+	Returns:
+		bool: True if the button has been clicked, otherwise False.
+
+	Raises:
+		ValueError: If an invalid button name is provided.
+
+	"""
+	buttons = {
+		'left': SDL_BUTTON_LEFT, 'right': SDL_BUTTON_RIGHT, 'middle': SDL_BUTTON_MIDDLE,
+	}
+	if button:
+		if not button in buttons.keys():
+			raise ValueError("'{0}' is not a valid mouse button name.".format(button))
+		button = buttons[button]
+
+	bounds = within
+	if bounds != None:
+		try:
+			bounds.bounds
+		except (AttributeError, NotImplementedError):
+			err = "The provided boundary must be a valid Boundary object."
+			raise TypeError(err)
+
+	clicked = False
+	if queue == None:
+		queue = pump(True)
+	for e in queue:
+		if e.type == SDL_KEYDOWN:
+			ui_request(e.key.keysym)
+		elif e.type == (SDL_MOUSEBUTTONUP if released else SDL_MOUSEBUTTONDOWN):
+			if not button or e.button.button == button:
+				if bounds:
+					loc = (e.button.x, e.button.y)
+					clicked = bounds.within(loc)
+				else:
+					clicked = True
+
+	return clicked
+
+
 def show_cursor():
 	"""Shows the mouse cursor if it is currently hidden.
-	
+
 	If the cursor is already visible, this function does nothing.
 
 	"""

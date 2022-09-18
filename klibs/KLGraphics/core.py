@@ -33,12 +33,13 @@ def _init_fullscreen(display, hidpi=False):
 
 	# Create the SDL window object and configure it properly for OpenGL
 	window_flags = (
-		sdl2.SDL_WINDOW_HIDDEN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP |
+		sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP |
 		sdl2.SDL_WINDOW_OPENGL
 	)
 	if hidpi:
 		window_flags = window_flags | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
 	window = sdl2.ext.Window(P.project_name, screen_xy, flags=window_flags)
+	sdl2.SDL_ShowCursor(sdl2.SDL_DISABLE)
 	sdl2.SDL_GL_CreateContext(window.window)
 
 	# Get actual pixel resolution for the window
@@ -113,10 +114,8 @@ def display_init(diagonal_in, hidpi):
 		P.screen_scale_x = res[0] / float(window.size[0])
 		P.screen_scale_y = res[1] / float(window.size[1])
 
-		# Clear the SDL event queue and open the window, returning the window object
+		# Clear the SDL event queue and return the window object
 		sdl2.SDL_PumpEvents()
-		sdl2.SDL_ShowCursor(sdl2.SDL_DISABLE)
-		window.show()
 		P.display_initialized = True
 
 		return window

@@ -145,8 +145,11 @@ def mouse_clicked(button=None, released=False, within=None, queue=None):
 		elif e.type == (SDL_MOUSEBUTTONUP if released else SDL_MOUSEBUTTONDOWN):
 			if not button or e.button.button == button:
 				if bounds:
-					loc = (e.button.x, e.button.y)
-					clicked = bounds.within(loc)
+					loc = (
+						e.button.x * P.screen_scale_x,
+						e.button.y * P.screen_scale_y
+					)
+					clicked = loc in bounds
 				else:
 					clicked = True
 
@@ -196,7 +199,10 @@ def get_clicks(button=None, released=False, queue=None):
 			ui_request(e.key.keysym)
 		elif e.type == (SDL_MOUSEBUTTONUP if released else SDL_MOUSEBUTTONDOWN):
 			if not button or e.button.button == button:
-				clicks.append((e.button.x, e.button.y))
+				clicks.append((
+					int(e.button.x * P.screen_scale_x),
+					int(e.button.y * P.screen_scale_y)
+				))
 
 	return clicks
 
@@ -246,8 +252,8 @@ def mouse_pos(pump_event_queue=True, position=None, return_button_state=False):
 	if not position:
 		cx, cy = ctypes.c_int(0), ctypes.c_int(0)
 		button_state = SDL_GetMouseState(ctypes.byref(cx), ctypes.byref(cy))
-		x = cx.value * P.screen_scale_x
-		y = cy.value * P.screen_scale_y
+		x = int(cx.value * P.screen_scale_x)
+		y = int(cy.value * P.screen_scale_y)
 		if return_button_state:
 			if (button_state & SDL_BUTTON(SDL_BUTTON_LEFT)): pressed = 1
 			elif (button_state & SDL_BUTTON(SDL_BUTTON_RIGHT)): pressed = 2

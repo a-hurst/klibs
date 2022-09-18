@@ -27,6 +27,31 @@ your own custom boundary shapes by subclassing the :class:`Boundary` object.
 class BoundarySet(object):
 	"""A class for managing and inspecting multiple :class:`Boundary` objects.
 
+	For example, you can use a BoundarySet to check which of three locations
+	a participant's mouse cursor is hovering over::
+
+		from klibs.KLUserInterface import mouse_pos, get_clicks
+
+		# Create boundaries and add to set
+		button1 = RectangleBoundary('yes', (200, 200), (300, 300))
+		button2 = RectangleBoundary('no', (400, 200), (500, 300))
+		button3 = RectangleBoundary('maybe', (600, 200), (700, 300))
+		bounds = BoundarySet([button1, button2, button3])
+
+		# Check which button (if any) mouse is currently over
+		p = mouse_pos()
+		over_boundary = bounds.which_boundary(p)
+		if over_boundary != None:
+			print(over_boundary)
+
+	Additionally, you can check whether a point is within a specific boundary::
+
+		for click in get_clicks():
+			if bounds.within_boundary('yes', click):
+				print("Clicked 'yes'")
+			elif bounds.within_boundary('no', click):
+				print("Clicked 'no'")
+
 	Args:
 		boundaries (:obj:`List`, optional): A list of :obj:`Boundary` objects with which
 			to initialize the boundary set.

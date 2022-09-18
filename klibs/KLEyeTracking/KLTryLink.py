@@ -14,11 +14,13 @@ from klibs.KLBoundary import CircleBoundary
 from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLEventQueue import pump
-from klibs.KLUserInterface import ui_request, mouse_pos, show_cursor, hide_cursor
+from klibs.KLUserInterface import (
+	ui_request, mouse_pos, mouse_clicked, show_cursor, hide_cursor
+)
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
 from klibs.KLEyeTracking.events import GazeSample, EyeEvent, EyeEventTemplate
 
-from sdl2 import SDL_MOUSEBUTTONDOWN, SDL_GetTicks, SDL_Delay
+from sdl2 import SDL_GetTicks, SDL_Delay
 from math import atan2, degrees
 
 
@@ -254,21 +256,19 @@ class TryLink(EyeTracker):
 		dc_boundary = CircleBoundary('drift_correct', location, P.screen_y // 30)
 		
 		while True:
-			event_queue = pump(True)
-			ui_request(queue=event_queue)
 			if draw_target == EL_TRUE:
 				fill(P.default_fill_color if not fill_color else fill_color)
 				blit(target, 5, location)
 				flip()
 			else:
 				SDL_Delay(2) # required for pump() to reliably return mousebuttondown events
-			for e in event_queue:
-				if e.type == SDL_MOUSEBUTTONDOWN and dc_boundary.within([e.button.x, e.button.y]):
-					hide_cursor()
-					if draw_target == EL_TRUE:
-						fill(P.default_fill_color if not fill_color else fill_color)
-						flip()
-					return 0
+
+			if mouse_clicked(within=dc_boundary):
+				hide_cursor()
+				if draw_target == EL_TRUE:
+					fill(P.default_fill_color if not fill_color else fill_color)
+					flip()
+				return 0
 
 
 	def gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):

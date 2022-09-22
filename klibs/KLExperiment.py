@@ -48,9 +48,10 @@ class Experiment(EnvAgent):
 		if self.blocks == None:
 			self.blocks = self.trial_factory.export_trials()
 
+		P.block_number = 0
 		for block in self.blocks:
 			P.recycle_count = 0
-			P.block_number = self.blocks.i
+			P.block_number += 1
 			P.practicing = block.practice
 			self.block()
 			P.trial_number = 1

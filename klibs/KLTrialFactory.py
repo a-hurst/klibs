@@ -124,7 +124,8 @@ class TrialFactory(object):
 
 
 	def __generate_trials(self, factors, block_count, trial_count):
-
+		# NOTE: Needs a full rewrite, which will break random seed backwards
+		# compatibility.
 		factor_list = []
 		for name, values in factors.items(): # convert dict to list
 			factor_list.append([name, values])
@@ -132,10 +133,16 @@ class TrialFactory(object):
 		trial_tuples = list(product(*[factor[1][:] for factor in factor_list]))
 		if len(trial_tuples) == 0:
 			trial_tuples = [ [] ]
-		# convert each trial tuple to a list
+
+		# Convert each trial tuple to a dict
 		trial_set = []
 		for t in trial_tuples:
-			trial_set.append( list(t) )
+			i = 0
+			trial_factors = {}
+			for f in factors.keys():
+				trial_factors[f] = t[i]
+				i += 1
+			trial_set.append(trial_factors)
 
 		trial_set_count = len(trial_set)
 		trials = copy(trial_set)

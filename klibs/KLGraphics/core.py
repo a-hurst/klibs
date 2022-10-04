@@ -71,8 +71,10 @@ def display_init(diagonal_in, hidpi):
 
 		"""
 		if os.name == 'nt':
-			# set video driver explicitly on Windows to avoid misdetection problems
+			# Set video driver explicitly on Windows to avoid misdetection problems
 			os.environ['SDL_VIDEODRIVER'] = 'windows'
+			# Allow better HIDPI handling on Windows (requires SDL >= 2.24)
+			sdl2.SDL_SetHint(b"SDL_WINDOWS_DPI_AWARENESS", b"permonitor")
 			
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
 		sdl2.SDL_PumpEvents()

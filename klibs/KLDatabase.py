@@ -244,6 +244,17 @@ class Database(object):
 				tables[table] = table_cols
 		self.table_schemas = tables
 
+	
+	def close(self):
+		"""Closes the connection to the database.
+
+		Once called, the Database object can no longer be used.
+
+		"""
+		self.cursor.close()
+		self.db.close()
+		self.table_schemas = {}
+
 
 	def exists(self, table, column, value):
 		self._ensure_table(table)
@@ -446,13 +457,11 @@ class DatabaseManager(EnvAgent):
 	
 	
 	def close(self):
-		self.__master.cursor.close()
-		self.__master.db.close()
+		self.__master.close()
 		if P.multi_user:
 			# TODO: Retry some number of times on write failure (locked db)
 			self.write_local_to_master()
-			self.__local.cursor.close()
-			self.__local.db.close()
+			self.__local.close()
 
 
 	def collect_export_data(self, multi_file=True, join_tables=[]):

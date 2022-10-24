@@ -88,4 +88,30 @@ class TestDatabase(object):
         assert db.exists('participants', 'gender', 'm')
         assert not db.exists('participants', 'handedness', 'a')
 
-    
+    def test_select(self, db):
+        # Insert test data into the database
+        data = build_test_data()
+        for row in data:
+            db.insert(row, table='participants')
+        # Select all data from the table
+        tmp = db.select('participants')
+        assert len(tmp) == 3
+        assert len(tmp[0]) == len(data[0].keys()) + 1
+        # Select a subset of the data
+        tmp = db.select('participants', where={'age': 24})
+        assert len(tmp) == 2
+        ids = [r[0] for r in tmp]
+        assert 1 in ids and 2 in ids
+        # Select a few columns from the data
+        tmp = db.select('participants', columns=['age', 'gender'])
+        assert len(tmp) == 3
+        assert len(tmp[0]) == 2
+        assert tmp[0][0] == 24
+        assert tmp[1][1] == "m"
+        # Try retrieving the rows as dicts
+        tmp = db.select('participants', columns=['age', 'gender'], as_dict=True)
+        assert len(tmp) == 2
+        assert isinstance(tmp[0], dict)
+        assert tmp[0]['gender'] == "f"
+        assert tmp[1]['gender'] == "m"
+

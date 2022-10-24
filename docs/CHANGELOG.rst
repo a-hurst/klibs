@@ -78,6 +78,8 @@ New Features:
   similar to :func:`~klibs.KLUserInferface.key_pressed` for the keyboard. 
 * Added a new function :func:`~klibs.KLUserInferface.get_clicks` to easily
   fetch the (x, y) coordinates of any mouse clicks in a given input event queue.
+* Added a :meth:`~klibs.KLDatabase.Database.select` method to the 
+  :class:`~klibs.KLDatabase.Database` class.
 
 
 API Changes:

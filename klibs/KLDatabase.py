@@ -347,6 +347,35 @@ class Database(object):
 		return u"INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
 
 
+	def select(self, table, columns=None, where=None):
+		"""Retrieves a given set of rows from a table in the database.
+
+		Args:
+			table (str): The name of the database table to retrieve.
+			columns (:obj:`list`, optional): The names of the columns to retrieve from the
+				table. Selects all rows in the table if not specified.
+			where (:obj:`dict`, optional): A dict in the form {column: value}, defining the
+				conditions that rows must match in order to be retrieved.
+		
+		Returns:
+			list: A list of rows from the database, containing the values for
+			the selected columns.
+
+		"""
+		self._ensure_table(table)
+		if not columns:
+			columns = list(self.table_schemas[table].keys())
+
+		columns_str = ", ".join(columns)
+		q = "SELECT {0} FROM {1}".format(columns_str, table)
+		if where and len(where) > 0:
+			filters = self._to_sql_equals_statements(where, table)
+			filter_str = " AND ".join(filters)
+			q += " WHERE {0}".format(filter_str)
+
+		return self.query(q)
+
+
 	def update(self, table, columns, where={}):
 		"""Updates the values of data already written to the database for the current participant.
 
@@ -680,6 +709,9 @@ class DatabaseManager(EnvAgent):
 
 	def query(self, *args, **kwargs):
 		return self.__current.query(*args, **kwargs)
+
+	def select(self, *args, **kwargs):
+		return self.__current.select(*args, **kwargs)
 
 	def update(self, *args, **kwargs):
 		return self.__current.update(*args, **kwargs)

@@ -151,7 +151,8 @@ API Changes:
   :func:`list_dimensions`, :func:`mouse_angle`, :func:`sdl_key_code_to_str`,
   :func:`snake_to_camel`, :func:`snake_to_title`, :func:`str_pad`, :func:`log`,
   and :func:`type_str` from the :mod:`klibs.KLUtilities` module.
-
+* ``P.trial_id`` now starts at 1 and increments for every trial, regardless of
+  whether it's recycled (useful for keeping in sync with EDF 'blocks').
 
 
 Fixed Bugs:

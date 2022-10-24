@@ -120,12 +120,6 @@ def collect_demographics(anonymous=False):
 		#  The context for this is: collect_demographics is set to false but then explicitly called later
 		db.update(demographics.table, demographics.defined)
 
-	if P.multi_session_project and not P.manual_demographics_collection:
-		try:
-			exp.init_session()
-		except:
-			pass
-
 
 def init_default_textstyles():
 

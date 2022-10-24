@@ -4,6 +4,7 @@ import os
 import io
 import shutil
 import sqlite3
+import tempfile
 from copy import copy
 from itertools import chain
 from collections import OrderedDict
@@ -70,6 +71,41 @@ def _convert_to_query_format(value, col_name, col_type):
 	
 	return value
 
+
+def rebuild_database(path, schema):
+	"""Creates (or rebuilds) an empty KLibs database from an SQL schema.
+
+	In addition to the tables specified in the schema, a 'session_info' table
+	used internally for storing experiment runtime information will be
+	automatically added to the created database.
+
+	Args:
+		path (str): The path at which to create the empty database.
+		schema (str): The path to the SQL schema with which to build the
+			empty database.
+
+	"""
+	# Create empty database file at temporary path
+	tmpdir = tempfile.gettempdir()
+	tmppath = os.path.join(tmpdir, "klibs_tmp.db")
+	open(tmppath, "w").close()
+
+	# Open file as database and initialize with schema
+	db = sqlite3.connect(tmppath, detect_types=sqlite3.PARSE_DECLTYPES)
+	cursor = db.cursor()
+	with io.open(schema, "r", encoding="utf-8") as f:
+		cursor.executescript(f.read())
+	cursor.execute(session_info_schema)
+	cursor.close()
+	db.close()
+
+	# If successful, back up old database and replace with new one
+	backup_path = path + ".backup"
+	if os.path.exists(path):
+		if os.path.exists(backup_path):
+			os.remove(backup_path)
+		os.rename(path, backup_path)
+	os.rename(tmppath, path)
 
 
 class EntryTemplate(object):
@@ -140,38 +176,26 @@ class EntryTemplate(object):
 
 # TODO: look for required tables and columns explicitly and give informative error if absent
 # (ie. participants, created)
-class Database(EnvAgent):
+class Database(object):
+	"""An object for reading, writing, and modifying data in the KLibs database.
 
-	db = None
-	cursor = None
-	table_schemas = None
+	Args:
+		path (str): The path to the database file to load. The database must
+			already exist before loading.
 
+	"""
 	def __init__(self, path):
 		super(Database, self).__init__()
+		self.table_schemas = {}
 		self.db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
 		self.db.text_factory = sqlite3.OptimizedUnicode
 		self.cursor = self.db.cursor()
-		if len(self._tables()) == 0:
-			self._deploy_schema(P.schema_file_path)
 		self._build_table_schemas()
 
 	def _tables(self):
 		self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-		self.table_list = self.cursor.fetchall()
-		return self.table_list
-
-	def _drop_tables(self, table_list=None):
-		if table_list is None:
-			table_list = self._tables()
-		for n in table_list:
-			if n[0] != "sqlite_sequence":
-				self.cursor.execute(u"DROP TABLE `{0}`".format(n[0]))
-		self.db.commit()
-
-	def _deploy_schema(self, schema):
-		with io.open(schema, 'r', encoding='utf-8') as f:
-			self.cursor.executescript(f.read())
-		self.cursor.execute(session_info_schema)
+		table_list = [t[0] for t in self.cursor.fetchall()]
+		return table_list
 
 	def _to_sql_equals_statements(self, data, table):
 		sql_strs = []
@@ -219,7 +243,6 @@ class Database(EnvAgent):
 					table_cols[col[1]] = {'type': col_type, 'allow_null': allow_null}
 				tables[table] = table_cols
 		self.table_schemas = tables
-		return True
 
 
 	def exists(self, table, column, value):
@@ -250,11 +273,11 @@ class Database(EnvAgent):
 
 		try:
 			self.cursor.execute(query)
-		except sqlite3.OperationalError:
+		except sqlite3.OperationalError as e:
 			err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
 			print(full_trace())
 			print(err.format(self.table_schemas[table], query))
-			self.exp.quit()
+			raise e
 		self.db.commit()
 		return self.cursor.lastrowid
 
@@ -388,7 +411,7 @@ class DatabaseManager(EnvAgent):
 			q = "SELECT id FROM trials WHERE participant_id = ?"
 			trialcount = len(self.__master.query(q, q_vars=[pid]))
 			return trialcount >= P.trials_per_block * P.blocks_per_experiment
-			
+
 
 	def write_local_to_master(self):
 		attach_q = 'ATTACH `{0}` AS master'.format(P.database_path)
@@ -626,17 +649,6 @@ class DatabaseManager(EnvAgent):
 			self.__master.cursor.execute(delete_q)
 		self.__master.db.commit()
 		return pid
-
-
-	def rebuild(self):
-		self.__master._drop_tables()
-		try:
-			self.__master._deploy_schema(P.schema_file_path)
-			self.__master._build_table_schemas()
-		except (sqlite3.ProgrammingError, sqlite3.OperationalError, ValueError) as e:
-			self.__master._drop_tables(self.__master.table_list)
-			self.__restore__()
-			raise e
 
 
 	## Convenience methods that all pass to corresponding method of current DB ##

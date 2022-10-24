@@ -122,7 +122,8 @@ def validate_database_path(db_path, prompt=False):
 			response = getinput(err_prompt).lower()
 
 		if response == "c":
-			open(db_path, "a").close()
+			from klibs.KLDatabase import rebuild_database
+			rebuild_database(db_path, P.schema_file_path)
 		elif response == "s":
 			db_path = getinput(cso("<green_d>Great, where might it be?: </green_d>", False))
 			db_path = os.path.normpath(db_path)
@@ -400,7 +401,7 @@ def export(path, table=None, combined=False, join=None):
 
 def rebuild_db(path):
 	from klibs import P
-	from klibs.KLDatabase import DatabaseManager
+	from klibs.KLDatabase import rebuild_database
 
 	# Sanitize and switch to path, exiting with error if not a KLibs project directory
 	project_name = initialize_path(path)
@@ -415,7 +416,7 @@ def rebuild_db(path):
 	# Validate database path and rebuild
 	P.database_path = validate_database_path(P.database_path)
 	try:
-		DatabaseManager().rebuild()
+		rebuild_database(P.database_path, P.schema_file_path)
 		cso("Database successfully rebuilt! Please make sure to update experiment.py\n"
 			"to reflect any changes you might have made to tables or column names.")
 	except Exception as e:

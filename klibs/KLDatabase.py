@@ -153,7 +153,7 @@ class Database(EnvAgent):
 		self.cursor = self.db.cursor()
 		if len(self._tables()) == 0:
 			self._deploy_schema(P.schema_file_path)
-		self.build_table_schemas()
+		self._build_table_schemas()
 
 	def _tables(self):
 		self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
@@ -182,11 +182,15 @@ class Database(EnvAgent):
 				err = "Column '{0}' does not exist in the table '{1}'."
 				raise ValueError(err.format(column, table))
 			formatted_value = _convert_to_query_format(value, column, col_type)
-			sql_strs.append("{0} = {1}".format(column, formatted_value))
+			sql_strs.append("`{0}` = {1}".format(column, formatted_value))
 		return sql_strs
 
+	def _ensure_table(self, table):
+		if not table in self._tables():
+			e = "No table named '{0}' in the current database"
+			raise ValueError(e.format(table))
 
-	def build_table_schemas(self):
+	def _build_table_schemas(self):
 		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
 		tables = {}
 		for table in self.cursor.fetchall():
@@ -219,6 +223,7 @@ class Database(EnvAgent):
 
 
 	def exists(self, table, column, value):
+		self._ensure_table(table)
 		q = "SELECT * FROM `?` WHERE `?` = ?"
 		return len(self.query(q, QUERY_SEL, q_vars=[table, column, value])) > 0
 
@@ -255,13 +260,13 @@ class Database(EnvAgent):
 
 
 	def is_unique(self, table, column, value):
+		self._ensure_table(table)
 		q = "SELECT * FROM `?` WHERE `?` = ?"
 		return len(self.query(q, q_vars=[table, column, value])) == 0
 
 
 	def last_id_from(self, table):
-		if not table in self.table_schemas.keys():
-			raise ValueError("Table '{0}' not found in current database".format(table))
+		self._ensure_table(table)
 		return self.query("SELECT max({0}) from `{1}`".format('id', table))[0][0]
 
 
@@ -282,10 +287,8 @@ class Database(EnvAgent):
 
 	def query_str_from_raw_data(self, data, table):
 		# TODO: replace this with EntryTemplate for consistency?
-		try:
-			template = copy(self.table_schemas[table])
-		except KeyError:
-			raise ValueError("Table '{0}' does not exist in the database.".format(table))
+		self._ensure_table(table)
+		template = copy(self.table_schemas[table])
 		values = []
 		columns = []
 		template.pop('id', None) # remove id column from template if present
@@ -304,7 +307,7 @@ class Database(EnvAgent):
 		columns_str = u",".join(columns)
 		values_str = u",".join(values)
 		return u"INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
-		
+
 
 	def update(self, table, columns, where={}):
 		"""Updates the values of data already written to the database for the current participant.
@@ -317,8 +320,7 @@ class Database(EnvAgent):
 				conditions that rows must match in order for their values to be updated.
 
 		"""
-		if not table in self.table_schemas.keys():
-			raise ValueError("The table '{0}' does not exist in the database.".format(table))
+		self._ensure_table(table)
 
 		# prevent overwriting data from other participants
 		id_column = 'id' if table == 'participants' else P.id_field_name
@@ -333,7 +335,7 @@ class Database(EnvAgent):
 			err = "No rows of table '{0}' matching filter criteria '{1}'."
 			raise ValueError(err.format(table, filter_str))
 
-		q = "UPDATE {0} SET {1} WHERE {2}".format(table, replacements_str, filter_str)
+		q = "UPDATE `{0}` SET {1} WHERE {2}".format(table, replacements_str, filter_str)
 		self.cursor.execute(q)
 		self.db.commit()
 		return self.cursor.lastrowid
@@ -386,7 +388,7 @@ class DatabaseManager(EnvAgent):
 			q = "SELECT id FROM trials WHERE participant_id = ?"
 			trialcount = len(self.__master.query(q, q_vars=[pid]))
 			return trialcount >= P.trials_per_block * P.blocks_per_experiment
-
+			
 
 	def write_local_to_master(self):
 		attach_q = 'ATTACH `{0}` AS master'.format(P.database_path)
@@ -630,7 +632,7 @@ class DatabaseManager(EnvAgent):
 		self.__master._drop_tables()
 		try:
 			self.__master._deploy_schema(P.schema_file_path)
-			self.__master.build_table_schemas()
+			self.__master._build_table_schemas()
 		except (sqlite3.ProgrammingError, sqlite3.OperationalError, ValueError) as e:
 			self.__master._drop_tables(self.__master.table_list)
 			self.__restore__()

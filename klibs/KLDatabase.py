@@ -376,6 +376,36 @@ class Database(object):
 		return self.query(q)
 
 
+	def delete(self, table, where):
+		"""Removes all rows from a table that match a set of criteria.
+
+		.. note:: This function permanently deletes data from the database. Be
+		          sure you know what you're doing!
+
+		Args:
+			table (str): The name of the database table to remove rows from.
+			where (:obj:`dict`): A dict in the form {column: value}, defining the
+				conditions that rows must match in order to be removed (e.g.
+				``{'incomplete': True}``).
+
+		Returns:
+			int: The number of rows deleted from the table.
+
+		"""
+		self._ensure_table(table)
+
+		# Delete selected rows from the database
+		q = "DELETE FROM `{0}`".format(table)
+		if where and len(where) > 0:
+			filters = self._to_sql_equals_statements(where, table)
+			filter_str = " AND ".join(filters)
+			q += " WHERE {0}".format(filter_str)
+		self.cursor.execute(q)
+		self.db.commit()
+
+		return self.cursor.rowcount
+
+
 	def update(self, table, columns, where={}):
 		"""Updates the values of data already written to the database for the current participant.
 
@@ -712,6 +742,9 @@ class DatabaseManager(EnvAgent):
 
 	def select(self, *args, **kwargs):
 		return self.__current.select(*args, **kwargs)
+
+	def delete(self, *args, **kwargs):
+		return self.__current.delete(*args, **kwargs)
 
 	def update(self, *args, **kwargs):
 		return self.__current.update(*args, **kwargs)

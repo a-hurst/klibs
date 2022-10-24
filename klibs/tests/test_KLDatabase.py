@@ -108,10 +108,26 @@ class TestDatabase(object):
         assert len(tmp[0]) == 2
         assert tmp[0][0] == 24
         assert tmp[1][1] == "m"
-        # Try retrieving the rows as dicts
-        tmp = db.select('participants', columns=['age', 'gender'], as_dict=True)
-        assert len(tmp) == 2
-        assert isinstance(tmp[0], dict)
-        assert tmp[0]['gender'] == "f"
-        assert tmp[1]['gender'] == "m"
 
+    def test_delete(self, db):
+        # Insert test data into the database
+        data = build_test_data()
+        for row in data:
+            db.insert(row, table='participants')
+        # Try deleting a single row
+        assert db.delete('participants', where={'gender': "m"}) == 1
+        #tmp = db.select('participants')
+        #breakpoint()
+        assert len(db.select('participants')) == 2
+        # Try deleting a row using multiple filter criteria
+        assert db.delete('participants', where={'gender': "f", 'age': 26}) == 1
+        assert len(db.select('participants')) == 1
+        # Try deleting with filter criteria that don't match anything
+        assert db.delete('participants', where={'age': 18}) == 0
+        assert len(db.select('participants')) == 1
+        # Try deleting multiple rows
+        row = get_id_data()
+        row['gender'] = "m"
+        db.insert(row, table='participants')
+        assert db.delete('participants', where={'age': 24}) == 2
+        assert len(db.select('participants')) == 0

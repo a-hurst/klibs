@@ -293,12 +293,6 @@ class Database(object):
 		return self.cursor.lastrowid
 
 
-	def is_unique(self, table, column, value):
-		self._ensure_table(table)
-		q = "SELECT * FROM `?` WHERE `?` = ?"
-		return len(self.query(q, q_vars=[table, column, value])) == 0
-
-
 	def last_id_from(self, table):
 		self._ensure_table(table)
 		return self.query("SELECT max({0}) from `{1}`".format('id', table))[0][0]
@@ -670,9 +664,6 @@ class DatabaseManager(EnvAgent):
 	
 	def insert(self, *args, **kwargs):
 		return self.__current.insert(*args, **kwargs)
-	
-	def is_unique(self, *args, **kwargs):
-		return self.__current.is_unique(*args, **kwargs)
 	
 	def last_id_from(self, *args, **kwargs):
 		return self.__current.last_id_from(*args, **kwargs)

@@ -70,11 +70,11 @@ class TestDatabase(object):
         dat.close()
 
     def test_insert(self, db):
-        last_row = db.last_id_from('participants')
+        last_row = db.last_row_id('participants')
         assert last_row == None
         data = get_id_data()
         db.insert(data, table='participants')
-        last_row = db.last_id_from('participants')
+        last_row = db.last_row_id('participants')
         assert last_row == 1
 
     def test_flush(self, db):
@@ -83,12 +83,12 @@ class TestDatabase(object):
         for row in data:
             db.insert(row, table='participants')
         # Flush the database and make sure row ids are reset
-        last_row = db.last_id_from('participants')
+        last_row = db.last_row_id('participants')
         assert last_row > 1
         db._flush()
         assert len(db.select('participants')) == 0
         db.insert(data[0], table='participants')
-        assert db.last_id_from('participants') == 1
+        assert db.last_row_id('participants') == 1
         
     def test_exists(self, db):
         # Insert test data into the database

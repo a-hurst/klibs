@@ -281,7 +281,15 @@ class Database(object):
 
 
 	def insert(self, data, table=None):
+		"""Inserts a row of data into a table in the database.
 
+		Args:
+			data (:obj:`dict`): A dictionary in the format ``{'column': value}``
+				specifying the values to insert for each column in the row. The
+				column names must match the columns of the table.
+			table (str): The name of the table to insert the data into.
+
+		"""
 		if isinstance(data, EntryTemplate):
 			if not table:
 				table = data.table
@@ -304,7 +312,16 @@ class Database(object):
 		return self.cursor.lastrowid
 
 
-	def last_id_from(self, table):
+	def last_row_id(self, table):
+		"""Retrieves the highest row id for a given table.
+
+		Args:
+			table (str): The name of the table to query.
+
+		Returns:
+			int: The highest ``id`` column value for the table.
+		
+		"""
 		self._ensure_table(table)
 		return self.query("SELECT max({0}) from `{1}`".format('id', table))[0][0]
 
@@ -713,7 +730,7 @@ class DatabaseManager(EnvAgent):
 		devmode testing participants.
 
 		"""
-		pid = self.__master.last_id_from('participants')
+		pid = self.__master.last_row_id('participants')
 		for table in self.__master.table_schemas.keys():
 			if table == "participants":
 				delete_q = u"DELETE FROM {0} WHERE id = {1}".format(table, pid)
@@ -735,8 +752,8 @@ class DatabaseManager(EnvAgent):
 	def insert(self, *args, **kwargs):
 		return self.__current.insert(*args, **kwargs)
 	
-	def last_id_from(self, *args, **kwargs):
-		return self.__current.last_id_from(*args, **kwargs)
+	def last_row_id(self, *args, **kwargs):
+		return self.__current.last_row_id(*args, **kwargs)
 
 	def query(self, *args, **kwargs):
 		return self.__current.query(*args, **kwargs)

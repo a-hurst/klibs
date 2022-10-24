@@ -257,9 +257,19 @@ class Database(object):
 
 
 	def exists(self, table, column, value):
+		"""Checks whether a value already exists within a given column.
+
+		Args:
+			table (str): The name of the table to query.
+			column (str): The name of the column to check for the value.
+			value: The value to check for in the given column.
+
+		Returns:
+			bool: True if the value already exists in the column, otherwise False.
+		"""
 		self._ensure_table(table)
-		q = "SELECT * FROM `?` WHERE `?` = ?"
-		return len(self.query(q, QUERY_SEL, q_vars=[table, column, value])) > 0
+		q = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
+		return len(self.query(q, q_vars=[value])) > 0
 
 
 	def flush(self):

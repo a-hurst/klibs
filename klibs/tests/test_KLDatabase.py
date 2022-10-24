@@ -6,6 +6,7 @@ from pkg_resources import resource_filename
 import klibs
 from klibs import KLDatabase as kldb
 
+
 schema_path = resource_filename('klibs', 'resources/template/schema.sql')
 
 @pytest.fixture
@@ -33,6 +34,18 @@ def get_id_data():
         "created": "now"
     }
     return dat
+
+def build_test_data():
+    rows = []
+    dat = get_id_data()
+    rows.append(dat)
+    dat = get_id_data()
+    dat["gender"] = "m"
+    rows.append(dat)
+    dat = get_id_data()
+    dat["age"] = 26
+    rows.append(dat)
+    return rows
 
 
 def test_rebuild_database():
@@ -64,3 +77,15 @@ class TestDatabase(object):
         last_row = db.last_id_from('participants')
         assert last_row == 1
         
+    def test_exists(self, db):
+        # Insert test data into the database
+        data = build_test_data()
+        for row in data:
+            db.insert(row, table='participants')
+        # Query different aspects of the data
+        assert db.exists('participants', 'age', 24)
+        assert not db.exists('participants', 'age', 100)
+        assert db.exists('participants', 'gender', 'm')
+        assert not db.exists('participants', 'handedness', 'a')
+
+    

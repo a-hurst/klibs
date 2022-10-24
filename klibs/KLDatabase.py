@@ -19,6 +19,18 @@ from klibs.KLInternal import colored_stdout as cso
 from klibs.KLRuntimeInfo import session_info_schema
 
 
+def _set_type_conversions(export=False):
+	# Customizes SQL -> Python type conversions for the current process.
+	# During export, this converts boolean columns to be R-style TRUE/FALSE strings.
+	# Otherwise, this converts boolean columns to Python True/False.
+	if export:
+		sqlite3.register_converter("boolean", lambda x: str(bool(int(x))).upper())
+		sqlite3.register_converter("BOOLEAN", lambda x: str(bool(int(x))).upper())
+	else:
+		sqlite3.register_converter("boolean", lambda x: bool(int(x)))
+		sqlite3.register_converter("BOOLEAN", lambda x: bool(int(x)))
+
+
 def _convert_to_query_format(value, col_name, col_type):
 	'''A convenience function for converting Python variables to sqlite column types so
 	they can then be used in SQL INSERT statements using Python's str.format() method. For
@@ -327,6 +339,7 @@ class Database(object):
 
 
 	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
+		# Can probably also be made private after updating TraceLab
 		if q_vars:
 			result = self.cursor.execute(query, tuple(q_vars))
 		else:
@@ -342,7 +355,8 @@ class Database(object):
 
 
 	def query_str_from_raw_data(self, data, table):
-		# TODO: replace this with EntryTemplate for consistency?
+		# TODO: replace this with EntryTemplate for consistency? Or vice versa?
+		# Should probably make private once delete/select are used in TraceLab
 		self._ensure_table(table)
 		template = copy(self.table_schemas[table])
 		values = []
@@ -465,7 +479,7 @@ class DatabaseManager(EnvAgent):
 	
 	def __init__(self):
 		super(DatabaseManager, self).__init__()
-		self.__set_type_conversions()
+		_set_type_conversions()
 		shutil.copy(P.database_path, P.database_backup_path)
 		self.__master = Database(P.database_path)
 		if P.multi_user:
@@ -481,18 +495,9 @@ class DatabaseManager(EnvAgent):
 		# restores database file from the back-up of it
 		os.remove(P.database_path)
 		os.rename(P.database_backup_path, P.database_path)
-	
-	
-	def __set_type_conversions(self, export=False):
-		if export:
-			sqlite3.register_converter("boolean", lambda x: str(bool(int(x))).upper())
-			sqlite3.register_converter("BOOLEAN", lambda x: str(bool(int(x))).upper())
-		else:
-			sqlite3.register_converter("boolean", lambda x: bool(int(x)))
-			sqlite3.register_converter("BOOLEAN", lambda x: bool(int(x)))
 
 
-	def __is_complete(self, pid):
+	def _is_complete(self, pid):
 		#TODO: still needs modification to work with multi-session projects
 		if 'session_info' in self.__master.table_schemas:	
 			q = "SELECT complete FROM session_info WHERE participant_id = ?"
@@ -609,13 +614,13 @@ class DatabaseManager(EnvAgent):
 		except TypeError:
 			join_tables = []
 
-		self.__set_type_conversions(export=True)
+		_set_type_conversions(export=True)
 		column_names, data = self.collect_export_data(multi_file, join_tables)
 
 		if multi_file:
 			for p_id, trials in data:
 				header = self.export_header(p_id)
-				incomplete = (self.__is_complete(p_id) == False)
+				incomplete = (self._is_complete(p_id) == False)
 				file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
 				with io.open(file_path, 'w+', encoding='utf-8') as out:
 					out.write(u"\n".join([header, column_names, "\n".join(trials)]))

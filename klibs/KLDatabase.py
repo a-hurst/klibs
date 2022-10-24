@@ -244,6 +244,14 @@ class Database(object):
 				tables[table] = table_cols
 		self.table_schemas = tables
 
+	def _flush(self):
+		# Clears all data from the database while keeping its table structure.
+		# This also resets the row id counts for each table.
+		for table in self.table_schemas.keys():
+			self.cursor.execute(u"DELETE FROM `{0}`".format(table))
+			self.cursor.execute(u"DELETE FROM sqlite_sequence WHERE name='{0}'".format(table))
+		self.db.commit()
+
 	
 	def close(self):
 		"""Closes the connection to the database.
@@ -270,13 +278,6 @@ class Database(object):
 		self._ensure_table(table)
 		q = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
 		return len(self.query(q, q_vars=[value])) > 0
-
-
-	def flush(self):
-		for table in self.table_schemas.keys():
-			self.cursor.execute(u"DELETE FROM `{0}`".format(table))
-			self.cursor.execute(u"DELETE FROM sqlite_sequence WHERE name='{0}'".format(table))
-		self.db.commit()
 
 
 	def insert(self, data, table=None):
@@ -454,7 +455,7 @@ class DatabaseManager(EnvAgent):
 			print("Local database: {0}".format(P.database_local_path))
 			shutil.copy(P.database_path, P.database_local_path)
 			self.__local = Database(P.database_local_path)
-			self.__local.flush()
+			self.__local._flush()
 			self.__current = self.__local
 		else:
 			self.__current = self.__master

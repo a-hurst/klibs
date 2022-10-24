@@ -76,6 +76,19 @@ class TestDatabase(object):
         db.insert(data, table='participants')
         last_row = db.last_id_from('participants')
         assert last_row == 1
+
+    def test_flush(self, db):
+        # Insert test data into the database
+        data = build_test_data()
+        for row in data:
+            db.insert(row, table='participants')
+        # Flush the database and make sure row ids are reset
+        last_row = db.last_id_from('participants')
+        assert last_row > 1
+        db._flush()
+        assert len(db.select('participants')) == 0
+        db.insert(data[0], table='participants')
+        assert db.last_id_from('participants') == 1
         
     def test_exists(self, db):
         # Insert test data into the database
@@ -116,8 +129,6 @@ class TestDatabase(object):
             db.insert(row, table='participants')
         # Try deleting a single row
         assert db.delete('participants', where={'gender': "m"}) == 1
-        #tmp = db.select('participants')
-        #breakpoint()
         assert len(db.select('participants')) == 2
         # Try deleting a row using multiple filter criteria
         assert db.delete('participants', where={'gender': "f", 'age': 26}) == 1

@@ -132,20 +132,12 @@ class EntryTemplate(object):
 
 
 	def __str__(self):
-		s = "<klibs.KLDatabase.KLEntryTemplate[{0}] object at {1}>"
+		s = "<klibs.KLDatabase.EntryTemplate[{0}] object at {1}>"
 		return s.format(self.table, hex(id(self)))
 
 
-	def pr_schema(self):
-		schema_str = "\t\t{\n"
-		for colname, info in self.schema.items():
-			schema_str += "\t\t\t" + colname + " : " + str(info) + "\n"
-		schema_str += "\t\t}"
-		return schema_str
-
-
-	def insert_query(self):
-		
+	def _get_insert_query(self):
+		# Generates the SQL INSERT statement for writing the template data
 		insert_template = [SQL_NULL, ] * len(self.schema)
 		query_template = u"INSERT INTO `{0}` ({1}) VALUES ({2})"
 
@@ -305,7 +297,7 @@ class Database(object):
 		if isinstance(data, EntryTemplate):
 			if not table:
 				table = data.table
-			query = data.insert_query()
+			query = data._get_insert_query()
 		elif isinstance(data, dict):
 			if not table:
 				raise ValueError("A table must be specified when inserting a dict.")
@@ -508,6 +500,14 @@ class DatabaseManager(EnvAgent):
 			q = "SELECT id FROM trials WHERE participant_id = ?"
 			trialcount = len(self.__master.query(q, q_vars=[pid]))
 			return trialcount >= P.trials_per_block * P.blocks_per_experiment
+
+
+	def get_unique_ids(self):
+		"""Retrieves all existing unique id values from the main database.
+
+		"""
+		id_rows = self.__master.select('participants', columns=[P.unique_identifier])
+		return [row[0] for row in id_rows]
 
 
 	def write_local_to_master(self):

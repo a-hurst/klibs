@@ -62,7 +62,7 @@ def iterable(obj, exclude_strings=True):
 
 	"""
 	if exclude_strings:
-		return hasattr(obj, '__iter__') and not isinstance(obj, str)
+		return hasattr(obj, "__iter__") and not hasattr(obj, "upper")
 	else:
 		try:
 			iter(obj)

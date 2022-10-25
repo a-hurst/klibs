@@ -84,6 +84,8 @@ def _convert_to_query_format(value, col_name, col_type):
 	return value
 
 
+# TODO: look for required tables and columns explicitly and give informative error if absent
+# (ie. participants, created). Need to make list of required columns first.
 def rebuild_database(path, schema):
 	"""Creates (or rebuilds) an empty KLibs database from an SQL schema.
 
@@ -178,8 +180,6 @@ class EntryTemplate(object):
 
 
 
-# TODO: look for required tables and columns explicitly and give informative error if absent
-# (ie. participants, created)
 class Database(object):
 	"""An object for reading, writing, and modifying data in the KLibs database.
 
@@ -190,11 +190,10 @@ class Database(object):
 	"""
 	def __init__(self, path):
 		super(Database, self).__init__()
-		self.table_schemas = {}
 		self.db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
 		self.db.text_factory = sqlite3.OptimizedUnicode
 		self.cursor = self.db.cursor()
-		self._build_table_schemas()
+		self.table_schemas = self._build_table_schemas()
 
 	def _tables(self):
 		self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
@@ -246,7 +245,7 @@ class Database(object):
 					allow_null = col[3] == 0
 					table_cols[col[1]] = {'type': col_type, 'allow_null': allow_null}
 				tables[table] = table_cols
-		self.table_schemas = tables
+		return tables
 
 	def _flush(self):
 		# Clears all data from the database while keeping its table structure.
@@ -348,7 +347,6 @@ class Database(object):
 
 	def query_str_from_raw_data(self, data, table):
 		# TODO: replace this with EntryTemplate for consistency? Or vice versa?
-		# Should probably make private once delete/select are used in TraceLab
 		self._ensure_table(table)
 		template = copy(self.table_schemas[table])
 		values = []

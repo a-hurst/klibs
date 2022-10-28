@@ -78,6 +78,9 @@ New Features:
   similar to :func:`~klibs.KLUserInferface.key_pressed` for the keyboard. 
 * Added a new function :func:`~klibs.KLUserInferface.get_clicks` to easily
   fetch the (x, y) coordinates of any mouse clicks in a given input event queue.
+* Added :meth:`~klibs.KLDatabase.Database.select` and
+  :meth:`~klibs.KLDatabase.Database.delete` methods to the 
+  :class:`~klibs.KLDatabase.Database` class.
 
 
 API Changes:
@@ -148,7 +151,8 @@ API Changes:
   :func:`list_dimensions`, :func:`mouse_angle`, :func:`sdl_key_code_to_str`,
   :func:`snake_to_camel`, :func:`snake_to_title`, :func:`str_pad`, :func:`log`,
   and :func:`type_str` from the :mod:`klibs.KLUtilities` module.
-
+* ``P.trial_id`` now starts at 1 and increments for every trial, regardless of
+  whether it's recycled (useful for keeping in sync with EDF 'blocks').
 
 
 Fixed Bugs:

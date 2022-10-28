@@ -4,6 +4,7 @@ import os
 import io
 import shutil
 import sqlite3
+import tempfile
 from copy import copy
 from itertools import chain
 from collections import OrderedDict
@@ -16,6 +17,18 @@ from klibs import P
 from klibs.KLInternal import full_trace, iterable, utf8
 from klibs.KLInternal import colored_stdout as cso
 from klibs.KLRuntimeInfo import session_info_schema
+
+
+def _set_type_conversions(export=False):
+	# Customizes SQL -> Python type conversions for the current process.
+	# During export, this converts boolean columns to be R-style TRUE/FALSE strings.
+	# Otherwise, this converts boolean columns to Python True/False.
+	if export:
+		sqlite3.register_converter("boolean", lambda x: str(bool(int(x))).upper())
+		sqlite3.register_converter("BOOLEAN", lambda x: str(bool(int(x))).upper())
+	else:
+		sqlite3.register_converter("boolean", lambda x: bool(int(x)))
+		sqlite3.register_converter("BOOLEAN", lambda x: bool(int(x)))
 
 
 def _convert_to_query_format(value, col_name, col_type):
@@ -71,6 +84,43 @@ def _convert_to_query_format(value, col_name, col_type):
 	return value
 
 
+# TODO: look for required tables and columns explicitly and give informative error if absent
+# (ie. participants, created). Need to make list of required columns first.
+def rebuild_database(path, schema):
+	"""Creates (or rebuilds) an empty KLibs database from an SQL schema.
+
+	In addition to the tables specified in the schema, a 'session_info' table
+	used internally for storing experiment runtime information will be
+	automatically added to the created database.
+
+	Args:
+		path (str): The path at which to create the empty database.
+		schema (str): The path to the SQL schema with which to build the
+			empty database.
+
+	"""
+	# Create empty database file at temporary path
+	tmpdir = tempfile.gettempdir()
+	tmppath = os.path.join(tmpdir, "klibs_tmp.db")
+	open(tmppath, "w").close()
+
+	# Open file as database and initialize with schema
+	db = sqlite3.connect(tmppath, detect_types=sqlite3.PARSE_DECLTYPES)
+	cursor = db.cursor()
+	with io.open(schema, "r", encoding="utf-8") as f:
+		cursor.executescript(f.read())
+	cursor.execute(session_info_schema)
+	cursor.close()
+	db.close()
+
+	# If successful, back up old database and replace with new one
+	backup_path = path + ".backup"
+	if os.path.exists(path):
+		if os.path.exists(backup_path):
+			os.remove(backup_path)
+		os.rename(path, backup_path)
+	os.rename(tmppath, path)
+
 
 class EntryTemplate(object):
 
@@ -84,20 +134,12 @@ class EntryTemplate(object):
 
 
 	def __str__(self):
-		s = "<klibs.KLDatabase.KLEntryTemplate[{0}] object at {1}>"
+		s = "<klibs.KLDatabase.EntryTemplate[{0}] object at {1}>"
 		return s.format(self.table, hex(id(self)))
 
 
-	def pr_schema(self):
-		schema_str = "\t\t{\n"
-		for colname, info in self.schema.items():
-			schema_str += "\t\t\t" + colname + " : " + str(info) + "\n"
-		schema_str += "\t\t}"
-		return schema_str
-
-
-	def insert_query(self):
-		
+	def _get_insert_query(self):
+		# Generates the SQL INSERT statement for writing the template data
 		insert_template = [SQL_NULL, ] * len(self.schema)
 		query_template = u"INSERT INTO `{0}` ({1}) VALUES ({2})"
 
@@ -138,40 +180,25 @@ class EntryTemplate(object):
 
 
 
-# TODO: look for required tables and columns explicitly and give informative error if absent
-# (ie. participants, created)
-class Database(EnvAgent):
+class Database(object):
+	"""An object for reading, writing, and modifying data in the KLibs database.
 
-	db = None
-	cursor = None
-	table_schemas = None
+	Args:
+		path (str): The path to the database file to load. The database must
+			already exist before loading.
 
+	"""
 	def __init__(self, path):
 		super(Database, self).__init__()
 		self.db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
 		self.db.text_factory = sqlite3.OptimizedUnicode
 		self.cursor = self.db.cursor()
-		if len(self._tables()) == 0:
-			self._deploy_schema(P.schema_file_path)
-		self.build_table_schemas()
+		self.table_schemas = self._build_table_schemas()
 
 	def _tables(self):
 		self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-		self.table_list = self.cursor.fetchall()
-		return self.table_list
-
-	def _drop_tables(self, table_list=None):
-		if table_list is None:
-			table_list = self._tables()
-		for n in table_list:
-			if n[0] != "sqlite_sequence":
-				self.cursor.execute(u"DROP TABLE `{0}`".format(n[0]))
-		self.db.commit()
-
-	def _deploy_schema(self, schema):
-		with io.open(schema, 'r', encoding='utf-8') as f:
-			self.cursor.executescript(f.read())
-		self.cursor.execute(session_info_schema)
+		table_list = [t[0] for t in self.cursor.fetchall()]
+		return table_list
 
 	def _to_sql_equals_statements(self, data, table):
 		sql_strs = []
@@ -182,11 +209,15 @@ class Database(EnvAgent):
 				err = "Column '{0}' does not exist in the table '{1}'."
 				raise ValueError(err.format(column, table))
 			formatted_value = _convert_to_query_format(value, column, col_type)
-			sql_strs.append("{0} = {1}".format(column, formatted_value))
+			sql_strs.append("`{0}` = {1}".format(column, formatted_value))
 		return sql_strs
 
+	def _ensure_table(self, table):
+		if not table in self._tables():
+			e = "No table named '{0}' in the current database"
+			raise ValueError(e.format(table))
 
-	def build_table_schemas(self):
+	def _build_table_schemas(self):
 		self.cursor.execute("SELECT `name` FROM `sqlite_master` WHERE `type` = 'table'")
 		tables = {}
 		for table in self.cursor.fetchall():
@@ -214,28 +245,58 @@ class Database(EnvAgent):
 					allow_null = col[3] == 0
 					table_cols[col[1]] = {'type': col_type, 'allow_null': allow_null}
 				tables[table] = table_cols
-		self.table_schemas = tables
-		return True
+		return tables
 
-
-	def exists(self, table, column, value):
-		q = "SELECT * FROM `?` WHERE `?` = ?"
-		return len(self.query(q, QUERY_SEL, q_vars=[table, column, value])) > 0
-
-
-	def flush(self):
+	def _flush(self):
+		# Clears all data from the database while keeping its table structure.
+		# This also resets the row id counts for each table.
 		for table in self.table_schemas.keys():
 			self.cursor.execute(u"DELETE FROM `{0}`".format(table))
 			self.cursor.execute(u"DELETE FROM sqlite_sequence WHERE name='{0}'".format(table))
 		self.db.commit()
 
+	
+	def close(self):
+		"""Closes the connection to the database.
+
+		Once called, the Database object can no longer be used.
+
+		"""
+		self.cursor.close()
+		self.db.close()
+		self.table_schemas = {}
+
+
+	def exists(self, table, column, value):
+		"""Checks whether a value already exists within a given column.
+
+		Args:
+			table (str): The name of the table to query.
+			column (str): The name of the column to check for the value.
+			value: The value to check for in the given column.
+
+		Returns:
+			bool: True if the value already exists in the column, otherwise False.
+		"""
+		self._ensure_table(table)
+		q = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
+		return len(self.query(q, q_vars=[value])) > 0
+
 
 	def insert(self, data, table=None):
+		"""Inserts a row of data into a table in the database.
 
+		Args:
+			data (:obj:`dict`): A dictionary in the format ``{'column': value}``
+				specifying the values to insert for each column in the row. The
+				column names must match the columns of the table.
+			table (str): The name of the table to insert the data into.
+
+		"""
 		if isinstance(data, EntryTemplate):
 			if not table:
 				table = data.table
-			query = data.insert_query()
+			query = data._get_insert_query()
 		elif isinstance(data, dict):
 			if not table:
 				raise ValueError("A table must be specified when inserting a dict.")
@@ -245,27 +306,31 @@ class Database(EnvAgent):
 
 		try:
 			self.cursor.execute(query)
-		except sqlite3.OperationalError:
+		except sqlite3.OperationalError as e:
 			err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
 			print(full_trace())
 			print(err.format(self.table_schemas[table], query))
-			self.exp.quit()
+			raise e
 		self.db.commit()
 		return self.cursor.lastrowid
 
 
-	def is_unique(self, table, column, value):
-		q = "SELECT * FROM `?` WHERE `?` = ?"
-		return len(self.query(q, q_vars=[table, column, value])) == 0
+	def last_row_id(self, table):
+		"""Retrieves the highest row id for a given table.
 
+		Args:
+			table (str): The name of the table to query.
 
-	def last_id_from(self, table):
-		if not table in self.table_schemas.keys():
-			raise ValueError("Table '{0}' not found in current database".format(table))
+		Returns:
+			int: The highest ``id`` column value for the table.
+		
+		"""
+		self._ensure_table(table)
 		return self.query("SELECT max({0}) from `{1}`".format('id', table))[0][0]
 
 
 	def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
+		# Can probably also be made private after updating TraceLab
 		if q_vars:
 			result = self.cursor.execute(query, tuple(q_vars))
 		else:
@@ -281,11 +346,9 @@ class Database(EnvAgent):
 
 
 	def query_str_from_raw_data(self, data, table):
-		# TODO: replace this with EntryTemplate for consistency?
-		try:
-			template = copy(self.table_schemas[table])
-		except KeyError:
-			raise ValueError("Table '{0}' does not exist in the database.".format(table))
+		# TODO: replace this with EntryTemplate for consistency? Or vice versa?
+		self._ensure_table(table)
+		template = copy(self.table_schemas[table])
 		values = []
 		columns = []
 		template.pop('id', None) # remove id column from template if present
@@ -304,7 +367,66 @@ class Database(EnvAgent):
 		columns_str = u",".join(columns)
 		values_str = u",".join(values)
 		return u"INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
+
+
+	def select(self, table, columns=None, where=None):
+		"""Retrieves a given set of rows from a table in the database.
+
+		Args:
+			table (str): The name of the database table to retrieve.
+			columns (:obj:`list`, optional): The names of the columns to retrieve from the
+				table. Selects all rows in the table if not specified.
+			where (:obj:`dict`, optional): A dict in the form {column: value}, defining the
+				conditions that rows must match in order to be retrieved.
 		
+		Returns:
+			list: A list of rows from the database, containing the values for
+			the selected columns.
+
+		"""
+		self._ensure_table(table)
+		if not columns:
+			columns = list(self.table_schemas[table].keys())
+
+		columns_str = ", ".join(columns)
+		q = "SELECT {0} FROM {1}".format(columns_str, table)
+		if where and len(where) > 0:
+			filters = self._to_sql_equals_statements(where, table)
+			filter_str = " AND ".join(filters)
+			q += " WHERE {0}".format(filter_str)
+
+		return self.query(q)
+
+
+	def delete(self, table, where):
+		"""Removes all rows from a table that match a set of criteria.
+
+		.. note:: This function permanently deletes data from the database. Be
+		          sure you know what you're doing!
+
+		Args:
+			table (str): The name of the database table to remove rows from.
+			where (:obj:`dict`): A dict in the form {column: value}, defining the
+				conditions that rows must match in order to be removed (e.g.
+				``{'incomplete': True}``).
+
+		Returns:
+			int: The number of rows deleted from the table.
+
+		"""
+		self._ensure_table(table)
+
+		# Delete selected rows from the database
+		q = "DELETE FROM `{0}`".format(table)
+		if where and len(where) > 0:
+			filters = self._to_sql_equals_statements(where, table)
+			filter_str = " AND ".join(filters)
+			q += " WHERE {0}".format(filter_str)
+		self.cursor.execute(q)
+		self.db.commit()
+
+		return self.cursor.rowcount
+
 
 	def update(self, table, columns, where={}):
 		"""Updates the values of data already written to the database for the current participant.
@@ -317,8 +439,7 @@ class Database(EnvAgent):
 				conditions that rows must match in order for their values to be updated.
 
 		"""
-		if not table in self.table_schemas.keys():
-			raise ValueError("The table '{0}' does not exist in the database.".format(table))
+		self._ensure_table(table)
 
 		# prevent overwriting data from other participants
 		id_column = 'id' if table == 'participants' else P.id_field_name
@@ -333,7 +454,7 @@ class Database(EnvAgent):
 			err = "No rows of table '{0}' matching filter criteria '{1}'."
 			raise ValueError(err.format(table, filter_str))
 
-		q = "UPDATE {0} SET {1} WHERE {2}".format(table, replacements_str, filter_str)
+		q = "UPDATE `{0}` SET {1} WHERE {2}".format(table, replacements_str, filter_str)
 		self.cursor.execute(q)
 		self.db.commit()
 		return self.cursor.lastrowid
@@ -348,14 +469,14 @@ class DatabaseManager(EnvAgent):
 	
 	def __init__(self):
 		super(DatabaseManager, self).__init__()
-		self.__set_type_conversions()
+		_set_type_conversions()
 		shutil.copy(P.database_path, P.database_backup_path)
 		self.__master = Database(P.database_path)
 		if P.multi_user:
 			print("Local database: {0}".format(P.database_local_path))
 			shutil.copy(P.database_path, P.database_local_path)
 			self.__local = Database(P.database_local_path)
-			self.__local.flush()
+			self.__local._flush()
 			self.__current = self.__local
 		else:
 			self.__current = self.__master
@@ -364,18 +485,9 @@ class DatabaseManager(EnvAgent):
 		# restores database file from the back-up of it
 		os.remove(P.database_path)
 		os.rename(P.database_backup_path, P.database_path)
-	
-	
-	def __set_type_conversions(self, export=False):
-		if export:
-			sqlite3.register_converter("boolean", lambda x: str(bool(int(x))).upper())
-			sqlite3.register_converter("BOOLEAN", lambda x: str(bool(int(x))).upper())
-		else:
-			sqlite3.register_converter("boolean", lambda x: bool(int(x)))
-			sqlite3.register_converter("BOOLEAN", lambda x: bool(int(x)))
 
 
-	def __is_complete(self, pid):
+	def _is_complete(self, pid):
 		#TODO: still needs modification to work with multi-session projects
 		if 'session_info' in self.__master.table_schemas:	
 			q = "SELECT complete FROM session_info WHERE participant_id = ?"
@@ -386,6 +498,14 @@ class DatabaseManager(EnvAgent):
 			q = "SELECT id FROM trials WHERE participant_id = ?"
 			trialcount = len(self.__master.query(q, q_vars=[pid]))
 			return trialcount >= P.trials_per_block * P.blocks_per_experiment
+
+
+	def get_unique_ids(self):
+		"""Retrieves all existing unique id values from the main database.
+
+		"""
+		id_rows = self.__master.select('participants', columns=[P.unique_identifier])
+		return [row[0] for row in id_rows]
 
 
 	def write_local_to_master(self):
@@ -421,13 +541,11 @@ class DatabaseManager(EnvAgent):
 	
 	
 	def close(self):
-		self.__master.cursor.close()
-		self.__master.db.close()
+		self.__master.close()
 		if P.multi_user:
 			# TODO: Retry some number of times on write failure (locked db)
 			self.write_local_to_master()
-			self.__local.cursor.close()
-			self.__local.db.close()
+			self.__local.close()
 
 
 	def collect_export_data(self, multi_file=True, join_tables=[]):
@@ -494,13 +612,13 @@ class DatabaseManager(EnvAgent):
 		except TypeError:
 			join_tables = []
 
-		self.__set_type_conversions(export=True)
+		_set_type_conversions(export=True)
 		column_names, data = self.collect_export_data(multi_file, join_tables)
 
 		if multi_file:
 			for p_id, trials in data:
 				header = self.export_header(p_id)
-				incomplete = (self.__is_complete(p_id) == False)
+				incomplete = (self._is_complete(p_id) == False)
 				file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
 				with io.open(file_path, 'w+', encoding='utf-8') as out:
 					out.write(u"\n".join([header, column_names, "\n".join(trials)]))
@@ -615,7 +733,7 @@ class DatabaseManager(EnvAgent):
 		devmode testing participants.
 
 		"""
-		pid = self.__master.last_id_from('participants')
+		pid = self.__master.last_row_id('participants')
 		for table in self.__master.table_schemas.keys():
 			if table == "participants":
 				delete_q = u"DELETE FROM {0} WHERE id = {1}".format(table, pid)
@@ -624,17 +742,6 @@ class DatabaseManager(EnvAgent):
 			self.__master.cursor.execute(delete_q)
 		self.__master.db.commit()
 		return pid
-
-
-	def rebuild(self):
-		self.__master._drop_tables()
-		try:
-			self.__master._deploy_schema(P.schema_file_path)
-			self.__master.build_table_schemas()
-		except (sqlite3.ProgrammingError, sqlite3.OperationalError, ValueError) as e:
-			self.__master._drop_tables(self.__master.table_list)
-			self.__restore__()
-			raise e
 
 
 	## Convenience methods that all pass to corresponding method of current DB ##
@@ -648,14 +755,17 @@ class DatabaseManager(EnvAgent):
 	def insert(self, *args, **kwargs):
 		return self.__current.insert(*args, **kwargs)
 	
-	def is_unique(self, *args, **kwargs):
-		return self.__current.is_unique(*args, **kwargs)
-	
-	def last_id_from(self, *args, **kwargs):
-		return self.__current.last_id_from(*args, **kwargs)
+	def last_row_id(self, *args, **kwargs):
+		return self.__current.last_row_id(*args, **kwargs)
 
 	def query(self, *args, **kwargs):
 		return self.__current.query(*args, **kwargs)
+
+	def select(self, *args, **kwargs):
+		return self.__current.select(*args, **kwargs)
+
+	def delete(self, *args, **kwargs):
+		return self.__current.delete(*args, **kwargs)
 
 	def update(self, *args, **kwargs):
 		return self.__current.update(*args, **kwargs)

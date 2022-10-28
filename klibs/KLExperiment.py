@@ -49,6 +49,7 @@ class Experiment(EnvAgent):
 			self.blocks = self.trial_factory.export_trials()
 
 		P.block_number = 0
+		P.trial_id = 0
 		for block in self.blocks:
 			P.recycle_count = 0
 			P.block_number += 1
@@ -57,10 +58,7 @@ class Experiment(EnvAgent):
 			P.trial_number = 1
 			for trial in block:  # ie. list of trials
 				try:
-					try:
-						P.trial_id = self.database.last_id_from('trials') + 1
-					except TypeError:
-						P.trial_id = 1
+					P.trial_id += 1 # Increments regardless of recycling
 					self.__trial__(trial, block.practice)
 					P.trial_number += 1
 				except TrialException:
@@ -109,7 +107,6 @@ class Experiment(EnvAgent):
 			self.evm.stop_clock()
 			self.trial_clean_up()
 		except TrialException as e:
-			P.trial_id = False
 			self.trial_clean_up()
 			self.evm.stop_clock()
 			tx = e

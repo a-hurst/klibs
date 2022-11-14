@@ -91,6 +91,7 @@ additional_displays = [] # (not implemented)
 screen_origin = (0,0)  # (not implemented) always (0,0) unless multiple displays in use
 blit_flip_x = False
 ignore_points_at = [] # For ignoring problematic pixel coordinates when using DrawResponse
+allow_hidpi = False
 
 # Display defaults (defined automatically on launch in KLGraphics.display_init())
 ppi = 0  # pixels-per-inch
@@ -104,6 +105,8 @@ screen_x_y = None
 screen_c = (None, None)
 screen_degrees_x = None
 screen_degrees_y = None
+screen_scale_x = 1.0  # HiDPI scaling factor for the display
+screen_scale_y = 1.0  # HiDPI scaling factor for the display
 monitor_height = None
 monitor_width = None
 refresh_rate = None # Number of times the display refreshes per second (in Hz)

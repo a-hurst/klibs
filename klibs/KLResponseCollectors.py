@@ -618,7 +618,10 @@ class CursorResponse(ResponseListener, BoundarySet):
 		"""
 		for event in event_queue:
 			if event.type == self.__event_type:
-				coords = (event.button.x, event.button.y)
+				coords = (
+					int(event.button.x * P.screen_scale_x),
+					int(event.button.y * P.screen_scale_y)
+				)
 				boundary = self.which_boundary(coords)
 				if boundary:
 					value = [boundary, coords] if self.return_coords else boundary
@@ -728,8 +731,8 @@ class ColorWheelResponse(ResponseListener):
 		"""
 		for e in event_queue:
 			if e.type == SDL_MOUSEBUTTONUP:
-				pos = [e.button.x, e.button.y]
-				if not self.__bounds.within(pos):
+				pos = (e.button.x * P.screen_scale_x, e.button.y * P.screen_scale_y)
+				if not pos in self.__bounds:
 					continue
 				response_angle = angle_between(pos, P.screen_c, 90, clockwise=True)
 				if self.__wheel.__name__ == "ColorWheel":

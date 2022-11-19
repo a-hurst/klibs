@@ -94,6 +94,40 @@ def _convert_to_query_format(value, col_name, col_type):
 	return value
 
 
+def _build_filepath(multi, id_info=None, base=None, joined=[], duplicate=False):
+	# If alternate base table or joined tables specified, note this in filename
+	tables = ''
+	if base != P.primary_table or len(joined):	
+		joined_tables = '+'.join(['']+joined)
+		primary = base if base != P.primary_table else ''
+		tables = '[{0}{1}]'.format(primary, joined_tables)
+	
+	# Determine the basename, suffix, and output path for the file
+	if multi:
+		p_id, created, incomplete = id_info
+		basename = "p{0}{1}.{2}".format(str(p_id), tables, created[:10])
+		suffix = "_incomplete" if incomplete else ""
+		outdir = P.incomplete_data_dir if incomplete else P.data_dir
+	else:
+		basename = "{0}_all_trials{1}".format(P.project_name, tables)
+		suffix = ""
+		outdir = P.data_dir
+
+	# If the file is a duplicate, add a number to the suffix and increment until
+	# we find a filename that doesn't exist yet
+	duplicate_count = 1
+	while duplicate:
+		dupe_num = "_{0}".format(duplicate_count)
+		filename = basename + suffix + dupe_num + P.datafile_ext
+		if os.path.isfile(os.path.join(outdir, filename)):
+			duplicate_count += 1
+		else:
+			suffix = suffix + dupe_num
+			break
+
+	return os.path.join(outdir, basename + suffix + P.datafile_ext)
+
+
 # TODO: look for required tables and columns explicitly and give informative error if absent
 # (ie. participants, created). Need to make list of required columns first.
 def rebuild_database(path, schema):
@@ -648,12 +682,12 @@ class DatabaseManager(EnvAgent):
 					'participants', ['created'], where={'id': p_id}
 				)[0][0]
 				id_info = (p_id, created, incomplete)
-				file_path = self.filepath_str(True, id_info, table, join_tables)
+				file_path = _build_filepath(True, id_info, table, join_tables)
 				# If file already exists at path and id/table was already exported, skip
 				if os.path.exists(file_path):
 					if self._already_exported(p_id, table):
 						continue
-					file_path = self.filepath_str(
+					file_path = _build_filepath(
 						True, id_info, table, join_tables, duplicate=True
 					)
 				# Actually write out the file
@@ -669,9 +703,9 @@ class DatabaseManager(EnvAgent):
 				combined_data += data_set[1]
 			header = self.export_header()
 			# If file already exists, add numeric suffix
-			file_path = self.filepath_str(multi=False, base=table, joined=join_tables)
+			file_path = _build_filepath(multi=False, base=table, joined=join_tables)
 			if os.path.exists(file_path):
-				file_path = self.filepath_str(
+				file_path = _build_filepath(
 					multi=False, base=table, joined=join_tables, duplicate=True
 				)
 			# Actually write out the file
@@ -739,39 +773,6 @@ class DatabaseManager(EnvAgent):
 		header = "#\n".join(header_strs)
 
 		return header
-		
-
-	def filepath_str(self, multi, id_info=None, base=None, joined=[], duplicate=False):
-		# if tables to join or alternate base table specified for export, note this in filename
-		tables = ''
-		if base != P.primary_table or len(joined):	
-			joined_tables = '+'.join(['']+joined)
-			primary = base if base != P.primary_table else ''
-			tables = '[{0}{1}]'.format(primary, joined_tables)
-		
-		if multi:
-			p_id, created, incomplete = id_info
-			basename = "p{0}{1}.{2}".format(str(p_id), tables, created[:10])
-			suffix = "_incomplete" if incomplete else ""
-			outdir = P.incomplete_data_dir if incomplete else P.data_dir
-		else:
-			basename = "{0}_all_trials{1}".format(P.project_name, tables)
-			suffix = ""
-			outdir = P.data_dir
-
-		duplicate_count = 1
-		while duplicate:
-			# Generate suffix and see if file already exists with that name. If it does, keep 
-			# incremeting the numeric part of the suffix until it doesn't.
-			dupe_num = "_{0}".format(duplicate_count)
-			filename = basename + suffix + dupe_num + P.datafile_ext
-			if os.path.isfile(os.path.join(outdir, filename)):
-				duplicate_count += 1
-			else:
-				suffix = suffix + dupe_num
-				break
-
-		return os.path.join(outdir, basename + suffix + P.datafile_ext)
 
 	
 	def remove_last(self):

@@ -19,25 +19,35 @@ from .utils import _build_registrations, rgb_to_rgba, image_file_to_array, add_a
 from .KLNumpySurface import aggdraw_to_numpy_surface, NumpySurface
 from .KLDraw import Drawbject
 
+
 # This module contains the core functions for drawing things to the screen.
 
-def _init_fullscreen(display):
+def _init_fullscreen(display, hidpi=False):
 
 	# Get the current non-HIDPI resolution and refresh rate of the display
-	display_mode = sdl2.video.SDL_DisplayMode()
+	display_mode = sdl2.SDL_DisplayMode()
 	ret = sdl2.SDL_GetCurrentDisplayMode(display, display_mode)
 	if ret != 0:
 		raise_sdl_err("getting the current display mode")
 	screen_xy = (display_mode.w, display_mode.h)
 
 	# Create the SDL window object and configure it properly for OpenGL
-	SCREEN_FLAGS = (
+	window_flags = (
 		sdl2.SDL_WINDOW_SHOWN | sdl2.SDL_WINDOW_FULLSCREEN_DESKTOP |
-		sdl2.SDL_WINDOW_OPENGL | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
+		sdl2.SDL_WINDOW_OPENGL
 	)
-	window = sdl2.ext.Window(P.project_name, screen_xy, flags=SCREEN_FLAGS)
+	if hidpi:
+		window_flags = window_flags | sdl2.SDL_WINDOW_ALLOW_HIGHDPI
+	window = sdl2.ext.Window(P.project_name, screen_xy, flags=window_flags)
+	sdl2.SDL_ShowCursor(sdl2.SDL_DISABLE)
 	sdl2.SDL_GL_CreateContext(window.window)
-	res = window.size
+
+	# Get actual pixel resolution for the window
+	res_x, res_y = (ctypes.c_int(0), ctypes.c_int(0))
+	sdl2.SDL_GL_GetDrawableSize(
+		window.window, ctypes.byref(res_x), ctypes.byref(res_y)
+	)
+	res = (res_x.value, res_y.value)
 
 	# Parse and validate refresh rate
 	screen_hz = float(display_mode.refresh_rate)
@@ -50,7 +60,7 @@ def _init_fullscreen(display):
 	return (window, res, screen_hz)
 
 
-def display_init(diagonal_in):
+def display_init(diagonal_in, hidpi):
 		"""Initializes the display and rendering backend, calculating and assigning the values
 		of runtime KLParams variables related to the screen (e.g. P.screen_c, P.refresh_rate,
 		P.pixels_per_degree). Called by 'klibs run' on launch, for internal use only.
@@ -61,15 +71,16 @@ def display_init(diagonal_in):
 
 		"""
 		if os.name == 'nt':
-			# set video driver explicitly on Windows to avoid misdetection problems
+			# Set video driver explicitly on Windows to avoid misdetection problems
 			os.environ['SDL_VIDEODRIVER'] = 'windows'
+			# Allow better HIDPI handling on Windows (requires SDL >= 2.24)
+			sdl2.SDL_SetHint(b"SDL_WINDOWS_DPI_AWARENESS", b"permonitor")
 			
 		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
-		sdl2.mouse.SDL_ShowCursor(sdl2.SDL_DISABLE)
 		sdl2.SDL_PumpEvents()
 
 		# Create a fullscreen window at the current resolution, get display info
-		window, res, hz = _init_fullscreen(display=0)
+		window, res, hz = _init_fullscreen(display=0, hidpi=hidpi)
 
 		# Set up the OpenGL context for the window
 		ret = sdl2.SDL_GL_SetSwapInterval(1) # enforce vsync
@@ -101,10 +112,12 @@ def display_init(diagonal_in):
 		P.pixels_per_degree = P.screen_x / P.screen_degrees_x
 		P.ppd = P.pixels_per_degree # alias for convenience
 
-		# Clear the SDL event queue and open the window, returning the window object
+		# Get scaling factor for HiDPI displays
+		P.screen_scale_x = res[0] / float(window.size[0])
+		P.screen_scale_y = res[1] / float(window.size[1])
+
+		# Clear the SDL event queue and return the window object
 		sdl2.SDL_PumpEvents()
-		sdl2.SDL_ShowCursor(sdl2.SDL_DISABLE)
-		window.show()
 		P.display_initialized = True
 
 		return window

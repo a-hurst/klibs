@@ -81,6 +81,12 @@ New Features:
 * Added :meth:`~klibs.KLDatabase.Database.select` and
   :meth:`~klibs.KLDatabase.Database.delete` methods to the 
   :class:`~klibs.KLDatabase.Database` class.
+* Added optional Retina support for macOS, which is now enabled by default for
+  new projects. It can be enabled or disabled using the ``allow_hidpi`` flag in
+  an experiment's ``params.py`` file.
+* Enabled HiDPI support on Windows 10, allowing experiments to run at the true
+  desktop resolution (e.g. 1920x1080) instead of the scaled desktop resolution
+  (e.g. 1600x900).
 
 
 API Changes:

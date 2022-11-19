@@ -354,7 +354,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 		env.exp = experiment()
 
 		# create a display context if everything's gone well so far
-		env.exp.window = display_init(screen_size)
+		env.exp.window = display_init(screen_size, P.allow_hidpi)
 		env.exp.show_logo()
 
 		# once display size and pixels-per-degree known, initialize default text styles

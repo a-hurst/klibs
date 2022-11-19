@@ -119,7 +119,7 @@ def rebuild_database(path, schema):
 		if os.path.exists(backup_path):
 			os.remove(backup_path)
 		os.rename(path, backup_path)
-	os.rename(tmppath, path)
+	shutil.move(tmppath, path)
 
 
 class EntryTemplate(object):

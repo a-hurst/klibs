@@ -121,6 +121,12 @@ class TestDatabase(object):
         assert len(tmp[0]) == 2
         assert tmp[0][0] == 24
         assert tmp[1][1] == "m"
+        # Test distinct selection
+        tmp = db.select('participants', columns=['age'], distinct=True)
+        assert len(tmp) == 2
+        row_values = [r[0] for r in tmp]
+        assert 24 in row_values
+        assert 26 in row_values
 
     def test_delete(self, db):
         # Insert test data into the database

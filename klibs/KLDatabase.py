@@ -369,7 +369,7 @@ class Database(object):
 		return u"INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
 
 
-	def select(self, table, columns=None, where=None):
+	def select(self, table, columns=None, where=None, distinct=False):
 		"""Retrieves a given set of rows from a table in the database.
 
 		Args:
@@ -378,6 +378,8 @@ class Database(object):
 				table. Selects all rows in the table if not specified.
 			where (:obj:`dict`, optional): A dict in the form {column: value}, defining the
 				conditions that rows must match in order to be retrieved.
+			distinct (bool, optional): If True, duplicate rows for the selected columns
+				will be removed before returning. Defaults to False.
 		
 		Returns:
 			list: A list of rows from the database, containing the values for
@@ -389,7 +391,8 @@ class Database(object):
 			columns = list(self.table_schemas[table].keys())
 
 		columns_str = ", ".join(columns)
-		q = "SELECT {0} FROM {1}".format(columns_str, table)
+		q = "SELECT DISTINCT " if distinct else "SELECT "
+		q += "{0} FROM {1}".format(columns_str, table)
 		if where and len(where) > 0:
 			filters = self._to_sql_equals_statements(where, table)
 			filter_str = " AND ".join(filters)

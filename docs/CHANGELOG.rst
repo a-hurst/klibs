@@ -87,6 +87,13 @@ New Features:
 * Enabled HiDPI support on Windows 10, allowing experiments to run at the true
   desktop resolution (e.g. 1920x1080) instead of the scaled desktop resolution
   (e.g. 1600x900).
+* Added export logging to prevent re-exporting identical data files when
+  repeatedly calling ``klibs export`` for a project. With this change,
+  duplicate data files (e.g. ``p1.2022-11-19_1.txt`` and
+  ``p1.2022-11-19_2.txt``) will only occur if the database is rebuilt,
+  and new data is collected and exported that results in an identical file name
+  to an existing data file from before the rebuild. These changes do not affect
+  single-file (``klibs export -c``) exporting.
 
 
 API Changes:

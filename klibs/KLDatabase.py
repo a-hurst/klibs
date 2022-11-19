@@ -2,6 +2,7 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import io
+import time
 import shutil
 import sqlite3
 import tempfile
@@ -17,6 +18,15 @@ from klibs import P
 from klibs.KLInternal import full_trace, iterable, utf8
 from klibs.KLInternal import colored_stdout as cso
 from klibs.KLRuntimeInfo import session_info_schema
+
+
+export_history_schema = """
+CREATE TABLE export_history (
+	id integer primary key autoincrement not null,
+	participant_id integer not null references participants(id),
+	table_name text not null,
+	timestamp float not null
+)"""
 
 
 def _set_type_conversions(export=False):
@@ -110,6 +120,7 @@ def rebuild_database(path, schema):
 	with io.open(schema, "r", encoding="utf-8") as f:
 		cursor.executescript(f.read())
 	cursor.execute(session_info_schema)
+	cursor.execute(export_history_schema)
 	cursor.close()
 	db.close()
 
@@ -502,6 +513,19 @@ class DatabaseManager(EnvAgent):
 			trialcount = len(self.__master.query(q, q_vars=[pid]))
 			return trialcount >= P.trials_per_block * P.blocks_per_experiment
 
+	def _log_export(self, pid, table):
+		# Logs a successfully exported participant in the database
+		self.__master.insert(
+			{'participant_id': pid, 'table_name': table, 'timestamp': time.time()},
+			table='export_history'
+		)
+
+	def _already_exported(self, pid, table):
+		# Checks whether an id/table combination has already been exported
+		this_id = {'participant_id': pid, 'table_name': table}
+		matches = self.__master.select('export_history', where=this_id)
+		return len(matches) > 0
+
 
 	def get_unique_ids(self):
 		"""Retrieves all existing unique id values from the main database.
@@ -551,7 +575,7 @@ class DatabaseManager(EnvAgent):
 			self.__local.close()
 
 
-	def collect_export_data(self, multi_file=True, join_tables=[]):
+	def collect_export_data(self, base_table, multi_file=True, join_tables=[]):
 		uid = P.unique_identifier
 		participant_ids = self.__master.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
 
@@ -577,7 +601,7 @@ class DatabaseManager(EnvAgent):
 				err = "Column '{0}' does not exist in the session_info table."
 				raise RuntimeError(err.format(colname))
 			colnames.append(colname)
-		for t in [P.primary_table] + join_tables:
+		for t in [base_table] + join_tables:
 			for colname in self.__master.table_schemas[t].keys():
 				if colname not in ['id', P.id_field_name] + P.exclude_data_cols:
 					colnames.append(colname)
@@ -587,14 +611,13 @@ class DatabaseManager(EnvAgent):
 		
 		data = []
 		for p in participant_ids:
-			primary_t = P.primary_table
 			selected_cols = ",".join(["`"+col+"`" for col in colnames])
 			q = "SELECT " + selected_cols + " FROM participants "
 			if len(P.append_info_cols) and 'session_info' in self.__master.table_schemas:
 				info_cols = ",".join(['participant_id'] + P.append_info_cols)
 				q += "JOIN (SELECT " + info_cols + " FROM session_info) AS info "
 				q += "ON participants.id = info.participant_id "
-			for t in [primary_t] + join_tables:
+			for t in [base_table] + join_tables:
 				q += "JOIN {0} ON participants.id = {0}.participant_id ".format(t)
 			q += " WHERE participants.id = ?"
 			p_data = [] 
@@ -608,23 +631,35 @@ class DatabaseManager(EnvAgent):
 
 	def export(self, table=None, multi_file=True, join_tables=None):
 		#TODO: make option for exporting non-devmode/complete participants only
-		if table != None:
-			P.primary_table = table
+		table = P.primary_table if not table else table
 		try:
 			join_tables = join_tables[0].split(",")
 		except TypeError:
 			join_tables = []
 
 		_set_type_conversions(export=True)
-		column_names, data = self.collect_export_data(multi_file, join_tables)
+		column_names, data = self.collect_export_data(table, multi_file, join_tables)
 
 		if multi_file:
 			for p_id, trials in data:
 				header = self.export_header(p_id)
 				incomplete = (self._is_complete(p_id) == False)
-				file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
+				created = self.__master.select(
+					'participants', ['created'], where={'id': p_id}
+				)[0][0]
+				id_info = (p_id, created, incomplete)
+				file_path = self.filepath_str(True, id_info, table, join_tables)
+				# If file already exists at path and id/table was already exported, skip
+				if os.path.exists(file_path):
+					if self._already_exported(p_id, table):
+						continue
+					file_path = self.filepath_str(
+						True, id_info, table, join_tables, duplicate=True
+					)
+				# Actually write out the file
 				with io.open(file_path, 'w+', encoding='utf-8') as out:
 					out.write(u"\n".join([header, column_names, "\n".join(trials)]))
+				self._log_export(p_id, table) # Log successful export in database
 				print("    - Participant {0} successfully exported.".format(p_id))
 		else:
 			combined_data = []
@@ -633,10 +668,17 @@ class DatabaseManager(EnvAgent):
 				p_count += 1
 				combined_data += data_set[1]
 			header = self.export_header()
-			file_path = self.filepath_str(multi_file=False, base=table, joined=join_tables)
+			# If file already exists, add numeric suffix
+			file_path = self.filepath_str(multi=False, base=table, joined=join_tables)
+			if os.path.exists(file_path):
+				file_path = self.filepath_str(
+					multi=False, base=table, joined=join_tables, duplicate=True
+				)
+			# Actually write out the file
 			with io.open(file_path, 'w+', encoding='utf-8') as out:
 				out.write(u"\n".join([header, column_names, "\n".join(combined_data)]))
-			print("    - Data for {0} participants successfully exported.".format(p_count))
+			msg = "    - Data for {0} participant{1} successfully exported."
+			print(msg.format(p_count, "" if p_count == 1 else "s"))
 
 
 	def export_header(self, user_id=None):
@@ -699,35 +741,37 @@ class DatabaseManager(EnvAgent):
 		return header
 		
 
-	def filepath_str(self, p_id=None, multi_file=False, base=None, joined=[], incomplete=False):
+	def filepath_str(self, multi, id_info=None, base=None, joined=[], duplicate=False):
 		# if tables to join or alternate base table specified for export, note this in filename
 		tables = ''
-		if base != None or len(joined):	
+		if base != P.primary_table or len(joined):	
 			joined_tables = '+'.join(['']+joined)
-			tables = '[{0}{1}]'.format(base if base != None else '', joined_tables)
+			primary = base if base != P.primary_table else ''
+			tables = '[{0}{1}]'.format(primary, joined_tables)
 		
-		if multi_file:
-			created_q = "SELECT `created` FROM `participants` WHERE `id` = ?"
-			created = self.__master.query(created_q, q_vars=[p_id], fetch_all=False).fetchone()[0]
+		if multi:
+			p_id, created, incomplete = id_info
 			basename = "p{0}{1}.{2}".format(str(p_id), tables, created[:10])
+			suffix = "_incomplete" if incomplete else ""
+			outdir = P.incomplete_data_dir if incomplete else P.data_dir
 		else:
-			basename = "{0}_all_trials{1}".format(P.project_name, tables)		
+			basename = "{0}_all_trials{1}".format(P.project_name, tables)
+			suffix = ""
+			outdir = P.data_dir
 
-		duplicate_count = 0
-		while True:
+		duplicate_count = 1
+		while duplicate:
 			# Generate suffix and see if file already exists with that name. If it does, keep 
 			# incremeting the numeric part of the suffix until it doesn't.
-			suffix = P.datafile_ext
-			if incomplete: suffix = "_incomplete" + suffix
-			if duplicate_count: suffix = "_{0}".format(duplicate_count) + suffix
-			fname = basename + suffix
-			filepath = os.path.join(P.incomplete_data_dir if incomplete else P.data_dir, fname)
-			if os.path.isfile(filepath):
+			dupe_num = "_{0}".format(duplicate_count)
+			filename = basename + suffix + dupe_num + P.datafile_ext
+			if os.path.isfile(os.path.join(outdir, filename)):
 				duplicate_count += 1
 			else:
+				suffix = suffix + dupe_num
 				break
 
-		return filepath
+		return os.path.join(outdir, basename + suffix + P.datafile_ext)
 
 	
 	def remove_last(self):

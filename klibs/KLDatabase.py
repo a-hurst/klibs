@@ -791,22 +791,28 @@ class DatabaseManager(EnvAgent):
 			msg = "    - Data for {0} participant{1} successfully exported."
 			print(msg.format(p_count, "" if p_count == 1 else "s"))
 
+	
+	def remove_data(self, unique_id):
+		"""Removes all data for a given participant ID from the database.
 
-	def remove_last(self):
-		"""Removes the last participant's data from the database. To be called through the CLI
-		to remove the data of a participants who opt to withdraw their data, or for removing
-		devmode testing participants.
+		Args:
+			unique_id (str): The unique identifier of the participant to remove
+				from the database.
 
 		"""
-		pid = self.__master.last_row_id('participants')
-		for table in self.__master.table_schemas.keys():
-			if table == "participants":
-				delete_q = u"DELETE FROM {0} WHERE id = {1}".format(table, pid)
-			else:
-				delete_q = u"DELETE FROM {0} WHERE {1} = {2}".format(table, P.id_field_name, pid)
-			self.__master.cursor.execute(delete_q)
-		self.__master.db.commit()
-		return pid
+		# Get id row number for the provided unique ID in the participants table
+		id_filter = {P.unique_identifier: unique_id}
+		ret = self._primary.select('participants', columns=['id'], where=id_filter)
+		if not len(ret):
+			e = "No participant with the identifier '{0}' exists in the database"
+			raise ValueError(e.format(unique_id))
+		pid = ret[0][0]
+
+		# For each table in the database, remove all data associated with the ID
+		for table in self._primary.table_schemas.keys():
+			if table != 'participants':
+				self._primary.delete(table, where={'participant_id': pid})
+		self._primary.delete('participants', where={'id': pid})
 
 
 	## Convenience methods that all pass to corresponding method of current DB ##

@@ -24,27 +24,32 @@ def db(db_test_path):
     yield tmp
     tmp.close()
 
-def get_id_data():
+def generate_id_row(uid=1, gender="f", age=24, handedness="r"):
+    # Generate participant data
+    dat = {
+        "userhash": uid,
+        "gender": gender,
+        "age": age,
+        "handedness": handedness,
+        "created": "now",
+    }
+    return dat
+
+def generate_data_row(pid=1, block=1, trial=1):
     # Generate trial data
     dat = {
-        "userhash": "1",
-        "gender": "f",
-        "age": 24,
-        "handedness": "r",
-        "created": "now"
+        "participant_id": pid,
+        "block_num": block,
+        "trial_num": trial,
     }
     return dat
 
 def build_test_data():
-    rows = []
-    dat = get_id_data()
-    rows.append(dat)
-    dat = get_id_data()
-    dat["gender"] = "m"
-    rows.append(dat)
-    dat = get_id_data()
-    dat["age"] = 26
-    rows.append(dat)
+    rows = [
+        generate_id_row(uid="P01"),
+        generate_id_row(uid="P02", gender="m"),
+        generate_id_row(uid="P03", age=26),
+    ]
     return rows
 
 
@@ -72,7 +77,7 @@ class TestDatabase(object):
     def test_insert(self, db):
         last_row = db.last_row_id('participants')
         assert last_row == None
-        data = get_id_data()
+        data = generate_id_row()
         db.insert(data, table='participants')
         last_row = db.last_row_id('participants')
         assert last_row == 1
@@ -143,8 +148,49 @@ class TestDatabase(object):
         assert db.delete('participants', where={'age': 18}) == 0
         assert len(db.select('participants')) == 1
         # Try deleting multiple rows
-        row = get_id_data()
-        row['gender'] = "m"
+        row = generate_id_row(gender="m")
         db.insert(row, table='participants')
         assert db.delete('participants', where={'age': 24}) == 2
         assert len(db.select('participants')) == 0
+
+
+class TestDatabaseManager(object):
+
+    def test_init(self, db_test_path):
+        dat = kldb.DatabaseManager(db_test_path)
+        assert "participants" in list(dat.table_schemas.keys())
+        assert "age" in list(dat.table_schemas['participants'].keys())
+        assert dat.table_schemas['participants']['age']['type'] == klibs.PY_INT
+        dat.close()
+
+    def test_init_multi_user(self, db_test_path):
+        tmpdir = tempfile.gettempdir()
+        localpath = os.path.join(tmpdir, "tmp_local.db")
+        dat = kldb.DatabaseManager(db_test_path, localpath)
+        assert os.path.exists(localpath)
+        assert "participants" in list(dat.table_schemas.keys())
+        assert "age" in list(dat.table_schemas['participants'].keys())
+        assert dat.table_schemas['participants']['age']['type'] == klibs.PY_INT
+        dat.close()
+
+    def test_remove_data(self, db_test_path):
+        dat = kldb.DatabaseManager(db_test_path)
+        # Add test data
+        id_data = build_test_data()
+        for row in id_data:
+            dat.insert(row, table='participants')
+        for pid in (1, 2, 3):
+            dat.insert(generate_data_row(pid), table='trials')
+            dat.insert(generate_data_row(pid, trial=2), table='trials')
+        # Try removing data for P02
+        assert len(dat.select('participants', where={'userhash': "P02"})) == 1
+        assert len(dat.select('trials', where={'participant_id': 2})) == 2
+        dat.remove_data("P02")
+        assert len(dat.select('participants', where={'userhash': "P02"})) == 0
+        assert len(dat.select('trials', where={'participant_id': 2})) == 0
+        assert len(dat.select('participants')) == 2
+        assert len(dat.select('trials')) == 4
+        # Test exception on invalid unique ID
+        with pytest.raises(ValueError):
+            dat.remove_data("P011001010101")
+        dat.close()

@@ -128,6 +128,81 @@ def _build_filepath(multi, id_info=None, base=None, joined=[], duplicate=False):
 	return os.path.join(outdir, basename + suffix + P.datafile_ext)
 
 
+def _build_export_header(db, user_id=None):
+	# Old versions of KLibs didn't have session_info table for runtime info,
+	# so we do a bit of work to keep export compatibility with old databases
+	legacy = False
+	if 'session_info' in db.table_schemas:
+		info_table = 'session_info'
+		info_cols = list(db.table_schemas['session_info'].keys())
+		info_cols.remove('participant_id')
+	else:
+		info_table = 'participants'
+		info_cols = ['klibs_commit', 'random_seed']
+		legacy = True
+
+	# Gather runtime info, checking for non-unique values if multi-participant export
+	runtime_info = {}
+	for colname in info_cols:
+		q = "SELECT DISTINCT {0} FROM {1}".format(colname, info_table)
+		if user_id:
+			q += " WHERE `participant_id` = ?"
+			values = db.query(q, q_vars=[user_id])
+		else:
+			values = db.query(q)
+		runtime_info[colname] = "(multiple)" if len(values) > 1 else values[0][0]
+
+	# If database is from a legacy project, guess at runtime values from params
+	if legacy:
+		runtime_info['trials_per_block'] = P.trials_per_block
+		runtime_info['blocks_per_session'] = P.blocks_per_experiment
+		runtime_info['el_velocity_thresh'] = P.saccadic_velocity_threshold
+		runtime_info['el_accel_thresh'] = P.saccadic_acceleration_threshold
+		runtime_info['el_motion_thresh'] = P.saccadic_motion_threshold
+
+	# Map header sections/fields to runtime info keys
+	header = {
+		"KLIBS INFO": [
+			("KLibs Commit", 'klibs_commit'),
+		],
+		"EXPERIMENT SETTINGS": [
+			("Trials Per Block", 'trials_per_block'),
+			("Blocks Per Session", 'blocks_per_session'),
+		],
+		"SYSTEM INFO": [
+			("Operating System", 'os_version'),
+			("Python Version", 'python_version'),
+		],
+		"DISPLAY INFO": [
+			("Screen Size", 'screen_size'),
+			("Resolution", 'screen_res'),
+			("View Distance", 'viewing_dist'),
+		],
+		"EYELINK SETTINGS": [
+			("Tracker Model", 'eyetracker'),
+			("Saccadic Velocity Threshold", 'el_velocity_thresh'),
+			("Saccadic Acceleration Threshold", 'el_accel_thresh'),
+			("Saccadic Motion Threshold", 'el_motion_thresh'),
+		],
+	}
+	sections = ["KLIBS INFO", "EXPERIMENT SETTINGS"]
+	if info_table == 'session_info':
+		sections += ["SYSTEM INFO", "DISPLAY INFO"]
+	if P.eye_tracking:
+		sections.append("EYELINK SETTINGS")
+
+	# Actually generate the header string from the info above
+	chunks = []
+	for section in sections:
+		lines = ["# {0}".format(section)]
+		for field, key in header[section]:
+			if key in runtime_info.keys():
+				lines += ["#  > {0}: {1}".format(field, runtime_info[key])]
+		chunks.append("\n".join(lines) + "\n")
+
+	return "#\n".join(chunks)
+
+
 # TODO: look for required tables and columns explicitly and give informative error if absent
 # (ie. participants, created). Need to make list of required columns first.
 def rebuild_database(path, schema):
@@ -676,7 +751,7 @@ class DatabaseManager(EnvAgent):
 
 		if multi_file:
 			for p_id, trials in data:
-				header = self.export_header(p_id)
+				header = _build_export_header(self.__master, p_id)
 				incomplete = (self._is_complete(p_id) == False)
 				created = self.__master.select(
 					'participants', ['created'], where={'id': p_id}
@@ -701,7 +776,7 @@ class DatabaseManager(EnvAgent):
 			for data_set in data:
 				p_count += 1
 				combined_data += data_set[1]
-			header = self.export_header()
+			header = _build_export_header(self.__master)
 			# If file already exists, add numeric suffix
 			file_path = _build_filepath(multi=False, base=table, joined=join_tables)
 			if os.path.exists(file_path):
@@ -713,66 +788,6 @@ class DatabaseManager(EnvAgent):
 				out.write(u"\n".join([header, column_names, "\n".join(combined_data)]))
 			msg = "    - Data for {0} participant{1} successfully exported."
 			print(msg.format(p_count, "" if p_count == 1 else "s"))
-
-
-	def export_header(self, user_id=None):
-		if 'session_info' in self.__master.table_schemas:
-			info_table = 'session_info'
-			info_cols = list(self.__master.table_schemas['session_info'].keys())
-			info_cols.remove('participant_id')
-		else:
-			info_table = 'participants'
-			info_cols = ['klibs_commit', 'random_seed']
-
-		runtime_info = {}
-		for colname in info_cols:
-			q = "SELECT DISTINCT {0} FROM {1}".format(colname, info_table)
-			if user_id:
-				q += " WHERE `participant_id` = ?"
-				values = self.__master.query(q, q_vars=[user_id])
-			else:
-				values = self.__master.query(q)
-			runtime_info[colname] = "(multiple)" if len(values) > 1 else values[0][0]
-
-		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", runtime_info['klibs_commit']]]
-		if info_table == 'session_info':
-			exp_vars 	 = ["EXPERIMENT SETTINGS",
-							["Trials Per Block", runtime_info['trials_per_block']],
-							["Blocks Per Session", runtime_info['blocks_per_session']]]
-			system_vars  = ["SYSTEM INFO",
-							["Operating System", runtime_info['os_version']],
-							["Python Version", runtime_info['python_version']]]
-			display_vars = ["DISPLAY INFO",
-							["Screen Size", runtime_info['screen_size']],
-							["Resolution", runtime_info['screen_res']],
-							["View Distance", runtime_info['viewing_dist']]]
-			eyelink_vars = ["EYELINK SETTINGS",
-							["Tracker Model", runtime_info['eyetracker']],
-							["Saccadic Velocity Threshold", runtime_info['el_velocity_thresh']],
-							["Saccadic Acceleration Threshold", runtime_info['el_accel_thresh']],
-							["Saccadic Motion Threshold", runtime_info['el_motion_thresh']]]
-		else:
-			exp_vars 	 = ["EXPERIMENT SETTINGS",
-							["Trials Per Block", P.trials_per_block],
-							["Blocks Per Experiment", P.blocks_per_experiment]]
-			eyelink_vars = ["EYELINK SETTINGS",
-							["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
-							["Saccadic Acceleration Threshold", P.saccadic_acceleration_threshold],
-							["Saccadic Motion Threshold", P.saccadic_motion_threshold]]
-
-		header_strs = []
-		header_info = [klibs_vars, exp_vars]
-		if info_table == 'session_info':
-			header_info += [system_vars, display_vars]
-		if P.eye_tracking:
-			header_info.append(eyelink_vars)
-		for info in header_info:
-			section = "# {0}\n".format(info[0])
-			section += "\n".join(["#  > {0}: {1}".format(var[0], var[1]) for var in info[1:]])
-			header_strs.append(section + "\n")
-		header = "#\n".join(header_strs)
-
-		return header
 
 	
 	def remove_last(self):

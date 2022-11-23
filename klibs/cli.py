@@ -244,6 +244,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 	cso("\n<green>*** Now Loading KLibs Environment ***</green>\n")
 
 	# Suppresses possible pysdl2-dll warning message on import
+	import shutil
 	import warnings
 	with warnings.catch_warnings():	
 		warnings.simplefilter("ignore")
@@ -330,6 +331,9 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 		P.labjacking = False
 	#TODO: check if current commit matches experiment.py and warn user if not
 
+	# Back up database before starting the session
+	shutil.copy(P.database_path, P.database_backup_path)
+
 	# create runtime environment
 	env.txtm = TextManager()
 	if P.eye_tracking:
@@ -342,7 +346,9 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 			env.el = KLEyeTracking.Tracker()
 		except RuntimeError:
 			return
-	env.db = DatabaseManager()
+	env.db = DatabaseManager(
+		P.database_path, P.database_local_path if P.multi_user else None
+	)
 	env.evm = EventManager()
 
 	try:
@@ -396,7 +402,7 @@ def export(path, table=None, combined=False, join=None):
 
 	# Validate database path and export
 	P.database_path = validate_database_path(P.database_path)
-	DatabaseManager().export(table, multi_file, join)
+	DatabaseManager(P.database_path).export(table, multi_file, join)
 
 
 def rebuild_db(path):

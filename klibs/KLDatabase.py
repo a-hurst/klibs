@@ -585,46 +585,48 @@ class Database(object):
 
 
 class DatabaseManager(EnvAgent):
-
-	__local = None
-	__master = None
-	__current = None
 	
-	def __init__(self):
+	def __init__(self, path, local_path=None):
 		super(DatabaseManager, self).__init__()
+		# Initialize column type conversions for session
 		_set_type_conversions()
-		shutil.copy(P.database_path, P.database_backup_path)
-		self.__master = Database(P.database_path)
-		if P.multi_user:
-			print("Local database: {0}".format(P.database_local_path))
-			shutil.copy(P.database_path, P.database_local_path)
-			self.__local = Database(P.database_local_path)
-			self.__local._flush()
-			self.__current = self.__local
-		else:
-			self.__current = self.__master
-	
-	def __restore__(self):
-		# restores database file from the back-up of it
-		os.remove(P.database_path)
-		os.rename(P.database_backup_path, P.database_path)
+		# Initialize paths and settings
+		self.multi_user = local_path != None
+		self._path = path
+		self._local_path = local_path
+		# Initialize connections to database(s)
+		self._primary = Database(path)
+		self._local = None
+		if self.multi_user:
+			shutil.copy(path, local_path)
+			self._local = Database(local_path)
+			self._local._flush()
+			print("Local database: {0}".format(local_path))
+		# Aliases for compatibility
+		self.__master = self._primary
+		self.__local = self._local
 
+	@property
+	def _current(self):
+		# An alias for the current database, which is the local db in multi-user
+		# mode and the normal database otherwise
+		return self._local if self.multi_user else self._primary
 
 	def _is_complete(self, pid):
 		#TODO: still needs modification to work with multi-session projects
-		if 'session_info' in self.__master.table_schemas:	
+		if 'session_info' in self._primary.table_schemas:	
 			q = "SELECT complete FROM session_info WHERE participant_id = ?"
-			sessions = self.__master.query(q, q_vars=[pid])
+			sessions = self._primary.query(q, q_vars=[pid])
 			complete = [bool(s[0]) for s in sessions]
 			return all(complete)
 		else:
 			q = "SELECT id FROM trials WHERE participant_id = ?"
-			trialcount = len(self.__master.query(q, q_vars=[pid]))
+			trialcount = len(self._primary.query(q, q_vars=[pid]))
 			return trialcount >= P.trials_per_block * P.blocks_per_experiment
 
 	def _log_export(self, pid, table):
 		# Logs a successfully exported participant in the database
-		self.__master.insert(
+		self._primary.insert(
 			{'participant_id': pid, 'table_name': table, 'timestamp': time.time()},
 			table='export_history'
 		)
@@ -632,7 +634,7 @@ class DatabaseManager(EnvAgent):
 	def _already_exported(self, pid, table):
 		# Checks whether an id/table combination has already been exported
 		this_id = {'participant_id': pid, 'table_name': table}
-		matches = self.__master.select('export_history', where=this_id)
+		matches = self._primary.select('export_history', where=this_id)
 		return len(matches) > 0
 
 
@@ -640,29 +642,29 @@ class DatabaseManager(EnvAgent):
 		"""Retrieves all existing unique id values from the main database.
 
 		"""
-		id_rows = self.__master.select('participants', columns=[P.unique_identifier])
+		id_rows = self._primary.select('participants', columns=[P.unique_identifier])
 		return [row[0] for row in id_rows]
 
 
 	def write_local_to_master(self):
-		attach_q = 'ATTACH `{0}` AS master'.format(P.database_path)
-		self.__local.cursor.execute(attach_q)
+		attach_q = 'ATTACH `{0}` AS master'.format(self._path)
+		self._local.cursor.execute(attach_q)
 		self.copy_columns(table='participants', ignore=['id'])
 
-		master_p_id = self.__local.cursor.lastrowid
+		master_p_id = self._local.cursor.lastrowid
 		update_p_id = {'participant_id': master_p_id, 'user_id': master_p_id}
 		P.participant_id = master_p_id
 		
-		for table in self.__local.table_schemas.keys():
+		for table in self._local.table_schemas.keys():
 			if table == 'participants': continue
 			self.copy_columns(table, ignore=['id'], sub=update_p_id)
 		
-		self.__local.cursor.execute('DETACH DATABASE `master`')
+		self._local.cursor.execute('DETACH DATABASE `master`')
 			
 
 	def copy_columns(self, table, ignore=[], sub={}):
 		colnames = []
-		for colname in self.__local.table_schemas[table].keys():
+		for colname in self._local.table_schemas[table].keys():
 			if colname not in ignore:
 				colnames.append(colname)
 		columns = ", ".join(colnames)
@@ -672,21 +674,21 @@ class DatabaseManager(EnvAgent):
 			col_data = col_data.replace(colname, "\'{0}\'".format(sub[colname]))
 			
 		q = "INSERT INTO master.{0} ({1}) SELECT {2} FROM {0}".format(table, columns, col_data)
-		self.__local.cursor.execute(q)
-		self.__local.db.commit()
+		self._local.cursor.execute(q)
+		self._local.db.commit()
 	
 	
 	def close(self):
-		self.__master.close()
-		if P.multi_user:
+		self._primary.close()
+		if self.multi_user:
 			# TODO: Retry some number of times on write failure (locked db)
 			self.write_local_to_master()
-			self.__local.close()
+			self._local.close()
 
 
 	def collect_export_data(self, base_table, multi_file=True, join_tables=[]):
 		uid = P.unique_identifier
-		participant_ids = self.__master.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
+		participant_ids = self._primary.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
 
 		colnames = []
 		sub = {P.unique_identifier: 'participant'}
@@ -702,16 +704,16 @@ class DatabaseManager(EnvAgent):
 				else:
 					colnames.append(field)
 		else:
-			for colname in self.__master.table_schemas['participants'].keys():
+			for colname in self._primary.table_schemas['participants'].keys():
 				if colname not in ['id'] + P.exclude_data_cols:
 					colnames.append(colname)
 		for colname in P.append_info_cols:
-			if colname not in self.__master.table_schemas['session_info'].keys():
+			if colname not in self._primary.table_schemas['session_info'].keys():
 				err = "Column '{0}' does not exist in the session_info table."
 				raise RuntimeError(err.format(colname))
 			colnames.append(colname)
 		for t in [base_table] + join_tables:
-			for colname in self.__master.table_schemas[t].keys():
+			for colname in self._primary.table_schemas[t].keys():
 				if colname not in ['id', P.id_field_name] + P.exclude_data_cols:
 					colnames.append(colname)
 		column_names = TAB.join(colnames)
@@ -722,7 +724,7 @@ class DatabaseManager(EnvAgent):
 		for p in participant_ids:
 			selected_cols = ",".join(["`"+col+"`" for col in colnames])
 			q = "SELECT " + selected_cols + " FROM participants "
-			if len(P.append_info_cols) and 'session_info' in self.__master.table_schemas:
+			if len(P.append_info_cols) and 'session_info' in self._primary.table_schemas:
 				info_cols = ",".join(['participant_id'] + P.append_info_cols)
 				q += "JOIN (SELECT " + info_cols + " FROM session_info) AS info "
 				q += "ON participants.id = info.participant_id "
@@ -730,7 +732,7 @@ class DatabaseManager(EnvAgent):
 				q += "JOIN {0} ON participants.id = {0}.participant_id ".format(t)
 			q += " WHERE participants.id = ?"
 			p_data = [] 
-			for trial in self.__master.query(q, q_vars=tuple([p[0]])):
+			for trial in self._primary.query(q, q_vars=tuple([p[0]])):
 				row_str = TAB.join(utf8(col) for col in trial)
 				p_data.append(row_str)
 			data.append([p[0], p_data])
@@ -751,9 +753,9 @@ class DatabaseManager(EnvAgent):
 
 		if multi_file:
 			for p_id, trials in data:
-				header = _build_export_header(self.__master, p_id)
+				header = _build_export_header(self._primary, p_id)
 				incomplete = (self._is_complete(p_id) == False)
-				created = self.__master.select(
+				created = self._primary.select(
 					'participants', ['created'], where={'id': p_id}
 				)[0][0]
 				id_info = (p_id, created, incomplete)
@@ -776,7 +778,7 @@ class DatabaseManager(EnvAgent):
 			for data_set in data:
 				p_count += 1
 				combined_data += data_set[1]
-			header = _build_export_header(self.__master)
+			header = _build_export_header(self._primary)
 			# If file already exists, add numeric suffix
 			file_path = _build_filepath(multi=False, base=table, joined=join_tables)
 			if os.path.exists(file_path):
@@ -789,7 +791,7 @@ class DatabaseManager(EnvAgent):
 			msg = "    - Data for {0} participant{1} successfully exported."
 			print(msg.format(p_count, "" if p_count == 1 else "s"))
 
-	
+
 	def remove_last(self):
 		"""Removes the last participant's data from the database. To be called through the CLI
 		to remove the data of a participants who opt to withdraw their data, or for removing
@@ -810,30 +812,30 @@ class DatabaseManager(EnvAgent):
 	## Convenience methods that all pass to corresponding method of current DB ##
 
 	def commit(self):
-		self.__current.db.commit()
+		self._current.db.commit()
 
 	def exists(self, *args, **kwargs):
-		return self.__current.exists(*args, **kwargs)
+		return self._current.exists(*args, **kwargs)
 	
 	def insert(self, *args, **kwargs):
-		return self.__current.insert(*args, **kwargs)
+		return self._current.insert(*args, **kwargs)
 	
 	def last_row_id(self, *args, **kwargs):
-		return self.__current.last_row_id(*args, **kwargs)
+		return self._current.last_row_id(*args, **kwargs)
 
 	def query(self, *args, **kwargs):
-		return self.__current.query(*args, **kwargs)
+		return self._current.query(*args, **kwargs)
 
 	def select(self, *args, **kwargs):
-		return self.__current.select(*args, **kwargs)
+		return self._current.select(*args, **kwargs)
 
 	def delete(self, *args, **kwargs):
-		return self.__current.delete(*args, **kwargs)
+		return self._current.delete(*args, **kwargs)
 
 	def update(self, *args, **kwargs):
-		return self.__current.update(*args, **kwargs)
+		return self._current.update(*args, **kwargs)
 
 	@property
 	def table_schemas(self):
-		return self.__current.table_schemas
+		return self._current.table_schemas
 		

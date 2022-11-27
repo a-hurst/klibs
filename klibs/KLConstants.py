@@ -108,13 +108,15 @@ SQL_STR = 'text'
 SQL_BIN = 'blob'
 SQL_NULL = 'null'
 SQL_COL_DELIM_STR = "`, `"
-ID = "id"
-DB_SUPPLY_PATH = "s"
-DB_CREATE = "c"
 QUERY_INS = "insert"
 QUERY_UPD = "update"
 QUERY_DEL = "delete"
 QUERY_SEL = "select"
+DB_INTERNAL_TABLES = [
+	'sqlite_sequence',
+	'session_info',
+	'export_history',
+]
 
 # AudioResponse Constants
 AR_CHUNK_SIZE = 1024

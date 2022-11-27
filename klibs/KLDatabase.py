@@ -11,9 +11,12 @@ from itertools import chain
 from collections import OrderedDict
 
 from klibs.KLEnvironment import EnvAgent
-from klibs.KLConstants import (DB_CREATE, DB_SUPPLY_PATH, SQL_COL_DELIM_STR,
-	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR, SQL_BIN, SQL_KEY, SQL_NULL,
-	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID)
+from klibs.KLConstants import (
+	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR,
+	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR,
+	SQL_BIN, SQL_KEY, SQL_NULL, SQL_COL_DELIM_STR,
+	QUERY_SEL, TAB, DB_INTERNAL_TABLES,
+)
 from klibs import P
 from klibs.KLInternal import full_trace, iterable, utf8
 from klibs.KLInternal import colored_stdout as cso
@@ -270,7 +273,7 @@ class EntryTemplate(object):
 				if self.schema[col_name]['allow_null']:
 					insert_template[col_index] = SQL_NULL
 					self.data[col_index] = SQL_NULL
-				elif col_name == ID:
+				elif col_name == 'id':
 					self.data[0] = SQL_NULL
 					insert_template[0] = SQL_NULL
 				elif self.table in P.table_defaults:
@@ -613,7 +616,10 @@ class DatabaseManager(EnvAgent):
 		return self._local if self.multi_user else self._primary
 
 	def _is_complete(self, pid):
-		#TODO: still needs modification to work with multi-session projects
+		# TODO: For multisession projects, need to know the number of sessions
+		# per experiment for this to work correctly: currently, this only checks
+		# whether all sessions so far were completed, even if there are more
+		# sessions remaining.
 		if 'session_info' in self._primary.table_schemas:	
 			q = "SELECT complete FROM session_info WHERE participant_id = ?"
 			sessions = self._primary.query(q, q_vars=[pid])
@@ -790,6 +796,47 @@ class DatabaseManager(EnvAgent):
 				out.write(u"\n".join([header, column_names, "\n".join(combined_data)]))
 			msg = "    - Data for {0} participant{1} successfully exported."
 			print(msg.format(p_count, "" if p_count == 1 else "s"))
+
+
+	def num_data_rows(self, unique_id):
+		"""Checks how many rows of data exist for a given unique ID.
+
+		If there are any rows matching the ID in the primary table, the number
+		of matching rows in that table will be returned. If none are found,
+		the total number of rows matching the ID in all data tables will be
+		returned,
+
+		Args:
+			unique_id (str): The unique identifier of the participant to count
+				the data rows for in the database.
+
+		Returns:
+			int: The number of rows of data matching the given unique ID.
+
+		"""
+		# Get id row number for the provided unique ID in the participants table
+		id_filter = {P.unique_identifier: unique_id}
+		ret = self._primary.select('participants', columns=['id'], where=id_filter)
+		if not len(ret):
+			e = "No participant with the identifier '{0}' exists in the database"
+			raise ValueError(e.format(unique_id))
+		pid = ret[0][0]
+
+		# First, check for any data in the primary table
+		rows = self._primary.select(P.primary_table, where={'participant_id': pid})
+		if len(rows):
+			return len(rows)
+
+		# If no rows in the primary table, check for rows in any others
+		n_rows = 0
+		skip = DB_INTERNAL_TABLES + ['participants', P.primary_table]
+		for table in self._primary.table_schemas.keys():
+			if table in skip:
+				continue
+			rows = self._primary.select(table, where={'participant_id': pid})
+			n_rows += len(rows)
+		
+		return n_rows
 
 	
 	def remove_data(self, unique_id):

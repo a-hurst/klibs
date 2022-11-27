@@ -173,6 +173,20 @@ class TestDatabaseManager(object):
         assert dat.table_schemas['participants']['age']['type'] == klibs.PY_INT
         dat.close()
 
+    def test_get_unique_ids(self, db_test_path):
+        dat = kldb.DatabaseManager(db_test_path)
+        # Add test data
+        id_data = build_test_data()
+        for row in id_data:
+            dat.insert(row, table='participants')
+        for pid in (1, 2, 3):
+            dat.insert(generate_data_row(pid), table='trials')
+            dat.insert(generate_data_row(pid, trial=2), table='trials')
+            assert "P0{0}".format(pid) in dat.get_unique_ids()
+        assert len(dat.get_unique_ids()) == 3
+        assert not "P04" in dat.get_unique_ids()
+        dat.close()
+
     def test_remove_data(self, db_test_path):
         dat = kldb.DatabaseManager(db_test_path)
         # Add test data
@@ -190,6 +204,24 @@ class TestDatabaseManager(object):
         assert len(dat.select('trials', where={'participant_id': 2})) == 0
         assert len(dat.select('participants')) == 2
         assert len(dat.select('trials')) == 4
+        # Test exception on invalid unique ID
+        with pytest.raises(ValueError):
+            dat.remove_data("P011001010101")
+        dat.close()
+
+    def test_num_data_rows(self, db_test_path):
+        dat = kldb.DatabaseManager(db_test_path)
+        # Add test data
+        id_data = build_test_data()
+        for row in id_data:
+            dat.insert(row, table='participants')
+        for pid in (1, 2, 3):
+            dat.insert(generate_data_row(pid), table='trials')
+            dat.insert(generate_data_row(pid, trial=2), table='trials')
+        dat.insert(generate_data_row(1, trial=3), table='trials')
+        # Try checking trial counts
+        assert dat.num_data_rows("P01") == 3
+        assert dat.num_data_rows("P02") == 2
         # Test exception on invalid unique ID
         with pytest.raises(ValueError):
             dat.remove_data("P011001010101")

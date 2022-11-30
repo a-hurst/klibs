@@ -2,6 +2,7 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import io
+import time
 import shutil
 import sqlite3
 import tempfile
@@ -10,13 +11,25 @@ from itertools import chain
 from collections import OrderedDict
 
 from klibs.KLEnvironment import EnvAgent
-from klibs.KLConstants import (DB_CREATE, DB_SUPPLY_PATH, SQL_COL_DELIM_STR,
-	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR, SQL_BIN, SQL_KEY, SQL_NULL,
-	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR, QUERY_SEL, TAB, ID)
+from klibs.KLConstants import (
+	PY_INT, PY_FLOAT, PY_BOOL, PY_BIN, PY_STR,
+	SQL_NUMERIC, SQL_FLOAT, SQL_REAL, SQL_INT, SQL_BOOL, SQL_STR,
+	SQL_BIN, SQL_KEY, SQL_NULL, SQL_COL_DELIM_STR,
+	QUERY_SEL, TAB, DB_INTERNAL_TABLES,
+)
 from klibs import P
 from klibs.KLInternal import full_trace, iterable, utf8
 from klibs.KLInternal import colored_stdout as cso
 from klibs.KLRuntimeInfo import session_info_schema
+
+
+export_history_schema = """
+CREATE TABLE export_history (
+	id integer primary key autoincrement not null,
+	participant_id integer not null references participants(id),
+	table_name text not null,
+	timestamp float not null
+)"""
 
 
 def _set_type_conversions(export=False):
@@ -84,6 +97,115 @@ def _convert_to_query_format(value, col_name, col_type):
 	return value
 
 
+def _build_filepath(multi, id_info=None, base=None, joined=[], duplicate=False):
+	# If alternate base table or joined tables specified, note this in filename
+	tables = ''
+	if base != P.primary_table or len(joined):	
+		joined_tables = '+'.join(['']+joined)
+		primary = base if base != P.primary_table else ''
+		tables = '[{0}{1}]'.format(primary, joined_tables)
+	
+	# Determine the basename, suffix, and output path for the file
+	if multi:
+		p_id, created, incomplete = id_info
+		basename = "p{0}{1}.{2}".format(str(p_id), tables, created[:10])
+		suffix = "_incomplete" if incomplete else ""
+		outdir = P.incomplete_data_dir if incomplete else P.data_dir
+	else:
+		basename = "{0}_all_trials{1}".format(P.project_name, tables)
+		suffix = ""
+		outdir = P.data_dir
+
+	# If the file is a duplicate, add a number to the suffix and increment until
+	# we find a filename that doesn't exist yet
+	duplicate_count = 1
+	while duplicate:
+		dupe_num = "_{0}".format(duplicate_count)
+		filename = basename + suffix + dupe_num + P.datafile_ext
+		if os.path.isfile(os.path.join(outdir, filename)):
+			duplicate_count += 1
+		else:
+			suffix = suffix + dupe_num
+			break
+
+	return os.path.join(outdir, basename + suffix + P.datafile_ext)
+
+
+def _build_export_header(db, user_id=None):
+	# Old versions of KLibs didn't have session_info table for runtime info,
+	# so we do a bit of work to keep export compatibility with old databases
+	legacy = False
+	if 'session_info' in db.table_schemas:
+		info_table = 'session_info'
+		info_cols = list(db.table_schemas['session_info'].keys())
+		info_cols.remove('participant_id')
+	else:
+		info_table = 'participants'
+		info_cols = ['klibs_commit', 'random_seed']
+		legacy = True
+
+	# Gather runtime info, checking for non-unique values if multi-participant export
+	runtime_info = {}
+	for colname in info_cols:
+		q = "SELECT DISTINCT {0} FROM {1}".format(colname, info_table)
+		if user_id:
+			q += " WHERE `participant_id` = ?"
+			values = db.query(q, q_vars=[user_id])
+		else:
+			values = db.query(q)
+		runtime_info[colname] = "(multiple)" if len(values) > 1 else values[0][0]
+
+	# If database is from a legacy project, guess at runtime values from params
+	if legacy:
+		runtime_info['trials_per_block'] = P.trials_per_block
+		runtime_info['blocks_per_session'] = P.blocks_per_experiment
+		runtime_info['el_velocity_thresh'] = P.saccadic_velocity_threshold
+		runtime_info['el_accel_thresh'] = P.saccadic_acceleration_threshold
+		runtime_info['el_motion_thresh'] = P.saccadic_motion_threshold
+
+	# Map header sections/fields to runtime info keys
+	header = {
+		"KLIBS INFO": [
+			("KLibs Commit", 'klibs_commit'),
+		],
+		"EXPERIMENT SETTINGS": [
+			("Trials Per Block", 'trials_per_block'),
+			("Blocks Per Session", 'blocks_per_session'),
+		],
+		"SYSTEM INFO": [
+			("Operating System", 'os_version'),
+			("Python Version", 'python_version'),
+		],
+		"DISPLAY INFO": [
+			("Screen Size", 'screen_size'),
+			("Resolution", 'screen_res'),
+			("View Distance", 'viewing_dist'),
+		],
+		"EYELINK SETTINGS": [
+			("Tracker Model", 'eyetracker'),
+			("Saccadic Velocity Threshold", 'el_velocity_thresh'),
+			("Saccadic Acceleration Threshold", 'el_accel_thresh'),
+			("Saccadic Motion Threshold", 'el_motion_thresh'),
+		],
+	}
+	sections = ["KLIBS INFO", "EXPERIMENT SETTINGS"]
+	if info_table == 'session_info':
+		sections += ["SYSTEM INFO", "DISPLAY INFO"]
+	if P.eye_tracking:
+		sections.append("EYELINK SETTINGS")
+
+	# Actually generate the header string from the info above
+	chunks = []
+	for section in sections:
+		lines = ["# {0}".format(section)]
+		for field, key in header[section]:
+			if key in runtime_info.keys():
+				lines += ["#  > {0}: {1}".format(field, runtime_info[key])]
+		chunks.append("\n".join(lines) + "\n")
+
+	return "#\n".join(chunks)
+
+
 # TODO: look for required tables and columns explicitly and give informative error if absent
 # (ie. participants, created). Need to make list of required columns first.
 def rebuild_database(path, schema):
@@ -110,6 +232,7 @@ def rebuild_database(path, schema):
 	with io.open(schema, "r", encoding="utf-8") as f:
 		cursor.executescript(f.read())
 	cursor.execute(session_info_schema)
+	cursor.execute(export_history_schema)
 	cursor.close()
 	db.close()
 
@@ -150,7 +273,7 @@ class EntryTemplate(object):
 				if self.schema[col_name]['allow_null']:
 					insert_template[col_index] = SQL_NULL
 					self.data[col_index] = SQL_NULL
-				elif col_name == ID:
+				elif col_name == 'id':
 					self.data[0] = SQL_NULL
 					insert_template[0] = SQL_NULL
 				elif self.table in P.table_defaults:
@@ -369,7 +492,7 @@ class Database(object):
 		return u"INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
 
 
-	def select(self, table, columns=None, where=None):
+	def select(self, table, columns=None, where=None, distinct=False):
 		"""Retrieves a given set of rows from a table in the database.
 
 		Args:
@@ -378,6 +501,8 @@ class Database(object):
 				table. Selects all rows in the table if not specified.
 			where (:obj:`dict`, optional): A dict in the form {column: value}, defining the
 				conditions that rows must match in order to be retrieved.
+			distinct (bool, optional): If True, duplicate rows for the selected columns
+				will be removed before returning. Defaults to False.
 		
 		Returns:
 			list: A list of rows from the database, containing the values for
@@ -389,7 +514,8 @@ class Database(object):
 			columns = list(self.table_schemas[table].keys())
 
 		columns_str = ", ".join(columns)
-		q = "SELECT {0} FROM {1}".format(columns_str, table)
+		q = "SELECT DISTINCT " if distinct else "SELECT "
+		q += "{0} FROM {1}".format(columns_str, table)
 		if where and len(where) > 0:
 			filters = self._to_sql_equals_statements(where, table)
 			filter_str = " AND ".join(filters)
@@ -462,71 +588,89 @@ class Database(object):
 
 
 class DatabaseManager(EnvAgent):
-
-	__local = None
-	__master = None
-	__current = None
 	
-	def __init__(self):
+	def __init__(self, path, local_path=None):
 		super(DatabaseManager, self).__init__()
+		# Initialize column type conversions for session
 		_set_type_conversions()
-		shutil.copy(P.database_path, P.database_backup_path)
-		self.__master = Database(P.database_path)
-		if P.multi_user:
-			print("Local database: {0}".format(P.database_local_path))
-			shutil.copy(P.database_path, P.database_local_path)
-			self.__local = Database(P.database_local_path)
-			self.__local._flush()
-			self.__current = self.__local
-		else:
-			self.__current = self.__master
-	
-	def __restore__(self):
-		# restores database file from the back-up of it
-		os.remove(P.database_path)
-		os.rename(P.database_backup_path, P.database_path)
+		# Initialize paths and settings
+		self.multi_user = local_path != None
+		self._path = path
+		self._local_path = local_path
+		# Initialize connections to database(s)
+		self._primary = Database(path)
+		self._local = None
+		if self.multi_user:
+			shutil.copy(path, local_path)
+			self._local = Database(local_path)
+			self._local._flush()
+			print("Local database: {0}".format(local_path))
+		# Aliases for compatibility
+		self.__master = self._primary
+		self.__local = self._local
 
+	@property
+	def _current(self):
+		# An alias for the current database, which is the local db in multi-user
+		# mode and the normal database otherwise
+		return self._local if self.multi_user else self._primary
 
 	def _is_complete(self, pid):
-		#TODO: still needs modification to work with multi-session projects
-		if 'session_info' in self.__master.table_schemas:	
+		# TODO: For multisession projects, need to know the number of sessions
+		# per experiment for this to work correctly: currently, this only checks
+		# whether all sessions so far were completed, even if there are more
+		# sessions remaining.
+		if 'session_info' in self._primary.table_schemas:	
 			q = "SELECT complete FROM session_info WHERE participant_id = ?"
-			sessions = self.__master.query(q, q_vars=[pid])
+			sessions = self._primary.query(q, q_vars=[pid])
 			complete = [bool(s[0]) for s in sessions]
 			return all(complete)
 		else:
 			q = "SELECT id FROM trials WHERE participant_id = ?"
-			trialcount = len(self.__master.query(q, q_vars=[pid]))
+			trialcount = len(self._primary.query(q, q_vars=[pid]))
 			return trialcount >= P.trials_per_block * P.blocks_per_experiment
+
+	def _log_export(self, pid, table):
+		# Logs a successfully exported participant in the database
+		self._primary.insert(
+			{'participant_id': pid, 'table_name': table, 'timestamp': time.time()},
+			table='export_history'
+		)
+
+	def _already_exported(self, pid, table):
+		# Checks whether an id/table combination has already been exported
+		this_id = {'participant_id': pid, 'table_name': table}
+		matches = self._primary.select('export_history', where=this_id)
+		return len(matches) > 0
 
 
 	def get_unique_ids(self):
 		"""Retrieves all existing unique id values from the main database.
 
 		"""
-		id_rows = self.__master.select('participants', columns=[P.unique_identifier])
+		id_rows = self._primary.select('participants', columns=[P.unique_identifier])
 		return [row[0] for row in id_rows]
 
 
 	def write_local_to_master(self):
-		attach_q = 'ATTACH `{0}` AS master'.format(P.database_path)
-		self.__local.cursor.execute(attach_q)
+		attach_q = 'ATTACH `{0}` AS master'.format(self._path)
+		self._local.cursor.execute(attach_q)
 		self.copy_columns(table='participants', ignore=['id'])
 
-		master_p_id = self.__local.cursor.lastrowid
+		master_p_id = self._local.cursor.lastrowid
 		update_p_id = {'participant_id': master_p_id, 'user_id': master_p_id}
 		P.participant_id = master_p_id
 		
-		for table in self.__local.table_schemas.keys():
+		for table in self._local.table_schemas.keys():
 			if table == 'participants': continue
 			self.copy_columns(table, ignore=['id'], sub=update_p_id)
 		
-		self.__local.cursor.execute('DETACH DATABASE `master`')
+		self._local.cursor.execute('DETACH DATABASE `master`')
 			
 
 	def copy_columns(self, table, ignore=[], sub={}):
 		colnames = []
-		for colname in self.__local.table_schemas[table].keys():
+		for colname in self._local.table_schemas[table].keys():
 			if colname not in ignore:
 				colnames.append(colname)
 		columns = ", ".join(colnames)
@@ -536,21 +680,21 @@ class DatabaseManager(EnvAgent):
 			col_data = col_data.replace(colname, "\'{0}\'".format(sub[colname]))
 			
 		q = "INSERT INTO master.{0} ({1}) SELECT {2} FROM {0}".format(table, columns, col_data)
-		self.__local.cursor.execute(q)
-		self.__local.db.commit()
+		self._local.cursor.execute(q)
+		self._local.db.commit()
 	
 	
 	def close(self):
-		self.__master.close()
-		if P.multi_user:
+		self._primary.close()
+		if self.multi_user:
 			# TODO: Retry some number of times on write failure (locked db)
 			self.write_local_to_master()
-			self.__local.close()
+			self._local.close()
 
 
-	def collect_export_data(self, multi_file=True, join_tables=[]):
+	def collect_export_data(self, base_table, multi_file=True, join_tables=[]):
 		uid = P.unique_identifier
-		participant_ids = self.__master.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
+		participant_ids = self._primary.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
 
 		colnames = []
 		sub = {P.unique_identifier: 'participant'}
@@ -566,16 +710,16 @@ class DatabaseManager(EnvAgent):
 				else:
 					colnames.append(field)
 		else:
-			for colname in self.__master.table_schemas['participants'].keys():
+			for colname in self._primary.table_schemas['participants'].keys():
 				if colname not in ['id'] + P.exclude_data_cols:
 					colnames.append(colname)
 		for colname in P.append_info_cols:
-			if colname not in self.__master.table_schemas['session_info'].keys():
+			if colname not in self._primary.table_schemas['session_info'].keys():
 				err = "Column '{0}' does not exist in the session_info table."
 				raise RuntimeError(err.format(colname))
 			colnames.append(colname)
-		for t in [P.primary_table] + join_tables:
-			for colname in self.__master.table_schemas[t].keys():
+		for t in [base_table] + join_tables:
+			for colname in self._primary.table_schemas[t].keys():
 				if colname not in ['id', P.id_field_name] + P.exclude_data_cols:
 					colnames.append(colname)
 		column_names = TAB.join(colnames)
@@ -584,18 +728,17 @@ class DatabaseManager(EnvAgent):
 		
 		data = []
 		for p in participant_ids:
-			primary_t = P.primary_table
 			selected_cols = ",".join(["`"+col+"`" for col in colnames])
 			q = "SELECT " + selected_cols + " FROM participants "
-			if len(P.append_info_cols) and 'session_info' in self.__master.table_schemas:
+			if len(P.append_info_cols) and 'session_info' in self._primary.table_schemas:
 				info_cols = ",".join(['participant_id'] + P.append_info_cols)
 				q += "JOIN (SELECT " + info_cols + " FROM session_info) AS info "
 				q += "ON participants.id = info.participant_id "
-			for t in [primary_t] + join_tables:
+			for t in [base_table] + join_tables:
 				q += "JOIN {0} ON participants.id = {0}.participant_id ".format(t)
 			q += " WHERE participants.id = ?"
 			p_data = [] 
-			for trial in self.__master.query(q, q_vars=tuple([p[0]])):
+			for trial in self._primary.query(q, q_vars=tuple([p[0]])):
 				row_str = TAB.join(utf8(col) for col in trial)
 				p_data.append(row_str)
 			data.append([p[0], p_data])
@@ -605,23 +748,35 @@ class DatabaseManager(EnvAgent):
 
 	def export(self, table=None, multi_file=True, join_tables=None):
 		#TODO: make option for exporting non-devmode/complete participants only
-		if table != None:
-			P.primary_table = table
+		table = P.primary_table if not table else table
 		try:
 			join_tables = join_tables[0].split(",")
 		except TypeError:
 			join_tables = []
 
 		_set_type_conversions(export=True)
-		column_names, data = self.collect_export_data(multi_file, join_tables)
+		column_names, data = self.collect_export_data(table, multi_file, join_tables)
 
 		if multi_file:
 			for p_id, trials in data:
-				header = self.export_header(p_id)
+				header = _build_export_header(self._primary, p_id)
 				incomplete = (self._is_complete(p_id) == False)
-				file_path = self.filepath_str(p_id, multi_file, table, join_tables, incomplete)
+				created = self._primary.select(
+					'participants', ['created'], where={'id': p_id}
+				)[0][0]
+				id_info = (p_id, created, incomplete)
+				file_path = _build_filepath(True, id_info, table, join_tables)
+				# If file already exists at path and id/table was already exported, skip
+				if os.path.exists(file_path):
+					if self._already_exported(p_id, table):
+						continue
+					file_path = _build_filepath(
+						True, id_info, table, join_tables, duplicate=True
+					)
+				# Actually write out the file
 				with io.open(file_path, 'w+', encoding='utf-8') as out:
 					out.write(u"\n".join([header, column_names, "\n".join(trials)]))
+				self._log_export(p_id, table) # Log successful export in database
 				print("    - Participant {0} successfully exported.".format(p_id))
 		else:
 			combined_data = []
@@ -629,148 +784,111 @@ class DatabaseManager(EnvAgent):
 			for data_set in data:
 				p_count += 1
 				combined_data += data_set[1]
-			header = self.export_header()
-			file_path = self.filepath_str(multi_file=False, base=table, joined=join_tables)
+			header = _build_export_header(self._primary)
+			# If file already exists, add numeric suffix
+			file_path = _build_filepath(multi=False, base=table, joined=join_tables)
+			if os.path.exists(file_path):
+				file_path = _build_filepath(
+					multi=False, base=table, joined=join_tables, duplicate=True
+				)
+			# Actually write out the file
 			with io.open(file_path, 'w+', encoding='utf-8') as out:
 				out.write(u"\n".join([header, column_names, "\n".join(combined_data)]))
-			print("    - Data for {0} participants successfully exported.".format(p_count))
+			msg = "    - Data for {0} participant{1} successfully exported."
+			print(msg.format(p_count, "" if p_count == 1 else "s"))
 
 
-	def export_header(self, user_id=None):
-		if 'session_info' in self.__master.table_schemas:
-			info_table = 'session_info'
-			info_cols = list(self.__master.table_schemas['session_info'].keys())
-			info_cols.remove('participant_id')
-		else:
-			info_table = 'participants'
-			info_cols = ['klibs_commit', 'random_seed']
+	def num_data_rows(self, unique_id):
+		"""Checks how many rows of data exist for a given unique ID.
 
-		runtime_info = {}
-		for colname in info_cols:
-			q = "SELECT DISTINCT {0} FROM {1}".format(colname, info_table)
-			if user_id:
-				q += " WHERE `participant_id` = ?"
-				values = self.__master.query(q, q_vars=[user_id])
-			else:
-				values = self.__master.query(q)
-			runtime_info[colname] = "(multiple)" if len(values) > 1 else values[0][0]
+		If there are any rows matching the ID in the primary table, the number
+		of matching rows in that table will be returned. If none are found,
+		the total number of rows matching the ID in all data tables will be
+		returned,
 
-		klibs_vars   = ["KLIBS INFO", ["KLibs Commit", runtime_info['klibs_commit']]]
-		if info_table == 'session_info':
-			exp_vars 	 = ["EXPERIMENT SETTINGS",
-							["Trials Per Block", runtime_info['trials_per_block']],
-							["Blocks Per Session", runtime_info['blocks_per_session']]]
-			system_vars  = ["SYSTEM INFO",
-							["Operating System", runtime_info['os_version']],
-							["Python Version", runtime_info['python_version']]]
-			display_vars = ["DISPLAY INFO",
-							["Screen Size", runtime_info['screen_size']],
-							["Resolution", runtime_info['screen_res']],
-							["View Distance", runtime_info['viewing_dist']]]
-			eyelink_vars = ["EYELINK SETTINGS",
-							["Tracker Model", runtime_info['eyetracker']],
-							["Saccadic Velocity Threshold", runtime_info['el_velocity_thresh']],
-							["Saccadic Acceleration Threshold", runtime_info['el_accel_thresh']],
-							["Saccadic Motion Threshold", runtime_info['el_motion_thresh']]]
-		else:
-			exp_vars 	 = ["EXPERIMENT SETTINGS",
-							["Trials Per Block", P.trials_per_block],
-							["Blocks Per Experiment", P.blocks_per_experiment]]
-			eyelink_vars = ["EYELINK SETTINGS",
-							["Saccadic Velocity Threshold", P.saccadic_velocity_threshold],
-							["Saccadic Acceleration Threshold", P.saccadic_acceleration_threshold],
-							["Saccadic Motion Threshold", P.saccadic_motion_threshold]]
+		Args:
+			unique_id (str): The unique identifier of the participant to count
+				the data rows for in the database.
 
-		header_strs = []
-		header_info = [klibs_vars, exp_vars]
-		if info_table == 'session_info':
-			header_info += [system_vars, display_vars]
-		if P.eye_tracking:
-			header_info.append(eyelink_vars)
-		for info in header_info:
-			section = "# {0}\n".format(info[0])
-			section += "\n".join(["#  > {0}: {1}".format(var[0], var[1]) for var in info[1:]])
-			header_strs.append(section + "\n")
-		header = "#\n".join(header_strs)
-
-		return header
-		
-
-	def filepath_str(self, p_id=None, multi_file=False, base=None, joined=[], incomplete=False):
-		# if tables to join or alternate base table specified for export, note this in filename
-		tables = ''
-		if base != None or len(joined):	
-			joined_tables = '+'.join(['']+joined)
-			tables = '[{0}{1}]'.format(base if base != None else '', joined_tables)
-		
-		if multi_file:
-			created_q = "SELECT `created` FROM `participants` WHERE `id` = ?"
-			created = self.__master.query(created_q, q_vars=[p_id], fetch_all=False).fetchone()[0]
-			basename = "p{0}{1}.{2}".format(str(p_id), tables, created[:10])
-		else:
-			basename = "{0}_all_trials{1}".format(P.project_name, tables)		
-
-		duplicate_count = 0
-		while True:
-			# Generate suffix and see if file already exists with that name. If it does, keep 
-			# incremeting the numeric part of the suffix until it doesn't.
-			suffix = P.datafile_ext
-			if incomplete: suffix = "_incomplete" + suffix
-			if duplicate_count: suffix = "_{0}".format(duplicate_count) + suffix
-			fname = basename + suffix
-			filepath = os.path.join(P.incomplete_data_dir if incomplete else P.data_dir, fname)
-			if os.path.isfile(filepath):
-				duplicate_count += 1
-			else:
-				break
-
-		return filepath
-
-	
-	def remove_last(self):
-		"""Removes the last participant's data from the database. To be called through the CLI
-		to remove the data of a participants who opt to withdraw their data, or for removing
-		devmode testing participants.
+		Returns:
+			int: The number of rows of data matching the given unique ID.
 
 		"""
-		pid = self.__master.last_row_id('participants')
-		for table in self.__master.table_schemas.keys():
-			if table == "participants":
-				delete_q = u"DELETE FROM {0} WHERE id = {1}".format(table, pid)
-			else:
-				delete_q = u"DELETE FROM {0} WHERE {1} = {2}".format(table, P.id_field_name, pid)
-			self.__master.cursor.execute(delete_q)
-		self.__master.db.commit()
-		return pid
+		# Get id row number for the provided unique ID in the participants table
+		id_filter = {P.unique_identifier: unique_id}
+		ret = self._primary.select('participants', columns=['id'], where=id_filter)
+		if not len(ret):
+			e = "No participant with the identifier '{0}' exists in the database"
+			raise ValueError(e.format(unique_id))
+		pid = ret[0][0]
+
+		# First, check for any data in the primary table
+		rows = self._primary.select(P.primary_table, where={'participant_id': pid})
+		if len(rows):
+			return len(rows)
+
+		# If no rows in the primary table, check for rows in any others
+		n_rows = 0
+		skip = DB_INTERNAL_TABLES + ['participants', P.primary_table]
+		for table in self._primary.table_schemas.keys():
+			if table in skip:
+				continue
+			rows = self._primary.select(table, where={'participant_id': pid})
+			n_rows += len(rows)
+		
+		return n_rows
+
+	
+	def remove_data(self, unique_id):
+		"""Removes all data for a given participant ID from the database.
+
+		Args:
+			unique_id (str): The unique identifier of the participant to remove
+				from the database.
+
+		"""
+		# Get id row number for the provided unique ID in the participants table
+		id_filter = {P.unique_identifier: unique_id}
+		ret = self._primary.select('participants', columns=['id'], where=id_filter)
+		if not len(ret):
+			e = "No participant with the identifier '{0}' exists in the database"
+			raise ValueError(e.format(unique_id))
+		pid = ret[0][0]
+
+		# For each table in the database, remove all data associated with the ID
+		for table in self._primary.table_schemas.keys():
+			if table != 'participants':
+				self._primary.delete(table, where={'participant_id': pid})
+		self._primary.delete('participants', where={'id': pid})
 
 
 	## Convenience methods that all pass to corresponding method of current DB ##
 
 	def commit(self):
-		self.__current.db.commit()
+		self._current.db.commit()
 
 	def exists(self, *args, **kwargs):
-		return self.__current.exists(*args, **kwargs)
+		return self._current.exists(*args, **kwargs)
 	
 	def insert(self, *args, **kwargs):
-		return self.__current.insert(*args, **kwargs)
+		return self._current.insert(*args, **kwargs)
 	
 	def last_row_id(self, *args, **kwargs):
-		return self.__current.last_row_id(*args, **kwargs)
+		return self._current.last_row_id(*args, **kwargs)
 
 	def query(self, *args, **kwargs):
-		return self.__current.query(*args, **kwargs)
+		return self._current.query(*args, **kwargs)
 
 	def select(self, *args, **kwargs):
-		return self.__current.select(*args, **kwargs)
+		return self._current.select(*args, **kwargs)
 
 	def delete(self, *args, **kwargs):
-		return self.__current.delete(*args, **kwargs)
+		return self._current.delete(*args, **kwargs)
 
 	def update(self, *args, **kwargs):
-		return self.__current.update(*args, **kwargs)
+		return self._current.update(*args, **kwargs)
 
 	@property
 	def table_schemas(self):
-		return self.__current.table_schemas
+		return self._current.table_schemas
 		

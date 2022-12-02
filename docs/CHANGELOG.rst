@@ -5,7 +5,7 @@ This is a log of the latest changes and improvements to KLibs.
 0.7.6a1
 -------
 
-Released on XXXX-XX-XX.
+Released on 2022-12-01.
 
 
 New Features:

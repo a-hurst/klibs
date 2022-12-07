@@ -632,13 +632,16 @@ class DatabaseManager(EnvAgent):
 
 	def _log_export(self, pid, table):
 		# Logs a successfully exported participant in the database
-		self._primary.insert(
-			{'participant_id': pid, 'table_name': table, 'timestamp': time.time()},
-			table='export_history'
-		)
+		if 'export_history' in self._primary.table_schemas.keys():
+			self._primary.insert(
+				{'participant_id': pid, 'table_name': table, 'timestamp': time.time()},
+				table='export_history'
+			)
 
 	def _already_exported(self, pid, table):
 		# Checks whether an id/table combination has already been exported
+		if not 'export_history' in self._primary.table_schemas.keys():
+			return False
 		this_id = {'participant_id': pid, 'table_name': table}
 		matches = self._primary.select('export_history', where=this_id)
 		return len(matches) > 0

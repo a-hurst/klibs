@@ -43,7 +43,8 @@ def alert(text):
 
 	'''
 	clear()
-	message(text, "alert", blit_txt=True, flip_screen=True)
+	message(text, "alert", blit_txt=True)
+	flip()
 
 
 def collect_demographics(anonymous=False):
@@ -173,8 +174,8 @@ def init_messaging():
 
 
 def message(text, style=None, location=None, registration=None, blit_txt=True,
-			flip_screen=False, clear_screen=False, align="left", wrap_width=None):
-	r"""Renders a string of text using a given TextStyle, and optionally draws it to the display.
+			align="left", wrap_width=None):
+	r"""Renders a string of text with a given set of style/formatting parameters.
 
 	Args:
 		text (str): The string of text to be rendered.
@@ -188,12 +189,6 @@ def message(text, style=None, location=None, registration=None, blit_txt=True,
 			required if blit_txt is True.
 		location(tuple(int,int), optional): A tuple of x,y pixel coordinates indicating where to
 			draw the object to. Only required if blit_txt is True.
-		flip_screen (bool, optional): If True, :func:`~klibs.KLGraphics.flip` is called immediately
-			after blitting and the text is displayed on the screen. Only has an effect if blit_txt
-			is True. Defaults to False.
-		clear_screen (bool, optional): If True, the background of the display buffer will be filled
-			with the default fill colour before the text is blitted. Only has an effect if blit_txt
-			is True. Defaults to False.
 		align (str, optional): The justification of the text, must be one of "left", "center", or
 			"right". This only has an effect if there are multiple lines (denoted by "\n") in the
 			passed string of text. Defaults to "left" if not specified.
@@ -201,11 +196,11 @@ def message(text, style=None, location=None, registration=None, blit_txt=True,
 			to the next line (not currently implemented).
 
 	Returns:
-		:obj:`~klibs.KLGraphics.KLNumpySurface.NumpySurface`: A NumpySurface object that can be 
-			drawn to the screen using :func:`~klibs.KLGraphics.blit`, or None if blit_txt is True.
+		:obj:`~klibs.KLGraphics.NumpySurface`: A NumpySurface object that can be drawn to the
+		screen using :func:`~klibs.KLGraphics.blit`.
 	
 	Raises:
-		ValueError: If blit_txt is true and location is not a valid pair of x/y coordinates.
+		ValueError: If blit_txt is True and location is not a valid pair of x/y coordinates.
 
 	"""
 
@@ -228,9 +223,7 @@ def message(text, style=None, location=None, registration=None, blit_txt=True,
 			pass
 
 	message_surface = txtm.render(text, style, align, wrap_width)
-	if blit_txt == False:
-		return message_surface
-	else:
+	if blit_txt:
 		if location == "center" and registration is None:  # an exception case for perfect centering
 			registration = BL_CENTER
 		if registration is None:
@@ -246,11 +239,9 @@ def message(text, style=None, location=None, registration=None, blit_txt=True,
 				iter(location)
 			except AttributeError:
 				raise ValueError("Argument 'location' must be a location constant or iterable x,y coordinate pair")
-			if clear_screen:
-				fill(clear_screen if iterable(clear_screen) else P.default_fill_color)
 			blit(message_surface, registration, location)
-			if flip_screen:
-				flip()
+
+	return message_surface
 
 
 def query(query_ob, anonymous=False):

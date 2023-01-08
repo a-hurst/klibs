@@ -125,8 +125,8 @@ def init_default_textstyles():
 	from klibs.KLEnvironment import txtm
 
 	# default styles can't be created until screen dimensions are loaded into Params from exp.display_init()
-	txtm.add_style("default", P.default_font_size, P.default_color, font_label=P.default_font_name)
-	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font_label=P.default_font_name)
+	txtm.add_style("default", P.default_font_size, P.default_color, font=P.default_font_name)
+	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font=P.default_font_name)
 
 
 def init_messaging():

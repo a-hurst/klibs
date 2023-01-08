@@ -10,6 +10,7 @@ from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_B
 	TTF_SizeUTF8, TTF_GlyphMetrics, TTF_FontHeight, TTF_FontLineSkip)
 from sdl2 import SDL_Color
 from sdl2.ext.compat import byteify
+from sdl2.ext import surface_to_ndarray
 import numpy as np
 
 from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
@@ -193,22 +194,6 @@ class TextManager(object):
 		self.styles[label] = TextStyle(font, size, color, line_space)
 
 
-	def __SDLSurface_to_ndarray(self, surface):
-		'''Converts an SDL_Surface object from sdl_ttf into a numpy array. Largely based on the
-		   code for the pixels3d() function from sdl2.ext, but that prints a warning every time
-		   it's used and rotates/mirrors the texture for some reason.
-		'''
-		bpp = surface.format.contents.BytesPerPixel
-		strides = (surface.pitch, bpp, 1)
-		srcsize = surface.h * surface.pitch
-		shape = surface.h, surface.w, bpp
-		pxbuf = ctypes.cast(surface.pixels, ctypes.POINTER(ctypes.c_ubyte * srcsize)).contents
-		# Since it's not guaranteed that the SDL_surface will remain in memory,
-		# we copy the array from that buffer to a new one for safety.
-		arr = np.copy(np.ndarray(shape, np.uint8, buffer=pxbuf, strides=strides))
-		return arr
-
-
 	def __wrap__(self, text, style, rendering_font, align, width=None):
 		lines = text.split(b"\n")
 		if width:
@@ -307,7 +292,7 @@ class TextManager(object):
 		
 		bgra_color = SDL_Color(stl.color[2], stl.color[1], stl.color[0], stl.color[3])
 		rendered_text = TTF_RenderUTF8_Blended(rendering_font, text, bgra_color).contents
-		surface_array = self.__SDLSurface_to_ndarray(rendered_text)
+		surface_array = surface_to_ndarray(rendered_text)
 		surface = NpS(surface_array)
 		return surface
 

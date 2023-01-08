@@ -232,19 +232,20 @@ class TextManager(object):
 		line_pad = int(style.size_px * (style.line_space - 1.0))
 		net_line_height = style.size_px + line_pad
 		output = NpS(width=surface_width, height=(len(lines) * net_line_height))
-		for line in lines:
+		for i in range(len(lines)):
+			line = lines[i]
 			if len(line):
 				l_surf = self.render(line, style)
 			else:
 				continue
 			if align == "left":
-				l_surf_pos = (0, lines.index(line) * net_line_height)
+				l_surf_pos = (0, i * net_line_height)
 				output.blit(l_surf, location=l_surf_pos, blend=False, clip=False)
 			elif align == "center":
-				l_surf_pos = (surface_width/2, lines.index(line) * net_line_height)
+				l_surf_pos = (surface_width/2, i * net_line_height)
 				output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=8)
 			elif align == "right":
-				l_surf_pos = (surface_width, lines.index(line) * net_line_height)
+				l_surf_pos = (surface_width, i * net_line_height)
 				output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=9)
 
 		return output

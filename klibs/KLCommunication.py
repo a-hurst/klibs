@@ -25,6 +25,7 @@ from klibs.KLDatabase import EntryTemplate
 from klibs.KLRuntimeInfo import runtime_info_init
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
+from klibs.KLText import TextStyle
 
 try:
 	from slacker import Slacker
@@ -173,73 +174,86 @@ def init_messaging():
 			P.slack_messaging = False
 
 
-def message(text, style=None, location=None, registration=None, blit_txt=True,
-			align="left", wrap_width=None):
-	r"""Renders a string of text with a given set of style/formatting parameters.
+def message(
+		text, style='default', align='left', wrap_width=None, registration=5,
+		location=None, blit_txt=False
+	):
+	"""Renders a string of text with a given set of style/formatting parameters.
+
+	Messages can be single or multiple lines of text. To add a line break in the
+	rendered message, add a newline character (``\n``) wherever you want the split
+	between lines to be. Multi-line messages can be rendered as either left-justified
+	(default), right-justified, or center-aligned using the ``align`` argument. For
+	example, to render three centered lines in a single message, you can do::
+
+	   msg = message("Line One\nLine Two\nLine Three", align='center')
+
+	To render text with a different size, color, or font than the defaults set in your
+	project's ``params.py`` file, first define a new text style with
+	:func:`~klibs.KLText.add_text_style` and then pass its name to the ``style``
+	argument::
+
+		RED = (255, 0, 0)
+		add_text_style('small_red', size='0.3deg', color=RED)
+		msg = message("Small red text!", style='small_red')
+
+	In addition to rendering text, the ``message`` function can also be used to blit
+	messages directly to the screen, which can be handy if a message is only getting
+	drawn to the screen once (e.g. each update of a countdown timer). This can be done
+	by specifying a location (and optionally a registration) for the message.
+
+	For example, the following two chunks of code have the same result::
+
+	   # Render, then blit
+	   msg = message("Hello there!")
+	   blit(msg, 5, P.screen_c)
+
+	   # Render and blit
+	   message("Hello there!", registration=5, location=P.screen_c)
+
+	Note that unlike :func:`~klibs.KLGraphics.blit`, the default registration for
+	blitted messages is 5 (i.e. center-aligned). This means that, for example, a message
+	with a location of ``P.screen_c`` will be centered in the middle of the screen
+	unless a different registration is manually specified.
 
 	Args:
-		text (str): The string of text to be rendered.
-		style (str, optional): The name of the :class:`~klibs.KLTextManager.TextStyle` to be used. 
-			If none provided, defaults to the 'default' TextStyle.
-		blit_txt (bool, optional): If True, the rendered text is drawn to the display buffer at
-			the location and registration specfied using :func:`~klibs.KLGraphics.blit`. 
-			Defaults to True.
-		registration (int, optional): An integer from 1 to 9 indicating which location on the
-			surface will be aligned to the location value (see manual for more info). Only
-			required if blit_txt is True.
-		location(tuple(int,int), optional): A tuple of x,y pixel coordinates indicating where to
-			draw the object to. Only required if blit_txt is True.
-		align (str, optional): The justification of the text, must be one of "left", "center", or
-			"right". This only has an effect if there are multiple lines (denoted by "\n") in the
-			passed string of text. Defaults to "left" if not specified.
-		wrap_width (int, optional): The maximum width of the message before text will wrap around
-			to the next line (not currently implemented).
+		text (str): The string of text to render.
+		style (str or :obj:`~klibs.KLText.TextStyle`, optional): The text style to use
+			for rendering the string. Defaults to the 'default' style if not specified.
+		align (str, optional): The alignment method for multi-line text. Can be "left"
+			(left-justified, default), "right" (right-justified), or "center".
+		wrap_width (int, optional): The maximum width (in pixels) of the rendered text
+			surface. If a line of text exceeds this width, it will wrap around to the
+			next line. Defaults to None (no text wrapping).
+		registration (int, optional): If blitting, specifies the corner or side of the
+			rendered text to align to the ``location`` coordinates. Defaults to the
+			center of the rendered text. See :func:`~klibs.KLGraphics.blit` for more info.
+		location (tuple, optional): A tuple of (x, y) pixel coordinates. If provided,
+			the message will be automatically blit to this location on the screen.
+			Defaults to None (not blitted).
+		blit_txt (bool, optional): Deprecated, use 'location' to indicate whether the
+			text should be blitted instead.
 
 	Returns:
-		:obj:`~klibs.KLGraphics.NumpySurface`: A NumpySurface object that can be drawn to the
-		screen using :func:`~klibs.KLGraphics.blit`.
-	
-	Raises:
-		ValueError: If blit_txt is True and location is not a valid pair of x/y coordinates.
+		:obj:`~klibs.KLGraphics.NumpySurface`: A NumpySurface containing the rendered
+		text.
 
 	"""
-
-	#TODO: 	make sure there won't be any catastrophic issues with this first, but rearrange 'align'
-	#		and 'width' so they follow 'text' and 'style'. Also, consider whether using different
-	#		method entirely for blitting/flipping messages since it kind of makes this a mess.
-
 	#TODO:	consider whether a separate 'textbox' method (with justification/width/formatting)
 	#		would be appropriate, or if having it all rolled into message() is best.
 
 	from klibs.KLEnvironment import txtm
 
-	if not style:
-		style = txtm.styles['default']
-	else:
-		try:
-			# TODO: Informative error if requested font style doesn't exist
-			style = txtm.styles[style]
-		except TypeError:
-			pass
+	if not isinstance(style, TextStyle):
+		if style not in txtm.styles.keys():
+			e = "No text style with the name '{0}' has been added to the klibs runtime."
+			raise RuntimeError(e.format(style))
+		style = txtm.styles[style]
 
+	# Render (and optionally blit) the text
 	message_surface = txtm.render(text, style, align, wrap_width)
-	if blit_txt:
-		if location == "center" and registration is None:  # an exception case for perfect centering
-			registration = BL_CENTER
-		if registration is None:
-			registration = BL_TOP_LEFT
-
-		# process location, infer if need be; failure here is considered fatal
-		if not location:
-			x_offset = (P.screen_x - P.screen_x) // 2 + style.font_size
-			y_offset = (P.screen_y - P.screen_y) // 2 + style.font_size
-			location = (x_offset, y_offset)
-		else:
-			try:
-				iter(location)
-			except AttributeError:
-				raise ValueError("Argument 'location' must be a location constant or iterable x,y coordinate pair")
-			blit(message_surface, registration, location)
+	if location is not None:
+		blit(message_surface, registration, location)
 
 	return message_surface
 

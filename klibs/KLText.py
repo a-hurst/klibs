@@ -180,11 +180,7 @@ class TextStyle(EnvAgent):
 
 
 
-
 class TextManager(object):
-
-	__default_color__ = (0, 0, 0, 255)
-	__default_bg_color__ = (255, 255, 255)
 
 	def __init__(self):
 		# Initialize SDL_ttf and font/style dicts
@@ -359,16 +355,6 @@ class TextManager(object):
 			self.fonts[name] = fontpath
 		else:
 			raise IOError("Font '{0}' not found in any expected destination.".format(filename))
-
-
-	@property
-	def default_color(self):
-		return self.__default_color__
-
-	@default_color.setter
-	def default_color(self, color):
-		if type(color) is list:
-			self.__default_color__ = color
 
 
 

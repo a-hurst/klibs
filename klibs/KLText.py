@@ -1,7 +1,7 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import re
-from os.path import isfile, join
+from os.path import isfile, join, basename
 from math import floor, ceil
 import ctypes
 from ctypes import byref, c_int
@@ -10,7 +10,7 @@ from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_B
 	TTF_SizeUTF8, TTF_GlyphMetrics, TTF_FontHeight, TTF_FontLineSkip)
 from sdl2 import SDL_Color
 from sdl2.ext.compat import byteify
-from sdl2.ext import surface_to_ndarray
+from sdl2.ext import surface_to_ndarray, raise_sdl_err
 import numpy as np
 
 from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
@@ -54,6 +54,15 @@ def _get_max_ascent(font, chars):
 		if maxY.value > max_ascent:
 			max_ascent = maxY.value
 	return max_ascent
+
+
+def _load_font(fontpath, size_pt):
+	# Loads a font at a given size and checks for any errors
+	font = TTF_OpenFont(fontpath, size_pt)
+	if not font:
+		fname = basename(fontpath)
+		raise_sdl_err("opening the font '{0}'".format(name))
+	return font
 
 
 
@@ -107,7 +116,7 @@ class TextStyle(EnvAgent):
 		)
 
 		# Load in font
-		self._font_ttf = TTF_OpenFont(self._fontpath, self._size_pt)
+		self._font_ttf = _load_font(self._fontpath, self._size_pt)
 
 	def __repr__(self):
 		size_str = "{0}{1}".format(self._size, self._size_units)
@@ -119,7 +128,7 @@ class TextStyle(EnvAgent):
 		# (ignoring punctuation). Allows fonts to be easily specified in px or deg.
 		caps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		chars = caps + caps.lower() + "0123456789"
-		testfont = TTF_OpenFont(fontpath, 40)
+		testfont = _load_font(fontpath, 40)
 		max_ascent = _get_max_ascent(testfont, chars)
 		TTF_CloseFont(testfont)
 		return 40 / float(max_ascent)

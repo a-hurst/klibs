@@ -17,6 +17,7 @@ from klibs.KLEventQueue import pump
 from klibs.KLUserInterface import ui_request, mouse_pos
 from klibs.KLGraphics import fill, flip, blit
 from klibs.KLGraphics.KLDraw import drift_correct_target
+from klibs.KLText import add_text_style
 from klibs.KLCommunication import message
 from klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
 
@@ -40,7 +41,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		self.drawer = None # aggdraw Draw with self.img as context
 		self.title = None
 
-		self.txtm.add_style("el_setup", "20px", P.default_color, font="Hind-Medium")
+		add_text_style("el_setup", "20px", font="Hind-Medium")
 		self.dc_target = drift_correct_target()
 
 		pylink.EyeLinkCustomDisplay.__init__(self)

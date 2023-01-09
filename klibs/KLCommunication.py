@@ -25,7 +25,7 @@ from klibs.KLDatabase import EntryTemplate
 from klibs.KLRuntimeInfo import runtime_info_init
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
-from klibs.KLText import TextStyle
+from klibs.KLText import TextStyle, add_text_style
 
 try:
 	from slacker import Slacker
@@ -123,12 +123,10 @@ def collect_demographics(anonymous=False):
 
 
 def init_default_textstyles():
-
-	from klibs.KLEnvironment import txtm
-
-	# default styles can't be created until screen dimensions are loaded into Params from exp.display_init()
-	txtm.add_style("default", P.default_font_size, P.default_color, font=P.default_font_name)
-	txtm.add_style("alert", P.default_font_size, P.default_alert_color, font=P.default_font_name)
+	# Need to wait for screen size/DPI to be known before loading default text styles
+	# in case default units are specified in degrees
+	add_text_style("default", font=P.default_font_name)
+	add_text_style("alert", color=P.default_alert_color, font=P.default_font_name)
 
 
 def init_messaging():

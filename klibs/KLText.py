@@ -155,7 +155,9 @@ class TextStyle(EnvAgent):
 
 	@property
 	def size_px(self):
-		"""int: The maximum character height (in pixels) for the style."""
+		"""int: The maximum character height (in pixels) for the style.
+		
+		"""
 		return int(round(self._size_pt / self._scale_factor))
 
 	@property
@@ -348,3 +350,41 @@ class TextManager(object):
 	def default_bg_color(self, color):
 		if type(color) is list:
 			self.__default_bg_color__ = color
+
+
+
+def add_text_style(label, size=None, color=None, line_space=2.0, font=None):
+	"""Adds a new named text style to the klibs runtime.
+
+	Text styles provide an easy way of rendering text different ways for different
+	things. For example, if you want to define a 'title' style to render text in a
+	larger font, as well as an 'error' style that renders feedback for bad responses
+	in red, you could do the following::
+
+	   # Define the text styles
+	   add_text_style('title', size='1.0deg')
+	   add_text_style('error', color=(255, 0, 0))
+
+	   # Render text with the different styles
+	   msg_start = message("Press any key to continue.", style='title')
+	   msg_err = message("Incorrect!", style='error')
+
+	Once defined, a text style can be used by name repeatedly throughout the experiment.
+
+	Args:
+		label (str): The name of the new text style.
+		size (str or float, optional): The font size for the text style. Defaults to
+			``P.default_font_size` if not specified.
+		color (tuple, optional): The RGBA color for the text style. Defaults to
+			``P.default_color` if not specified.
+		line_space (float, optional): The line spacing to use when rendering multi-line
+			text with the style. Defaults to ``2.0`` (double-spaced).
+		font (str, optional): The font to use for the text style. Defaults to
+			``P.default_font_name` if not specified.
+
+	"""
+	from klibs import env
+	if env.txtm is None:
+		e = "KLibs runtime must be initialized before text styles can be added."
+		raise RuntimeError(e)
+	env.txtm.styles[label] = TextStyle(font, size, color, line_space)

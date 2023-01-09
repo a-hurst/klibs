@@ -197,12 +197,14 @@ class TextManager(object):
 
 
 	def add_style(
-		self, label, size=None, color=None, line_space=2.0, font=None, line_height=None
+		self, label, font_size=None, color=None, line_height=None, font_label=None
 	):
+		# Legacy method for adding font styles, replaced by add_text_style
+		line_space = 2.0
 		if line_height:
 			h, _ = _split_units(str(line_height))
 			line_space = (h + 1.0) * 1.3
-		self.styles[label] = TextStyle(font, size, color, line_space)
+		self.styles[label] = TextStyle(font_label, font_size, color, line_space)
 
 
 	def __wrap__(self, text, style, rendering_font, align, width=None):

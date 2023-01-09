@@ -1,5 +1,6 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+import os
 import re
 from os.path import isfile, join, basename
 from math import floor, ceil
@@ -11,6 +12,7 @@ from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_B
 from sdl2 import SDL_Color
 from sdl2.ext.compat import byteify
 from sdl2.ext import surface_to_ndarray, raise_sdl_err
+from sdl2.ext.ttf import _ttf_init
 import numpy as np
 
 from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
@@ -181,20 +183,35 @@ class TextStyle(EnvAgent):
 
 class TextManager(object):
 
-	fonts = {}
-	styles = {}
 	__default_color__ = (0, 0, 0, 255)
 	__default_bg_color__ = (255, 255, 255)
 
-
 	def __init__(self):
+		# Initialize SDL_ttf and font/style dicts
+		_ttf_init()
+		self.fonts = {}
+		self.styles = {}
+
+		# Load fonts included in klibs
 		self.add_font("Anonymous Pro", filename="AnonymousPro")
 		self.add_font("Roboto-Medium")
 		self.add_font("Hind-Medium")
-		self.add_font(P.default_font_name)
-		self.default_color = P.default_color
-		TTF_Init()
 
+		# Load additional fonts from ExpAssets/Resources/font
+		self._load_user_fonts()
+
+	def _load_user_fonts(self):
+		# Pre-load all supported font files in the ExpAssets/Resources/font dir
+		font_exts = ['ttf', 'otf']
+		for f in os.listdir(P.exp_font_dir):
+			# Skip invisible files
+			if f[0] == "." or not "." in f:
+				continue
+			# If file extension is valid, add font to runtime
+			fontname, delim, ext = f.rpartition('.')
+			if ext in font_exts:
+				fontpath = os.path.join(P.exp_font_dir, f)
+				self.fonts[fontname] = fontpath
 
 	def add_style(
 		self, label, font_size=None, color=None, line_height=None, font_label=None
@@ -372,6 +389,14 @@ def add_text_style(label, size=None, color=None, line_space=2.0, font=None):
 	   msg_err = message("Incorrect!", style='error')
 
 	Once defined, a text style can be used by name repeatedly throughout the experiment.
+
+	The klibs runtime comes with two included fonts: 'Hind-Medium' and 'Roboto-Medium'.
+	To create a text style with a different user-provided font, you can add any valid
+	``.ttf`` or ``.otf`` font file to the project's ``ExpAssets/Resources/font``
+	directory and then use it by name. For example, if ``Helvetica-Bold.otf`` is
+	present in the project's font folder, you can do the following::
+
+	   add_text_style('bold', size='40px', font='Helvetica-Bold')
 
 	Args:
 		label (str): The name of the new text style.

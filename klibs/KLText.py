@@ -342,15 +342,6 @@ class TextManager(object):
 		if type(color) is list:
 			self.__default_color__ = color
 
-	@property
-	def default_bg_color(self):
-		return self.__default_bg_color__
-
-	@default_bg_color.setter
-	def default_bg_color(self, color):
-		if type(color) is list:
-			self.__default_bg_color__ = color
-
 
 
 def add_text_style(label, size=None, color=None, line_space=2.0, font=None):

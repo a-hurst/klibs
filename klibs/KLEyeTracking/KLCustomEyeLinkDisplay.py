@@ -26,7 +26,8 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 
 	def __init__(self):
 		EnvAgent.__init__(self)
-		self.size = (0,0)
+		self.__imgwidth__ = 0
+		self.__imgheight__ = 0
 		self.imagebuffer = []
 		self.palette = []
 		self.img = None # PIL.Image
@@ -160,10 +161,11 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		print("EyeLink Alert: {0}".format(message))
 
 	def setup_image_display(self, width, height):
-		'''Sets camera image to the provided size, returns 1 on success.'''
-		self.size = (width, height)
+		# Sets the EyeLink camera image to the provided size.
+		self.__imgwidth__ = width
+		self.__imgheight__ = height
 		self.clear_cal_display()
-		return 1
+		return 1  # returns 1 on success
 
 	def exit_image_display(self):
 		self.clear_cal_display()
@@ -244,3 +246,8 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 	def draw_line(self, x1, y1, x2, y2, colorindex):
 		line_pen = Pen(self.pylink_colors[colorindex], 3, 255)
 		self.drawer.line((x1, y1, x2, y2), line_pen)
+
+	@property
+	def size(self):
+		# The current height and width of the camera image.
+		return (self.__imgwidth__, self.__imgheight__)

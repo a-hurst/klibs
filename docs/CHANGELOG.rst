@@ -2,6 +2,17 @@ Changelog
 =========
 This is a log of the latest changes and improvements to KLibs.
 
+0.7.6a2
+-------
+
+Released on 2023-02-XX
+
+Fixed bugs:
+
+* Fixed ``klibs export`` with older databases (regression in 0.7.6a1).
+* Updated EyeLink camera setup code to work correctly with latest Pylink.
+
+
 0.7.6a1
 -------
 

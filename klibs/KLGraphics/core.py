@@ -86,49 +86,49 @@ def _set_display_params(res, size_in, hz):
 
 
 def display_init(diagonal_in, hidpi):
-		"""Initializes the display and rendering backend, calculating and assigning the values
-		of runtime KLParams variables related to the screen (e.g. P.screen_c, P.refresh_rate,
-		P.pixels_per_degree). Called by 'klibs run' on launch, for internal use only.
+	"""Initializes the display and rendering backend, calculating and assigning the values
+	of runtime KLParams variables related to the screen (e.g. P.screen_c, P.refresh_rate,
+	P.pixels_per_degree). Called by 'klibs run' on launch, for internal use only.
+	
+	Args:
+		diagonal_in (float): The size of the monitor in diagonal inches (e.g. 13 for a
+			13-inch MacBook Pro).
+
+	"""
+	if os.name == 'nt':
+		# Set video driver explicitly on Windows to avoid misdetection problems
+		os.environ['SDL_VIDEODRIVER'] = 'windows'
+		# Allow better HIDPI handling on Windows (requires SDL >= 2.24)
+		sdl2.SDL_SetHint(b"SDL_WINDOWS_DPI_AWARENESS", b"permonitor")
 		
-		Args:
-			diagonal_in (float): The size of the monitor in diagonal inches (e.g. 13 for a
-				13-inch MacBook Pro).
+	sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
+	sdl2.SDL_PumpEvents()
 
-		"""
-		if os.name == 'nt':
-			# Set video driver explicitly on Windows to avoid misdetection problems
-			os.environ['SDL_VIDEODRIVER'] = 'windows'
-			# Allow better HIDPI handling on Windows (requires SDL >= 2.24)
-			sdl2.SDL_SetHint(b"SDL_WINDOWS_DPI_AWARENESS", b"permonitor")
-			
-		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
-		sdl2.SDL_PumpEvents()
+	# Create a fullscreen window at the current resolution, get display info
+	window, res, hz = _init_fullscreen(display=0, hidpi=hidpi)
 
-		# Create a fullscreen window at the current resolution, get display info
-		window, res, hz = _init_fullscreen(display=0, hidpi=hidpi)
+	# Set up the OpenGL context for the window
+	ret = sdl2.SDL_GL_SetSwapInterval(1) # enforce vsync
+	if ret != 0:
+		print(" - Warning: Vsync unsupported, experiment timing may be off")
+	gl.glMatrixMode(gl.GL_PROJECTION)
+	gl.glLoadIdentity()
+	gl.glOrtho(0, res[0], res[1], 0, 0, 1)
+	gl.glMatrixMode(gl.GL_MODELVIEW)
+	gl.glDisable(gl.GL_DEPTH_TEST)
 
-		# Set up the OpenGL context for the window
-		ret = sdl2.SDL_GL_SetSwapInterval(1) # enforce vsync
-		if ret != 0:
-			print(" - Warning: Vsync unsupported, experiment timing may be off")
-		gl.glMatrixMode(gl.GL_PROJECTION)
-		gl.glLoadIdentity()
-		gl.glOrtho(0, res[0], res[1], 0, 0, 1)
-		gl.glMatrixMode(gl.GL_MODELVIEW)
-		gl.glDisable(gl.GL_DEPTH_TEST)
+	# Update display properties & and pixels-per-degree in KLParams
+	_set_display_params(res, diagonal_in, hz)
 
-		# Update display properties & and pixels-per-degree in KLParams
-		_set_display_params(res, diagonal_in, hz)
+	# Get scaling factor for HiDPI displays
+	P.screen_scale_x = res[0] / float(window.size[0])
+	P.screen_scale_y = res[1] / float(window.size[1])
 
-		# Get scaling factor for HiDPI displays
-		P.screen_scale_x = res[0] / float(window.size[0])
-		P.screen_scale_y = res[1] / float(window.size[1])
+	# Clear the SDL event queue and return the window object
+	sdl2.SDL_PumpEvents()
+	P.display_initialized = True
 
-		# Clear the SDL event queue and return the window object
-		sdl2.SDL_PumpEvents()
-		P.display_initialized = True
-
-		return window
+	return window
 
 
 def fill(color=None, context=None):

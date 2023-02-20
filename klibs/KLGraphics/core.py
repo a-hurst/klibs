@@ -60,6 +60,31 @@ def _init_fullscreen(display, hidpi=False):
 	return (window, res, screen_hz)
 
 
+def _set_display_params(res, size_in, hz):
+
+	# Set basic display properties
+	P.screen_x = res[0]
+	P.screen_y = res[1]
+	P.screen_c = (P.screen_x // 2, P.screen_y // 2)
+	P.screen_x_y = (P.screen_x, P.screen_y)
+
+	# Set refresh rate/time
+	P.refresh_rate = hz
+	P.refresh_time = 1000.0 / P.refresh_rate
+
+	# Get conversion factor for pixels to degrees of visual angle based on viewing distance,
+	# screen resolution, and given diagonal screen size
+	P.screen_diagonal_in = size_in
+	P.screen_diagonal_px = sqrt(P.screen_x ** 2.0 + P.screen_y ** 2.0)
+	P.ppi = P.screen_diagonal_px / size_in
+	P.monitor_height = P.screen_y / P.ppi
+	P.monitor_width = P.screen_x / P.ppi
+	P.screen_degrees_x = degrees(2 * atan((2.54 * P.monitor_width / 2.0) / P.view_distance))
+	P.screen_degrees_y = degrees(2 * atan((2.54 * P.monitor_height / 2.0) / P.view_distance))
+	P.pixels_per_degree = P.screen_x / P.screen_degrees_x
+	P.ppd = P.pixels_per_degree # alias for convenience
+
+
 def display_init(diagonal_in, hidpi):
 		"""Initializes the display and rendering backend, calculating and assigning the values
 		of runtime KLParams variables related to the screen (e.g. P.screen_c, P.refresh_rate,
@@ -92,25 +117,8 @@ def display_init(diagonal_in, hidpi):
 		gl.glMatrixMode(gl.GL_MODELVIEW)
 		gl.glDisable(gl.GL_DEPTH_TEST)
 
-		P.screen_x = res[0]
-		P.screen_y = res[1]
-		P.screen_c = (P.screen_x // 2, P.screen_y // 2)
-		P.screen_x_y = (P.screen_x, P.screen_y)
-
-		P.refresh_rate = hz
-		P.refresh_time = 1000.0 / P.refresh_rate
-
-		# Get conversion factor for pixels to degrees of visual angle based on viewing distance,
-		# screen resolution, and given diagonal screen size
-		P.screen_diagonal_in = diagonal_in
-		P.screen_diagonal_px = sqrt(P.screen_x**2.0 + P.screen_y**2.0)
-		P.ppi = P.screen_diagonal_px / diagonal_in
-		P.monitor_height = P.screen_y / P.ppi
-		P.monitor_width = P.screen_x / P.ppi
-		P.screen_degrees_x = degrees(2 * atan((2.54 * P.monitor_width / 2.0) / P.view_distance))
-		P.screen_degrees_y = degrees(2 * atan((2.54 * P.monitor_height / 2.0) / P.view_distance))
-		P.pixels_per_degree = P.screen_x / P.screen_degrees_x
-		P.ppd = P.pixels_per_degree # alias for convenience
+		# Update display properties & and pixels-per-degree in KLParams
+		_set_display_params(res, diagonal_in, hz)
 
 		# Get scaling factor for HiDPI displays
 		P.screen_scale_x = res[0] / float(window.size[0])

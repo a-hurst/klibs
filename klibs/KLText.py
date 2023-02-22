@@ -60,10 +60,10 @@ def _get_max_ascent(font, chars):
 
 def _load_font(fontpath, size_pt):
 	# Loads a font at a given size and checks for any errors
-	font = TTF_OpenFont(fontpath, size_pt)
+	font = TTF_OpenFont(fontpath, int(size_pt))
 	if not font:
 		fname = basename(fontpath)
-		raise_sdl_err("opening the font '{0}'".format(name))
+		raise_sdl_err("opening the font '{0}'".format(fname))
 	return font
 
 

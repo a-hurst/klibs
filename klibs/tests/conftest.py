@@ -16,3 +16,22 @@ def with_sdl():
     assert ret == 0
     yield
     sdl2.SDL_Quit()
+
+@pytest.fixture(scope='module')
+def with_txtm(with_sdl):
+    import klibs.KLEnvironment as env
+    from klibs.KLText import TextManager
+    P.font_dirs = [resource_filename('klibs', 'resources/font')]
+    P.exp_font_dir = tempfile.gettempdir()
+    env.txtm = TextManager()
+    yield
+    env.txtm = None
+
+@pytest.fixture(scope='module')
+def with_text_init(with_txtm):
+    import klibs.KLGraphics
+    from klibs.KLGraphics.core import _set_display_params
+    from klibs.KLCommunication import init_default_textstyles
+    _set_display_params((1920, 1080), 21.5, 60.0)
+    init_default_textstyles()
+    yield

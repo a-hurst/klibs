@@ -9,22 +9,13 @@ from klibs import TK_S, TK_MS
 from klibs import KLUserInterface as ui
 from klibs.KLBoundary import RectangleBoundary
 
+from conftest import with_sdl
 from eventfactory import click, keydown, keyup, queue_event
 
 # NOTE: missing tests for any_key and konami_code
 
 
 # Fixtures and helpers
-
-@pytest.fixture(scope='module')
-def with_sdl():
-    sdl2.SDL_ClearError()
-    ret = sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO | sdl2.SDL_INIT_TIMER)
-    assert sdl2.SDL_GetError() == b""
-    assert ret == 0
-    yield
-    sdl2.SDL_Quit()
-
 
 class UIRequestTester(object):
 

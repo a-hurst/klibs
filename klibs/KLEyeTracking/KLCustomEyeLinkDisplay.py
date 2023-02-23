@@ -20,10 +20,16 @@ from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLCommunication import message
 from klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 sounds we made
 
+# TODO: Add flexible image scaling support (tab to toggle size?)
+
+
 class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
+	"""An EyeLinkCustomDisplay implementation for KLibs.
 
-	#TODO: add scaling support for images without ruining performance (OpenGL scale?)
+	This class allows for interactive EyeLink camera setup and calibration in
+	KLibs, and has been tested with EyeLink II and EyeLink 1000 trackers.
 
+	"""
 	def __init__(self):
 		EnvAgent.__init__(self)
 		self.__imgwidth__ = 0
@@ -92,20 +98,25 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 			self.__target_beep__error__ = None
 
 	def record_abort_hide(self):
+		# Called if recording aborted on EyeLink? Not really worth implementing.
 		pass
 
 	def clear_cal_display(self):
+		# Clears the calibration display and prepares for targets to be drawn.
 		fill()
 		flip()
 		fill()
 
 	def setup_cal_display(self):
+		# Called immediately before calibration/validation
 		self.clear_cal_display()
 
 	def exit_cal_display(self):
+		# Called after finishing or exiting calibration/validation
 		self.clear_cal_display()
 
 	def draw_cal_target(self, x, y=None, pump_events=True):
+		# Draws a single calibration/validation target at a given location
 		fill()
 		if pump_events: pump()
 		if y is None:
@@ -115,6 +126,8 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		flip()
 
 	def erase_cal_target(self):
+		# Erases the target previously drawn by draw_cal_target.
+		# NOTE: Should this be fill() instead, or do we need to redraw as well?
 		self.clear_cal_display()
 
 	def play_beep(self, clip):
@@ -147,6 +160,8 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		return keys
 
 	def get_mouse_state(self):
+		# Gets the current mouse state (cursor x/y and button state) relative to
+		# the EyeLink camera image
 		x, y, b = mouse_pos(pump_event_queue=False, return_button_state=True)
 		x = int(x) - (P.screen_c[0] - self.size[0]/2)
 		y = int(y) - (P.screen_c[1] - self.size[1]/2)
@@ -158,6 +173,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		return ((x, y), b)
 
 	def alert_printf(self, message):
+		# Prints any EyeLink alert messages to the console
 		print("EyeLink Alert: {0}".format(message))
 
 	def setup_image_display(self, width, height):
@@ -168,32 +184,36 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		return 1  # returns 1 on success
 
 	def exit_image_display(self):
+		# Called when exiting EyeLink setup
 		self.clear_cal_display()
 
 	def image_title(self, text):
+		# Draws the caption text underneath the camera image
 		self.title = message(text, "el_setup", blit_txt=False)
 
 	def set_image_palette(self, r, g, b):
-		'''
-		Sets the palette to use for the camera image and clears the image buffer.
-		Converts r,g,b (lists containing the RGB palette) to a list of colours
-		([R,G,B,R,G,B,...]) that can be used by PIL.Image.
-		'''
+		"""Sets the palette colours to use for rendering the camera image.
+
+		"""
+		# Clear the current image buffer
 		self.imagebuffer = []
-		self.palette = list(sum(zip(r,g,b), ()))
+		# Converts the supplied RGB lists into PIL palette format
+		self.palette = list(sum(zip(r, g, b), ()))
 
 	def draw_image_line(self, width, line, totlines, buff):
-		'''
-		Reads in the buffer from the EyeLink camera image line by line and writes it
-		into a buffer of size (width * totlines). Once the last line of the image
-		has been read into the buffer, the image buffer is placed in a PIL.Image
-		with the palette set by set_image_palette, converted to RGBA, resized,
-		and then rendered to the middle of the screen. After rendering, the image
-		buffer is cleared.
-		'''
-		if len(self.imagebuffer) > (width*totlines):
+		"""Reads in and displays the camera image from the EyeLink.
+
+		The EyeLink sends image data to the Display PC one line of pixels at a time.
+		This method gathers those lines of pixels until a full image is available,
+		at which point it draws the image, caption text, and any crosshairs or overlays
+		to the screen.
+
+		"""
+		if len(self.imagebuffer) > (width * totlines):
 			self.imagebuffer = []
+		# Add the latest line of pixels to the image buffer
 		self.imagebuffer += buff
+		# If we have a complete image, draw it
 		if int(line) == int(totlines):
 			# Render complete camera image and resize to self.size
 			img = Image.new("P", (width, totlines), 0)
@@ -209,41 +229,51 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 			fill()
 			blit(asarray(self.img), 5, P.screen_c)
 			if self.title:
+				y_offset = int(self.size[1] / 2) + 20
 				loc_x = (P.screen_c[0])
-				loc_y = (P.screen_c[1] + self.size[1]/2 + 20)
+				loc_y = (P.screen_c[1] + y_offset)
 				blit(self.title, 8, (loc_x, loc_y))
 			flip()
 			# Clear image buffer
 			self.imagebuffer = []
 
 	def draw_lozenge(self, x, y, width, height, colorindex):
+		# Draws the pupil search boundary limits on the camera image
 		lozenge_pen = Pen(self.pylink_colors[colorindex], 3, 255)
+		# If width > height, sides are round & top/bottom are flat
 		if width > height:
 			gap = width - height
-			middle = x+width/2.0
-			arc_left = (x, y, x+height, y+height)
-			arc_right = (x+gap, y, x+width, y+height)
-			line_top = (floor(middle-gap/2.0), y, ceil(middle+gap/2.0), y)
-			line_bottom = (floor(middle-gap/2.0), y+height, ceil(middle+gap/2.0), y+height)
+			middle = x + width / 2.0
+			arc_left = (x, y, x + height, y + height)
+			arc_right = (x + gap, y, x + width, y + height)
+			line_x1, line_x2 = (floor(middle - gap / 2.0), ceil(middle + gap / 2.0))
+			line_top = (line_x1, y, line_x2, y)
+			line_bottom = (line_x1, y + height, line_x2, y + height)
+			# Draw the different parts of the pupil search bounds
 			self.drawer.arc(arc_left, 90, 270, lozenge_pen)
 			self.drawer.arc(arc_right, -90, 90, lozenge_pen)
 			self.drawer.line(line_top, lozenge_pen)
 			self.drawer.line(line_bottom, lozenge_pen)
+		# If height > width, top/bottom are round & sides are flat
 		elif height > width:
 			gap = height - width
-			middle = y+height/2.0
-			arc_top = (x, y, x+width, y+width)
-			arc_bottom = (x, y+gap, x+width, y+height)
-			line_left = (x, floor(middle-gap/2.0), x, ceil(middle+gap/2.0))
-			line_right = (x+width, floor(middle-gap/2.0), x+width, ceil(middle+gap/2.0))
+			middle = y + height / 2.0
+			arc_top = (x, y, x + width, y + width)
+			line_y1, line_y2 = (floor(middle - gap / 2.0), ceil(middle + gap / 2.0))
+			arc_bottom = (x, y + gap, x + width, y + height)
+			line_left = (x, line_y1, x, line_y2)
+			line_right = (x + width, line_y1, x + width, line_y2)
+			# Draw the different parts of the pupil search bounds
 			self.drawer.arc(arc_top, 0, 180, lozenge_pen)
 			self.drawer.arc(arc_bottom, 180, 360, lozenge_pen)
 			self.drawer.line(line_left, lozenge_pen)
 			self.drawer.line(line_right, lozenge_pen)
+		# If height == width, search bounds are a perfect circle
 		else:
-			self.drawer.ellipse((x, y, x+width, y+height), lozenge_pen)
+			self.drawer.ellipse((x, y, x + width, y + height), lozenge_pen)
 
 	def draw_line(self, x1, y1, x2, y2, colorindex):
+		# Draws a line with a given colour on the camera image
 		line_pen = Pen(self.pylink_colors[colorindex], 3, 255)
 		self.drawer.line((x1, y1, x2, y2), line_pen)
 

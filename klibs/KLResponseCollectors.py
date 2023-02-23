@@ -22,6 +22,8 @@ from klibs.KLGraphics.utils import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import Annulus, ColorWheel, Drawbject
 from klibs.KLAudio import PYAUDIO_AVAILABLE
 
+# TODO: Add a callback that's called during collection that can end collection early
+#       (e.g. for checking if gaze leaves fixation during response period)
 
 
 class Response(namedtuple('Response', ['value', 'rt'])):

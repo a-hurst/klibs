@@ -263,7 +263,7 @@ class NumpySurface(object):
 			raise ValueError("At least one of 'height' or 'width' must be provided.")
 
 		img = Image.fromarray(self.content)
-		self.__content = np.array(img.resize(size, Image.ANTIALIAS))
+		self.__content = np.array(img.resize(size, Image.LANCZOS))
 		self.__update_shape()
 
 		return self
@@ -459,5 +459,5 @@ class NumpySurface(object):
 
 		"""
 		img = Image.fromarray(self.content.astype(np.uint8))
-		return img.resize((1, 1), Image.ANTIALIAS).getpixel((0, 0))
+		return img.resize((1, 1), Image.LANCZOS).getpixel((0, 0))
 

@@ -237,9 +237,15 @@ def message(
 		text.
 
 	"""
-	#TODO:	consider whether a separate 'textbox' method (with justification/width/formatting)
+	# TODO: consider whether a separate 'textbox' method (with justification/width/formatting)
 	#		would be appropriate, or if having it all rolled into message() is best.
-
+	# NOTE: Bit of an API mess: if wrap_width is set and text contains any line breaks,
+	#       the resulting surface will be the width specified by wrap_width regardless
+	#       of whether any of the lines were long enough to be wrapped. Conversely, if
+	#       wrap_width is set and the text is only one line, the surface is only the
+	#       specified width if the line is long enough to be wrapped. Should either
+	#       change 'wrap_width' to 'width' and guarantee output surface is the given
+	#       width or change the multi-line behaviour.
 	from klibs.KLEnvironment import txtm
 
 	if not isinstance(style, TextStyle):

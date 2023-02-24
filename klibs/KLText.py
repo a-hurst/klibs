@@ -91,6 +91,7 @@ class TextStyle(EnvAgent):
 	def __init__(self, font=None, size=None, color=None, line_space=2.0):
 
 		# First, make sure TextManager has been initialized
+		self._initialized = False
 		if self.txtm is None:
 			e = "KLibs runtime must be initialized before creating a text style."
 			raise RuntimeError(e)
@@ -119,10 +120,13 @@ class TextStyle(EnvAgent):
 
 		# Load in font
 		self._font_ttf = _load_font(self._fontpath, self._size_pt)
+		self._initialized = True
 
 	def __repr__(self):
-		size_str = "{0}{1}".format(self._size, self._size_units)
-		return "klibs.TextStyle('{0}', size={1})".format(self._fontname, size_str)
+		info = ""
+		if self._initialized:
+			info = "{0}, {1}{2}".format(self._fontname, self._size, self._size_units)
+		return "klibs.TextStyle({0})".format(info)
 	
 	def _get_scale_factor(self, fontpath):
 		# Determines the pt-to-pixels scale factor for the current font, with height

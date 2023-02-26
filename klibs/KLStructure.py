@@ -4,6 +4,12 @@ from collections import OrderedDict
 
 from klibs.KLInternal import iterable
 
+# TODO: Add tuple support to FactorSets for repeated factors (e.g. ('valid', 3))?
+# Could also create a custom class or function for this, e.g. rep('valid', 3),
+# so you can have tuples as factors (e.g. colours) without breaking things
+#  - Depends on whether having iterables as factor levels is a good or bad idea,
+#    so will need to think on it.
+
 
 class FactorSet(object):
     """A class representing the full set of factors for an experiment.
@@ -11,7 +17,7 @@ class FactorSet(object):
     For example, a simple attention cueing paradigm might have 3 factors:
     target location (left or right), cue validity (valid, invalid, or neutral),
     and stimulus onset asynchrony (SOA, i.e. the time delay between the onset of
-    the cue and target stimului, in this case 200, 400, or 800 ms). Specifying
+    the cue and target stimuli, in this case 200, 400, or 800 ms). Specifying
     this structure in a FactorSet would look something like this::
 
         factors = FactorSet({
@@ -22,9 +28,6 @@ class FactorSet(object):
 
     This creates a set with 18 unique factor combinations (2 x 3 x 3 = 18) that
     can be then used within KLibs.
-    
-    If placed in an experiment's [structure/idvars] file, trials will be randomly
-    generated 
 
 	Args:
 		factors (dict): A dictionary in the format ``{'factor': values}``,

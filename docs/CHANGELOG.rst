@@ -22,7 +22,6 @@ New Features:
   add fonts with ``txtm.add_font``. For example, if ``ComicSans.ttf`` is present
   in the experiment's font folder, you can now create a custom font style with
   ``font = "ComicSans"`` without manually loading the font.
-* Fixed ``klibs export`` with older databases (regression in 0.7.6a1).
 
 
 

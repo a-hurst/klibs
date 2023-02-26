@@ -1,15 +1,37 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+import os
 import sys
 import random
 from collections import OrderedDict
 from copy import copy, deepcopy
 from itertools import product
-from os.path import exists, join
 		
 from klibs import P
 from klibs.KLInternal import load_source
 from klibs.KLIndependentVariable import IndependentVariableSet
+from klibs.KLStructure import FactorSet
+
+
+def _load_factors(path):
+	# Imports either a FactorSet or IndependentVariableSet from a file and
+	# coerces it to a dict of trial factors.
+
+	# Try loading an IndependentVariableSet first, if one exists
+	ind_vars = load_source(path)
+	set_name = "{0}_ind_vars".format(P.project_name)
+	if set_name in ind_vars.keys():
+		factors = ind_vars[set_name].to_dict()
+
+	# Otherwise, try loading a FactorSet
+	elif "exp_factors" in ind_vars.keys():
+		factors = ind_vars["exp_factors"]._factors
+
+	else:
+		err = "Unable to find a valid factor set in '{0}'."
+		raise RuntimeError(err.format(path))
+
+	return factors
 
 
 class BlockIterator(object):
@@ -97,14 +119,11 @@ class TrialFactory(object):
 		self.trial_generator = self.__generate_trials
 
 		# Load experiment factors from the project's _independent_variables.py file(s)
-		factors = self.__load_ind_vars(P.ind_vars_file_path)
-		if not P.dm_ignore_local_overrides:
-			try:
-				sys.path.append(P.ind_vars_file_local_path)
-				local_factors = self.__load_ind_vars(P.ind_vars_file_local_path)
+		factors = _load_factors(P.ind_vars_file_path)
+		if os.path.exists(P.ind_vars_file_local_path):
+			if not P.dm_ignore_local_overrides:
+				local_factors = _load_factors(P.ind_vars_file_local_path)
 				factors.update(local_factors)
-			except IOError:
-				pass
 		
 		# Create alphabetically-sorted ordered dict from factors
 		self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
@@ -240,7 +259,7 @@ class TrialFactory(object):
 
 	def dump(self):
 		# TODO: Needs a rewrite
-		with open(join(P.local_dir, "TrialFactory_dump.txt"), "w") as log_f:
+		with open(os.path.join(P.local_dir, "TrialFactory_dump.txt"), "w") as log_f:
 			log_f.write("Blocks: {0}, ".format(P.blocks_per_experiment))
 			log_f.write("Trials: {0}\n\n".format(P.trials_per_block))
 			log_f.write("*****************************************\n")

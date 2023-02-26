@@ -1,69 +1,49 @@
-from klibs.KLIndependentVariable import IndependentVariableSet
+from klibs.KLStructure import FactorSet
 
-PROJECT_NAME_ind_vars = IndependentVariableSet()
+""" ##### FactorSet Tutorial #####
 
-"""
-*** SAMPLE CONFIGURATION - REMOVE AFTER FINISHING REAL CONFIG ***
+This file specifies the different trial factors and their levels for the experiment.
 
-First we create an IndependentVariableSet object that will group together all the independent variables the experiment
-will use, like so:
+For example, a spatial cueing task (where participants are cued to respond to targets
+on the left or right side of the screen) might have the following factors that change
+from trial to trial:
 
->> PROJECT_NAME_ind_vars = IndependentVariableSet()
+  1) The validity of the spatial cue (same or different location from target)
+  2) The location of the spatial cue (left or right of screen)
+  3) The onset delay between the cue and target (200, 400, or 800 ms)
+  4) The presence of an auditory alerting tone (present or absent)
 
-Then we create empty variables within this set. At this point we're not providing any values, just a name and a data
-type that will tell klibs that this variable exists and what pythonic data type it should expect that variable's values
-to hold. In this example we create four variables, one for each type.
+In addition to the above, let's say you want cues to be valid 66% of the time. To 
+specify this sort of factor structure, you can do something like this:
 
->> PROJECT_NAME_ind_vars.add_variable("color", str)
->> PROJECT_NAME_ind_vars.add_variable("size", float)
->> PROJECT_NAME_ind_vars.add_variable("active", bool)
->> PROJECT_NAME_ind_vars.add_variable("count", int)
+exp_factors = FactorSet({
+    'cue_validity': ['valid', 'valid', 'invalid'],
+    'cue_location': ['left', 'right'],
+    'target_onset': [200, 400, 800],
+    'alerting_tone': [True, False],
+})
 
-Finally, we add values to each variable. This can be done one at a time, as in the colors example below:
+When the experiment is launched, the FactorSet will be loaded by the klibs runtime and
+used to generate trials based on the full set of unique combinations of factors.
 
->> PROJECT_NAME_ind_vars['color'].add_value("blue")
->> PROJECT_NAME_ind_vars['color'].add_value("blue")
->> PROJECT_NAME_ind_vars['color'].add_value("blue")
+Specifically, the klibs runtime creates an attribute corresponding to each factor in the
+set within the Experiment (e.g. `self.cue_validity`, `self.target_onset`), and updates
+their values with their generated per-trial values on each trial. During `self.trial`
+and `self.trial_prep` you can use these values to write dynamic code based on the
+factors defined in your FactorSet:
 
-Or altogether in a comma-separated set, as in the 'count' example:
-
->> PROJECT_NAME_ind_vars['count'].add_values(1,2,3,4,5)
-
-Finally, values can have a distribution attached to them in case some values should feature more or less frequently, with
-respect to one and other, in the experiment. For example, if we wanted to have the 'size' variable be either 1.0 or 2.0
-occur more frequently than 5.0, we could add these values as such:
-
->> PROJECT_NAME_ind_vars['size'].add_value(1.0, 2)
->> PROJECT_NAME_ind_vars['size'].add_value(2.0, 2)
->> PROJECT_NAME_ind_vars['size'].add_value(5.0)
-
-Note that the there is no distribution value included for the third option. By default, every value has a distribution of
-1. You only need to set the distribution when it is larger than 1.
-
-Now, for every 5 trials that are generated from this IndependentVariableSet, only one of them will have 5.0 as the value
-of the 'size' independent variable.
-
-Adding distributions to values is also possible when adding values as a set by creating a tuple for each value, like so:
-
->> PROJECT_NAME_ind_vars['active'].add_values((True, 5), False)
-
-which is equivalent to:
-
->> PROJECT_NAME_ind_vars['active'].add_value(True, 5)
->> PROJECT_NAME_ind_vars['active'].add_value(False)
-
-As a final note, you may wish to selectively exclude certain values or even entire independent variables during development
-and testing. By default, all IndependentVariables and their values are enabled, but you can disable them by toggling their
-enabled parameter:
-
->> PROJECT_NAME_ind_vars['size'].enabled = False
-
-Now there will be no contribution for the 'size' independent variable during trial generation. Note that this independent
-variable will still exist at runtime (ie. the Experiment class will be able to reference 'self.size' but it's value will
-be None and will not change between trials.
-
-Similarly, individual values can also be disabled.
-
->> PROJECT_NAME_ind_vars['size'][1.0].enabled = False
+    self.trial_prep(self):
+        # Determine cue and target locations for the trial
+        valid_cue = self.cue_validity == "valid"
+        if self.cue_location == "left":
+            self.cue_loc = self.left_loc
+            self.target_loc = self.left_loc if valid_cue else self.right_loc
+        else:
+            self.cue_loc = self.right_loc
+            self.target_loc = self.right_loc if valid_cue else self.left_loc
 
 """
+
+exp_factors = FactorSet({
+    # Insert trial factors here
+})

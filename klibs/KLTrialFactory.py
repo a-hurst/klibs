@@ -34,6 +34,35 @@ def _load_factors(path):
 	return factors
 
 
+def _generate_blocks(factors, block_count, trial_count):
+	# Generates a list of blocks (which are lists of trials, which are dicts of
+	# trial factors) based on a given factor set, trial count, & block count.
+
+	# Convert factor dict into a FactorSet
+	factors = FactorSet(factors)
+
+	# Determine the correct trial count
+	if trial_count <= 0:
+		trial_count = factors.set_length
+
+	# Generate a full set of shuffled blocks for the experiment
+	blocks = []
+	while len(blocks) < block_count:
+		# Generate the trials for each block
+		trials = []
+		while len(trials) < trial_count:
+			new = factors._get_combinations()
+			remaining = trial_count - len(trials)
+			random.shuffle(new)
+			if remaining < len(new):
+				new = new[:remaining]
+			trials += new
+
+		blocks.append(trials)
+
+	return blocks
+
+
 class BlockIterator(object):
 
 	def __init__(self, blocks):
@@ -143,54 +172,8 @@ class TrialFactory(object):
 
 
 	def __generate_trials(self, factors, block_count, trial_count):
-		# NOTE: Needs a full rewrite, which will break random seed backwards
-		# compatibility.
-		factor_list = []
-		for name, values in factors.items(): # convert dict to list
-			factor_list.append([name, values])
-
-		trial_tuples = list(product(*[factor[1][:] for factor in factor_list]))
-		if len(trial_tuples) == 0:
-			trial_tuples = [ [] ]
-
-		# Convert each trial tuple to a dict
-		trial_set = []
-		for t in trial_tuples:
-			i = 0
-			trial_factors = {}
-			for f in factors.keys():
-				trial_factors[f] = t[i]
-				i += 1
-			trial_set.append(trial_factors)
-
-		trial_set_count = len(trial_set)
-		trials = copy(trial_set)
-		random.shuffle(trials)
-
-		if trial_count <= 0:
-			trial_count = trial_set_count
-		total_trials = block_count * trial_count
-
-		if total_trials > trial_set_count:
-			trial_shortage = total_trials - trial_set_count
-			while len(trials) < total_trials:
-				more_trials = copy(trial_set)
-				random.shuffle(more_trials)
-				if trial_shortage >= trial_set_count:
-					trials.extend(more_trials)
-					trial_shortage -= trial_set_count
-				else:
-					trials.extend(more_trials[0:trial_shortage])
-		if total_trials < trial_set_count:
-			while len(trials) > total_trials:
-				trials.pop()
-		
-		# Divide full list of trials into blocks of equal size (block size = trial_count)
-		blocks = []
-		for i in range(0, len(trials), trial_count):
-			blocks.append(trials[i:i + trial_count])
-
-		return blocks
+		# NOTE: Factored into a separate function for easier unit testing
+		return _generate_blocks(factors, block_count, trial_count)
 
 
 	def generate(self, exp_factors=None, block_count=None, trial_count=None):

@@ -3,6 +3,7 @@ import pytest
 from collections import Counter
 
 from klibs.KLStructure import FactorSet
+from klibs.KLTrialFactory import _generate_blocks
 
 
 class TestFactorSet(object):
@@ -71,3 +72,34 @@ class TestFactorSet(object):
         # Test error on non-existant factor
         with pytest.raises(ValueError):
             tst.override({'alerting_trial': [True, False]})
+
+
+def test_generate_blocks():
+    # Create a FactorSet and IndependentVariableSet for testing
+    tst = FactorSet({
+        'cue_loc': ['left', 'right', 'none'],
+        'easy_trial': [True, False],
+        'soa': [0, 200, 400, 800],
+    })
+
+    # Try generating a block of 20 trials
+    blocks = _generate_blocks(tst._factors, 1, 20)
+    assert len(blocks) == 1
+    assert len(blocks[0]) == 20
+    assert isinstance(blocks[0][0], dict)
+
+    # Try generating a block with the default factor set size
+    blocks = _generate_blocks(tst._factors, 1, 0)
+    assert len(blocks) == 1
+    assert len(blocks[0]) == 24
+
+    # Try generating a block an empty factor set
+    blocks = _generate_blocks({}, 1, 0)
+    assert len(blocks) == 1
+    assert len(blocks[0]) == 1
+    assert blocks[0][0] == {}
+
+    # Try generating multiple blocks
+    blocks = _generate_blocks({}, 4, 48)
+    assert len(blocks) == 4
+    assert all(len(b) == 48 for b in blocks)

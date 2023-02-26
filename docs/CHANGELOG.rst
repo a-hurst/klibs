@@ -2,15 +2,47 @@ Changelog
 =========
 This is a log of the latest changes and improvements to KLibs.
 
+
 0.7.6a2
 -------
 
 Released on 2023-02-XX
 
-Fixed bugs:
+
+New Features:
+
+* Added :obj:`~klibs.KLText.TextStyle` to the public API, allowing easy
+  on-the-fly definitions of new custom text styles as objects.
+* Added a new function :func:`~klibs.KLText.add_text_style` for defining new
+  font rendering styles without needing to deal with ``self.txtm`` or
+  ``KLEnvironment``.
+* Automatic loading of custom fonts: all valid ``.ttf`` and ``.otf`` font files
+  in a project's ``ExpAssets/Resources/font`` folder are now automatically
+  loaded and ready-to-use on experiment launch, removing the need to manually
+  add fonts with ``txtm.add_font``. For example, if ``ComicSans.ttf`` is present
+  in the experiment's font folder, you can now create a custom font style with
+  ``font = "ComicSans"`` without manually loading the font.
+
+
+
+API Changes:
+
+* :func:`~klibs.KLCommunication.message` now returns the rendered text surface
+  regardless of whether ``blit_txt`` is True.
+* Removed legacy arguments ``flip_screen`` and ``clear_screen`` from the
+  :func:`~klibs.KLCommunication.message` function.
+* The default value of the ``blit_txt`` argument for
+  :func:`~klibs.KLCommunication.message` has been changed from True to False,
+  and has been deprecated. From now own, any message provided with a blit
+  location will be blit there regardless of whether ``blit_txt`` is True.
+
+
+Fixed Bugs:
 
 * Fixed ``klibs export`` with older databases (regression in 0.7.6a1).
 * Updated EyeLink camera setup code to work correctly with latest Pylink.
+* Fixed a bug that prevented repeated identical lines of text from being
+  rendered within the same message.
 
 
 0.7.6a1

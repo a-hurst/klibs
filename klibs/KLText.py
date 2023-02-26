@@ -1,6 +1,8 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-from os.path import isfile, join
+import os
+import re
+from os.path import isfile, join, basename
 from math import floor, ceil
 import ctypes
 from ctypes import byref, c_int
@@ -8,154 +10,218 @@ from ctypes import byref, c_int
 from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_Blended,
 	TTF_SizeUTF8, TTF_GlyphMetrics, TTF_FontHeight, TTF_FontLineSkip)
 from sdl2 import SDL_Color
+from sdl2.ext.compat import byteify
+from sdl2.ext import surface_to_ndarray, raise_sdl_err
+from sdl2.ext.ttf import _ttf_init
 import numpy as np
 
 from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
 from klibs import P
+from klibs.KLEnvironment import EnvAgent
 from klibs.KLUtilities import deg_to_px, px_to_deg, utf8
 from klibs.KLGraphics import rgb_to_rgba
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 
 
-class TextStyle(object):
 
-	__font = None
-	__fontpath = None
-	scale_factor = 1.0
+def _split_units(s):
+	# Extracts the size and unit from a given size string (e.g. '0.6deg')
+	found = re.search(r"^([\d\.]+)([a-z]*)", s.lower())
+	if not found:
+		e = "Unable to parse unit string '{0}'."
+		raise ValueError(e.format(s))
+	size, unit = found.groups(1)
+	return (float(size), unit)
 
-	def __init__(self, label, fontpath, font_size=None, color=None, bg_color=None, line_height=None, font_label=None):
 
-		self._font_size = None
-		self._line_height = 0.5
-		self.__font_size_units = P.default_font_unit
-		self.__line_height_units = '*' # multiple of font size
-		self.__fontpath = fontpath.encode('utf-8')
-		self.label = label
-		self.scale_factor = self._get_scale_factor()
-		self.font_size = font_size if font_size else P.default_font_size
-		self.font_label = font_label if font_label else P.default_font_name
-		self.color = rgb_to_rgba(color) if color else P.default_color
-		self.bg_color = rgb_to_rgba(bg_color) if bg_color else (0, 0, 0, 0)
+def _size_to_pt(size, units, scale_factor=1.0):
+	# Calculates the size of the font in the 'pt' units used by SDL_ttf
+	size_pt = None
+	if units == 'deg':
+		size_pt = int(deg_to_px(size) * scale_factor)
+	elif units == 'px':
+		size_pt = int(size * scale_factor)
+	elif units == 'pt':
+		size_pt = size
+	return size_pt
 
-		if line_height:
-			self.line_height = line_height
+
+def _get_max_ascent(font, chars):
+	# Gets the maximum ascent (baseline to top, in px) for a given string/font
+	max_ascent = 0
+	minX, maxX, minY, maxY, advance = c_int(0), c_int(0), c_int(0), c_int(0), c_int(0)
+	for char in chars:
+		TTF_GlyphMetrics(font, ord(char), 
+			byref(minX), byref(maxX), byref(minY), byref(maxY), byref(advance))
+		if maxY.value > max_ascent:
+			max_ascent = maxY.value
+	return max_ascent
+
+
+def _load_font(fontpath, size_pt):
+	# Loads a font at a given size and checks for any errors
+	font = TTF_OpenFont(fontpath, int(size_pt))
+	if not font:
+		fname = basename(fontpath)
+		raise_sdl_err("opening the font '{0}'".format(fname))
+	return font
+
+
+
+class TextStyle(EnvAgent):
+	"""A custom style to use for rendering text.
+
+	A text style defines a specific combination of font, font size, font color, and
+	line spacing to use for rendering text.
+
+	Note that if specifying a particular font for a text style, the font must already
+	exist within the klibs :obj:`~klibs.KLText.TextManager`.
+
+	Args:
+		font (str, optional): The name of the font to use when rendering text with the
+			style. Defaults to ``P.default_font_name` if not specified.
+		size (str or float, optional): The font size to use when rendering text with the
+			style. Defaults to ``P.default_font_size` if not specified.
+		color (tuple, optional): The RGBA font color to use when rendering text with the
+			style. Defaults to ``P.default_color` if not specified.
+		line_space (float, optional): The line spacing to use when rendering multi-line
+			text with the font. Defaults to ``2.0`` (double-spaced).
+
+	"""
+	def __init__(self, font=None, size=None, color=None, line_space=2.0):
+
+		# First, make sure TextManager has been initialized
+		self._initialized = False
+		if self.txtm is None:
+			e = "KLibs runtime must be initialized before creating a text style."
+			raise RuntimeError(e)
+
+		# Initialize style defaults
+		self._fontname = font if font else P.default_font_name
+		self._size = size if size else P.default_font_size
+		self._color = rgb_to_rgba(color) if color else P.default_color
+		self._line_h = float(line_space)
+		if self._line_h < 1.0:
+			e = "Line spacing must be 1.0 or higher (got {0})"
+			raise ValueError(e.format(self._line_h))
+
+		# Make sure requested font actually exists within the text manager
+		if self._fontname not in self.txtm.fonts.keys():
+			e = "No font with the label '{0}' has been added to the KLibs TextManager."
+			raise RuntimeError(e.format(self._fontname))
+		self._fontpath = byteify(self.txtm.fonts[self._fontname])
+
+		# Initialize font size and size units
+		self._scale_factor = self._get_scale_factor(self._fontpath)
+		self._size, self._size_units = self._validate_size(self._size)
+		self._size_pt = _size_to_pt(
+			self._size, self._size_units, self._scale_factor
+		)
 
 		# Load in font
-		self.__font = TTF_OpenFont(self.__fontpath, self._font_size)
+		self._font_ttf = _load_font(self._fontpath, self._size_pt)
+		self._initialized = True
+
+	def __repr__(self):
+		info = ""
+		if self._initialized:
+			info = "{0}, {1}{2}".format(self._fontname, self._size, self._size_units)
+		return "klibs.TextStyle({0})".format(info)
 	
-	def _get_scale_factor(self):
-		'''Determines the scale factor between the font in pt units and the max character height
-		from baseline (ignoring accents and punctuation) in pixels. Used for rendering a font at
-		a known size in pixels.
-		'''
-		max_ascent = 0
-		minX, maxX, minY, maxY, advance = c_int(0), c_int(0), c_int(0), c_int(0), c_int(0)
+	def _get_scale_factor(self, fontpath):
+		# Determines the pt-to-pixels scale factor for the current font, with height
+		# in px defined as the maximum ASCII character height from baseline
+		# (ignoring punctuation). Allows fonts to be easily specified in px or deg.
 		caps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		chars = caps + caps.lower() + "0123456789"
-		testfont = TTF_OpenFont(self.__fontpath, 40)
-		for char in chars:
-			TTF_GlyphMetrics(testfont, ord(char), 
-				byref(minX), byref(maxX), byref(minY), byref(maxY), byref(advance))
-			if maxY.value > max_ascent:
-				max_ascent = maxY.value
+		testfont = _load_font(fontpath, 40)
+		max_ascent = _get_max_ascent(testfont, chars)
 		TTF_CloseFont(testfont)
 		return 40 / float(max_ascent)
 
-	@property
-	def font(self):
-		return self.__font
-
-	@property
-	def font_size(self):
-		if self.__font_size_units == 'px':
-			return int(self._font_size / self.scale_factor)
-		elif self.__font_size_units == 'deg':
-			return px_to_deg(int(self._font_size / self.scale_factor))
-		else:
-			return self._font_size
-	
-	@font_size.setter
-	def font_size(self, size):
+	def _validate_size(self, size):
+		# Determine font size and units
 		if isinstance(size, str):
-			unit = ''.join([i for i in size if not (i.isdigit() or i == '.')])
-			if len(unit):
-				if unit not in ['pt', 'px', 'deg']:
-					raise ValueError("Font size unit must be either 'pt', 'px', or 'deg'")
-				self.__font_size_units = unit
-				size = float(''.join([i for i in size if (i.isdigit() or i == '.')]))
-			else:
-				size = float(size)
-		if self.__font_size_units == 'px':
-			self._font_size = int(size * self.scale_factor)
-		elif self.__font_size_units == 'deg':
-			self._font_size = int(deg_to_px(size) * self.scale_factor)
+			size, units = _split_units(size)
+			if not len(units):
+				units = P.default_font_units
 		else:
-			self._font_size = int(size)
-		TTF_CloseFont(self.__font)
-		self.__font = TTF_OpenFont(self.__fontpath, self._font_size)
+			size = float(size)
+			units = P.default_font_unit
+		# Ensure font units are valid
+		if units not in ['pt', 'px', 'deg']:
+			e = "Font size units must be either 'pt', 'px', or 'deg' (got {0})"
+			raise ValueError(e.format(units))
+		return size, units
 
 	@property
-	def line_height(self):
-		if self.__line_height_units == '*':
-			return int(ceil(self._line_height * self._font_size))
-		else:
-			return int(self._line_height)
-			
-	@line_height.setter
-	def line_height(self, height):
-		if isinstance(height, str):
-			unit = ''.join([i for i in height if not (i.isdigit() or i == '.')])
-			if len(unit):
-				if unit not in ['px', '*']:
-					raise ValueError("Line height unit must be either 'px' or '*' (multiple)")
-				self.__line_height_units = unit
-				height = float(''.join([i for i in height if (i.isdigit() or i == '.')]))
-			else:
-				height = float(height)
-		self._line_height = height
+	def fontname(self):
+		"""str: The name of the font used for the style.
 
-	def __str__(self):
-		return "klibs.KLTextManager.TextStyle ('{0}') at {1}".format(self.label, hex(id(self)))
+		"""
+		return self._fontname
+
+	@property
+	def color(self):
+		"""tuple: The ``(r, g, b, a)`` text color used for the style.
+
+		"""
+		return tuple(self._color)
+
+	@property
+	def size_px(self):
+		"""int: The maximum character height (in pixels) for the style.
+		
+		"""
+		return int(round(self._size_pt / self._scale_factor))
+
+	@property
+	def line_space(self):
+		"""float: The line spacing for the style (e.g. 2.0 for double-spaced).
+
+		"""
+		return self._line_h
+
 
 
 class TextManager(object):
 
-	fonts = {}
-	styles = {}
-	__default_color__ = (0, 0, 0, 255)
-	__default_bg_color__ = (255, 255, 255)
-
-
 	def __init__(self):
+		# Initialize SDL_ttf and font/style dicts
+		_ttf_init()
+		self.fonts = {}
+		self.styles = {}
+
+		# Load fonts included in klibs
 		self.add_font("Anonymous Pro", filename="AnonymousPro")
 		self.add_font("Roboto-Medium")
 		self.add_font("Hind-Medium")
-		self.add_font(P.default_font_name)
-		self.default_color = P.default_color
-		TTF_Init()
 
+		# Load additional fonts from ExpAssets/Resources/font
+		self._load_user_fonts()
 
-	def add_style(self, label, font_size=None, color=None, bg_color=None, line_height=None, font_label=None):
-		if not font_label:
-			font_label = P.default_font_name
-		fontpath = self.fonts[font_label]
-		self.styles[label] = TextStyle(label, fontpath, font_size, color, bg_color, line_height, font_label)
+	def _load_user_fonts(self):
+		# Pre-load all supported font files in the ExpAssets/Resources/font dir
+		font_exts = ['ttf', 'otf']
+		for f in os.listdir(P.exp_font_dir):
+			# Skip invisible files
+			if f[0] == "." or not "." in f:
+				continue
+			# If file extension is valid, add font to runtime
+			fontname, delim, ext = f.rpartition('.')
+			if ext in font_exts:
+				fontpath = os.path.join(P.exp_font_dir, f)
+				self.fonts[fontname] = fontpath
 
-
-	def __SDLSurface_to_ndarray(self, surface):
-		'''Converts an SDL_Surface object from sdl_ttf into a numpy array. Largely based on the
-		   code for the pixels3d() function from sdl2.ext, but that prints a warning every time
-		   it's used and rotates/mirrors the texture for some reason.
-		'''
-		bpp = surface.format.contents.BytesPerPixel
-		strides = (surface.pitch, bpp, 1)
-		srcsize = surface.h * surface.pitch
-		shape = surface.h, surface.w, bpp
-		pxbuf = ctypes.cast(surface.pixels, ctypes.POINTER(ctypes.c_ubyte * srcsize)).contents
-		# Since it's not guaranteed that the SDL_surface will remain in memory,
-		# we copy the array from that buffer to a new one for safety.
-		arr = np.copy(np.ndarray(shape, np.uint8, buffer=pxbuf, strides=strides))
-		return arr
+	def add_style(
+		self, label, font_size=None, color=None, line_height=None, font_label=None
+	):
+		# Legacy method for adding font styles, replaced by add_text_style
+		line_space = 2.0
+		if line_height:
+			h, _ = _split_units(str(line_height))
+			line_space = (h + 1.0) * 1.3
+		self.styles[label] = TextStyle(font_label, font_size, color, line_space)
 
 
 	def __wrap__(self, text, style, rendering_font, align, width=None):
@@ -193,22 +259,23 @@ class TextManager(object):
 					if w.value > surface_width:
 						surface_width = w.value
 
-		#TODO: fix mis-detected height problem for some fonts (e.g. Poppins)
-		net_line_height = style._font_size + style.line_height
+		line_pad = int(style.size_px * (style.line_space - 1.0))
+		net_line_height = style.size_px + line_pad
 		output = NpS(width=surface_width, height=(len(lines) * net_line_height))
-		for line in lines:
+		for i in range(len(lines)):
+			line = lines[i]
 			if len(line):
 				l_surf = self.render(line, style)
 			else:
 				continue
 			if align == "left":
-				l_surf_pos = (0, lines.index(line) * net_line_height)
+				l_surf_pos = (0, i * net_line_height)
 				output.blit(l_surf, location=l_surf_pos, blend=False, clip=False)
 			elif align == "center":
-				l_surf_pos = (surface_width/2, lines.index(line) * net_line_height)
+				l_surf_pos = (surface_width/2, i * net_line_height)
 				output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=8)
 			elif align == "right":
-				l_surf_pos = (surface_width, lines.index(line) * net_line_height)
+				l_surf_pos = (surface_width, i * net_line_height)
 				output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=9)
 
 		return output
@@ -238,7 +305,7 @@ class TextManager(object):
 		if not isinstance(text, bytes):
 			text = utf8(text).encode('utf-8')
 
-		rendering_font = stl.font
+		rendering_font = stl._font_ttf
 		if max_width != None:
 			w, h = ctypes.c_int(0), ctypes.c_int(0)
 			TTF_SizeUTF8(rendering_font, text, ctypes.byref(w), ctypes.byref(h))
@@ -249,14 +316,14 @@ class TextManager(object):
 		if len(text.split(b"\n")) > 1 or needs_wrap:
 			if align not in ["left", "center", "right"]:
 				raise ValueError("Text alignment must be one of 'left', 'center', or 'right'.")
-			return self.__wrap__(text, style, rendering_font, align, max_width)
+			return self.__wrap__(text, stl, rendering_font, align, max_width)
 
 		if len(text) == 0:
 			text = " "
 		
 		bgra_color = SDL_Color(stl.color[2], stl.color[1], stl.color[0], stl.color[3])
 		rendered_text = TTF_RenderUTF8_Blended(rendering_font, text, bgra_color).contents
-		surface_array = self.__SDLSurface_to_ndarray(rendered_text)
+		surface_array = surface_to_ndarray(rendered_text)
 		surface = NpS(surface_array)
 		return surface
 
@@ -294,20 +361,47 @@ class TextManager(object):
 			raise IOError("Font '{0}' not found in any expected destination.".format(filename))
 
 
-	@property
-	def default_color(self):
-		return self.__default_color__
 
-	@default_color.setter
-	def default_color(self, color):
-		if type(color) is list:
-			self.__default_color__ = color
+def add_text_style(label, size=None, color=None, line_space=2.0, font=None):
+	"""Adds a new named text style to the klibs runtime.
 
-	@property
-	def default_bg_color(self):
-		return self.__default_bg_color__
+	Text styles provide an easy way of rendering text different ways for different
+	things. For example, if you want to define a 'title' style to render text in a
+	larger font, as well as an 'error' style that renders feedback for bad responses
+	in red, you could do the following::
 
-	@default_bg_color.setter
-	def default_bg_color(self, color):
-		if type(color) is list:
-			self.__default_bg_color__ = color
+	   # Define the text styles
+	   add_text_style('title', size='1.0deg')
+	   add_text_style('error', color=(255, 0, 0))
+
+	   # Render text with the different styles
+	   msg_start = message("Press any key to continue.", style='title')
+	   msg_err = message("Incorrect!", style='error')
+
+	Once defined, a text style can be used by name repeatedly throughout the experiment.
+
+	The klibs runtime comes with two included fonts: 'Hind-Medium' and 'Roboto-Medium'.
+	To create a text style with a different user-provided font, you can add any valid
+	``.ttf`` or ``.otf`` font file to the project's ``ExpAssets/Resources/font``
+	directory and then use it by name. For example, if ``Helvetica-Bold.otf`` is
+	present in the project's font folder, you can do the following::
+
+	   add_text_style('bold', size='40px', font='Helvetica-Bold')
+
+	Args:
+		label (str): The name of the new text style.
+		size (str or float, optional): The font size for the text style. Defaults to
+			``P.default_font_size` if not specified.
+		color (tuple, optional): The RGBA color for the text style. Defaults to
+			``P.default_color` if not specified.
+		line_space (float, optional): The line spacing to use when rendering multi-line
+			text with the style. Defaults to ``2.0`` (double-spaced).
+		font (str, optional): The font to use for the text style. Defaults to
+			``P.default_font_name` if not specified.
+
+	"""
+	from klibs import env
+	if env.txtm is None:
+		e = "KLibs runtime must be initialized before text styles can be added."
+		raise RuntimeError(e)
+	env.txtm.styles[label] = TextStyle(font, size, color, line_space)

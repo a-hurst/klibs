@@ -60,67 +60,75 @@ def _init_fullscreen(display, hidpi=False):
 	return (window, res, screen_hz)
 
 
+def _set_display_params(res, size_in, hz):
+
+	# Set basic display properties
+	P.screen_x = res[0]
+	P.screen_y = res[1]
+	P.screen_c = (P.screen_x // 2, P.screen_y // 2)
+	P.screen_x_y = (P.screen_x, P.screen_y)
+
+	# Set refresh rate/time
+	P.refresh_rate = hz
+	P.refresh_time = 1000.0 / P.refresh_rate
+
+	# Get conversion factor for pixels to degrees of visual angle based on viewing distance,
+	# screen resolution, and given diagonal screen size
+	P.screen_diagonal_in = size_in
+	P.screen_diagonal_px = sqrt(P.screen_x ** 2.0 + P.screen_y ** 2.0)
+	P.ppi = P.screen_diagonal_px / size_in
+	P.monitor_height = P.screen_y / P.ppi
+	P.monitor_width = P.screen_x / P.ppi
+	P.screen_degrees_x = degrees(2 * atan((2.54 * P.monitor_width / 2.0) / P.view_distance))
+	P.screen_degrees_y = degrees(2 * atan((2.54 * P.monitor_height / 2.0) / P.view_distance))
+	P.pixels_per_degree = P.screen_x / P.screen_degrees_x
+	P.ppd = P.pixels_per_degree # alias for convenience
+
+
 def display_init(diagonal_in, hidpi):
-		"""Initializes the display and rendering backend, calculating and assigning the values
-		of runtime KLParams variables related to the screen (e.g. P.screen_c, P.refresh_rate,
-		P.pixels_per_degree). Called by 'klibs run' on launch, for internal use only.
+	"""Initializes the display and rendering backend, calculating and assigning the values
+	of runtime KLParams variables related to the screen (e.g. P.screen_c, P.refresh_rate,
+	P.pixels_per_degree). Called by 'klibs run' on launch, for internal use only.
+	
+	Args:
+		diagonal_in (float): The size of the monitor in diagonal inches (e.g. 13 for a
+			13-inch MacBook Pro).
+
+	"""
+	if os.name == 'nt':
+		# Set video driver explicitly on Windows to avoid misdetection problems
+		os.environ['SDL_VIDEODRIVER'] = 'windows'
+		# Allow better HIDPI handling on Windows (requires SDL >= 2.24)
+		sdl2.SDL_SetHint(b"SDL_WINDOWS_DPI_AWARENESS", b"permonitor")
 		
-		Args:
-			diagonal_in (float): The size of the monitor in diagonal inches (e.g. 13 for a
-				13-inch MacBook Pro).
+	sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
+	sdl2.SDL_PumpEvents()
 
-		"""
-		if os.name == 'nt':
-			# Set video driver explicitly on Windows to avoid misdetection problems
-			os.environ['SDL_VIDEODRIVER'] = 'windows'
-			# Allow better HIDPI handling on Windows (requires SDL >= 2.24)
-			sdl2.SDL_SetHint(b"SDL_WINDOWS_DPI_AWARENESS", b"permonitor")
-			
-		sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO)
-		sdl2.SDL_PumpEvents()
+	# Create a fullscreen window at the current resolution, get display info
+	window, res, hz = _init_fullscreen(display=0, hidpi=hidpi)
 
-		# Create a fullscreen window at the current resolution, get display info
-		window, res, hz = _init_fullscreen(display=0, hidpi=hidpi)
+	# Set up the OpenGL context for the window
+	ret = sdl2.SDL_GL_SetSwapInterval(1) # enforce vsync
+	if ret != 0:
+		print(" - Warning: Vsync unsupported, experiment timing may be off")
+	gl.glMatrixMode(gl.GL_PROJECTION)
+	gl.glLoadIdentity()
+	gl.glOrtho(0, res[0], res[1], 0, 0, 1)
+	gl.glMatrixMode(gl.GL_MODELVIEW)
+	gl.glDisable(gl.GL_DEPTH_TEST)
 
-		# Set up the OpenGL context for the window
-		ret = sdl2.SDL_GL_SetSwapInterval(1) # enforce vsync
-		if ret != 0:
-			print(" - Warning: Vsync unsupported, experiment timing may be off")
-		gl.glMatrixMode(gl.GL_PROJECTION)
-		gl.glLoadIdentity()
-		gl.glOrtho(0, res[0], res[1], 0, 0, 1)
-		gl.glMatrixMode(gl.GL_MODELVIEW)
-		gl.glDisable(gl.GL_DEPTH_TEST)
+	# Update display properties & and pixels-per-degree in KLParams
+	_set_display_params(res, diagonal_in, hz)
 
-		P.screen_x = res[0]
-		P.screen_y = res[1]
-		P.screen_c = (P.screen_x // 2, P.screen_y // 2)
-		P.screen_x_y = (P.screen_x, P.screen_y)
+	# Get scaling factor for HiDPI displays
+	P.screen_scale_x = res[0] / float(window.size[0])
+	P.screen_scale_y = res[1] / float(window.size[1])
 
-		P.refresh_rate = hz
-		P.refresh_time = 1000.0 / P.refresh_rate
+	# Clear the SDL event queue and return the window object
+	sdl2.SDL_PumpEvents()
+	P.display_initialized = True
 
-		# Get conversion factor for pixels to degrees of visual angle based on viewing distance,
-		# screen resolution, and given diagonal screen size
-		P.screen_diagonal_in = diagonal_in
-		P.screen_diagonal_px = sqrt(P.screen_x**2.0 + P.screen_y**2.0)
-		P.ppi = P.screen_diagonal_px / diagonal_in
-		P.monitor_height = P.screen_y / P.ppi
-		P.monitor_width = P.screen_x / P.ppi
-		P.screen_degrees_x = degrees(2 * atan((2.54 * P.monitor_width / 2.0) / P.view_distance))
-		P.screen_degrees_y = degrees(2 * atan((2.54 * P.monitor_height / 2.0) / P.view_distance))
-		P.pixels_per_degree = P.screen_x / P.screen_degrees_x
-		P.ppd = P.pixels_per_degree # alias for convenience
-
-		# Get scaling factor for HiDPI displays
-		P.screen_scale_x = res[0] / float(window.size[0])
-		P.screen_scale_y = res[1] / float(window.size[1])
-
-		# Clear the SDL event queue and return the window object
-		sdl2.SDL_PumpEvents()
-		P.display_initialized = True
-
-		return window
+	return window
 
 
 def fill(color=None, context=None):

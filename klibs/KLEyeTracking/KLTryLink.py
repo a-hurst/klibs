@@ -233,6 +233,7 @@ class TryLink(EyeTracker):
 		mouse_hidden = cursor_hidden()
 		show_cursor()
 
+		space_pressed = False
 		dist_px = 0.0  # magnitude of drift correct error (in pixels)
 		dc_boundary = CircleBoundary('dc_target', loc, P.screen_y // 30)
 		done = False
@@ -245,9 +246,14 @@ class TryLink(EyeTracker):
 				if mouse_clicked(released=True, queue=q):
 					dist_px = line_segment_len(mouse_xy, loc)
 					done = True
+				elif key_pressed(' ', queue=q):
+					space_pressed = True
 				elif key_pressed(' ', released=True, queue=q):
-					dist_px = line_segment_len(mouse_xy, loc)
-					done = True
+					# Ignore key release unless we also logged the key press
+					# (prevents trial ended by space press from skipping DC)
+					if space_pressed:
+						dist_px = line_segment_len(mouse_xy, loc)
+						done = True
 
 		if mouse_hidden:
 			hide_cursor()

@@ -22,7 +22,8 @@ New Features:
   add fonts with ``txtm.add_font``. For example, if ``ComicSans.ttf`` is present
   in the experiment's font folder, you can now create a custom font style with
   ``font = "ComicSans"`` without manually loading the font.
-
+* Added a ``released`` argument to :func:`~klibs.KLUserInterface.key_pressed`
+  to optionally check for 'key released' events instead of 'key pressed' events.
 
 
 API Changes:

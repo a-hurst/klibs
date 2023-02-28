@@ -50,6 +50,12 @@ def test_key_pressed(with_sdl):
     assert ui.key_pressed(sdl2.SDLK_a, queue=pressed_ab) == True
     assert ui.key_pressed('b', queue=pressed_ab) == True
     assert ui.key_pressed('z', queue=pressed_ab) == False
+    assert ui.key_pressed(queue=pressed_ab, released=True) == False
+
+    # Test key released checking
+    pressed_ab = [keydown('a'), keyup('b')]
+    assert ui.key_pressed('b', queue=pressed_ab, released=True) == True
+    assert ui.key_pressed('a', queue=pressed_ab, released=True) == False
 
     # Test without providing queue as argument
     queue_event(pressed_ab[0])

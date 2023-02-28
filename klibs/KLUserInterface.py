@@ -41,7 +41,7 @@ def any_key(allow_mouse_click=True):
 				any_key_pressed = True
 
 
-def key_pressed(key=None, queue=None):
+def key_pressed(key=None, released=False, queue=None):
 	"""Checks a given event queue for keypress events.
 	
 	If no key is specified, the function will return True if any key has been pressed.
@@ -58,6 +58,8 @@ def key_pressed(key=None, queue=None):
 		key (str or :obj:`sdl2.SDL_Keycode`, optional): The key name or SDL keycode
 			corresponding to the key to check. If not specified, any keypress will return
 			True.
+		released (bool, optional): If True, this function will look for 'key up' events
+			instead of 'key down' events. Defaults to False.
 		queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to check
 			for valid keypress events.
 
@@ -85,6 +87,7 @@ def key_pressed(key=None, queue=None):
 	for e in queue:
 		if e.type == SDL_KEYDOWN:
 			ui_request(e.key.keysym)
+		if e.type == (SDL_KEYUP if released else SDL_KEYDOWN):
 			if not keycode or e.key.keysym.sym == keycode:
 				pressed = True
 

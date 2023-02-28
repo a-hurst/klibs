@@ -248,13 +248,13 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		while not done:
 			self._check_connection()
 			try:
-				ret = self.doDriftCorrect(location[0], loc[1], EL_FALSE, EL_TRUE)
+				ret = self.doDriftCorrect(loc[0], loc[1], EL_FALSE, EL_TRUE)
 			except RuntimeError:
 				# If drift correct doesn't work, try again after setting tracker to
 				# offline mode
 				self.setOfflineMode()
 				self.waitForModeReady(500)
-				ret = self.doDriftCorrect(location[0], loc[1], EL_FALSE, EL_TRUE)
+				ret = self.doDriftCorrect(loc[0], loc[1], EL_FALSE, EL_TRUE)
 
 			# If Esc was hit to recalibrate during drift correct, redo drift correct
 			if ret != 27:

@@ -3,6 +3,7 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import time
+from sdl2.ext import cursor_hidden
 from klibs.KLEyeTracking import PYLINK_AVAILABLE
 
 from klibs.KLExceptions import TrialException, EyeTrackerError
@@ -15,7 +16,7 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
 from klibs import P
 from klibs.KLInternal import full_trace, valid_coords, now, hide_stderr
 from klibs.KLInternal import colored_stdout as cso
-from klibs.KLUserInterface import ui_request, hide_cursor
+from klibs.KLUserInterface import ui_request, show_cursor, hide_cursor
 from klibs.KLGraphics import blit, fill, flip, clear
 from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
@@ -87,6 +88,13 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		self.setAccelerationThreshold(P.saccadic_acceleration_threshold)
 		self.setMotionThreshold(P.saccadic_motion_threshold)
 		beginRealTimeMode(10)
+
+
+	def _check_connection(self):
+		# Ensures that the tracker connection is still alive
+		if not self.isConnected():
+			e = "Unexpectedly lost the connection to the EyeLink"
+			raise RuntimeError(e)
 
 
 	def setup(self):
@@ -229,68 +237,35 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		self.resetData()
 
 
-	def drift_correct(self, location=None, target=None, fill_color=None, draw_target=True):
-		"""Checks the accuracy of the EyeLink's calibration by presenting a fixation stimulus
-		and requiring the participant to press the space bar while looking directly at it. If
-		there is a large difference between the gaze location at the time the key was pressed
-		and the true location of the fixation, it indicates that there has been drift in the
-		calibration.
-
-		On older EyeLink models (EyeLink I & II), the recorded drift is used to adjust the
-		calibration for improved accuracy on future trials. On recent models (EyeLink 1000 and
-		up), drift corrections will *check* for drift and prompt the participant to try again
-		if the drift is large, but they do not affect the tracker's calibration.
-
-		Args:
-			location (Tuple(int, int), optional): The (x,y) pixel coordinates where the drift
-				correct target should be located. Defaults to the center of the screen.
-			target: A :obj:`Drawbject` or other :func:`KLGraphics.blit`-able shape to use as
-				the drift correct target. Defaults to a circular :func:`drift_correct_target`.
-			fill_color: A :obj:`List` or :obj:`Tuple` containing an RGBA colour to use for the
-				background for the drift correct screen. Defaults to the value of
-				``P.default_fill_color``.
-			draw_target (bool, optional): A flag indicating whether the function should draw
-				the drift correct target itself (True), or whether it should leave it to the
-				programmer to draw the target before :meth:`drift_correct` is called (False). 
-				Defaults to True.
-
-		Raises:
-			TrialException: If repeated EyeLink errors are encountered while attempting to
-				perform the drift correct.
+	def _drift_correct(self, loc):
+		"""Internal hardware-specific method for performing drift correction.
 
 		"""
+		mouse_hidden = cursor_hidden()
 		hide_cursor()
 
-		target = drift_correct_target() if target is None else target
-		draw_target = EL_TRUE if draw_target in [EL_TRUE, True] else EL_FALSE
-		location = P.screen_c if location is None else location
-		if not valid_coords(location):
-			raise ValueError("'location' must be a pair of (x,y) pixel coordinates.")
-
-		try:
-			while True:
-				if draw_target == EL_TRUE:
-					fill(P.default_fill_color if not fill_color else fill_color)
-					blit(target, 5, location)
-					flip()
-				ret = self.doDriftCorrect(location[0], location[1], draw_target, EL_TRUE)
-				if ret != 27: # 27 means we hit Esc to enter calibration, so redo drift correct
-					break
-			if draw_target == EL_TRUE:
-				fill(P.default_fill_color if not fill_color else fill_color)
-				flip()
-			return self.applyDriftCorrect()
-		except RuntimeError:
+		done = False
+		while not done:
+			self._check_connection()
 			try:
-				self.setOfflineMode()
+				ret = self.doDriftCorrect(location[0], loc[1], EL_FALSE, EL_TRUE)
 			except RuntimeError:
-				self._unresolved_exceptions += 1
-				if self._unresolved_exceptions > 5:
-					cso("\n<red>*** Fatal Error: Unresolvable EyeLink Error ***</red>")
-					print(full_trace())
-					self._unresolved_exceptions = 0
-					raise TrialException("EyeLink not ready.")
-			return self.drift_correct(location, target, fill_color, draw_target)
+				# If drift correct doesn't work, try again after setting tracker to
+				# offline mode
+				self.setOfflineMode()
+				self.waitForModeReady(500)
+				ret = self.doDriftCorrect(location[0], loc[1], EL_FALSE, EL_TRUE)
+
+			# If Esc was hit to recalibrate during drift correct, redo drift correct
+			if ret != 27:
+				done = True
+
+		# TODO: Check the magnitude of error with self.getCalibrationMessage?
+		self.applyDriftCorrect()
+		if not mouse_hidden:
+			show_cursor()
+		
+		return 0
 
 
 	def gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):

@@ -599,17 +599,21 @@ class EyeTracker(BoundaryInspector):
         if not iterable(location):
             raise ValueError("'location' must be a pair of (x, y) pixel coordinates.")
 
-        # Draw the drift correct target to the screen
-        if draw_target:
+        # Define a function that presents the DC target (for use as a callback)
+        def draw_drift_correct():
             fill(P.default_fill_color if not fill_color else fill_color)
             blit(target, 5, location)
             flip()
 
+        # Draw the drift correct target to the screen
+        if draw_target:
+            draw_drift_correct()
+
         # Actually perform drift correct for the current tracker
-        return self._drift_correct(location)
+        return self._drift_correct(location, draw_drift_correct)
 
 
-    def _drift_correct(self, loc):
+    def _drift_correct(self, loc, target_callback):
         """Internal hardware-specific method for performing drift correction.
 
         This method should wait indefinitely for a successful drift check to be

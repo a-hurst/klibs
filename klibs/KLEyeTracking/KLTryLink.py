@@ -222,7 +222,7 @@ class TryLink(EyeTracker):
 		self.__sacc = None
 
 
-	def _drift_correct(self, loc):
+	def _drift_correct(self, loc, target_callback):
 		"""Internal hardware-specific method for performing drift correction.
 
 		This implementation allows for mouse clicks as well as space bar presses

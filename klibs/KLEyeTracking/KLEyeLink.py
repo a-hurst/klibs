@@ -237,7 +237,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
 		self.resetData()
 
 
-	def _drift_correct(self, loc):
+	def _drift_correct(self, loc, target_callback):
 		"""Internal hardware-specific method for performing drift correction.
 
 		"""
@@ -249,7 +249,11 @@ class EyeLink(BaseEyeLink, EyeTracker):
 			self._check_connection()
 			try:
 				ret = self.doDriftCorrect(loc[0], loc[1], EL_FALSE, EL_TRUE)
-			except RuntimeError:
+			except RuntimeError as e:
+				# If error is that escape has been pressed, just do drift correct again
+				if "Escape" in str(e):
+					target_callback() # redraws drift correct on screen
+					continue
 				# If drift correct doesn't work, try again after setting tracker to
 				# offline mode
 				self.setOfflineMode()

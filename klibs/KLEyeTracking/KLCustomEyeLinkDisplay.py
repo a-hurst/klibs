@@ -35,6 +35,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		EnvAgent.__init__(self)
 		self.__imgwidth__ = 0
 		self.__imgheight__ = 0
+		self._output_height = 480  # scaled output height for camera image
 		self.imagebuffer = []
 		self.palette = []
 		self.img = None # PIL.Image
@@ -97,6 +98,16 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 			self.__target_beep__ = None
 			self.__target_beep__done__ = None
 			self.__target_beep__error__ = None
+
+	def _scale_up(self, x, y):
+		# Scales up coords from PyLink size to image size
+		scale_factor = self._output_height / float(self.size[1])
+		return (int(x * scale_factor), int(y * scale_factor))
+
+	def _scale_down(self, x, y):
+		# Scales down coords from image size to PyLink size
+		scale_factor = self._output_height / float(self.size[1])
+		return (int(x / scale_factor), int(y / scale_factor))
 
 	def record_abort_hide(self):
 		# Called if recording aborted on EyeLink? Not really worth implementing.
@@ -164,14 +175,15 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		# Gets the current mouse state (cursor x/y and button state) relative to
 		# the EyeLink camera image
 		x, y, b = mouse_pos(pump_event_queue=False, return_button_state=True)
-		x = int(x) - (P.screen_c[0] - self.size[0]/2)
-		y = int(y) - (P.screen_c[1] - self.size[1]/2)
+		size = self._scale_up(*self.size)
+		x = int(x) - (P.screen_c[0] - size[0] / 2)
+		y = int(y) - (P.screen_c[1] - size[1] / 2)
 		# Restrict mouse coords to within bounds of camera image
-		x = clip(x, minimum=0, maximum=self.size[0])
-		y = clip(y, minimum=0, maximum=self.size[1])
+		x = clip(x, minimum=0, maximum=size[0])
+		y = clip(y, minimum=0, maximum=size[1])
 		if b != 1: # Register left clicks only 
 			b = 0
-		return ((x, y), b)
+		return (self._scale_down(x, y), b)
 
 	def alert_printf(self, message):
 		# Prints any EyeLink alert messages to the console
@@ -216,11 +228,12 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 		self.imagebuffer += buff
 		# If we have a complete image, draw it
 		if int(line) == int(totlines):
-			# Render complete camera image and resize to self.size
+			# Render complete camera image and resize to the output size
 			img = Image.new("P", (width, totlines), 0)
 			img.putpalette(self.palette)
 			img.putdata(self.imagebuffer)
-			self.img = img.convert('RGBA').resize(self.size, Image.BILINEAR)
+			size = self._scale_up(*self.size)
+			self.img = img.convert('RGBA').resize(size, Image.BILINEAR)
 			# Set up aggdraw to draw crosshair/bounds/etc. on image surface
 			self.drawer = Draw(self.img)
 			self.drawer.setantialias(True)
@@ -230,7 +243,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 			fill()
 			blit(asarray(self.img), 5, P.screen_c)
 			if self.title:
-				y_offset = int(self.size[1] / 2) + 20
+				y_offset = int(size[1] / 2) + 20
 				loc_x = (P.screen_c[0])
 				loc_y = (P.screen_c[1] + y_offset)
 				blit(self.title, 8, (loc_x, loc_y))
@@ -239,6 +252,8 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 			self.imagebuffer = []
 
 	def draw_lozenge(self, x, y, width, height, colorindex):
+		x, y = self._scale_up(x, y)
+		width, height = self._scale_up(width, height)
 		# Draws the pupil search boundary limits on the camera image
 		lozenge_pen = Pen(self.pylink_colors[colorindex], 3, 255)
 		# If width > height, sides are round & top/bottom are flat
@@ -274,6 +289,8 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
 			self.drawer.ellipse((x, y, x + width, y + height), lozenge_pen)
 
 	def draw_line(self, x1, y1, x2, y2, colorindex):
+		x1, y1 = self._scale_up(x1, y1)
+		x2, y2 = self._scale_up(x2, y2)
 		# Draws a line with a given colour on the camera image
 		line_pen = Pen(self.pylink_colors[colorindex], 3, 255)
 		self.drawer.line((x1, y1, x2, y2), line_pen)

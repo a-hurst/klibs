@@ -260,12 +260,18 @@ class EyeLink(BaseEyeLink, EyeTracker):
 			if ret != 27:
 				done = True
 
-		# TODO: Check the magnitude of error with self.getCalibrationMessage?
+		# Get the magnitude of the drift correct error (if available)
+		drift = -1.0
+		drift_msg = self.getCalibrationMessage()
+		if drift_msg[:5] == "drift":
+			drift = float(drift_msg.split(" ")[1])
+
+		# Apply the drift correct (if possible) and reset cursor visibility
 		self.applyDriftCorrect()
 		if not mouse_hidden:
 			show_cursor()
 		
-		return 0
+		return drift
 
 
 	def gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):

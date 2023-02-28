@@ -9,7 +9,7 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
 	EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
 	TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
 from klibs import P
-from klibs.KLUtilities import iterable, now, mean
+from klibs.KLUtilities import iterable, now, mean, line_segment_len, px_to_deg
 from klibs.KLBoundary import CircleBoundary
 from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
@@ -233,21 +233,25 @@ class TryLink(EyeTracker):
 		mouse_hidden = cursor_hidden()
 		show_cursor()
 
+		dist_px = 0.0  # magnitude of drift correct error (in pixels)
 		dc_boundary = CircleBoundary('dc_target', loc, P.screen_y // 30)
 		done = False
 		while not done:
 			SDL_Delay(2) # required for pump() to reliably return mousebuttondown events
 			q = pump(True)
-			if mouse_pos(False) in dc_boundary:
+			mouse_xy = mouse_pos(False)
+			if mouse_xy in dc_boundary:
 				if mouse_clicked(released=True, queue=q):
+					dist_px = line_segment_len(mouse_xy, loc)
 					done = True
 				elif key_pressed(' ', released=True, queue=q):
+					dist_px = line_segment_len(mouse_xy, loc)
 					done = True
 
 		if mouse_hidden:
 			hide_cursor()
 
-		return 0
+		return round(px_to_deg(dist_px), 2)
 
 
 	def gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):

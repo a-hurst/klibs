@@ -589,6 +589,9 @@ class EyeTracker(BoundaryInspector):
                 drift correct target when called. If False it will not draw the target,
                 allowing the use of custom drift correct screens. Defaults to True.
 
+        Returns:
+            float: The magnitude of the measured drift (in degrees of visual angle).
+
         """
         # Initialize defaults and sanitize inputs
         target = drift_correct_target() if target is None else target
@@ -611,6 +614,8 @@ class EyeTracker(BoundaryInspector):
 
         This method should wait indefinitely for a successful drift check to be
         performed at the given location and return immediately once one has occurred.
+
+        Should return the absolute magnitude of error (in degrees of visual angle).
 
         """
         e = "Drift correct has not been implemented for this tracker."

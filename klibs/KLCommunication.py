@@ -325,7 +325,10 @@ def query(query_ob, anonymous=False):
 		p.registrations.query = BL_CENTER
 	for k in ['input', 'error']:
 		if p.locations[k] == AUTO_POS:
-			v_pad = q_text.height + 2 * txtm.styles[f.styles.query].line_height
+			# NOTE: Query line spacing after new TextStyle overhaul looks different
+			# than before (larger spacing), should look into it
+			font = txtm.styles[f.styles.query]
+			v_pad = q_text.height + int(0.5 * font.line_space * font.size_px)
 			p.locations[k] = [P.screen_c[0], p.locations.query[1] + v_pad]
 			p.registrations[k] = BL_CENTER
 

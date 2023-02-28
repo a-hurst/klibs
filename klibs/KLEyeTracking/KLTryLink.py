@@ -239,6 +239,7 @@ class TryLink(EyeTracker):
 		while not done:
 			SDL_Delay(2) # required for pump() to reliably return mousebuttondown events
 			q = pump(True)
+			ui_request(queue=q)
 			mouse_xy = mouse_pos(False)
 			if mouse_xy in dc_boundary:
 				if mouse_clicked(released=True, queue=q):

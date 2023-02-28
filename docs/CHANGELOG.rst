@@ -29,6 +29,8 @@ New Features:
 Runtime Changes:
 * The TryLink mouse-simulated eye tracker now supports performing drift correct
   by pressing the space bar in addition to clicking.
+* The EyeLink camera setup image is now always scaled to a height of 480 pixels
+  for a larger view and easier setup.
 
 
 API Changes:

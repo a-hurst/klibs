@@ -12,6 +12,7 @@ from klibs import P
 from klibs.KLUtilities import iterable, pretty_list
 from klibs.KLUserInterface import ui_request
 from klibs.KLBoundary import BoundaryInspector
+from klibs.KLGraphics import blit, fill, flip
 
 
 class EyeTracker(BoundaryInspector):
@@ -560,32 +561,60 @@ class EyeTracker(BoundaryInspector):
 
 
     def drift_correct(self, location=None, target=None, fill_color=None, draw_target=True):
-        """Checks the accuracy of the eye tracker's calibration by presenting a fixation
-        stimulus and requiring the participant to press the space bar while looking directly at
-        it. If there is a large difference between the gaze location at the time the key was
-        pressed and the true location of the fixation, it indicates that there has been drift
-        in the calibration.
+        """Interactively checks the accuracy of the tracker's calibration.
+        
+        Over the course of a session, the accuracy of an eye tracker's calibration can
+        begin to drift. A Drift Correction checks for this by presenting a target on the
+        screen (typically in the center) and requiring the participant to press the
+        space bar while looking directly at.
+        
+        If the tracker's gaze position is sufficiently close to the actual target
+        coordinates, the drift correction ends immediately. If the error is too large,
+        however, it will prevent the participant from continuing with the task until the
+        error level is acceptable (either by re-trying the drift correct or by
+        recalibrating the tracker).
 
-        On some eye trackers (e.g. EyeLink II), the recorded drift is used to adjust the
-        calibration on future trials. On others (e.g. EyeLink 1000), drift corrections will
-        check for drift and alert the participant if the drift is large, but do not alter the
-        calibration.
+        On older EyeLink models (EyeLink I & II), the recorded drift is used to adjust
+        the calibration for improved accuracy on future trials. On newer models
+        (EyeLink 1000 and up), drift correction does not try to improve the calibration.
 
         Args:
-            location (Tuple(int, int), optional): The (x,y) pixel coordinates where the drift
-                correct target should be located. Defaults to the center of the screen.
-            target: A :obj:`Drawbject` or other :func:`KLGraphics.blit`-able shape to use as
-                the drift correct target. Defaults to a circular :func:`drift_correct_target`.
-            fill_color: A :obj:`List` or :obj:`Tuple` containing an RGBA colour to use for the
-                background for the drift correct screen. Defaults to the value of
-                ``P.default_fill_color``.
-            draw_target (bool, optional): A flag indicating whether the function should draw
-                the drift correct target itself (True), or whether it should leave it to the
-                programmer to draw the target before :meth:`drift_correct` is called (False). 
-                Defaults to True.
+            location (tuple, optional): The (x, y) pixel coordinates at which to draw
+                the drift correct target. Defaults to the center of the screen.
+            target (optional): A :obj:`Drawbject` or other stimulus texture to use as
+                the drift correct target. Defaults to a circular target.
+            fill_color (tuple, optional): The fill colour to use for the background of
+                the drift correct screen. Defaults to ``P.default_fill_color``.
+            draw_target (bool, optional): If True, this method will draw and present the
+                drift correct target when called. If False it will not draw the target,
+                allowing the use of custom drift correct screens. Defaults to True.
 
         """
-        pass
+        # Initialize defaults and sanitize inputs
+        target = drift_correct_target() if target is None else target
+        location = P.screen_c if location is None else location
+        if not iterable(location):
+            raise ValueError("'location' must be a pair of (x, y) pixel coordinates.")
+
+        # Draw the drift correct target to the screen
+        if draw_target:
+            fill(P.default_fill_color if not fill_color else fill_color)
+            blit(target, 5, location)
+            flip()
+
+        # Actually perform drift correct for the current tracker
+        return self._drift_correct(location)
+
+
+    def _drift_correct(self, loc):
+        """Internal hardware-specific method for performing drift correction.
+
+        This method should wait indefinitely for a successful drift check to be
+        performed at the given location and return immediately once one has occurred.
+
+        """
+        e = "Drift correct has not been implemented for this tracker."
+        raise NotImplementedError(e)
 
 
     def gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):

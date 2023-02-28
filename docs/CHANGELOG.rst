@@ -26,6 +26,11 @@ New Features:
   to optionally check for 'key released' events instead of 'key pressed' events.
 
 
+Runtime Changes:
+* The TryLink mouse-simulated eye tracker now supports performing drift correct
+  by pressing the space bar in addition to clicking.
+
+
 API Changes:
 
 * :func:`~klibs.KLCommunication.message` now returns the rendered text surface

@@ -13,14 +13,15 @@ from klibs.KLUtilities import iterable, now, mean
 from klibs.KLBoundary import CircleBoundary
 from klibs.KLGraphics import fill, blit, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
-from klibs.KLEventQueue import pump
+from klibs.KLEventQueue import pump, flush
 from klibs.KLUserInterface import (
-	ui_request, mouse_pos, mouse_clicked, show_cursor, hide_cursor
+	ui_request, mouse_pos, mouse_clicked, key_pressed, show_cursor, hide_cursor
 )
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
 from klibs.KLEyeTracking.events import GazeSample, EyeEvent, EyeEventTemplate
 
 from sdl2 import SDL_GetTicks, SDL_Delay
+from sdl2.ext import cursor_hidden
 from math import atan2, degrees
 
 
@@ -115,8 +116,8 @@ class TryLink(EyeTracker):
 		Called automatically whenever KLibs exits. For internal use only.
 
 		Args:
-            incomplete (bool, optional): Whether the full session was completed before the function
-                was called. Has no effect in TryLink simulation mode. Defaults to False.
+			incomplete (bool, optional): Whether the full session was completed before the function
+				was called. Has no effect in TryLink simulation mode. Defaults to False.
 
 		"""
 		self.stop()
@@ -221,54 +222,32 @@ class TryLink(EyeTracker):
 		self.__sacc = None
 
 
-	def drift_correct(self, location=None, target=None, fill_color=None, draw_target=True):
-		"""Checks the accuracy of the eye tracker's calibration by presenting a fixation
-		stimulus and requiring the participant to press the space bar while looking directly at
-		it. If there is a large difference between the gaze location at the time the key was
-		pressed and the true location of the fixation, it indicates that there has been drift
-		in the calibration.
+	def _drift_correct(self, loc):
+		"""Internal hardware-specific method for performing drift correction.
 
-		In TryLink mode, drift correct targets are still displayed the same as with a hardware
-		eye tracker. Simulated drift corrects are performed by clicking the drift correct target
-		with the mouse.
-
-		Args:
-			location (Tuple(int, int), optional): The (x,y) pixel coordinates where the drift
-				correct target should be located. Defaults to the center of the screen.
-			target: A :obj:`Drawbject` or other :func:`KLGraphics.blit`-able shape to use as
-				the drift correct target. Defaults to a circular :func:`drift_correct_target`.
-			fill_color: A :obj:`List` or :obj:`Tuple` containing an RGBA colour to use for the
-				background for the drift correct screen. Defaults to the value of
-				``P.default_fill_color``.
-			draw_target (bool, optional): A flag indicating whether the function should draw
-				the drift correct target itself (True), or whether it should leave it to the
-				programmer to draw the target before :meth:`drift_correct` is called (False). 
-				Defaults to True.
+		This implementation allows for mouse clicks as well as space bar presses
+		for performing drift corrections.
 
 		"""
+		flush()
+		mouse_hidden = cursor_hidden()
 		show_cursor()
 
-		target = drift_correct_target() if target is None else target
-		draw_target = EL_TRUE if draw_target in [EL_TRUE, True] else EL_FALSE
-		location = P.screen_c if location is None else location
-		if not iterable(location):
-			raise ValueError("'location' must be a pair of (x,y) pixel coordinates.")
-		dc_boundary = CircleBoundary('drift_correct', location, P.screen_y // 30)
-		
-		while True:
-			if draw_target == EL_TRUE:
-				fill(P.default_fill_color if not fill_color else fill_color)
-				blit(target, 5, location)
-				flip()
-			else:
-				SDL_Delay(2) # required for pump() to reliably return mousebuttondown events
+		dc_boundary = CircleBoundary('dc_target', loc, P.screen_y // 30)
+		done = False
+		while not done:
+			SDL_Delay(2) # required for pump() to reliably return mousebuttondown events
+			q = pump(True)
+			if mouse_pos(False) in dc_boundary:
+				if mouse_clicked(released=True, queue=q):
+					done = True
+				elif key_pressed(' ', released=True, queue=q):
+					done = True
 
-			if mouse_clicked(within=dc_boundary):
-				hide_cursor()
-				if draw_target == EL_TRUE:
-					fill(P.default_fill_color if not fill_color else fill_color)
-					flip()
-				return 0
+		if mouse_hidden:
+			hide_cursor()
+
+		return 0
 
 
 	def gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):

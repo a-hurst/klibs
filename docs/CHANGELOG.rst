@@ -43,6 +43,8 @@ API Changes:
   :func:`~klibs.KLCommunication.message` has been changed from True to False,
   and has been deprecated. From now own, any message provided with a blit
   location will be blit there regardless of whether ``blit_txt`` is True.
+* The :meth:`~klibs.KLEyeTracking.KLEyeTracker.drift_correct` method now
+  returns the magnitude of measured drift error (in degrees).
 
 
 Fixed Bugs:

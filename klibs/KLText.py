@@ -79,16 +79,17 @@ class TextStyle(EnvAgent):
 
 	Args:
 		font (str, optional): The name of the font to use when rendering text with the
-			style. Defaults to ``P.default_font_name` if not specified.
+			style. Defaults to ``P.default_font_name`` if not specified.
 		size (str or float, optional): The font size to use when rendering text with the
-			style. Defaults to ``P.default_font_size` if not specified.
+			style. Defaults to ``P.default_font_size`` if not specified.
 		color (tuple, optional): The RGBA font color to use when rendering text with the
-			style. Defaults to ``P.default_color` if not specified.
+			style. Defaults to ``P.default_color`` if not specified.
 		line_space (float, optional): The line spacing to use when rendering multi-line
-			text with the font. Defaults to ``2.0`` (double-spaced).
+			text with the font. Defaults to ``2.0`` (double-spaced) unless a custom
+			``P.default_line_space`` has been set.
 
 	"""
-	def __init__(self, font=None, size=None, color=None, line_space=2.0):
+	def __init__(self, font=None, size=None, color=None, line_space=None):
 
 		# First, make sure TextManager has been initialized
 		self._initialized = False
@@ -100,7 +101,7 @@ class TextStyle(EnvAgent):
 		self._fontname = font if font else P.default_font_name
 		self._size = size if size else P.default_font_size
 		self._color = rgb_to_rgba(color) if color else P.default_color
-		self._line_h = float(line_space)
+		self._line_h = float(line_space) if line_space else P.default_line_space
 		if self._line_h < 1.0:
 			e = "Line spacing must be 1.0 or higher (got {0})"
 			raise ValueError(e.format(self._line_h))
@@ -362,7 +363,7 @@ class TextManager(object):
 
 
 
-def add_text_style(label, size=None, color=None, line_space=2.0, font=None):
+def add_text_style(label, size=None, color=None, line_space=None, font=None):
 	"""Adds a new named text style to the klibs runtime.
 
 	Text styles provide an easy way of rendering text different ways for different
@@ -395,7 +396,8 @@ def add_text_style(label, size=None, color=None, line_space=2.0, font=None):
 		color (tuple, optional): The RGBA color for the text style. Defaults to
 			``P.default_color` if not specified.
 		line_space (float, optional): The line spacing to use when rendering multi-line
-			text with the style. Defaults to ``2.0`` (double-spaced).
+			text with the style. Defaults to ``2.0`` (double-spaced) unless
+			``P.default_line_space`` has been set.
 		font (str, optional): The font to use for the text style. Defaults to
 			``P.default_font_name` if not specified.
 

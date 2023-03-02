@@ -45,6 +45,8 @@ API Changes:
   location will be blit there regardless of whether ``blit_txt`` is True.
 * The :meth:`~klibs.KLEyeTracking.KLEyeTracker.drift_correct` method now
   returns the magnitude of measured drift error (in degrees).
+* Added a new parameter ``P.default_line_space`` for setting a custom
+  default line spacing for text rendering (defaults to ``2.0``).
 
 
 Fixed Bugs:

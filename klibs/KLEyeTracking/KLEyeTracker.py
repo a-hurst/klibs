@@ -13,6 +13,8 @@ from klibs.KLUtilities import iterable, pretty_list
 from klibs.KLBoundary import BoundaryInspector
 from klibs.KLGraphics import blit, fill, flip
 
+# TODO: Add way of specifying calibration type (e.g. 'HV9') in params
+
 
 class EyeTracker(BoundaryInspector):
     """A base eye tracker class, laying out the essential attributes and methods required for an

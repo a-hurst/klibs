@@ -24,6 +24,8 @@ New Features:
   ``font = "ComicSans"`` without manually loading the font.
 * Added a ``released`` argument to :func:`~klibs.KLUserInterface.key_pressed`
   to optionally check for 'key released' events instead of 'key pressed' events.
+* Added a new method :meth:`~klibs.KLEventInterface.EventManager.add_event` for
+  a friendlier, more readable way of adding events to the trial sequencer.
 
 
 Runtime Changes:
@@ -47,6 +49,9 @@ API Changes:
   returns the magnitude of measured drift error (in degrees).
 * Added a new parameter ``P.default_line_space`` for setting a custom
   default line spacing for text rendering (defaults to ``2.0``).
+* The ``register_ticket`` and ``register_tickets`` methods of
+  :class:`~klibs.KLEventInterface.EventManager` are now deprecated in favour of
+  ``add_event``.
 
 
 Fixed Bugs:

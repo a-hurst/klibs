@@ -17,14 +17,29 @@ def add_time(secs):
 @pytest.fixture
 def evm():
     events = EventManager()
-    events.register_ticket(['cue_on', 1000])
-    events.register_ticket(['cue_off', 1100])
-    events.register_ticket(['target_on', 1500])
+    events.add_event('cue_on', 1000)
+    events.add_event('cue_off', 1100)
+    events.add_event('target_on', 1500)
     return events
 
 
 
 class TestEventManager(object):
+
+    def test_add_event(self):
+        evm = EventManager()
+        evm.add_event('cue_on', 1000)
+        evm.add_event('cue_off', 100, after='cue_on')
+        evm.add_event('target_on', 1500)
+        evm.add_event('target_off', 200, after='target_on')
+        # Ensure all events were added correctly
+        assert evm.events['cue_on'].onset == 1000
+        assert evm.events['cue_off'].onset == 1100
+        assert evm.events['target_on'].onset == 1500
+        assert evm.events['target_off'].onset == 1700
+        # Test exception on bad relative event name
+        with pytest.raises(ValueError):
+            evm.add_event('sound_off', 100, after='sound_on')
 
     def test_register_ticket(self):
         evm = EventManager()

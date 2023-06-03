@@ -102,41 +102,47 @@ class EventManager(object):
 			self.events[label]
 		except KeyError:
 			err = "'{0}' does not match the name of any existing event."
-			raise ValueError(err)
+			raise ValueError(err.format(label))
+
+
+	def add_event(self, label, onset, after=None):
+		"""Adds an event to the event manager.
+		
+		By default, the onsets of events are relative to the start of the trial
+		(e.g. a 'cue_on' event with an onset of 1000 will occur 1000 ms after the
+		trial begins). However, you can also define an event's onset as being
+		relative to another event's onset using the optional 'after' argument
+		(e.g. a 'cue_off' event occuring 100 ms after the 'cue_on' event).
+		
+		Args:
+			label (str): The name of the event to add (e.g. 'cue_on').
+			onset (int): The onset of the event (in milliseconds), relative to
+				the start of the trial (by default) or another event (if 'after'
+				is specified).
+			after (str, optional): The name of an existing event that the onset
+				is relative to. If not specified, the onset is relative to the
+				start of the trial.
+
+		"""
+		if after is not None:
+			# If 'after' provided, 'onset' is relative to that event
+			self._ensure_exists(after)
+			onset = self.events[after].onset + onset
+		self.events[label] = TrialEventTicket(label, onset)
 
 	
 	def register_ticket(self, event):
-		"""Registers an event with the EventManager for the upcoming trial.
-
-		If defining an event with a :obj:`List`, it must be in the format ``[label, onset]``, 
-		with 'label' being the name of the event and 'onset' being the time (in millseconds)
-		after trial start that the event occurs, such as::
-
-			self.evm.register_ticket(['target_on', 1000]) # 1000ms after trial start
-
-		Args:
-			event (:obj:`TrialEventTicket` or :obj:`List`): An event or List defining an
-				event to be registered with the EventManager.
-
-		"""
+		# Deprecated, use add_event instead
 		if not isinstance(event, TrialEventTicket):
 			try:
 				event = TrialEventTicket(*event)
 			except SyntaxError:
 				raise TypeError("Argument 'event' must be a List or a TrialEventTicket.")
-		self.events[event.label] = event
+		self.add_event(event.label, event.onset)
 
 
 	def register_tickets(self, events):
-		"""Registers multiple events with the EventManager for the upcoming trial.
-
-		See also: :meth:`register_ticket`
-
-		Args:
-			events (:obj:`List`): A List of :obj:`TrialEventTicket` or :obj:`List` objects
-				defining events to be registered with the EventManager. 
-
-		"""
+		# Deprecated, use add_event instead
 		for e in events:
 			self.register_ticket(e)
 

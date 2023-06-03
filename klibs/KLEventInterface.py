@@ -95,6 +95,16 @@ class EventManager(object):
 		self.start_time = None
 
 
+	def _ensure_exists(self, label):
+		# Makes sure a given event exists in the manager, raising an exception
+		# if it doesn't
+		try:
+			self.events[label]
+		except KeyError:
+			err = "'{0}' does not match the name of any existing event."
+			raise ValueError(err)
+
+
 	def __event_issued(self, label):
 		if self.events[label].issued == True:
 			return True
@@ -141,19 +151,6 @@ class EventManager(object):
 			self.register_ticket(e)
 
 
-	def registered(self, label):
-		"""Checks if an event with a given name is currently registered with the EventManager.
-
-		Args:
-			label (str): The label of the event to check the registration of.
-
-		Returns:
-			True if the event is registered with the EventManager, otherwise False.
-
-		"""
-		return label in self.events
-
-
 	def before(self, label, pump_events=False):
 		"""Checks if the current trial time is before a given event.
 
@@ -170,10 +167,7 @@ class EventManager(object):
 			True if the specified event has not yet occured within the trial, otherwise False.
 
 		"""
-		if type(label) is not str:
-			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
-		if not self.registered(label):
-			raise NameError("Event '{0}' not registered with the EventManager.".format(label))
+		self._ensure_exists(label)
 		if pump_events:
 			ui_request()
 
@@ -196,10 +190,7 @@ class EventManager(object):
 			True if the specified event has already occured within the trial, otherwise False.
 
 		"""
-		if type(label) is not str:
-			raise ValueError("Expected 'str' for argument label; got {0}.".format(type(label)))
-		if not self.registered(label):
-			raise NameError("Event '{0}' not registered with the EventManager.".format(label))
+		self._ensure_exists(label)
 		if pump_events:
 			ui_request()
 

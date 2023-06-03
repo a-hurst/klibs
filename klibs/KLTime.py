@@ -76,7 +76,7 @@ class CountDown(object):
 		if self.paused:
 			return False
 		else:
-			return self.remaining() != 0
+			return self.remaining() > 0
 
 	def reset(self, start=True):
 		"""Resets the countdown so it starts back at the original duration.
@@ -160,7 +160,7 @@ class CountDown(object):
 
 	@property
 	def started(self):
-		return self.__started is not 0
+		return self.__started != 0
 
 	@property
 	def paused(self):
@@ -275,7 +275,7 @@ class Stopwatch(object):
 
 	@property
 	def started(self):
-		return self.__started is not 0
+		return self.__started != 0
 
 	@property
 	def paused(self):

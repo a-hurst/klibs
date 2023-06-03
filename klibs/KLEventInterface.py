@@ -2,7 +2,6 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 from klibs.KLConstants import TK_S, TK_MS
-from klibs import P
 from klibs.KLNamedObject import NamedObject
 from klibs.KLTime import precise_time as time
 from klibs.KLUserInterface import ui_request
@@ -55,6 +54,7 @@ class TrialEventTicket(NamedObject):
 		return self.__onset
 
 
+
 class EventManager(object):
 	"""A class for sequencing the events that will occur during a given trial, relative to the
 	trial onset.
@@ -103,16 +103,6 @@ class EventManager(object):
 		except KeyError:
 			err = "'{0}' does not match the name of any existing event."
 			raise ValueError(err)
-
-
-	def __event_issued(self, label):
-		if self.events[label].issued == True:
-			return True
-		elif self.events[label].onset < self.trial_time_ms:
-			self.events[label].issued = True
-			return True
-		else:
-			return False
 
 	
 	def register_ticket(self, event):
@@ -167,11 +157,7 @@ class EventManager(object):
 			True if the specified event has not yet occured within the trial, otherwise False.
 
 		"""
-		self._ensure_exists(label)
-		if pump_events:
-			ui_request()
-
-		return not self.__event_issued(label)
+		return not self.after(label, pump_events)
 
 
 	def after(self, label, pump_events=False):
@@ -194,7 +180,12 @@ class EventManager(object):
 		if pump_events:
 			ui_request()
 
-		return self.__event_issued(label)
+		# If event wasn't already issued, check if it should be issued now
+		if not self.events[label].issued:
+			if self.events[label].onset < self.trial_time_ms:
+				self.events[label].issued = True
+
+		return self.events[label].issued
 
 
 	def between(self, label_1, label_2):

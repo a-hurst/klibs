@@ -93,6 +93,7 @@ class EventManager(object):
 	def __init__(self):
 		super(EventManager, self).__init__()
 		self.events = {}
+		self._issued = {}
 		self.start_time = None
 
 
@@ -128,8 +129,9 @@ class EventManager(object):
 		if after is not None:
 			# If 'after' provided, 'onset' is relative to that event
 			self._ensure_exists(after)
-			onset = self.events[after].onset + onset
-		self.events[label] = TrialEventTicket(label, onset)
+			onset = self.events[after] + onset
+		self.events[label] = onset
+		self._issued[label] = False
 
 	
 	def register_ticket(self, event):
@@ -178,11 +180,11 @@ class EventManager(object):
 			ui_request()
 
 		# If event wasn't already issued, check if it should be issued now
-		if not self.events[label].issued:
-			if self.events[label].onset < self.trial_time_ms:
-				self.events[label].issued = True
+		if not self._issued[label]:
+			if self.events[label] < self.trial_time_ms:
+				self._issued[label] = True
 
-		return self.events[label].issued
+		return self._issued[label]
 
 
 	def between(self, a, b):
@@ -224,6 +226,7 @@ class EventManager(object):
 
 		"""
 		self.events = {}
+		self._issued = {}
 		self.start_time = None
 
 	@property

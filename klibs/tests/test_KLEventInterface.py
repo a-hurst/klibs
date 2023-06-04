@@ -33,10 +33,10 @@ class TestEventManager(object):
         evm.add_event('target_on', 1500)
         evm.add_event('target_off', 200, after='target_on')
         # Ensure all events were added correctly
-        assert evm.events['cue_on'].onset == 1000
-        assert evm.events['cue_off'].onset == 1100
-        assert evm.events['target_on'].onset == 1500
-        assert evm.events['target_off'].onset == 1700
+        assert evm.events['cue_on'] == 1000
+        assert evm.events['cue_off'] == 1100
+        assert evm.events['target_on'] == 1500
+        assert evm.events['target_off'] == 1700
         # Test exception on bad relative event name
         with pytest.raises(ValueError):
             evm.add_event('sound_off', 100, after='sound_on')
@@ -52,10 +52,10 @@ class TestEventManager(object):
             ['target_on', 1500], ['target_off', 1700]
         ])
         # Ensure all events were added correctly
-        assert 'cue_on' in evm.events.keys()
-        assert 'cue_off' in evm.events.keys()
-        assert 'target_on' in evm.events.keys()
-        assert 'target_off' in evm.events.keys()
+        assert evm.events['cue_on'] == 1000
+        assert evm.events['cue_off'] == 1100
+        assert evm.events['target_on'] == 1500
+        assert evm.events['target_off'] == 1700
 
     def test_start_stop(self, evm):
         evm.start_clock()

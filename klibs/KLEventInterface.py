@@ -56,38 +56,38 @@ class TrialEventTicket(NamedObject):
 
 
 class EventManager(object):
-	"""A class for sequencing the events that will occur during a given trial, relative to the
-	trial onset.
+	"""A class for defining and controlling the sequence of events in a trial.
 
-	.. note:: An EventManager object is provided globally in the KLibs runtime environment as the
-	  experiment attribute ``self.evm``. This should be used instead of creating your own instance.
-
-	The EventManager object works in two stages:
+	During a given trial of a task, there are usually `things that happen`: for
+	example, a cue might appear on-screen after 1000 ms and disappear 100 ms later,
+	or a target might appear after a random delay between 1500 and 3000 ms. The
+	``EventManager`` class exists to make sequencing those sorts of events within
+	a trial simple and easy.
 	
-	First, before the start of a trial, the names and onset times of the events that should occur
-	within the trial are registered with the EventManager using the :meth:`register_ticket` or
-	:meth:`register_tickets` methods, e.g.::
+	First, before the trial begins, we add the names and onsets of the trial's
+	events to the ``EventManager`` using the :meth:`add_event` method, e.g.::
+			
+			evm = EventManager()
+			evm.add_event('cue_on', 1000)
+			evm.add_event('cue_off', 100, after='cue_on')
+			evm.add_event('target_on', 400, after='cue_off')
 
-			# Note: events[-1][1] means the onset time of the previous event in the list
-			events = []
-			events.append(['cue_on', 1000])
-			events.append(['cue_off', events[-1][1] + 100])
-			events.append(['target_on', events[-1][1] + 400])
-			self.evm.register_tickets(events)
+	Then, during the trial itself, we can use the :meth:`before`, :meth:`after`,
+	and :meth:`between` methods to make decisions based on whether those events
+	have occurred::
 
-	Then, in the body of the experiment's :meth:`~.KLExperiment.trial` method, the EventManager can
-	then be used to watch for those events and change behaviour when they occur::
-
-		while self.evm.before('target_on'):
+		while evm.before('target_on'):
 			ui_request()
 			fill()
 			draw_stimuli()
-			if self.evm.between('cue_on', 'cue_off'):
+			if evm.between('cue_on', 'cue_off'):
 				draw_cue()
 			flip()
 
-	This is done to make it easy to group all trial event sequencing information in one place in
-	your code, as well as make for simple and human-readable code within the trial body.
+	The klibs Experiment class provides an ``EventManager`` instance as ``self.evm``,
+	so you generally won't need to create one yourself. Its trial clock is started
+	automatically when ``self.trial()`` is called on each trial, and is reset
+	after every trial ends.
 
 	"""
 	def __init__(self):
@@ -200,12 +200,14 @@ class EventManager(object):
 
 
 	def start_clock(self):
-		"""Starts the EventManager's trial clock. The onsets of all events registered with the
-		EventManager are relative to the point in time when this method is called.
+		"""Starts the EventManager's trial clock.
+		
+		The onsets of events added to the EventManager are relative to when this
+		method is called.
 
-		.. note:: This method is called automatically at the start of every trial. The only time
-		  you would ever need to call it manually is if you wanted to use the EventManager outside
-		  of an experiment's :meth:`~.KLExperiment.trial()` method.
+		If you are using the :class:`~klibs.KLExperiment.Experiment` object's
+		built-in ``self.evm``, this is called automatically at the start of
+		every trial.
 
 		Raises:
 			RuntimeError: If this method is called while the trial clock is already running.
@@ -218,11 +220,7 @@ class EventManager(object):
 
 
 	def stop_clock(self):
-		"""Stops the EventManager's trial clock and clears all registered events.
-
-		.. note:: This method is called automatically at the end of every trial. The only time
-		  you would ever need to call it manually is if you wanted to use the EventManager outside
-		  of an experiment's :meth:`~.KLExperiment.trial()` method.
+		"""Resets the EventManger, clearing all added events.
 
 		"""
 		self.events = {}
@@ -230,16 +228,20 @@ class EventManager(object):
 
 	@property
 	def trial_time(self):
-		"""float: Time in seconds since the start of the current trial. If called when the
-		EventManager clock is not running (e.g. outside of a trial), this will be equal to 0.
+		"""float: Time in seconds since the start of the current trial.
+		
+		If called when the EventManager clock is not running (e.g. outside of a trial),
+		this will be equal to 0.
 		
 		"""
 		return 0.0 if self.start_time == None else (time() - self.start_time)
 
 	@property
 	def trial_time_ms(self):
-		"""float: Time in milliseconds since the start of the current trial. If called when the
-		EventManager clock is not running (e.g. outside of a trial), this will be equal to 0.
+		"""float: Time in milliseconds since the start of the current trial.
+		
+		If called when the EventManager clock is not running (e.g. outside of a trial),
+		this will be equal to 0.
 		
 		"""
 		return self.trial_time * 1000

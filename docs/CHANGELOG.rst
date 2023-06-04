@@ -26,6 +26,8 @@ New Features:
   to optionally check for 'key released' events instead of 'key pressed' events.
 * Added a new method :meth:`~klibs.KLEventInterface.EventManager.add_event` for
   a friendlier, more readable way of adding events to the trial sequencer.
+* Added a convenience function :func:`~klibs.KLTime.time_msec` for getting
+  timestamps in milliseconds.
 
 
 Runtime Changes:

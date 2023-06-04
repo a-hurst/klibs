@@ -3,16 +3,21 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 from sdl2 import SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency
 
+# TODO: Clean up the docs and code here
+
 
 def precise_time():
-    """Returns the current time in seconds since an arbitrary past point in time. The time
-    returned is independent of the system's clock, so it won't be disrupted by network clock
-    synchronization, daylight savings time, or anything else. Should be used instead of
-    Python's time.time() when precision is more important than getting a unique value that
-    can be converted back to real-world time.
+    """Returns the time (in seconds) since the task was launched.
+	
+	The time returned has sub-millisecond precision and is independent of the
+	system's clock, so it won't be disrupted by things like network clock
+	synchronization or daylight savings time.
+	
+	Should be used instead of Python's ``time.time()`` when precision is more
+	important than getting a value that can be converted to real-world time.
 
     Returns:
-        float: Seconds since an arbitrary past point in time.
+        float: Seconds since the task was launched.
 
     """
     try:
@@ -20,6 +25,18 @@ def precise_time():
     except AttributeError:
         precise_time.freq = float(SDL_GetPerformanceFrequency())
         return SDL_GetPerformanceCounter() / precise_time.freq
+
+
+def time_msec():
+	"""Returns the time (in milliseconds) since the task was launched.
+
+	See :func:`precise_time` for more info.
+
+    Returns:
+        float: Milliseconds since the task was launched.
+
+	"""
+	return precise_time() * 1000
 
 
 class CountDown(object):

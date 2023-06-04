@@ -78,7 +78,8 @@ class EventManager(object):
 	Then, in the body of the experiment's :meth:`~.KLExperiment.trial` method, the EventManager can
 	then be used to watch for those events and change behaviour when they occur::
 
-		while self.evm.before('target_on', pump_events=True):
+		while self.evm.before('target_on'):
+			ui_request()
 			fill()
 			draw_stimuli()
 			if self.evm.between('cue_on', 'cue_off'):
@@ -148,38 +149,28 @@ class EventManager(object):
 
 
 	def before(self, label, pump_events=False):
-		"""Checks if the current trial time is before a given event.
-
-		.. warning:: Setting 'pump_events' to True will cause the input event queue to be cleared 
-		  every time the method is called. Please use :func:`~.pump` manually in loops where you
-		  will be processing user input.
+		"""Checks whether a given event has yet to occur in the trial.
 
 		Args:
-			label (str): The label of the event to check.
-			pump_events (bool, optional): If True, a :func:`~.ui_request` is performed when this
-				method is called. Defaults to False.
+			label (str): The name of the event to check.
+			pump_events (bool, optional): Deprecated, should always be False.
 
 		Returns:
-			True if the specified event has not yet occured within the trial, otherwise False.
+			True if the specified trial event has yet to occur, otherwise False.
 
 		"""
 		return not self.after(label, pump_events)
 
 
 	def after(self, label, pump_events=False):
-		"""Checks if the current trial time is after a given event.
-
-		.. warning:: Setting 'pump_events' to True will cause the input event queue to be cleared 
-		  every time the method is called. Please use :func:`~.pump` manually in loops where you
-		  will be processing user input.
+		"""Checks whether a given event has occurred in the trial.
 
 		Args:
-			label (str): The label of the event to check.
-			pump_events (bool, optional): If True, a :func:`~.ui_request` is performed when this
-				method is called. Defaults to False.
+			label (str): The name of the event to check.
+			pump_events (bool, optional): Deprecated, should always be False.
 
 		Returns:
-			True if the specified event has already occured within the trial, otherwise False.
+			True if the specified trial event has already occured, otherwise False.
 
 		"""
 		self._ensure_exists(label)
@@ -194,18 +185,18 @@ class EventManager(object):
 		return self.events[label].issued
 
 
-	def between(self, label_1, label_2):
-		"""Checks if the current trial time is between two given events.
+	def between(self, a, b):
+		"""Checks whether the current trial time is between two events.
 
 		Args:
-			label_1 (str): The label of the event to check if it is currently after.
-			label_2 (str): The label of the event to check if it is currently before.
+			a (str): The name of the first event.
+			b (str): The name of the second event.
 		
 		Returns:
-			True if the current trial time is between the specified events, otherwise False.
+			True if the trial time is between events a and b, otherwise False.
 
 		"""
-		return self.after(label_1) and self.before(label_2)
+		return self.after(a) and self.before(b)
 
 
 	def start_clock(self):

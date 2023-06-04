@@ -52,6 +52,8 @@ API Changes:
 * The ``register_ticket`` and ``register_tickets`` methods of
   :class:`~klibs.KLEventInterface.EventManager` are now deprecated in favour of
   ``add_event``.
+* Deprecated the ``pump_events`` options for ``before`` and ``after`` in
+  :class:`~klibs.KLEventInferface.EventManger`.
 
 
 Fixed Bugs:

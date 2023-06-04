@@ -211,14 +211,10 @@ class EventManager(object):
 		built-in ``self.evm``, this is called automatically at the start of
 		every trial.
 
-		Raises:
-			RuntimeError: If this method is called while the trial clock is already running.
-
 		"""
-		if self.start_time != None:
-			err = "The EventManger trial clock cannot be started if it is already running."
-			raise RuntimeError(err)
 		self.start_time = time()
+		for label in self.events.keys():
+			self._issued[label] = False
 
 
 	def stop_clock(self):

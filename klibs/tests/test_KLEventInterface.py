@@ -59,8 +59,7 @@ class TestEventManager(object):
 
     def test_start_stop(self, evm):
         evm.start_clock()
-        with pytest.raises(RuntimeError):
-            evm.start_clock()
+        evm.start_clock()
         evm.stop_clock()
         evm.start_clock()
         evm.stop_clock()

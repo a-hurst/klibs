@@ -201,7 +201,7 @@ class EventManager(object):
 		return self.after(a) and self.before(b)
 
 
-	def start_clock(self):
+	def start(self):
 		"""Starts the EventManager's trial clock.
 		
 		The onsets of events added to the EventManager are relative to when this
@@ -217,13 +217,24 @@ class EventManager(object):
 			self._issued[label] = False
 
 
-	def stop_clock(self):
+	def reset(self):
 		"""Resets the EventManger, clearing all added events.
 
 		"""
 		self.events = {}
 		self._issued = {}
 		self.start_time = None
+
+	
+	def start_clock(self):
+		# Alias for backwards compatibility, will be removed soon
+		self.start()
+
+
+	def stop_clock(self):
+		# Alias for backwards compatibility, will be removed soon
+		self.reset()
+
 
 	@property
 	def trial_time(self):

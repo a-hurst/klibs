@@ -57,23 +57,23 @@ class TestEventManager(object):
         assert evm.events['target_on'] == 1500
         assert evm.events['target_off'] == 1700
 
-    def test_start_stop(self, evm):
-        evm.start_clock()
-        evm.start_clock()
-        evm.stop_clock()
+    def test_start_reset(self, evm):
+        evm.start()
+        evm.start()
+        evm.reset()
         evm.start_clock()
         evm.stop_clock()
 
     def test_trial_time(self, evm):
         with mock.patch("klibs.KLEventInterface.time", wraps=mock_time):
-            evm.start_clock()
+            evm.start()
             add_time(1.5)
             assert evm.trial_time == 1.5
             assert evm.trial_time_ms == 1500
             add_time(0.5)
             assert evm.trial_time == 2.0
             assert evm.trial_time_ms == 2000
-            evm.stop_clock()
+            evm.reset()
 
     def test_before_after(self, evm):
         # Test sequencing of trial events
@@ -96,4 +96,3 @@ class TestEventManager(object):
             assert evm.before('not_an_event')
         with pytest.raises(ValueError):
             assert evm.after('not_an_event')
-        evm.stop_clock()

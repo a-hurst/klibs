@@ -54,6 +54,8 @@ API Changes:
   ``add_event``.
 * Deprecated the ``pump_events`` options for ``before`` and ``after`` in
   :class:`~klibs.KLEventInferface.EventManger`.
+* Renamed :class:`~klibs.KLEventInferface.EventManger`'s ``start_clock`` and
+  ``stop_clock`` methods to ``start`` and ``reset``, respectively.
 
 
 Fixed Bugs:

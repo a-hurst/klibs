@@ -39,6 +39,7 @@ jobs:
 
       - name: Install dependencies for testing
         run: |
+          sudo apt-get install --fix-missing libgl1-mesa-dev
           python -m pip install --upgrade pip
           python -m pip install pytest mock
 

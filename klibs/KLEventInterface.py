@@ -11,6 +11,8 @@ class TrialEventTicket(NamedObject):
 	"""A ticket defining the name and onset time of an event that occurs within a trial. For use
 	with the :obj:`EventManager` class.
 
+	Deprecated, do not use.
+
 	Args:
 		label (:obj:`str`): The identfying name of the trial event (e.g. 'cue on').
 		onset (int or float): The onset time of the event, relative to the start of the trial.

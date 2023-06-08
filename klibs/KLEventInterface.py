@@ -222,6 +222,10 @@ class EventManager(object):
 	def reset(self):
 		"""Resets the EventManger, clearing all added events.
 
+		If you are using the :class:`~klibs.KLExperiment.Experiment` object's
+		built-in ``self.evm``, this is called automatically at the end of
+		every trial.
+
 		"""
 		self.events = {}
 		self._issued = {}
@@ -240,20 +244,10 @@ class EventManager(object):
 
 	@property
 	def trial_time(self):
-		"""float: Time in seconds since the start of the current trial.
-		
-		If called when the EventManager clock is not running (e.g. outside of a trial),
-		this will be equal to 0.
-		
-		"""
+		# Gets time since start() in seconds. Deprecated, not part of public API.
 		return 0.0 if self.start_time == None else (time() - self.start_time)
 
 	@property
 	def trial_time_ms(self):
-		"""float: Time in milliseconds since the start of the current trial.
-		
-		If called when the EventManager clock is not running (e.g. outside of a trial),
-		this will be equal to 0.
-		
-		"""
+		# Gets time since start() in milliseconds. Not part of the public API.
 		return self.trial_time * 1000

@@ -2,6 +2,7 @@
 **/.*
 !.gitignore
 !.github
+!.git-blame-ignore-revs
 build
 build/*
 dist

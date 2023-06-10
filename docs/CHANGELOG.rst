@@ -24,6 +24,10 @@ New Features:
   ``font = "ComicSans"`` without manually loading the font.
 * Added a ``released`` argument to :func:`~klibs.KLUserInterface.key_pressed`
   to optionally check for 'key released' events instead of 'key pressed' events.
+* Added a new method :meth:`~klibs.KLEventInterface.EventManager.add_event` for
+  a friendlier, more readable way of adding events to the trial sequencer.
+* Added a convenience function :func:`~klibs.KLTime.time_msec` for getting
+  timestamps in milliseconds.
 
 
 Runtime Changes:
@@ -47,6 +51,20 @@ API Changes:
   returns the magnitude of measured drift error (in degrees).
 * Added a new parameter ``P.default_line_space`` for setting a custom
   default line spacing for text rendering (defaults to ``2.0``).
+* The ``register_ticket`` and ``register_tickets`` methods of
+  :class:`~klibs.KLEventInterface.EventManager` are now deprecated in favour of
+  ``add_event``.
+* Deprecated the ``pump_events`` options for ``before`` and ``after`` in
+  :class:`~klibs.KLEventInferface.EventManger`.
+* Renamed :class:`~klibs.KLEventInferface.EventManger`'s ``start_clock`` and
+  ``stop_clock`` methods to ``start`` and ``reset``, respectively.
+* Deprecated the ``trial_time`` and ``trial_time_ms`` attributes for
+  :class:`~klibs.KLEventInferface.EventManger`. Measuring durations within a
+  trial should be done with :mod:`~klibs.KLTime` functions/classes instead.
+* Removed the :class:`~klibs.KLEventInferface.EventManger` instance from
+  KLEnvironment and :class:`~klibs.KLEnvironment.EnvAgent`. The global
+  ``EventManager`` instance for the Experiment object (``self.evm``) is now a
+  regular attribute.
 
 
 Fixed Bugs:

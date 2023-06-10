@@ -7,7 +7,6 @@ by importing it from here.
 
 Attributes:
 	exp (:obj:`Experiment`): A pointer to the Experiment object of the current project.
-	evm (:obj:`EventManager`): The EventManager instance for the current KLibs session.
 	txtm (:obj:`TextManager`): The TextManager instance for the current project.
 	db (:obj:`DatabaseManager`): The connection to the current project's database.
 	el (:obj:`EyeLinkExt` or None): If 'P.eye_tracking' is True, this is the EyeLink (or TryLink)
@@ -16,7 +15,6 @@ Attributes:
 """
 
 exp = None  	# Experiment instance
-evm = None  	# EventManager instance
 txtm = None  	# TextManager instance
 db = None  		# DatabaseManager instance
 el = None  		# EyeLink instance
@@ -26,15 +24,6 @@ class EnvAgent(object):
 
 	def __init__(self):
 		object.__init__(self)
-
-	@property
-	def evm(self):
-		""":obj:`~klibs.KLEventInterface.EventManager`: The EventManager instance for the 
-		current KLibs runtime environment. 
-
-		"""
-		from klibs.KLEnvironment import evm
-		return evm
 
 	@property
 	def exp(self):

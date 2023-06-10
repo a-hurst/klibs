@@ -19,6 +19,7 @@ class Experiment(EnvAgent):
 	paused = False
 
 	def __init__(self):
+		from klibs.KLEventInterface import EventManager
 		from klibs.KLAudio import AudioManager
 		from klibs.KLResponseCollectors import ResponseCollector
 		from klibs.KLTrialFactory import TrialFactory
@@ -31,7 +32,8 @@ class Experiment(EnvAgent):
 
 		self.audio = AudioManager() # initialize audio management for the experiment
 		self.rc = ResponseCollector() # add default response collector
-		self.database = self.db # use database from evm
+		self.database = self.db # use database from env
+		self._evm = EventManager()
 
 		self.trial_factory = TrialFactory()
 		if P.manual_trial_generation is False:
@@ -337,3 +339,15 @@ class Experiment(EnvAgent):
 			blit(logo, 5, P.screen_c)
 			flip()
 		any_key()
+
+
+	@property
+	def evm(self):
+		""":obj:`~klibs.KLEventInterface.EventManager`: The trial event sequencer for
+		the experiment.
+
+		Is automatically started just prior to running :meth:`trial`, and automatically
+		reset when each trial ends.
+
+		"""
+		return self._evm

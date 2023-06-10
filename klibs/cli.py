@@ -349,7 +349,6 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 	env.db = DatabaseManager(
 		P.database_path, P.database_local_path if P.multi_user else None
 	)
-	env.evm = EventManager()
 
 	try:
 		# create basic text styles, load in user queries, and initialize slack (if enabled)

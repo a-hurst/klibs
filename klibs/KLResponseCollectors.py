@@ -6,7 +6,7 @@ from collections import namedtuple
 import aggdraw
 from sdl2 import SDL_GetKeyFromName, SDL_KEYDOWN, SDL_KEYUP, SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP
 
-from klibs.KLEnvironment import EnvAgent, evm
+from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import BoundaryError
 from klibs.KLNamedObject import NamedObject
 from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS,
@@ -277,6 +277,11 @@ class ResponseListener(NamedObject, EnvAgent):
 		
 		"""
 		return self.__eyetracking
+	
+	@property
+	def evm(self):
+		# Awful hack, but needed to avoid breaking CAST for now
+		return self.exp.evm
 
 
 class KeyPressResponse(ResponseListener):
@@ -1210,7 +1215,7 @@ class ResponseCollector(EnvAgent):
 			self.after_flip_callback(*self.after_flip_args, **self.after_flip_kwargs)
 		
 		# Set collection start time for calculating RTs later, enter collection loop
-		self.rc_start_time = self.evm.trial_time_ms
+		self.rc_start_time = self.exp.evm.trial_time_ms
 		for l in self.using():
 			self.listeners[l]._rc_start = self.rc_start_time
 		self.__collect()
@@ -1235,10 +1240,10 @@ class ResponseCollector(EnvAgent):
 
 			# Check if response collection has timed out or end collection event has occurred
 			if self.end_collection_event:
-				if self.evm.after(self.end_collection_event):
+				if self.exp.evm.after(self.end_collection_event):
 					break
 			else:
-				t = self.evm.trial_time_ms
+				t = self.exp.evm.trial_time_ms
 				timeout = self.terminate_after[0]
 				if self.terminate_after[1] == TK_S: timeout *= 1000.0
 				if t > (self.rc_start_time + timeout):

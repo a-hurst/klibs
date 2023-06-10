@@ -1,6 +1,5 @@
 KLEventInterface
 ================
 
-.. automodule:: klibs.KLEventInterface
-	:undoc-members:
+.. autoclass:: klibs.KLEventInterface.EventManager
 	:members:

@@ -1,7 +1,7 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 from klibs.KLNamedObject import NamedInventory, NamedObject
-from klibs.KLUtilities import iterable
+from klibs.KLInternal import iterable
 
 
 class VariableValue(NamedObject):

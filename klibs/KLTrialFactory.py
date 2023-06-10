@@ -1,15 +1,66 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+import os
 import sys
 import random
 from collections import OrderedDict
 from copy import copy, deepcopy
 from itertools import product
-from os.path import exists, join
 		
 from klibs import P
 from klibs.KLInternal import load_source
 from klibs.KLIndependentVariable import IndependentVariableSet
+from klibs.KLStructure import FactorSet
+
+
+def _load_factors(path):
+	# Imports either a FactorSet or IndependentVariableSet from a file and
+	# coerces it to a dict of trial factors.
+
+	# Try loading an IndependentVariableSet first, if one exists
+	ind_vars = load_source(path)
+	set_name = "{0}_ind_vars".format(P.project_name)
+	if set_name in ind_vars.keys():
+		factors = ind_vars[set_name].to_dict()
+
+	# Otherwise, try loading a FactorSet
+	elif "exp_factors" in ind_vars.keys():
+		factors = ind_vars["exp_factors"]._factors
+
+	else:
+		err = "Unable to find a valid factor set in '{0}'."
+		raise RuntimeError(err.format(path))
+
+	return factors
+
+
+def _generate_blocks(factors, block_count, trial_count):
+	# Generates a list of blocks (which are lists of trials, which are dicts of
+	# trial factors) based on a given factor set, trial count, & block count.
+
+	# Convert factor dict into a FactorSet
+	factors = FactorSet(factors)
+
+	# Determine the correct trial count
+	if trial_count <= 0:
+		trial_count = factors.set_length
+
+	# Generate a full set of shuffled blocks for the experiment
+	blocks = []
+	while len(blocks) < block_count:
+		# Generate the trials for each block
+		trials = []
+		while len(trials) < trial_count:
+			new = factors._get_combinations()
+			remaining = trial_count - len(trials)
+			random.shuffle(new)
+			if remaining < len(new):
+				new = new[:remaining]
+			trials += new
+
+		blocks.append(trials)
+
+	return blocks
 
 
 class BlockIterator(object):
@@ -97,14 +148,11 @@ class TrialFactory(object):
 		self.trial_generator = self.__generate_trials
 
 		# Load experiment factors from the project's _independent_variables.py file(s)
-		factors = self.__load_ind_vars(P.ind_vars_file_path)
-		if not P.dm_ignore_local_overrides:
-			try:
-				sys.path.append(P.ind_vars_file_local_path)
-				local_factors = self.__load_ind_vars(P.ind_vars_file_local_path)
+		factors = _load_factors(P.ind_vars_file_path)
+		if os.path.exists(P.ind_vars_file_local_path):
+			if not P.dm_ignore_local_overrides:
+				local_factors = _load_factors(P.ind_vars_file_local_path)
 				factors.update(local_factors)
-			except IOError:
-				pass
 		
 		# Create alphabetically-sorted ordered dict from factors
 		self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
@@ -124,54 +172,8 @@ class TrialFactory(object):
 
 
 	def __generate_trials(self, factors, block_count, trial_count):
-		# NOTE: Needs a full rewrite, which will break random seed backwards
-		# compatibility.
-		factor_list = []
-		for name, values in factors.items(): # convert dict to list
-			factor_list.append([name, values])
-
-		trial_tuples = list(product(*[factor[1][:] for factor in factor_list]))
-		if len(trial_tuples) == 0:
-			trial_tuples = [ [] ]
-
-		# Convert each trial tuple to a dict
-		trial_set = []
-		for t in trial_tuples:
-			i = 0
-			trial_factors = {}
-			for f in factors.keys():
-				trial_factors[f] = t[i]
-				i += 1
-			trial_set.append(trial_factors)
-
-		trial_set_count = len(trial_set)
-		trials = copy(trial_set)
-		random.shuffle(trials)
-
-		if trial_count <= 0:
-			trial_count = trial_set_count
-		total_trials = block_count * trial_count
-
-		if total_trials > trial_set_count:
-			trial_shortage = total_trials - trial_set_count
-			while len(trials) < total_trials:
-				more_trials = copy(trial_set)
-				random.shuffle(more_trials)
-				if trial_shortage >= trial_set_count:
-					trials.extend(more_trials)
-					trial_shortage -= trial_set_count
-				else:
-					trials.extend(more_trials[0:trial_shortage])
-		if total_trials < trial_set_count:
-			while len(trials) > total_trials:
-				trials.pop()
-		
-		# Divide full list of trials into blocks of equal size (block size = trial_count)
-		blocks = []
-		for i in range(0, len(trials), trial_count):
-			blocks.append(trials[i:i + trial_count])
-
-		return blocks
+		# NOTE: Factored into a separate function for easier unit testing
+		return _generate_blocks(factors, block_count, trial_count)
 
 
 	def generate(self, exp_factors=None, block_count=None, trial_count=None):
@@ -240,7 +242,7 @@ class TrialFactory(object):
 
 	def dump(self):
 		# TODO: Needs a rewrite
-		with open(join(P.local_dir, "TrialFactory_dump.txt"), "w") as log_f:
+		with open(os.path.join(P.local_dir, "TrialFactory_dump.txt"), "w") as log_f:
 			log_f.write("Blocks: {0}, ".format(P.blocks_per_experiment))
 			log_f.write("Trials: {0}\n\n".format(P.trials_per_block))
 			log_f.write("*****************************************\n")
@@ -261,19 +263,3 @@ class TrialFactory(object):
 					trial_num += 1
 				block_num += 1
 				log_f.write("\n")
-
-
-	@property
-	def trial_generation_function(self, trial_generator):
-		"""Not properly implemented, unlikely to work. Still figuring out how/if custom
-		trial generation should be handled.
-		"""
-		return self.trial_generator
-
-
-	@trial_generation_function.setter
-	def trial_generation_function(self, trial_generator):
-		if not hasattr(trial_generator, '__call__'):
-			raise ValueError("trial_generator must be a function definition.")
-		else:
-			self.trial_generator = trial_generator

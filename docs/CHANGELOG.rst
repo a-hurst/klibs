@@ -3,7 +3,7 @@ Changelog
 This is a log of the latest changes and improvements to KLibs.
 
 
-0.7.6a2
+0.7.7b1
 -------
 
 Released on 2023-02-XX
@@ -22,6 +22,8 @@ New Features:
   add fonts with ``txtm.add_font``. For example, if ``ComicSans.ttf`` is present
   in the experiment's font folder, you can now create a custom font style with
   ``font = "ComicSans"`` without manually loading the font.
+* Added a new dict-based API, :obj:`~klibs.KLStructure.FactorSet`, for defining
+  the per-trial categorical factors and their levels for the experiment.
 * Added a ``released`` argument to :func:`~klibs.KLUserInterface.key_pressed`
   to optionally check for 'key released' events instead of 'key pressed' events.
 * Added a new method :meth:`~klibs.KLEventInterface.EventManager.add_event` for
@@ -31,6 +33,13 @@ New Features:
 
 
 Runtime Changes:
+* The way that trials are internally generated and randomized has been changed,
+  breaking random seed compatibility with older releases.
+* Previously, it was possible (albeit unlikely) for a block with more than
+  enough trials for a complete factor set (e.g. trial count of 24 for a factor
+  set of 16) to be missing one or more possible factor combinations. This has
+  now been fixed, as each block of trials is now generated individually (instead
+  of being generated all at once and then split into blocks).
 * The TryLink mouse-simulated eye tracker now supports performing drift correct
   by pressing the space bar in addition to clicking.
 * The EyeLink camera setup image is now always scaled to a height of 480 pixels
@@ -75,7 +84,7 @@ Fixed Bugs:
   rendered within the same message.
 
 
-0.7.6a1
+0.7.6b1
 -------
 
 Released on 2022-12-01.

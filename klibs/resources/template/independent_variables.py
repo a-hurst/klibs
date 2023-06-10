@@ -42,6 +42,9 @@ factors defined in your FactorSet:
             self.cue_loc = self.right_loc
             self.target_loc = self.right_loc if valid_cue else self.left_loc
 
+If a level of a factor is repeated multiple times (e.g. 3 valid cues per invalid cue),
+you can also note this using a `(level, count)` tuple as shorthand, e.g. `('valid', 3)`.
+
 """
 
 exp_factors = FactorSet({

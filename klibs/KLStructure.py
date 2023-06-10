@@ -4,12 +4,6 @@ from collections import OrderedDict
 
 from klibs.KLInternal import iterable
 
-# TODO: Add tuple support to FactorSets for repeated factors (e.g. ('valid', 3))?
-# Could also create a custom class or function for this, e.g. rep('valid', 3),
-# so you can have tuples as factors (e.g. colours) without breaking things
-#  - Depends on whether having iterables as factor levels is a good or bad idea,
-#    so will need to think on it.
-
 
 class FactorSet(object):
     """A class representing the full set of factors for an experiment.
@@ -29,15 +23,43 @@ class FactorSet(object):
     This creates a set with 18 unique factor combinations (2 x 3 x 3 = 18) that
     can be then used within KLibs.
 
+    If a level of a factor is repeated multiple times, you can specify this by
+    either repeating the level (e.g. ``[True, True, False]``) or by using a
+    ``(level, count)`` tuple as shorthand (e.g. ``[(True, 2), False]``). Apart
+    from those in this specific format, tuples are not supported as valid
+    factor levels.
+
 	Args:
 		factors (dict): A dictionary in the format ``{'factor': values}``,
 			specifying all possible levels of each factor in the set.
 
 	"""
-    def __init__(self, factors=None):
-        if factors is None:
-            factors = {}
-        self._factors = OrderedDict(deepcopy(factors))
+    def __init__(self, factors={}):
+        self._factors = OrderedDict()
+        for factor, levels in factors.items():
+            self._factors[factor] = self._parse_levels(levels)
+
+    def _validate_tuple(self, x):
+        # Ensures a tuple is in the correct 'repeating level' shorthand
+        if not len(x) == 2 or not isinstance(x[1], int):
+            e = ("Tuples are not supported as factors except in (level, count) "
+                 "form to specify a repeating level.")
+            raise RuntimeError(e)
+
+    def _parse_levels(self, levels):
+        # If level isn't iterable, return as a single-item list
+        if not iterable(levels):
+            return [levels]
+        # Unpack any 'repeated level' tuples in the list
+        out = []
+        for level in levels:
+            if isinstance(level, tuple):
+                self._validate_tuple(level)
+                value, count = level
+                out += [value] * count
+            else:
+                out.append(level)
+        return out
         
     def _get_combinations(self):
         # Generates a list of all unique factor combinations in the set
@@ -83,13 +105,11 @@ class FactorSet(object):
                 name of an existing factor in the set.
         
         """
-        err = "'{0}' is not the name of a factor in the set."
+        err = "Factor '{0}' does not exist within the set."
         new = deepcopy(self._factors)
         for factor in factor_mask.keys():
             if factor in self.names:
                 new_levels = factor_mask[factor]
-                if not iterable(new_levels):
-                    new_levels = [new_levels]
                 new[factor] = new_levels
             else:
                 raise ValueError(err.format(factor))

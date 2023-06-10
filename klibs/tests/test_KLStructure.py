@@ -24,6 +24,20 @@ class TestFactorSet(object):
         assert len(tst.names) == 3
         assert 'cue_loc' in tst.names
 
+        # Test 'repeated level' shorthand
+        tst = FactorSet({
+            'target_loc': ['left', 'right'],
+            'cue_validity': [('valid', 3), 'invalid'],
+        })
+        assert tst.set_length == 8
+
+        # Test exception on invalid tuple input
+        with pytest.raises(RuntimeError):
+            tst = FactorSet({
+                'target_loc': ['left', 'right'],
+                'colour': [(0, 0, 0), (255, 255, 255)],
+            })
+
         # Test creating empty factor set
         tst = FactorSet({})
         assert tst._get_combinations() == [{}]
@@ -63,11 +77,20 @@ class TestFactorSet(object):
         assert tst2.names == tst.names
         assert len(tst2._factors['soa']) == 1
 
+        # Ensure original factor set wasn't modified
+        assert len(tst._factors['soa']) == 4
+
         # Test override with non-iterable
         tst3 = tst.override({'easy_trial': True})
         assert tst3.set_length == 12
         assert tst3.names == tst.names
         assert len(tst3._factors['easy_trial']) == 1
+
+        # Test override with repeated level tuple
+        tst4 = tst.override({'easy_trial': [True, (False, 2)]})
+        assert tst4.set_length == 36
+        assert tst4.names == tst.names
+        assert len(tst4._factors['easy_trial']) == 3
 
         # Test error on non-existant factor
         with pytest.raises(ValueError):

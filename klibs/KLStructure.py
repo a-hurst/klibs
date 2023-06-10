@@ -29,11 +29,11 @@ class FactorSet(object):
     from those in this specific format, tuples are not supported as valid
     factor levels.
 
-	Args:
-		factors (dict): A dictionary in the format ``{'factor': values}``,
-			specifying all possible levels of each factor in the set.
+    Args:
+        factors (dict): A dictionary in the format ``{'factor': values}``,
+            specifying all possible levels of each factor in the set.
 
-	"""
+    """
     def __init__(self, factors={}):
         self._factors = OrderedDict()
         for factor, levels in factors.items():

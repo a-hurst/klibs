@@ -174,93 +174,93 @@ logo_file_path = None
 
 
 def initialize_paths(exp_name):
-	"""Initializes the experiment's file paths within the Params module.
+    """Initializes the experiment's file paths within the Params module.
 
-	Since the names of various files required by a KLibs experiment are based on
-	the experiment name, they need to be dynamically determined at runtime. This
-	internal function initializes the full paths to those files in the Params
-	module based on the given experient name.
+    Since the names of various files required by a KLibs experiment are based on
+    the experiment name, they need to be dynamically determined at runtime. This
+    internal function initializes the full paths to those files in the Params
+    module based on the given experient name.
 
-	Args:
-		exp_name (str): The name of the Experiment class in the project's
-			``experiment.py`` file.
+    Args:
+        exp_name (str): The name of the Experiment class in the project's
+            ``experiment.py`` file.
 
-	"""
-	global project_name
-	
-	global database_path
-	global database_backup_path
-	global params_file_path
-	global params_local_file_path
-	global ind_vars_file_path
-	global ind_vars_file_local_path
-	global schema_file_path
-	global user_queries_file_path
-	global log_file_path
+    """
+    global project_name
+    
+    global database_path
+    global database_backup_path
+    global params_file_path
+    global params_local_file_path
+    global ind_vars_file_path
+    global ind_vars_file_local_path
+    global schema_file_path
+    global user_queries_file_path
+    global log_file_path
 
-	# Set experiment name globally in module
-	project_name = exp_name
+    # Set experiment name globally in module
+    project_name = exp_name
 
-	# Initialize project file names
-	database_filename = "{0}.db".format(project_name)
-	database_backup_filename = "{0}.db.backup".format(project_name)
-	params_filename = "{0}_params.py".format(project_name)
-	ind_vars_filename = "{0}_independent_variables.py".format(project_name)
-	schema_filename = "{0}_schema.sql".format(project_name)
-	user_queries_filename = "{0}_user_queries.json".format(project_name)
-	log_filename = "{0}_log.txt".format(project_name)
+    # Initialize project file names
+    database_filename = "{0}.db".format(project_name)
+    database_backup_filename = "{0}.db.backup".format(project_name)
+    params_filename = "{0}_params.py".format(project_name)
+    ind_vars_filename = "{0}_independent_variables.py".format(project_name)
+    schema_filename = "{0}_schema.sql".format(project_name)
+    user_queries_filename = "{0}_user_queries.json".format(project_name)
+    log_filename = "{0}_log.txt".format(project_name)
 
-	# Initialize project file paths
-	database_path = join(asset_dir, database_filename)
-	database_backup_path = join(asset_dir, database_backup_filename)
-	params_file_path = join(config_dir, params_filename)
-	params_local_file_path = join(local_dir, params_filename)
-	ind_vars_file_path = join(config_dir, ind_vars_filename)
-	ind_vars_file_local_path = join(local_dir, ind_vars_filename)
-	schema_file_path = join(config_dir, schema_filename)
-	user_queries_file_path = join(config_dir, user_queries_filename)
-	log_file_path = join(asset_dir, log_filename)
+    # Initialize project file paths
+    database_path = join(asset_dir, database_filename)
+    database_backup_path = join(asset_dir, database_backup_filename)
+    params_file_path = join(config_dir, params_filename)
+    params_local_file_path = join(local_dir, params_filename)
+    ind_vars_file_path = join(config_dir, ind_vars_filename)
+    ind_vars_file_local_path = join(local_dir, ind_vars_filename)
+    schema_file_path = join(config_dir, schema_filename)
+    user_queries_file_path = join(config_dir, user_queries_filename)
+    log_file_path = join(asset_dir, log_filename)
 
 
 def initialize_runtime(exp_name, randseed):
-	"""Initializes all runtime paths and attributes within the Params module.
+    """Initializes all runtime paths and attributes within the Params module.
 
-	In addition to the basic initialization done by :func:`initialize_paths`,
-	this function sets the runtime's random seed and loads additional internal
-	resources only required when actually running the experiment.
-	
-	Since the loading of package resources can be noticably slow, the
-	separation of this function from `initialize_paths` allows KLibs to avoid
-	unnecessary lag when calling things like ``klibs export`` or ``klibs -h``.
+    In addition to the basic initialization done by :func:`initialize_paths`,
+    this function sets the runtime's random seed and loads additional internal
+    resources only required when actually running the experiment.
+    
+    Since the loading of package resources can be noticably slow, the
+    separation of this function from `initialize_paths` allows KLibs to avoid
+    unnecessary lag when calling things like ``klibs export`` or ``klibs -h``.
 
-	Args:
-		exp_name (str): The name of the Experiment class in the project's
-			``experiment.py`` file.
-		randseed (int): The random seed to use for the experiment runtime.
+    Args:
+        exp_name (str): The name of the Experiment class in the project's
+            ``experiment.py`` file.
+        randseed (int): The random seed to use for the experiment runtime.
 
-	"""
-	import random
-	import tempfile
-	from pkg_resources import resource_filename, resource_string
+    """
+    import random
+    import tempfile
+    from pkg_resources import resource_filename, resource_string
 
-	global random_seed
-	global klibs_commit
-	global database_local_path
-	global logo_file_path
-	global font_dirs
+    global random_seed
+    global klibs_commit
+    global database_local_path
+    global logo_file_path
+    global font_dirs
 
-	# Initialize Python's random number generator with a reproducible seed
-	random_seed = randseed
-	random.seed(random_seed)
+    # Initialize Python's random number generator with a reproducible seed
+    random_seed = randseed
+    random.seed(random_seed)
 
-	# Initialize project paths
-	initialize_paths(exp_name)
-	database_local_filename = "{0}_{1}.db".format(project_name, random_seed)
-	database_local_path = join(tempfile.gettempdir(), database_local_filename)
+    # Initialize project paths
+    initialize_paths(exp_name)
+    database_local_filename = "{0}_{1}.db".format(project_name, random_seed)
+    database_local_path = join(tempfile.gettempdir(), database_local_filename)
 
-	# Load extra resources from KLibs package
-	klibs_commit_raw = resource_string('klibs', 'resources/current_commit.txt')
-	klibs_commit = str(klibs_commit_raw.decode('utf-8'))
-	logo_file_path = resource_filename('klibs', 'resources/splash.png')
-	font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
-	
+    # Load extra resources from KLibs package
+    klibs_commit_raw = resource_string('klibs', 'resources/current_commit.txt')
+    klibs_commit = str(klibs_commit_raw.decode('utf-8'))
+    logo_file_path = resource_filename('klibs', 'resources/splash.png')
+    font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
+    

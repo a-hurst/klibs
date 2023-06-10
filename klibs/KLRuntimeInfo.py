@@ -13,31 +13,31 @@ from klibs import P
 
 session_info_schema = """
 CREATE TABLE session_info (
-	id integer primary key autoincrement not null,
-	participant_id integer not null references participants(id),
-	session_number integer not null,
-	complete integer not null, /* false by default, set to true at very end */
-	
-	date text not null,
+    id integer primary key autoincrement not null,
+    participant_id integer not null references participants(id),
+    session_number integer not null,
+    complete integer not null, /* false by default, set to true at very end */
+    
+    date text not null,
     time text not null,
-	klibs_commit text not null,
-	random_seed text not null,
+    klibs_commit text not null,
+    random_seed text not null,
 
-	trials_per_block integer not null,
-	blocks_per_session integer not null,
-	
-	os_version text not null,
-	python_version text not null,
-	
-	screen_size text not null,
-	screen_res text not null,
-	viewing_dist text not null,
-	
-	eyetracker text, /* not available until el.setup() is run */
-	el_velocity_thresh integer,
-	el_accel_thresh integer,
-	el_motion_thresh float
-	
+    trials_per_block integer not null,
+    blocks_per_session integer not null,
+    
+    os_version text not null,
+    python_version text not null,
+    
+    screen_size text not null,
+    screen_res text not null,
+    viewing_dist text not null,
+    
+    eyetracker text, /* not available until el.setup() is run */
+    el_velocity_thresh integer,
+    el_accel_thresh integer,
+    el_motion_thresh float
+    
 )"""
 
 

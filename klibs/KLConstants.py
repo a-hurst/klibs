@@ -62,9 +62,9 @@ EL_SACCADE_START = 5
 EL_SACCADE_END = 6
 EL_SACCADE_BOTH = [5, 6]
 EL_ALL_EVENTS = [
-	EL_BLINK_START, EL_BLINK_END,
-	EL_SACCADE_START, EL_SACCADE_END,
-	EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_UPDATE
+    EL_BLINK_START, EL_BLINK_END,
+    EL_SACCADE_START, EL_SACCADE_END,
+    EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_UPDATE
 ]
 
 # KLNumpySurface Constants
@@ -113,9 +113,9 @@ QUERY_UPD = "update"
 QUERY_DEL = "delete"
 QUERY_SEL = "select"
 DB_INTERNAL_TABLES = [
-	'sqlite_sequence',
-	'session_info',
-	'export_history',
+    'sqlite_sequence',
+    'session_info',
+    'export_history',
 ]
 
 # AudioResponse Constants

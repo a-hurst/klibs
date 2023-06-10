@@ -58,6 +58,9 @@ API Changes:
   :class:`~klibs.KLEventInferface.EventManger`.
 * Renamed :class:`~klibs.KLEventInferface.EventManger`'s ``start_clock`` and
   ``stop_clock`` methods to ``start`` and ``reset``, respectively.
+* Deprecated the ``trial_time`` and ``trial_time_ms`` attributes for
+  :class:`~klibs.KLEventInferface.EventManger`. Measuring durations within a
+  trial should be done with :mod:`~klibs.KLTime` functions/classes instead.
 * Removed the :class:`~klibs.KLEventInferface.EventManger` instance from
   KLEnvironment and :class:`~klibs.KLEnvironment.EnvAgent`. The global
   ``EventManager`` instance for the Experiment object (``self.evm``) is now a

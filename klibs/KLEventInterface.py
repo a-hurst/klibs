@@ -183,7 +183,7 @@ class EventManager(object):
 
 		# If event wasn't already issued, check if it should be issued now
 		if not self._issued[label]:
-			if self.events[label] < self.trial_time_ms:
+			if self.events[label] < self.time_elapsed:
 				self._issued[label] = True
 
 		return self._issued[label]
@@ -243,11 +243,20 @@ class EventManager(object):
 
 
 	@property
+	def time_elapsed(self):
+		# Internal method for getting time since start() in milliseconds.
+		if not self.start_time:
+			return 0.0
+		return (time() - self.start_time) * 1000
+
+
+	@property
 	def trial_time(self):
 		# Gets time since start() in seconds. Deprecated, not part of public API.
-		return 0.0 if self.start_time == None else (time() - self.start_time)
+		return self.time_elapsed / 1000.0
+
 
 	@property
 	def trial_time_ms(self):
-		# Gets time since start() in milliseconds. Not part of the public API.
-		return self.trial_time * 1000
+		# Alias for backwards compatibility, not part of the public API.
+		return self.time_elapsed

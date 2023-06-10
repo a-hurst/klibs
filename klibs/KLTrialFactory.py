@@ -263,19 +263,3 @@ class TrialFactory(object):
 					trial_num += 1
 				block_num += 1
 				log_f.write("\n")
-
-
-	@property
-	def trial_generation_function(self, trial_generator):
-		"""Not properly implemented, unlikely to work. Still figuring out how/if custom
-		trial generation should be handled.
-		"""
-		return self.trial_generator
-
-
-	@trial_generation_function.setter
-	def trial_generation_function(self, trial_generator):
-		if not hasattr(trial_generator, '__call__'):
-			raise ValueError("trial_generator must be a function definition.")
-		else:
-			self.trial_generator = trial_generator

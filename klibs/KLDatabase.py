@@ -7,7 +7,6 @@ import shutil
 import sqlite3
 import tempfile
 from copy import copy
-from itertools import chain
 from collections import OrderedDict
 
 from klibs.KLEnvironment import EnvAgent
@@ -19,7 +18,6 @@ from klibs.KLConstants import (
 )
 from klibs import P
 from klibs.KLInternal import full_trace, iterable, utf8
-from klibs.KLInternal import colored_stdout as cso
 from klibs.KLRuntimeInfo import session_info_schema
 
 

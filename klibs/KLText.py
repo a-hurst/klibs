@@ -3,22 +3,20 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 import os
 import re
 from os.path import isfile, join, basename
-from math import floor, ceil
 import ctypes
 from ctypes import byref, c_int
 
-from sdl2.sdlttf import (TTF_Init, TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_Blended,
-    TTF_SizeUTF8, TTF_GlyphMetrics, TTF_FontHeight, TTF_FontLineSkip)
+from sdl2.sdlttf import (TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_Blended,
+    TTF_SizeUTF8, TTF_GlyphMetrics, TTF_FontLineSkip)
 from sdl2 import SDL_Color
 from sdl2.ext.compat import byteify
 from sdl2.ext import surface_to_ndarray, raise_sdl_err
 from sdl2.ext.ttf import _ttf_init
-import numpy as np
 
 from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
 from klibs import P
 from klibs.KLEnvironment import EnvAgent
-from klibs.KLUtilities import deg_to_px, px_to_deg, utf8
+from klibs.KLUtilities import deg_to_px, utf8
 from klibs.KLGraphics import rgb_to_rgba
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 

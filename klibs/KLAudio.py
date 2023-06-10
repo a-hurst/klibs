@@ -2,9 +2,7 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
-import sys
 import math
-import time
 import ctypes
 from ctypes import c_uint, c_ubyte
 from array import array
@@ -12,8 +10,10 @@ from array import array
 import numpy as np 
 import sdl2.ext
 from sdl2 import SDLK_c, SDLK_v
-from sdl2.sdlmixer import (Mix_LoadWAV, Mix_QuickLoad_RAW, Mix_PlayChannel, Mix_PlayChannelTimed, 
-    Mix_HaltChannel, Mix_Playing, Mix_VolumeChunk)
+from sdl2.sdlmixer import (
+    Mix_OpenAudio, Mix_LoadWAV, Mix_QuickLoad_RAW, Mix_PlayChannel,
+    Mix_HaltChannel, Mix_Playing, Mix_VolumeChunk, MIX_DEFAULT_FORMAT,
+)
 
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import AR_CHUNK_READ_SIZE, AR_CHUNK_SIZE, AR_RATE
@@ -56,7 +56,7 @@ class AudioManager(object):
         super(AudioManager, self).__init__()
         if not sdl2.SDL_WasInit(sdl2.SDL_INIT_AUDIO):
             sdl2.SDL_Init(sdl2.SDL_INIT_AUDIO)
-            sdl2.sdlmixer.Mix_OpenAudio(44100, sdl2.sdlmixer.MIX_DEFAULT_FORMAT, 2, 1024)
+            Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)
         self.input = None
         self.stream = None
         if PYAUDIO_AVAILABLE:

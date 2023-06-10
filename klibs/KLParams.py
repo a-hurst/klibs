@@ -14,7 +14,6 @@ the alias ``P`` (e.g. ``from klibs import P``).
 
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-import logging
 from os.path import join
 
 # TODO: Try making the Params "P" an object or AttributeDict? Could set attributes

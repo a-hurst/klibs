@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-from klibs.KLExceptions import TrialException, EyeTrackerError
+from klibs.KLExceptions import EyeTrackerError
 from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
     EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
     EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
@@ -10,7 +10,6 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
     TK_S, TK_MS)
 from klibs import P
 from klibs.KLUtilities import iterable, pretty_list
-from klibs.KLUserInterface import ui_request
 from klibs.KLBoundary import BoundaryInspector
 from klibs.KLGraphics import blit, fill, flip
 

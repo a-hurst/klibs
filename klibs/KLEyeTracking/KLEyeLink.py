@@ -2,23 +2,19 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
-import time
 from sdl2.ext import cursor_hidden
 from klibs.KLEyeTracking import PYLINK_AVAILABLE
 
-from klibs.KLExceptions import TrialException, EyeTrackerError
+from klibs.KLExceptions import EyeTrackerError
 from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
     EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
     EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
     EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
     EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
-    TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
+    TK_S, TK_MS)
 from klibs import P
-from klibs.KLInternal import full_trace, valid_coords, now, hide_stderr
-from klibs.KLInternal import colored_stdout as cso
-from klibs.KLUserInterface import ui_request, show_cursor, hide_cursor
-from klibs.KLGraphics import blit, fill, flip, clear
-from klibs.KLGraphics.KLDraw import drift_correct_target
+from klibs.KLInternal import now, hide_stderr
+from klibs.KLUserInterface import show_cursor, hide_cursor
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
 
 if PYLINK_AVAILABLE:

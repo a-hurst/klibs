@@ -1,15 +1,12 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
-import sys
 import random
 from collections import OrderedDict
-from copy import copy, deepcopy
-from itertools import product
+from copy import deepcopy
         
 from klibs import P
 from klibs.KLInternal import load_source
-from klibs.KLIndependentVariable import IndependentVariableSet
 from klibs.KLStructure import FactorSet
 
 

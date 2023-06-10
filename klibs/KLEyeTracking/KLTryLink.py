@@ -7,12 +7,10 @@ from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EY
     EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
     EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
     EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
-    TK_S, TK_MS, CIRCLE_BOUNDARY, RECT_BOUNDARY)
+    TK_S, TK_MS)
 from klibs import P
-from klibs.KLUtilities import iterable, now, mean, line_segment_len, px_to_deg
+from klibs.KLUtilities import now, line_segment_len, px_to_deg
 from klibs.KLBoundary import CircleBoundary
-from klibs.KLGraphics import fill, blit, flip
-from klibs.KLGraphics.KLDraw import drift_correct_target
 from klibs.KLEventQueue import pump, flush
 from klibs.KLUserInterface import (
     ui_request, mouse_pos, mouse_clicked, key_pressed, show_cursor, hide_cursor
@@ -22,7 +20,6 @@ from klibs.KLEyeTracking.events import GazeSample, EyeEvent, EyeEventTemplate
 
 from sdl2 import SDL_GetTicks, SDL_Delay
 from sdl2.ext import cursor_hidden
-from math import atan2, degrees
 
 
 class TryLink(EyeTracker):

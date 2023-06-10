@@ -14,7 +14,7 @@ from klibs.KLConstants import (RC_AUDIO, RC_COLORSELECT, RC_DRAW, RC_KEYPRESS,
 from klibs import P
 from klibs.KLKeyMap import KeyMap
 from klibs.KLEventQueue import pump, flush
-from klibs.KLUtilities import full_trace, iterable, angle_between
+from klibs.KLUtilities import iterable, angle_between
 from klibs.KLUserInterface import ui_request, hide_cursor, show_cursor, mouse_pos
 from klibs.KLBoundary import BoundarySet, AnnulusBoundary
 from klibs.KLGraphics import flip

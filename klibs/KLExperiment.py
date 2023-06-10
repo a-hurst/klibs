@@ -2,7 +2,6 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
-import sys
 from abc import abstractmethod
 from traceback import print_tb, print_stack
 

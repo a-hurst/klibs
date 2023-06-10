@@ -4,22 +4,19 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 import os
 import re
 import socket
-from copy import copy
-from time import time
 from os.path import join
 from threading import Thread
-from sqlite3 import IntegrityError
 from shutil import copyfile, copytree
 
-from sdl2 import (SDL_PumpEvents, SDL_StartTextInput, SDL_StopTextInput,
+from sdl2 import (SDL_StartTextInput, SDL_StopTextInput,
     SDL_KEYDOWN, SDLK_ESCAPE, SDLK_BACKSPACE, SDLK_RETURN, SDLK_KP_ENTER, SDL_TEXTINPUT)
 
-from klibs.KLConstants import (AUTO_POS, BL_CENTER, BL_TOP_LEFT, QUERY_ACTION_UPPERCASE,
+from klibs.KLConstants import (AUTO_POS, BL_CENTER, QUERY_ACTION_UPPERCASE,
     QUERY_ACTION_HASH)
 import klibs.KLParams as P
 from klibs.KLJSON_Object import import_json, AttributeDict
 from klibs.KLEventQueue import pump, flush
-from klibs.KLUtilities import pretty_list, now, iterable, utf8, make_hash
+from klibs.KLUtilities import pretty_list, now, utf8, make_hash
 from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLDatabase import EntryTemplate
 from klibs.KLRuntimeInfo import runtime_info_init

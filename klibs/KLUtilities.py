@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-import re
 import math
 import base64
 from hashlib import sha512
-from math import sin, cos, acos, atan2, radians, pi, degrees, ceil
+from math import sin, cos, acos, atan2, radians, degrees, ceil
 
 from klibs import P
 from klibs.KLInternal import (

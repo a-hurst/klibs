@@ -3,9 +3,7 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import re
-import socket
 from os.path import join
-from threading import Thread
 from shutil import copyfile, copytree
 
 from sdl2 import (SDL_StartTextInput, SDL_StopTextInput,
@@ -24,16 +22,10 @@ from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
 from klibs.KLText import TextStyle, add_text_style
 
-try:
-    from slacker import Slacker
-    from slacker import Error as SlackerError
-    SLACKER_AVAILABLE = True
-except ImportError:
-    SLACKER_AVAILABLE = False
-
 
 user_queries = None
 default_strings = None
+
 
 def alert(text):
     '''A convenience function for clearing the screen and displaying an alert message. Will
@@ -127,7 +119,9 @@ def init_default_textstyles():
 
 
 def init_messaging():
-
+    # This function should be removed somehow: user queries should be a) redone, and
+    # b) loaded in with a regular function
+    # Need to do in a way that won't break TraceLab
     global user_queries
     global default_strings
 
@@ -144,29 +138,6 @@ def init_messaging():
             default_strings = user_queries.default_strings # for easy accessiblity
     except ValueError:
         raise ValueError("User queries file has at least one formatting error; cannot continue.")
-    
-    if P.development_mode:
-        P.slack_messaging = False
-
-    # If using slack, determine if API key/room id have been set and slack.com is reachable
-    if P.slack_messaging:
-        warning = None
-        if SLACKER_AVAILABLE:
-            if not 'SLACK_API_KEY' in os.environ:
-                warning = "A Slack API key could not be found"
-            elif not 'SLACK_ROOM_ID' in os.environ:
-                warning = "A Slack room ID could not be found"
-            else:
-                try:
-                    socket.create_connection(("www.slack.com", 80))	
-                except socket.gaierror:
-                    warning = "Unable to connect to slack.com"
-        else:
-            warning = "The 'slacker' module is not installed"
-
-        if warning: # if slack messaging not available, print warning saying why
-            print("\t* Warning: {0}. Slack messaging will not be available.".format(warning))
-            P.slack_messaging = False
 
 
 def message(
@@ -469,62 +440,3 @@ def query(query_ob, anonymous=False):
         return input_string in f.accept_as_true
     else:
         return input_string
-
-
-def slack_message(message):
-    """Sends a given message to a channel in a user-defined Slack group. This can be used for
-    keeping updated on a participant's progress through blocks during a session, for allowing
-    participants to call you into the experiment room by pressing a certain key, or for being
-    notified of runtime problems (e.g. significant EyeLink drift) as soon as they happen.
-    To avoid annoying your co-workers while testing/debugging experiments, messages sent through
-    this command will be printed to the terminal instead of being sent to the channel while in
-    development mode.
-
-    To use this feature, you must first have a Slack team set up, a channel that you want messages
-    sent to, and a Slack bot that will write your messages to that channel. To create a Slack bot
-    for your team, go to 'Manage > Custom Integrations > Bots > Add Configuration' on your team's
-    Slack page and configure your bot with a name.
-    
-    For security reasons, it's a bad idea to include your Slack API key (the unique id that lets
-    you control your Slack bot) directly in your code, and it also makes your experiment programs
-    harder to share with others if you do. To avoid these problems, the Slack messaging feature
-    looks for two environment variables on the computer it's being run on:
-
-    - SLACK_API_KEY: Should be set to the unique API key for your team's Slack bot.
-    - SLACK_ROOM_ID: Should be set to the name of the channel you want messages from that
-        computer to be posted to (e.g. '#room1').
-        
-    If you have multiple experiment rooms, it's a good idea to have separate Slack channels (and
-    thus separate 'SLACK_ROOM_ID's) for each of them.
-
-    The parameter 'slack_messaging' must be set to True in order for messages to be sent to
-    Slack. If this parameter is set to False, this function will do nothing.
-
-    Args:
-        message (str): the message to be sent to the Slack channel.
-
-    """
-    
-    def slack_msg_thread(_api_key, _message, _channel):
-        # Actually sends the message to the channel, run in a separate thread using Thread().
-        try:
-            slack = Slacker(_api_key)
-            slack.chat.post_message(_channel, _message, as_user="true:")
-        except SlackerError as e:
-            cso("<red>Warning: Unable to send message '{0}' to channel '{1}', "
-                "problem encountered with Slack API.</red>".format(_message, _channel))
-            print("Exception encoutered: {0}".format(str(e)))
-        
-    if P.slack_messaging:
-        api_key = os.environ['SLACK_API_KEY']
-        channel = os.environ['SLACK_ROOM_ID']
-        if channel[0] != '#': # if no leading hashtag, append one so it works anyway
-            channel = '#{0}'.format(channel)
-        # The post_message function can take > 1 second to return, so we run it in a separate
-        # thread to avoid delaying the whole experiment whenever it's called.
-        msg_thread = Thread(target=slack_msg_thread, args=(api_key, str(message), channel,))
-        msg_thread.start()
-    else:
-        if P.development_mode:
-            print("Slack message: {0}".format(message))
-        

@@ -254,7 +254,6 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
     from klibs import env
     from klibs.KLGraphics.core import display_init
     from klibs.KLDatabase import DatabaseManager
-    from klibs.KLEventInterface import EventManager
     from klibs.KLText import TextManager
     from klibs.KLCommunication import init_messaging, collect_demographics, init_default_textstyles
 
@@ -327,8 +326,6 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
     if devmode:
         P.development_mode = True
         P.collect_demographics = False
-    if not P.labjack_available:
-        P.labjacking = False
     #TODO: check if current commit matches experiment.py and warn user if not
 
     # Back up database before starting the session
@@ -351,7 +348,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
     )
 
     try:
-        # create basic text styles, load in user queries, and initialize slack (if enabled)
+        # create basic text styles and load in user queries
         init_messaging()
 
         # finally, import the project's Experiment class and instantiate

@@ -74,6 +74,8 @@ API Changes:
   KLEnvironment and :class:`~klibs.KLEnvironment.EnvAgent`. The global
   ``EventManager`` instance for the Experiment object (``self.evm``) is now a
   regular attribute.
+* Removed the Slack messaging system and its functions, which should be in its
+  own self-contained .py file instead of KLibs itself.
 
 
 Fixed Bugs:

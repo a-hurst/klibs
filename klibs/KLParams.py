@@ -69,13 +69,6 @@ saccadic_motion_threshold = 0.15
 #calibrate_with_audio = True (not implemented)
 #calibrate_targets = 9 (not implemented)
 
-# Labjack Settings
-labjack_available = False
-labjacking = False
-
-# Slack Messaging Settings
-slack_messaging = False
-
 # Aesthetic Defaults
 default_fill_color = (45, 45, 45, 255)
 default_color = (255, 255, 255, 255)

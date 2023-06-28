@@ -98,6 +98,8 @@ def collect_demographics(anonymous=False):
             runtime_info = EntryTemplate('session_info')
             for col, value in runtime_info_init().items():
                 runtime_info.log(col, value)
+            if P.condition and 'condition' in runtime_info.schema.keys():
+                runtime_info.log('condition', P.condition)
             db.insert(runtime_info)
         # Save copy of experiment.py and config files as they were for participant
         if not P.development_mode:

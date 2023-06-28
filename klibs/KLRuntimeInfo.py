@@ -15,6 +15,7 @@ session_info_schema = """
 CREATE TABLE session_info (
     id integer primary key autoincrement not null,
     participant_id integer not null references participants(id),
+    condition text,
     session_number integer not null,
     complete integer not null, /* false by default, set to true at very end */
     

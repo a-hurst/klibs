@@ -76,6 +76,8 @@ API Changes:
   regular attribute.
 * Removed the Slack messaging system and its functions, which should be in its
   own self-contained .py file instead of KLibs itself.
+* Changed :func:`~klibs.KLEventQueue.pump()` to always return the contents of
+  the input event queue, deprecating the ``return_events`` argument.
 
 
 Fixed Bugs:

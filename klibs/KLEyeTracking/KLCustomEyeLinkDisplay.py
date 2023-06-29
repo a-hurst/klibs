@@ -130,7 +130,9 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
     def draw_cal_target(self, x, y=None, pump_events=True):
         # Draws a single calibration/validation target at a given location
         fill()
-        if pump_events: pump()
+        if pump_events:
+            # NOTE: Not sure this does anything, try removing and test on hardware?
+            sdl2.SDL_PumpEvents()
         if y is None:
             y = x[1]
             x = x[0]

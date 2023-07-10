@@ -74,6 +74,13 @@ class TestDatabase(object):
         assert dat.table_schemas['participants']['age']['type'] == klibs.PY_INT
         dat.close()
 
+    def test_tables(self, db):
+        assert "participants" in db.tables
+        assert "trials" in db.tables
+        assert "session_info" in db.tables
+        assert "export_history" in db.tables
+        assert not "misc" in db.tables
+
     def test_insert(self, db):
         last_row = db.last_row_id('participants')
         assert last_row == None
@@ -81,6 +88,9 @@ class TestDatabase(object):
         db.insert(data, table='participants')
         last_row = db.last_row_id('participants')
         assert last_row == 1
+        # Text exception on non-existant table
+        with pytest.raises(ValueError):
+            db.insert(data, table='nope')
 
     def test_flush(self, db):
         # Insert test data into the database

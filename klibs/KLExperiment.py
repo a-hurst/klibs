@@ -70,7 +70,7 @@ class Experiment(EnvAgent):
         self.clean_up()
 
         self.incomplete = False
-        if 'session_info' in self.database.table_schemas.keys():
+        if 'session_info' in self.database.tables:
             where = {'session_number': P.session_number}
             self.database.update('session_info', {'complete': True}, where)
 

@@ -243,6 +243,7 @@ def rebuild_database(path, schema):
     shutil.move(tmppath, path)
 
 
+
 class EntryTemplate(object):
 
 
@@ -316,11 +317,6 @@ class Database(object):
         self.cursor = self.db.cursor()
         self.table_schemas = self._build_table_schemas()
 
-    def _tables(self):
-        self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        table_list = [t[0] for t in self.cursor.fetchall()]
-        return table_list
-
     def _to_sql_equals_statements(self, data, table):
         sql_strs = []
         for column, value in data.items():
@@ -334,7 +330,7 @@ class Database(object):
         return sql_strs
 
     def _ensure_table(self, table):
-        if not table in self._tables():
+        if not table in self.tables:
             e = "No table named '{0}' in the current database"
             raise ValueError(e.format(table))
 
@@ -371,7 +367,7 @@ class Database(object):
     def _flush(self):
         # Clears all data from the database while keeping its table structure.
         # This also resets the row id counts for each table.
-        for table in self.table_schemas.keys():
+        for table in self.tables:
             self.cursor.execute(u"DELETE FROM `{0}`".format(table))
             self.cursor.execute(u"DELETE FROM sqlite_sequence WHERE name='{0}'".format(table))
         self.db.commit()
@@ -582,6 +578,11 @@ class Database(object):
         self.cursor.execute(q)
         self.db.commit()
         return self.cursor.lastrowid
+    
+    @property
+    def tables(self):
+        """list: The names of all tables in the database."""
+        return list(self.table_schemas.keys())
 
 
 
@@ -630,7 +631,7 @@ class DatabaseManager(EnvAgent):
 
     def _log_export(self, pid, table):
         # Logs a successfully exported participant in the database
-        if 'export_history' in self._primary.table_schemas.keys():
+        if 'export_history' in self._primary.tables:
             self._primary.insert(
                 {'participant_id': pid, 'table_name': table, 'timestamp': time.time()},
                 table='export_history'
@@ -638,12 +639,12 @@ class DatabaseManager(EnvAgent):
 
     def _already_exported(self, pid, table):
         # Checks whether an id/table combination has already been exported
-        if not 'export_history' in self._primary.table_schemas.keys():
+        if not 'export_history' in self._primary.tables:
             return False
         this_id = {'participant_id': pid, 'table_name': table}
         matches = self._primary.select('export_history', where=this_id)
         return len(matches) > 0
-
+    
 
     def get_unique_ids(self):
         """Retrieves all existing unique id values from the main database.
@@ -651,7 +652,7 @@ class DatabaseManager(EnvAgent):
         """
         id_rows = self._primary.select('participants', columns=[P.unique_identifier])
         return [row[0] for row in id_rows]
-
+    
 
     def write_local_to_master(self):
         attach_q = 'ATTACH `{0}` AS master'.format(self._path)
@@ -662,7 +663,7 @@ class DatabaseManager(EnvAgent):
         update_p_id = {'participant_id': master_p_id, 'user_id': master_p_id}
         P.participant_id = master_p_id
         
-        for table in self._local.table_schemas.keys():
+        for table in self._local.tables:
             if table == 'participants': continue
             self.copy_columns(table, ignore=['id'], sub=update_p_id)
         
@@ -831,7 +832,7 @@ class DatabaseManager(EnvAgent):
         # If no rows in the primary table, check for rows in any others
         n_rows = 0
         skip = DB_INTERNAL_TABLES + ['participants', P.primary_table]
-        for table in self._primary.table_schemas.keys():
+        for table in self._primary.tables:
             if table in skip:
                 continue
             rows = self._primary.select(table, where={'participant_id': pid})
@@ -857,7 +858,7 @@ class DatabaseManager(EnvAgent):
         pid = ret[0][0]
 
         # For each table in the database, remove all data associated with the ID
-        for table in self._primary.table_schemas.keys():
+        for table in self._primary.tables:
             if table != 'participants':
                 self._primary.delete(table, where={'participant_id': pid})
         self._primary.delete('participants', where={'id': pid})
@@ -888,6 +889,11 @@ class DatabaseManager(EnvAgent):
 
     def update(self, *args, **kwargs):
         return self._current.update(*args, **kwargs)
+
+    @property
+    def tables(self):
+        """list: The names of all tables in the database."""
+        return self._current.tables
 
     @property
     def table_schemas(self):

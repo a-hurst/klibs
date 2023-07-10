@@ -22,5 +22,5 @@ def experiment():
 def test_Experiment(experiment):
     with mock.patch.object(experiment, 'quit', return_value=None):
         experiment.blocks = []
-        experiment.database = AttributeDict({'table_schemas': {}})
+        experiment.database = AttributeDict({'tables': []})
         experiment.run()

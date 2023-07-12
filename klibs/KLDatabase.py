@@ -20,6 +20,9 @@ from klibs import P
 from klibs.KLInternal import full_trace, iterable, utf8
 from klibs.KLRuntimeInfo import session_info_schema
 
+# TODO: Add checks for required columns and error early if missing
+# (this includes ensuring the 'unique_identifer' specified in params exists)
+
 
 export_history_schema = """
 CREATE TABLE export_history (
@@ -133,9 +136,9 @@ def _build_export_header(db, user_id=None):
     # Old versions of KLibs didn't have session_info table for runtime info,
     # so we do a bit of work to keep export compatibility with old databases
     legacy = False
-    if 'session_info' in db.table_schemas:
+    if 'session_info' in db.tables:
         info_table = 'session_info'
-        info_cols = list(db.table_schemas['session_info'].keys())
+        info_cols = db.get_columns('session_info')
         info_cols.remove('participant_id')
     else:
         info_table = 'participants'
@@ -384,6 +387,20 @@ class Database(object):
         self.table_schemas = {}
 
 
+    def get_columns(self, table):
+        """Retrieves the names of all columns in a given table.
+
+        Args:
+            table (str): The name of the table to query.
+
+        Returns:
+            list: The names of the columns in the table.
+
+        """
+        self._ensure_table(table)
+        return list(self.table_schemas[table].keys())
+
+
     def exists(self, table, column, value):
         """Checks whether a value already exists within a given column.
 
@@ -394,6 +411,7 @@ class Database(object):
 
         Returns:
             bool: True if the value already exists in the column, otherwise False.
+
         """
         self._ensure_table(table)
         q = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
@@ -505,7 +523,7 @@ class Database(object):
         """
         self._ensure_table(table)
         if not columns:
-            columns = list(self.table_schemas[table].keys())
+            columns = self.get_columns(table)
 
         columns_str = ", ".join(columns)
         q = "SELECT DISTINCT " if distinct else "SELECT "
@@ -672,7 +690,7 @@ class DatabaseManager(EnvAgent):
 
     def copy_columns(self, table, ignore=[], sub={}):
         colnames = []
-        for colname in self._local.table_schemas[table].keys():
+        for colname in self._local.get_columns(table):
             if colname not in ignore:
                 colnames.append(colname)
         columns = ", ".join(colnames)
@@ -712,16 +730,16 @@ class DatabaseManager(EnvAgent):
                 else:
                     colnames.append(field)
         else:
-            for colname in self._primary.table_schemas['participants'].keys():
+            for colname in self._primary.get_columns('participants'):
                 if colname not in ['id'] + P.exclude_data_cols:
                     colnames.append(colname)
         for colname in P.append_info_cols:
-            if colname not in self._primary.table_schemas['session_info'].keys():
+            if colname not in self._primary.get_columns('session_info'):
                 err = "Column '{0}' does not exist in the session_info table."
                 raise RuntimeError(err.format(colname))
             colnames.append(colname)
         for t in [base_table] + join_tables:
-            for colname in self._primary.table_schemas[t].keys():
+            for colname in self._primary.get_columns(t):
                 if colname not in ['id', P.id_field_name] + P.exclude_data_cols:
                     colnames.append(colname)
         column_names = TAB.join(colnames)
@@ -889,6 +907,9 @@ class DatabaseManager(EnvAgent):
 
     def update(self, *args, **kwargs):
         return self._current.update(*args, **kwargs)
+    
+    def get_columns(self, table):
+        return self._current.get_columns(table)
 
     @property
     def tables(self):

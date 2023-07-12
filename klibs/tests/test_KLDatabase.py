@@ -81,6 +81,15 @@ class TestDatabase(object):
         assert "export_history" in db.tables
         assert not "misc" in db.tables
 
+    def test_get_columns(self, db):
+        for col in ['id', 'created', 'age', 'gender']:
+            assert col in db.get_columns('participants')
+        assert 'participant_id' in db.get_columns('trials')
+        assert 'os_version' in db.get_columns('session_info')
+        # Text exception on non-existant table
+        with pytest.raises(ValueError):
+            db.get_columns('nope')
+
     def test_insert(self, db):
         last_row = db.last_row_id('participants')
         assert last_row == None

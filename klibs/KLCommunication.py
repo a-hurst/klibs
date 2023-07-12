@@ -78,10 +78,12 @@ def collect_demographics(anonymous=False):
 
     '''
     from klibs.KLEnvironment import db
-    # Prior to starting block/trial loop, should ensure participant ID has been obtained
+    # NOTE: Prior to starting block/trial loop, should ensure participant ID has been obtained
 
-    # ie. demographic questions aren't being asked for this experiment
-    if not P.collect_demographics and not anonymous: return
+    # If demographics already collected, raise error
+    if P.demographics_collected:
+        e = "Demographics have already been collected for this participant."
+        raise RuntimeError(e)
 
     # first insert required, automatically-populated fields
     demographics = EntryTemplate('participants')
@@ -118,29 +120,27 @@ def collect_demographics(anonymous=False):
         value = query(q, anonymous=anonymous)
         demographics.log(db_col, value)
 
-    # typical use; P.collect_demographics is True and called automatically by klibs
-    if not P.demographics_collected:
-        P.participant_id = db.insert(demographics)
-        P.p_id = P.participant_id
-        P.demographics_collected = True
-        # Log info about current runtime environment to database
-        if 'session_info' in db.tables:
-            runtime_info = EntryTemplate('session_info')
-            for col, value in runtime_info_init().items():
-                runtime_info.log(col, value)
-            if P.condition and 'condition' in runtime_info.schema.keys():
-                runtime_info.log('condition', P.condition)
-            db.insert(runtime_info)
-        # Save copy of experiment.py and config files as they were for participant
-        if not P.development_mode:
-            pid = P.random_seed if P.multi_user else P.participant_id # pid set at end for multiuser
-            P.version_dir = join(P.versions_dir, "p{0}_{1}".format(pid, now(True)))
-            os.mkdir(P.version_dir)
-            copyfile("experiment.py", join(P.version_dir, "experiment.py"))
-            copytree(P.config_dir, join(P.version_dir, "Config"))
-    else:
-        #  The context for this is: collect_demographics is set to false but then explicitly called later
-        db.update(demographics.table, demographics.defined)
+    # Insert demographics in database and get db id number
+    P.participant_id = db.insert(demographics)
+    P.p_id = P.participant_id
+    P.demographics_collected = True
+
+    # Log info about current runtime environment to database
+    if 'session_info' in db.tables:
+        runtime_info = EntryTemplate('session_info')
+        for col, value in runtime_info_init().items():
+            runtime_info.log(col, value)
+        if P.condition and 'condition' in runtime_info.schema.keys():
+            runtime_info.log('condition', P.condition)
+        db.insert(runtime_info)
+
+    # Save copy of experiment.py and config files as they were for participant
+    if not P.development_mode:
+        pid = P.random_seed if P.multi_user else P.participant_id # pid set at end for multiuser
+        P.version_dir = join(P.versions_dir, "p{0}_{1}".format(pid, now(True)))
+        os.mkdir(P.version_dir)
+        copyfile("experiment.py", join(P.version_dir, "experiment.py"))
+        copytree(P.config_dir, join(P.version_dir, "Config"))
 
 
 def init_default_textstyles():

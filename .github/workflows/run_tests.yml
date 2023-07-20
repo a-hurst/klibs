@@ -12,7 +12,34 @@ on:
 
 jobs:
 
-  # Test on all supported Python versions with Linux
+  # Test on Python 2.7
+  test-linux-27:
+
+    name: Linux (Python 2.7)
+    runs-on: ubuntu-20.04
+    container: python:2.7
+
+    env:
+      SDL_VIDEODRIVER: dummy
+      SDL_AUDIODRIVER: dummy
+      SDL_RENDER_DRIVER: software
+    
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies for testing
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest mock
+
+      - name: Install and test KLibs
+        run: |
+          python -m pip install .
+          klibs -h
+          pytest -vvl -rxXP
+
+
+  # Test on all supported Python 3.x versions with Linux
   test-linux:
 
     name: ${{ matrix.name-prefix }}${{ matrix.python-version }})
@@ -21,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['2.7', '3.7', '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11']
         name-prefix: ['Linux (Python ']
 
     env:
@@ -99,7 +126,7 @@ jobs:
         architecture: ['x64']
         name-prefix: ['Windows (Python ']
         include:
-          - python-version: '2.7'
+          - python-version: '3.9'
             architecture: 'x86'
             name-prefix: 'Windows 32-bit (Python '
 

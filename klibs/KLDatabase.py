@@ -363,7 +363,7 @@ class Database(object):
                     raise ValueError(
                         e.format(data[colname], info['type'], colname, table)
                     )
-                cols.append(colname)
+                cols.append(u"`{0}`".format(colname))
                 values.append(value)
             elif info['allow_null']:
                 continue

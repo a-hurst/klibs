@@ -5,6 +5,9 @@ from pkg_resources import resource_filename
 
 import klibs
 from klibs import KLDatabase as kldb
+from klibs.KLRuntimeInfo import runtime_info_init
+
+from conftest import _init_params_pytest
 
 
 schema_path = resource_filename('klibs', 'resources/template/schema.sql')
@@ -86,7 +89,7 @@ class TestDatabase(object):
             assert col in db.get_columns('participants')
         assert 'participant_id' in db.get_columns('trials')
         assert 'os_version' in db.get_columns('session_info')
-        # Text exception on non-existant table
+        # Test exception on non-existant table
         with pytest.raises(ValueError):
             db.get_columns('nope')
 
@@ -97,9 +100,34 @@ class TestDatabase(object):
         db.insert(data, table='participants')
         last_row = db.last_row_id('participants')
         assert last_row == 1
-        # Text exception on non-existant table
+        # Test exception on non-existant table
         with pytest.raises(ValueError):
             db.insert(data, table='nope')
+        # Test coersion of values to correct column types
+        data = generate_id_row(uid=2)
+        data["age"] = "27"
+        db.insert(data, table='participants')
+        assert db.last_row_id('participants') == 2
+        # Test handling of 'allow null' columns
+        _init_params_pytest()
+        data = runtime_info_init()
+        db.insert(data, table='session_info')
+        assert db.last_row_id('session_info') == 1
+        # Test exception when unable to coerce value to column type
+        data = generate_id_row(uid=3)
+        data["age"] = "hello"
+        with pytest.raises(ValueError):
+            db.insert(data, table='participants')
+        # Test exception on extra column
+        data = generate_id_row(uid=3)
+        data["extra"] = True
+        with pytest.raises(ValueError):
+            db.insert(data, table='participants')
+        # Test exception on missing column
+        data = generate_id_row(uid=3)
+        del data["created"]
+        with pytest.raises(ValueError):
+            db.insert(data, table='participants')
 
     def test_flush(self, db):
         # Insert test data into the database

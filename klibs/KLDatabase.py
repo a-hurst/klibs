@@ -249,49 +249,12 @@ def rebuild_database(path, schema):
 
 class EntryTemplate(object):
 
-
     def __init__(self, table):
         from klibs.KLEnvironment import db
         self.table = table
         self.schema = db.table_schemas[table]
-        self.defined = {}
         self.data = [None] * len(self.schema)  # create an empty list of appropriate length
-
-
-    def __str__(self):
-        s = "<klibs.KLDatabase.EntryTemplate[{0}] object at {1}>"
-        return s.format(self.table, hex(id(self)))
-
-
-    def _get_insert_query(self):
-        # Generates the SQL INSERT statement for writing the template data
-        insert_template = [SQL_NULL, ] * len(self.schema)
-        query_template = u"INSERT INTO `{0}` ({1}) VALUES ({2})"
-
-        cols = list(self.schema.keys())
-        for col_name in cols:
-            col_index = cols.index(col_name)
-            if self.data[col_index] in [SQL_NULL, None]:
-                if self.schema[col_name]['allow_null']:
-                    insert_template[col_index] = SQL_NULL
-                    self.data[col_index] = SQL_NULL
-                elif col_name == 'id':
-                    self.data[0] = SQL_NULL
-                    insert_template[0] = SQL_NULL
-                elif self.table in P.table_defaults:
-                    for i in P.table_defaults[self.table]:
-                        if i[0] == col_name:
-                            insert_template[col_index] = utf8(i[1])
-                else:
-                    print(self.data)
-                    raise ValueError("Column '{0}' may not be null.".format(col_name))
-            else:
-                insert_template[col_index] = col_name
-
-        values = u",".join([utf8(i) for i in self.data if i != SQL_NULL])
-        columns = u",".join([i for i in insert_template if i != SQL_NULL])
-        return query_template.format(self.table, columns, values)
-
+        self._values = {}
 
     def log(self, field, value):
         try:
@@ -301,7 +264,7 @@ class EntryTemplate(object):
             raise ValueError(err.format(field, self.table))
         formatted_value = _convert_to_query_format(value, field, self.schema[field]['type'])
         self.data[index] = formatted_value
-        self.defined[field] = value
+        self._values[field] = value
 
 
 
@@ -375,6 +338,30 @@ class Database(object):
             self.cursor.execute(u"DELETE FROM sqlite_sequence WHERE name='{0}'".format(table))
         self.db.commit()
 
+    def _gather_insert_values(self, data, table):
+        # Gathers and validates columns/values for insertion into a given table
+        self._ensure_table(table)
+        template = copy(self.table_schemas[table])
+        template.pop('id', None) # remove id column from template if present
+        # Ensure all provided values correspond to an existing column
+        for colname in data.keys():
+            if colname not in template.keys():
+                err = "Column '{0}' does not exist in table '{1}'."
+                raise ValueError(err.format(colname, table))
+        # Gather all values to insert into the database
+        cols = []
+        values = []
+        for colname, info in template.items():
+            if colname in data.keys():
+                value = _convert_to_query_format(data[colname], colname, info['type'])
+                cols.append(colname)
+                values.append(value)
+            elif info['allow_null']:
+                continue
+            else:
+                raise ValueError("No value provided for column '{0}'.".format(colname))
+        return cols, values
+
     
     def close(self):
         """Closes the connection to the database.
@@ -431,20 +418,23 @@ class Database(object):
         if isinstance(data, EntryTemplate):
             if not table:
                 table = data.table
-            query = data._get_insert_query()
+            data = data._values
         elif isinstance(data, dict):
             if not table:
                 raise ValueError("A table must be specified when inserting a dict.")
-            query = self.query_str_from_raw_data(data, table)
         else:
             raise TypeError("Argument 'data' must be either an EntryTemplate or a dict.")
 
+        cols, values = self._gather_insert_values(data, table)
+        cols_str = u", ".join(cols)
+        vals_str = u", ".join(values)
+        q = u"INSERT INTO `{0}` ({1}) VALUES({2})".format(table, cols_str, vals_str)
         try:
-            self.cursor.execute(query)
+            self.cursor.execute(q)
         except sqlite3.OperationalError as e:
             err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
             print(full_trace())
-            print(err.format(self.table_schemas[table], query))
+            print(err.format(self.table_schemas[table], q))
             raise e
         self.db.commit()
         return self.cursor.lastrowid
@@ -478,31 +468,7 @@ class Database(object):
             else:
                 return result
         return True
-
-
-    def query_str_from_raw_data(self, data, table):
-        # TODO: replace this with EntryTemplate for consistency? Or vice versa?
-        self._ensure_table(table)
-        template = copy(self.table_schemas[table])
-        values = []
-        columns = []
-        template.pop('id', None) # remove id column from template if present
-        for colname in list(data.keys()):
-            if colname not in list(template.keys()):
-                err = "Column '{0}' does not exist in table '{1}'."
-                raise ValueError(err.format(colname, table))
-        for colname, info in template.items():
-            try:
-                value = data[colname]
-            except KeyError:
-                raise ValueError("No value provided for column '{0}'.".format(colname))
-            formatted_value = _convert_to_query_format(value, colname, info['type'])
-            values.append(formatted_value)
-            columns.append(colname)
-        columns_str = u",".join(columns)
-        values_str = u",".join(values)
-        return u"INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
-
+    
 
     def select(self, table, columns=None, where=None, distinct=False):
         """Retrieves a given set of rows from a table in the database.

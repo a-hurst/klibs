@@ -8,6 +8,18 @@ from pkg_resources import resource_filename
 from klibs import P
 
 
+def _init_params_pytest():
+    P.screen_diagonal_in = 21.5
+    P.participant_id = 1
+    P.session_number = 1
+    P.random_seed = 1234
+    P.klibs_commit = "asdfghjkl"
+    P.trials_per_block = 120
+    P.blocks_per_experiment = 3
+    P.view_distance = 57
+    P.screen_x, P.screen_y, P.refresh_rate = (1920, 1080, 60.0)
+
+
 @pytest.fixture(scope='module')
 def with_sdl():
     sdl2.SDL_ClearError()

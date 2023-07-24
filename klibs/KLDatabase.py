@@ -45,56 +45,59 @@ def _set_type_conversions(export=False):
         sqlite3.register_converter("BOOLEAN", lambda x: bool(int(x)))
 
 
-def _convert_to_query_format(value, col_name, col_type):
-    '''A convenience function for converting Python variables to sqlite column types so
-    they can then be used in SQL INSERT statements using Python's str.format() method. For
-    internal KLibs use.
+def _as_column_type(value, col_type):
+    # Coerces a value to the correct type for a given database column
+    if col_type == PY_BOOL:
+        # convert to int because sqlite3 has no native boolean type
+        if utf8(value).lower() in ['true', '1']: value = 1
+        elif utf8(value).lower() in ['false', '0']: value = 0
+        else: raise TypeError
+    elif col_type == PY_FLOAT:
+        value = float(value)
+    elif col_type == PY_INT:
+        value = int(value)
+    elif col_type == PY_STR:
+        value = utf8(value)
+        # convert true/false to uppercase for R
+        if value.lower() in ['true', 'false']:
+            value = value.upper()
+    elif col_type == PY_BIN:
+        raise NotImplementedError("SQL blob insertion is not supported.")
+    else:
+        e = "Unknown or unsupported column type '{0}'"
+        raise RuntimeError(e.format(col_type))
 
+    return value
+
+
+def _convert_to_query_format(value, col_name, col_type):
+    """Formats a given value for use in an SQL statement string.
+
+    For internal KLibs use.
+    
     Args:
-        value: The Python value to convert.
-        colname(str): The name of the database column the value will be inserted into.
-        coltype(str): A string indicating the Python type to convert the value to before
-            formatting for query use. Must be one of 'str', 'int', 'float', or 'bool'.
+        value: The value to convert.
+        col_name (str): The name of the database column corresponding to the value.
+        col_type (str): A string indicating data type for the corresponding column.
+            Must be either 'str', 'int', 'float', or 'bool'.
 
     Returns:
-        str: the SQL query-formatted value.
+        str: The value as an SQL-formatted string.
 
-    Raises:
-        ValueError: if the value cannot be coerced to the given data type, or if an invalid
-            data type is given.
-
-    '''
-
-    err_str = "'{0}' could not be coerced to '{1}' for insertion into column '{2}'"
-    
+    """
     if value is None:
         return SQL_NULL
 
-    if col_type not in [PY_BOOL, PY_FLOAT, PY_INT, PY_STR, PY_BIN]:
-        type_err = "'{0}' is not a valid EntryTemplate data type."
-        raise ValueError(type_err.format(col_type))
-
+    # Get converted value as string & escape string if needed
     try:
-        if col_type == PY_BOOL:
-            # convert to int because sqlite3 has no native boolean type
-            if utf8(value).lower() in ['true', '1']: value = '1'
-            elif utf8(value).lower() in ['false', '0']: value = '0'
-            else: raise TypeError
-        elif col_type == PY_FLOAT:
-            value = str(float(value))
-        elif col_type == PY_INT:
-            value = str(int(value))
-        elif col_type == PY_STR:
-            if utf8(value).lower() in ['true', 'false']:
-                value = utf8(value).upper() # convert true/false to uppercase for R
-            value = u"'{0}'".format(utf8(value))
-        elif col_type == PY_BIN:
-            raise NotImplementedError("SQL blob insertion is not yet supported.")
-
+        value = utf8(_as_column_type(value, col_type))
     except (TypeError, ValueError):
-        # if value can't be converted to column type, raise an exception
-        raise ValueError(err_str.format(value, col_type, col_name))
-    
+        e = "Could not coerce '{0}' to type '{1}' for column '{2}'"
+        raise ValueError(e.format(value, col_type, col_name))
+
+    if col_type == PY_STR:
+        value = u"'{0}'".format(value)
+
     return value
 
 
@@ -353,7 +356,13 @@ class Database(object):
         values = []
         for colname, info in template.items():
             if colname in data.keys():
-                value = _convert_to_query_format(data[colname], colname, info['type'])
+                try:
+                    value = _as_column_type(data[colname], info['type'])
+                except (TypeError, ValueError):
+                    e = "Could not coerce '{0}' to type '{1}' for column '{2}' in '{3}'"
+                    raise ValueError(
+                        e.format(data[colname], info['type'], colname, table)
+                    )
                 cols.append(colname)
                 values.append(value)
             elif info['allow_null']:
@@ -427,10 +436,10 @@ class Database(object):
 
         cols, values = self._gather_insert_values(data, table)
         cols_str = u", ".join(cols)
-        vals_str = u", ".join(values)
-        q = u"INSERT INTO `{0}` ({1}) VALUES({2})".format(table, cols_str, vals_str)
+        qmark_str = u", ".join(["?"] * len(values))
+        q = u"INSERT INTO `{0}` ({1}) VALUES({2})".format(table, cols_str, qmark_str)
         try:
-            self.cursor.execute(q)
+            self.cursor.execute(q, values)
         except sqlite3.OperationalError as e:
             err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
             print(full_trace())
@@ -468,7 +477,7 @@ class Database(object):
             else:
                 return result
         return True
-    
+
 
     def select(self, table, columns=None, where=None, distinct=False):
         """Retrieves a given set of rows from a table in the database.

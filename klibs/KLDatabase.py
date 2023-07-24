@@ -463,20 +463,12 @@ class Database(object):
         return self.query("SELECT max({0}) from `{1}`".format('id', table))[0][0]
 
 
-    def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
+    def query(self, query, q_vars=(), commit=False):
         # Can probably also be made private after updating TraceLab
-        if q_vars:
-            result = self.cursor.execute(query, tuple(q_vars))
-        else:
-            result = self.cursor.execute(query)
-
-        if query_type != QUERY_SEL: self.db.commit()
-        if return_result:
-            if fetch_all:
-                return result.fetchall()
-            else:
-                return result
-        return True
+        result = self.cursor.execute(query, tuple(q_vars))
+        if commit:
+            self.db.commit()
+        return result.fetchall()
 
 
     def select(self, table, columns=None, where=None, distinct=False):

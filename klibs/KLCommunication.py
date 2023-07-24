@@ -85,16 +85,6 @@ def collect_demographics(anonymous=False):
         e = "Demographics have already been collected for this participant."
         raise RuntimeError(e)
 
-    # first insert required, automatically-populated fields
-    demographics = EntryTemplate('participants')
-    demographics.log('created', now(True))
-    try:
-        # columns moved to session_info in newer templates
-        demographics.log("random_seed", P.random_seed)
-        demographics.log("klibs_commit", P.klibs_commit)
-    except ValueError: 
-        pass
-
     # Gather demographic queries, separating id query from others
     queries = _get_demographics_queries(db, user_queries.demographic)
     id_query = queries[P.unique_identifier]
@@ -113,26 +103,30 @@ def collect_demographics(anonymous=False):
             blit(message(err, "alert", align='center', blit_txt=False), 5, P.screen_c)
             flip()
             any_key()
-    demographics.log(P.unique_identifier, unique_id)
+
+    # Initialize demographics info for partcipant
+    demographics = {
+        P.unique_identifier: unique_id,
+        "created": now(True),
+    }
+    if "random_seed" in db.get_columns("participants"):
+        # Required for compatibility with older projects
+        demographics["random_seed"] = P.random_seed
+        demographics["klibs_commit"] = P.klibs_commit
 
     # Collect all other demographics queries
     for db_col, q in queries.items():
-        value = query(q, anonymous=anonymous)
-        demographics.log(db_col, value)
+        demographics[db_col] = query(q, anonymous=anonymous)
 
     # Insert demographics in database and get db id number
-    P.participant_id = db.insert(demographics)
-    P.p_id = P.participant_id
+    P.participant_id = P.p_id = db.insert(demographics, "participants")
     P.demographics_collected = True
 
     # Log info about current runtime environment to database
-    if 'session_info' in db.tables:
-        runtime_info = EntryTemplate('session_info')
-        for col, value in runtime_info_init().items():
-            runtime_info.log(col, value)
-        if P.condition and 'condition' in runtime_info.schema.keys():
-            runtime_info.log('condition', P.condition)
-        db.insert(runtime_info)
+    runtime_info = runtime_info_init()
+    if P.condition and "condition" in db.get_columns("session_info"):
+        runtime_info["condition"] = P.condition
+    db.insert(runtime_info, "session_info")
 
     # Save copy of experiment.py and config files as they were for participant
     if not P.development_mode:

@@ -26,6 +26,7 @@ CREATE TABLE session_info (
 
     trials_per_block integer not null,
     blocks_per_session integer not null,
+    session_count integer not null,
     
     os_version text not null,
     python_version text not null,

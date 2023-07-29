@@ -124,8 +124,10 @@ def collect_demographics(anonymous=False):
 
     # Log info about current runtime environment to database
     runtime_info = runtime_info_init()
-    if P.condition and "condition" in db.get_columns("session_info"):
-        runtime_info["condition"] = P.condition
+    if "session_count" in db.get_columns("session_info"):
+        runtime_info["session_count"] = P.session_count
+        if P.condition:
+            runtime_info["condition"] = P.condition
     db.insert(runtime_info, "session_info")
 
     # Save copy of experiment.py and config files as they were for participant

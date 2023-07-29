@@ -97,8 +97,6 @@ class ResponseListener(NamedObject, EnvAgent):
         self.__eyetracking = False
         self.__timed_out = False
         self.__interrupts = True
-        self.__min_response_count = 1
-        self.__max_response_count = 1
         self._rc_start = None # The time the containing collect() loop starts
 
     @abc.abstractmethod
@@ -126,12 +124,12 @@ class ResponseListener(NamedObject, EnvAgent):
 
         
         """
-        max_collected = self.response_count == self.max_response_count
-        if not max_collected:
+        resp_collected = len(self.responses)
+        if not resp_collected:
             response = self.listen(event_queue)
             if response:
                 self.responses.append(response)
-        return max_collected and self.interrupts
+        return resp_collected and self.interrupts
 
     @abc.abstractmethod
     def listen(self, event_queue):
@@ -168,7 +166,7 @@ class ResponseListener(NamedObject, EnvAgent):
         """
         self.responses = []
 
-    def response(self, value=True, rt=True, index=0):
+    def response(self, value=True, rt=True):
         """Retrieves a collected response from the listener.
 
         Args:
@@ -176,26 +174,18 @@ class ResponseListener(NamedObject, EnvAgent):
                 to True.
             rt (bool, optional): If True, the reaction time of the response will be returned.
                 Defaults to True.
-            index (int, optional): The index of the response to retrieve, if the listener is
-                configured to collect multiple responses. Defaults to 0 (the first response
-                collected).
 
         Returns:
             The value of the response if only value=True, the reaction time of the response if only
             rt=True, or a :obj:`Response` object if both are True.
         
         """
-        max_index = self.max_response_count-1
-        if index > max_index:
-            e = "index '{0}' out of range for the listener (0-{1})"
-            raise ValueError(e.format(index, max_index))
         if not value and not rt:
             raise ValueError("Why have you asked me to return nothing? Is this is a joke?")
 
-        try:
-            response = self.responses[index]
-        except IndexError:
-            response = Response(self.null_response, TIMEOUT)
+        response = Response(self.null_response, TIMEOUT)
+        if len(responses):
+            response = self.responses[0]
 
         if value and rt:
             return response
@@ -203,40 +193,6 @@ class ResponseListener(NamedObject, EnvAgent):
             return response.value
         elif rt:
             return response.rt
-
-    @property
-    def min_response_count(self):
-        """int: The minimum number of responses that the listener should produce. If fewer than
-        this number of responses are collected by the listener at the end of the collection loop,
-        :attr:`timed_out` will be True.
-
-        """
-        return self.__min_response_count
-
-    @min_response_count.setter
-    def min_response_count(self, count):
-        if type(count) != int or count < 0 or count > self.max_response_count:
-            e = "'min_response_count' must be an integer between 0 and 'max_response_count' ({0})."
-            raise ValueError(e.format(self.max_response_count))
-        self.__min_response_count = count
-
-    @property
-    def max_response_count(self):
-        """int: The maximum number of responses that the listener can collect during the
-        collection loop. If :attr:`interrupts` is set to 'True', the collection loop will end
-        immediately after the listener has collected this many responses. Defaults to 1.
-
-        """
-        return self.__max_response_count
-
-    @max_response_count.setter
-    def max_response_count(self, count):
-        if type(count) != int or count < 1:
-            raise ValueError("'max_response_count' must be an integer greater than 1.")
-        if count < self.min_response_count:
-            e = "'max_response_count' cannot be less than the minimum response count ({0})."
-            raise ValueError(e.format(self.min_response_count))
-        self.__max_response_count = count
 
     @property
     def interrupts(self):
@@ -252,23 +208,14 @@ class ResponseListener(NamedObject, EnvAgent):
             self.__interrupts = value
         else:
             raise TypeError("Property 'interrupts' must be boolean.")
-    
-    @property
-    def response_count(self):
-        """int: The number of responses collected by the listener.
-        
-        """
-        return len(self.responses)
 
     @property
     def timed_out(self):
         """bool: A flag indicating if the containing :class:`ResponseCollector` timed out during
-        the last collection loop before the listener was able to collect its minimum number of
-        responses.
+        the last collection loop before the listener was able to collect a response.
 
         """
-        remaining = self.min_response_count - self.response_count
-        return remaining > 0
+        return len(self.responses) == 0
 
     @property
     def eyetracking(self):
@@ -1249,7 +1196,7 @@ class ResponseCollector(EnvAgent):
                 if t > (self.rc_start_time + timeout):
                     for listener in self.using():
                         l = self.listeners[listener]
-                        if P.development_mode and l.response_count < l.min_response_count:
+                        if P.development_mode and l.timed_out:
                             msg = "Response collection for {0} timed out after {1}s."
                             print(msg.format(l.name, timeout/1000.0))
                     break

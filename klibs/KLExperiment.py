@@ -46,7 +46,12 @@ class Experiment(EnvAgent):
         """
         from klibs.KLGraphics import clear
 
+        if not P.demographics_collected:
+            e = "Demographics must be collected before the first block of the task."
+            raise RuntimeError(e)
+
         if self.blocks == None:
+            # If structure provided, just ignore trial factory and use structure to generate?
             self.blocks = self.trial_factory.export_trials()
 
         P.block_number = 0

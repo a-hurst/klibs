@@ -7,6 +7,7 @@ from klibs.KLResponseCollectors import Response
 
 # NOTE: Do away with Response class and just return two-item (value, rt) tuple?
 
+
 class BaseResponseListener(object):
     """An abstract base class for creating response listeners.
     
@@ -41,10 +42,9 @@ class BaseResponseListener(object):
         resp = None
         self.init()
         while not resp:
-            # Check if the collection loop has timed out
-            if self.timeout_ms:
-                if (self._timestamp() - self._loop_start) > self.timeout_ms:
-                    break
+            # End collection if the loop has timed out
+            if self.timed_out:
+                break
             # Fetch event queue and check for valid responses
             events = pump()
             ui_request(queue=events)
@@ -118,6 +118,27 @@ class BaseResponseListener(object):
 
         """
         self._loop_start = None
+
+    @property
+    def elapsed(self):
+        """float: The elapsed time (in ms) since response collection began.
+
+        If the listener's collection loop has not started yet, the elapsed time
+        will be 0.
+
+        """
+        if not self._loop_start:
+            return 0.0
+        return (self._timestamp() - self._loop_start)
+
+    @property
+    def timed_out(self):
+        """bool: Whether the current response collection loop has timed out.
+
+        """
+        if not self.timeout_ms:
+            return False
+        return self.elapsed > self.timeout_ms
 
 
 

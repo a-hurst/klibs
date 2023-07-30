@@ -216,7 +216,7 @@ class KeypressListener(BaseResponseListener):
             response.
         
         """
-        super(KeypressListener, self).collect()
+        return super(KeypressListener, self).collect()
 
     def listen(self, q):
         """Checks a queue of input events for valid keypress responses.

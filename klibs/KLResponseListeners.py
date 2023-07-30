@@ -1,3 +1,90 @@
+"""The ResponseListener Module
+
+The purpose of this module is to make it easy to collect responses of different types
+from participants (e.g. keypress responses, color wheel judgements). There are a number
+of built-in ResponseListener types.
+
+
+Basic Usage
+-----------
+
+To use a ResponseListener after defining it, simply call its ``collect`` method::
+
+   resp = self.key_listener.collect()
+
+For accurate response timing, you must present the stimuli that the participant
+responds to (e.g. a target in a cueing task) immediately before starting response
+collection. This is because it takes a few milliseconds (usually ~17) to refresh
+the screen, so you want to mark the start of the response period as the moment
+that the participant is shown the stimuli.
+
+
+Loop Callbacks
+--------------
+
+During some tasks, you may need to update the screen during response collection
+(e.g. removing a brief target stimulus, providing live feedback). In most cases
+this can be done by providing the listener with a `callback function`, which is
+then called internally every time the :meth:`collect` loop checks for new input.
+For example, a callback that shows the current time elapsed since the start of
+the collection loop might look like this::
+
+   def show_elapsed(self):
+       # Draw the elapsed time since response collection started
+       elapsed = str(int(self.key_listener.elapsed))
+       fill()
+       message(elapsed, location=P.screen_c)
+       flip()
+
+Additionally, you may want to be able to end response collection early if certain
+conditions are met (e.g. if the participant looks away from fixation during the
+response period for an eye tracking task). These situations can also be handled
+by a callback: if the callback returns ``True`` at any time during the
+:meth:`collect` loop, response collection will be ended immediately::
+
+   def ensure_fixation(self):
+       # End trial and show error if gaze leaves fixation before response
+       if self.el.saccade_from_boundary('fixation'):
+           show_error_msg("Looked away!")
+           return True
+
+
+Advanced Usage
+--------------
+
+For advanced use cases (e.g. collecting two different types of response at once),
+you may need to customize a listener's collection loop beyond what a custom
+callback can provide. To support these edge cases, you can use ResponseListeners
+in your own custom collection loops using the ``init``, ``listen`` and ``cleanup``
+methods::
+
+   self.key_listener.init()
+   self.mouse_listener.init()
+
+   key_resp = None
+   mouse_resp = None
+   while not (key_resp and mouse_resp):
+       q = pump()
+       ui_request(queue=q)
+       if not key_resp:
+           key_resp = self.key_listener.listen(q)
+       if not mouse_resp:
+           mouse_resp = self.mouse_listener.listen(q)
+
+   self.key_listener.cleanup()
+   self.mouse_listener.cleanup()
+
+The ``init`` method sets the timestamp for the start of the collection loop and
+performs any other necessary setup for the listener (e.g. making sure the mouse
+cursor is visible for color wheel responses). The ``listen`` method checks a
+given event queue for response input, returning the response and reaction time
+if a valid response has been made or ``None`` otherwise. The ``cleanup`` method
+resets the start time for the listener and does any other necessary cleanup
+(e.g. re-hiding the cursor if it was originally hidden prior to collecting a
+color wheel response).
+
+"""
+
 import sdl2
 
 from klibs.KLTime import precise_time
@@ -16,20 +103,17 @@ class BaseResponseListener(object):
     There are a number of built-in ResponseListener classes for common use cases, but
     this base class is provided so that you can create your own.
 
-    For accurate response timing, the stimuli that the participant responds to (e.g.
-    a target in a cueing task) needs to be draw to the screen immediately before the
-    collection loop starts. This is because it takes a few milliseconds (usually ~17)
-    to refresh the screen, so you want to mark the start of the response period as
-    immediately after the participant sees the stimuli.
-
     Args:
         timeout (float, optional): The maximum duration (in seconds) to wait for a
-            valid response.
+            valid response. Defaults to None (no timeout).
+        loop_callback (callable, optional): An optional function or method to be
+            called every time the collection loop checks for new input.
 
     """
-    def __init__(self, timeout=None):
+    def __init__(self, timeout=None, loop_callback=None):
         self._loop_start = None
         self.timeout_ms = timeout * 1000 if timeout else None
+        self._callback = loop_callback
 
     def _timestamp(self):
         # The timestamp (in milliseconds) to use as the start time for the loop.
@@ -50,6 +134,11 @@ class BaseResponseListener(object):
             events = pump()
             ui_request(queue=events)
             resp = self.listen(events)
+            # If a callback is provided, call it once per loop
+            if not resp and self._callback:
+                interrupt = self._callback()
+                if interrupt:
+                    break
         self.cleanup()
         # If no response given, return default response
         if not resp:
@@ -158,11 +247,13 @@ class KeypressListener(BaseResponseListener):
         keymap (dict): A dictionary specifying the keys to check for and their
             corresponding response labels.
         timeout (float, optional): The maximum duration (in seconds) to wait for a
-            valid response.
+            valid response. Defaults to None (no timeout).
+        loop_callback (callable, optional): An optional function or method to be
+            called every time the collection loop checks for new input.
 
     """
-    def __init__(self, keymap, timeout=None):
-        super(KeypressListener, self).__init__(timeout)
+    def __init__(self, keymap, timeout=None, loop_callback=None):
+        super(KeypressListener, self).__init__(timeout, loop_callback)
         self._keymap = self._parse_keymap(keymap)
 
     def _timestamp(self):

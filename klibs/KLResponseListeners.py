@@ -10,7 +10,15 @@ Basic Usage
 
 To use a ResponseListener after defining it, simply call its ``collect`` method::
 
-   resp = self.key_listener.collect()
+   resp, rt = self.key_listener.collect()
+
+This will initiate the response collection loop and wait until either a response
+has been made or the listener has timed out before returning.
+
+For most response listeners, the ``collect()`` method returns a tuple with two
+items: the response value (e.g. 'left') and the participant's reaction time in
+milliseconds. Some listeners may return additional elements, so check the return
+type documentation for a ResponseListener before using it.
 
 For accurate response timing, you must present the stimuli that the participant
 responds to (e.g. a target in a cueing task) immediately before starting response
@@ -90,9 +98,7 @@ import sdl2
 from klibs.KLTime import precise_time
 from klibs.KLEventQueue import pump, flush
 from klibs.KLUserInterface import ui_request
-from klibs.KLResponseCollectors import Response
 
-# NOTE: Do away with Response class and just return two-item (value, rt) tuple?
 
 
 class BaseResponseListener(object):
@@ -112,8 +118,9 @@ class BaseResponseListener(object):
     """
     def __init__(self, timeout=None, loop_callback=None):
         self._loop_start = None
-        self.timeout_ms = timeout * 1000 if timeout else None
         self._callback = loop_callback
+        self.timeout_ms = timeout * 1000 if timeout else None
+        self.default_response = (None, -1)
 
     def _timestamp(self):
         # The timestamp (in milliseconds) to use as the start time for the loop.
@@ -121,7 +128,14 @@ class BaseResponseListener(object):
 
     def collect(self):
         """Collects a single response from the participant.
-        
+
+        This method starts the response collection loop and waits until either a
+        response is made or the listener times out to return.
+
+        Returns:
+            tuple: A tuple containing the response value(s) and the reaction
+            time of the response (in milliseconds).
+
         """
         resp = None
         self.init()
@@ -142,7 +156,7 @@ class BaseResponseListener(object):
         self.cleanup()
         # If no response given, return default response
         if not resp:
-            resp = Response(None, -1)
+            resp = self.default_response
         return resp
 
     def init(self):
@@ -186,9 +200,8 @@ class BaseResponseListener(object):
             q (list): A list of input events to check for valid responses.
 
         Returns:
-            :obj:`klibs.KLResponseCollector.Response` or None: A Response object
-            containing the value and reaction time (in milliseconds) of the
-            response, or None if no response has been made.
+            tuple or None: A tuple containing the response value(s) and reaction
+            time if a response has been made, otherwise None.
         
         """
         e = "ResponseListener subclass has no defined 'listen' method."
@@ -224,7 +237,7 @@ class BaseResponseListener(object):
 
 
 class KeypressListener(BaseResponseListener):
-    """A convenience class for collecting keypress responses.
+    """A simple class for collecting keypress responses.
 
     This listener collects keypress responses from the participant, with the
     valid response keys and their corresponding output labels being specified
@@ -237,8 +250,7 @@ class KeypressListener(BaseResponseListener):
 
     The keys in the dictionary (e.g. 'z', '/') specify which keys to watch for
     responses (other keys will be ignored). Their values (e.g. 'left', 'right')
-    specify their corresponding response labels if that key is pressed during
-    response collection.
+    specify the response label returned by the listener when that key is pressed.
     
     See the first column in `this table <https://wiki.libsdl.org/SDL2/SDL_Keycode>`_
     for a full list of valid key names.
@@ -286,17 +298,17 @@ class KeypressListener(BaseResponseListener):
         This method starts the response collection loop and waits until either a
         response is made or the listener times out to return::
 
-           resp = self.key_listener.collect()
-           accuracy = resp.value == target
-           rt = resp.rt
+           response, rt = self.key_listener.collect()
+           if not response:
+               response = "NA"
+               err = "timeout"
 
-        If the listener times out before a response is made, the returned
-        Response object will have a value of ``None`` and a reaction time of -1.
+        If the listener times out before a response is made, this will return a
+        response value of ``None`` and a reaction time of -1.
 
         Returns:
-            :obj:`klibs.KLResponseCollector.Response`: A Response object
-            containing the label and reaction time (in milliseconds) of the
-            response.
+            tuple: A ``(response, rt)`` tuple containing the response key's
+            label and the reaction time of the response (in milliseconds).
         
         """
         return super(KeypressListener, self).collect()
@@ -317,14 +329,14 @@ class KeypressListener(BaseResponseListener):
                 response = key_listener.listen(q)
 
             key_listener.cleanup()
+            resp, rt = response
 
         Args:
             q (list): A list of input events to check for valid key responses.
 
         Returns:
-            :obj:`klibs.KLResponseCollector.Response` or None: A Response object
-            containing the label and reaction time (in milliseconds) of the
-            response, or None if no response has been made.
+            tuple or None: A ``(response, rt)`` tuple if a keypress response has
+            been made, otherwise None.
 
         """
         # Checks the input queue for any keypress events for keys in the keymap
@@ -334,5 +346,5 @@ class KeypressListener(BaseResponseListener):
                 if key.sym in self._keymap.keys():
                     value = self._keymap[key.sym]
                     rt = (event.key.timestamp - self._loop_start)
-                    return Response(value, rt)
+                    return (value, rt)
         return None

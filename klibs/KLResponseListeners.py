@@ -1,8 +1,15 @@
 """
 
 The purpose of this module is to make it easy to collect responses of different types
-from participants (e.g. keypress responses, color wheel judgements). There are a number
-of built-in ResponseListener types.
+from participants (e.g. keypress responses, color wheel judgements). There are several
+built-in ResponseListener types:
+
+* :class:`KeypressListener` - For collecting keypress responses
+* :class:`MouseButtonListener` - For collecting mouse button responses
+* :class:`ColorWheelListener` - For collecting color wheel judgement responses
+
+Additionally, it is relatively easy to define your own by creating a subclass of
+:class:`BaseResponseListener`.
 
 
 Basic Usage
@@ -98,12 +105,15 @@ to collecting a color wheel response).
 
 import sdl2
 
+from klibs import P
 from klibs.KLTime import precise_time
 from klibs.KLEventQueue import pump, flush
-from klibs.KLUserInterface import ui_request
+from klibs.KLUserInterface import ui_request, mouse_pos
+
+from klibs.KLBoundary import AnnulusBoundary
+from klibs.KLUtilities import angle_between
 
 # TODO: Add some sort of tests for elapsed, collect, timeout, callback?
-# TODO: Add tests for ColorWheelListener
 # TODO: Update changelog
 
 
@@ -463,3 +473,171 @@ class MouseButtonListener(BaseResponseListener):
                     rt = (event.button.timestamp - self._loop_start)
                     return (value, rt)
         return None
+
+
+class ColorWheelListener(BaseResponseListener):
+    """A convenience class for collecting color wheel responses.
+
+    The color wheel listener is for measuring the accuracy with which a participant
+    remembers or perceives a given color. For these sorts of tasks, a color wheel
+    is drawn to the screen and the participant uses the mouse cursor to click the
+    color they think best matches a previously-seen color stimulus. This listener
+    collects these color judgements and calculates their angular error::
+
+       self.wheel = ColorWheel(diameter=(P.screen_y // 2))
+       self.color_listener = ColorWheelListener(self.wheel)
+
+    Prior to collecting a response, you will also need to set the target color for
+    the trial using the :meth:`set_target` method::
+
+       # Set the target color for the listener
+       self.color_listener.set_target(target_col)
+
+    This class requires that the wheel has already been drawn to the screen and
+    the target color has been specified via :meth:`set_target` prior to response
+    collection.
+
+    Args:
+        wheel (:obj:`~klibs.KLDraw.ColorWheel`): The target color wheel from
+            which to collect a color judgement response.
+        center (tuple, optional): The (x, y) pixel coordinates for the center of
+            the wheel. Defaults to the center of the screen if not specified.
+        timeout (float, optional): The maximum duration (in seconds) to wait for a
+            color response. Defaults to None (no timeout).
+        loop_callback (callable, optional): An optional function or method to be
+            called every time the collection loop checks for new input.
+
+    """
+    def __init__(self, wheel, center=None, timeout=None, loop_callback=None):
+        super(ColorWheelListener, self).__init__(timeout, loop_callback)
+        self.default_response = (None, None, -1)
+        self._cursor_was_hidden = False
+        self._center_xy = center if center else P.screen_c
+        self._wheel = wheel
+        self._bounds = self._get_wheel_bounds(wheel, self._center_xy)
+        self._target = None
+
+    def _get_wheel_bounds(self, wheel, center):
+        if not hasattr(wheel, 'color_from_angle'):
+            raise TypeError("'wheel' must be a ColorWheel object.")
+        return AnnulusBoundary("wheel", center, wheel.radius, wheel.thickness)
+
+    def _timestamp(self):
+        return sdl2.SDL_GetTicks()
+
+    def set_target(self, color):
+        """Sets the target color for color judgements.
+
+        This method defines the target color to use when calculating accuracy
+        for color judgements. Will raise an error if provided color does not
+        exist on the listener's color wheel.
+
+        Args:
+            color (tuple): An RGB tuple specifying the target color for the
+                response collector.
+        
+        """
+        if len(color) < 3 or len(color) > 4:
+            e = "target color must be in (r, g, b) format."
+            raise ValueError(e)
+        color = (color[0], color[1], color[2], 255)
+        self._wheel.angle_from_color(color) # Ensure color is present in wheel
+        self._target = color
+
+    def collect(self):
+        """Collects a single color judgement response from the participant.
+
+        This method starts the response collection loop and waits until either a
+        response is made or the listener times out before returning::
+
+           # Show the color wheel and collect a response
+           fill()
+           blit(self.wheel, 5, P.screen_c)
+           flip()
+           angle_err, resp_color, rt = self.color_listener.collect()
+           if not angle_err:
+               angle_err, resp_color = ("NA", "NA")
+               err = "timeout"
+
+        If the listener times out before a response is made, this will return 
+        angluar error and color values of ``None`` and a reaction time of -1.
+
+        Returns:
+            tuple: An ``(err, color, rt)`` tuple containing the angular error of
+            the colour judgement (in degrees), the RGB value of the chosen
+            color, and the reaction time of the response (in milliseconds).
+        
+        """
+        return super(ColorWheelListener, self).collect()
+
+    def init(self):
+        """Initializes the listener for response collection.
+
+        This method shows the mouse cursor, warps it to the middle of the color
+        wheel, and starts the response timer.
+
+        Only needs to be called manually if using :meth:`listen` directly in a
+        custom collection loop.
+
+        """
+        # Ensure a target color has been set before starting
+        if not self._target:
+            e = "A target color must be set before starting the collection loop"
+            raise RuntimeError(e)
+        # Start with cursor shown in middle of wheel
+        self._cursor_was_hidden = sdl2.ext.cursor_hidden()
+        sdl2.ext.show_cursor()
+        mouse_pos(position=self._center_xy)
+        # Clear any existing events in the queue and set the response start time
+        flush()
+        self._loop_start = self._timestamp()
+
+    def listen(self, q):
+        """Checks a queue of input events for color judgement responses.
+
+        Along with :meth:`init` and :meth:`cleanup`, this method can be used to
+        create custom response collection loops in cases where :meth:`collect`
+        doesn't offer enough flexibility.
+
+        Args:
+            q (list): A list of input events to check for color responses.
+
+        Returns:
+            tuple or None: An ``(err, color, rt)`` tuple if a color judgement
+            has been made, otherwise None.
+
+        """
+        for e in q:
+            if e.type == sdl2.SDL_MOUSEBUTTONUP:
+                # First, ensure mouse click was within the wheel boundary
+                pos = (e.button.x * P.screen_scale_x, e.button.y * P.screen_scale_y)
+                if not pos in self._bounds:
+                    continue
+                # Calculate the angle difference between the response & target colours
+                target_angle = self._wheel.angle_from_color(self._target)
+                response_angle = angle_between(pos, self._center_xy, 90, clockwise=True)
+                color = self._wheel.color_from_angle(response_angle)[:3]
+                diff = target_angle - self._wheel.angle_from_color(color)
+                # Return the angular error
+                angle_err = (
+                    diff - 360 if diff > 180 else diff + 360 if diff < -180 else diff
+                )
+                rt = e.button.timestamp - self._loop_start
+                return (angle_err, color, rt)
+        return None
+
+    def cleanup(self):
+        """Performs any necessary cleanup after response collection.
+
+        For the color wheel listener, this method hides the mouse cursor if it
+        wasn't visible already when :meth:`init` was called, resets the response
+        timer, and clears the target color.
+
+        Only needs to be called manually if using :meth:`listen` directly in a
+        custom collection loop.
+
+        """
+        self._target = None
+        self._loop_start = None
+        if self._cursor_was_hidden:
+            sdl2.ext.hide_cursor()

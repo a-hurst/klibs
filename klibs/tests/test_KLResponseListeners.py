@@ -1,4 +1,5 @@
 import pytest
+import mock
 
 from klibs.KLGraphics import KLDraw as kld
 from klibs.KLResponseListeners import (
@@ -6,6 +7,16 @@ from klibs.KLResponseListeners import (
 )
 
 from eventfactory import keydown, click
+
+
+time_tmp = 1
+
+def mock_timestamp():
+    return time_tmp * 1000
+
+def add_time(secs):
+    global time_tmp
+    time_tmp += secs
 
 
 class TestKeypressListener(object):
@@ -18,6 +29,16 @@ class TestKeypressListener(object):
             tst = KeypressListener({})
         with pytest.raises(ValueError):
             tst = KeypressListener({'not_a_key': 'value'})
+
+    def test_elapsed(self):
+        listener = KeypressListener({'space': 'detection'})
+        with mock.patch.object(listener, '_timestamp', new=mock_timestamp):
+            assert listener.elapsed == 0
+            listener.init()
+            add_time(1.5)
+            assert listener.elapsed == 1500
+            listener.cleanup()
+            assert listener.elapsed == 0
 
     def test_listen(self):
         listener = KeypressListener({

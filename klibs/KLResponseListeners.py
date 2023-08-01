@@ -8,7 +8,7 @@ built-in ResponseListener types:
 * :class:`MouseButtonListener` - For collecting mouse button responses
 * :class:`ColorWheelListener` - For collecting color wheel judgement responses
 
-Additionally, it is relatively easy to define your own by creating a subclass of
+Additionally, you can create your own ResponseListener by creating a subclass of
 :class:`BaseResponseListener`.
 
 
@@ -113,9 +113,6 @@ from klibs.KLUserInterface import ui_request, mouse_pos
 from klibs.KLBoundary import AnnulusBoundary
 from klibs.KLUtilities import angle_between
 
-# TODO: Add some sort of tests for elapsed, collect, timeout, callback?
-# TODO: Update changelog
-
 
 class BaseResponseListener(object):
     """An abstract base class for creating response listeners.
@@ -162,8 +159,8 @@ class BaseResponseListener(object):
                     break
             # Fetch event queue and check for valid responses
             events = pump()
-            ui_request(queue=events)
             resp = self.listen(events)
+            ui_request(queue=events)
             # If a callback is provided, call it once per loop
             if not resp and self._callback:
                 interrupt = self._callback()

@@ -186,15 +186,15 @@ class BaseResponseListener(object):
         :meth:`init` and :meth:`cleanup`) in cases where :meth:`collect` doesn't
         offer enough flexibility, e.g.::
 
-            response = None
+           response = None
 
-            listener.init()
-            while not response:
-                q = pump()
-                ui_request(queue=q)
-                response = listener.listen(q)
+           listener.init()
+           while not response:
+               q = pump()
+               ui_request(queue=q)
+               response = listener.listen(q)
 
-            listener.cleanup()
+           listener.cleanup()
 
         Args:
             q (list): A list of input events to check for valid responses.
@@ -243,10 +243,10 @@ class KeypressListener(BaseResponseListener):
     valid response keys and their corresponding output labels being specified
     in a dictionary::
 
-      self.key_listener = KeypressListener({
-        "z": "left",
-        "/": "right",
-      })
+       self.key_listener = KeypressListener({
+         "z": "left",
+         "/": "right",
+       })
 
     The keys in the dictionary (e.g. 'z', '/') specify which keys to watch for
     responses (other keys will be ignored). Their values (e.g. 'left', 'right')
@@ -320,16 +320,16 @@ class KeypressListener(BaseResponseListener):
         create custom response collection loops is cases where :meth:`collect`
         doesn't offer enough flexibility. e.g.::
 
-            key_listener.init()
+           key_listener.init()
 
-            response = None
-            while not response:
-                q = pump()
-                ui_request(queue=q)
-                response = key_listener.listen(q)
+           response = None
+           while not response:
+               q = pump()
+               ui_request(queue=q)
+               response = key_listener.listen(q)
 
-            key_listener.cleanup()
-            resp, rt = response
+           key_listener.cleanup()
+           resp, rt = response
 
         Args:
             q (list): A list of input events to check for valid key responses.
@@ -346,5 +346,114 @@ class KeypressListener(BaseResponseListener):
                 if key.sym in self._keymap.keys():
                     value = self._keymap[key.sym]
                     rt = (event.key.timestamp - self._loop_start)
+                    return (value, rt)
+        return None
+
+
+class MouseButtonListener(BaseResponseListener):
+    """A simple class for collecting mouse button responses.
+
+    This listener collects mouse button responses from the participant, with the
+    allowed buttons and their corresponding output labels being specified in a
+    dictionary::
+
+       button_map = {
+         "left": "same",
+         "right": "different",
+       }
+       self.mouse_listener = MouseButtonListener(button_map, timeout=3)
+
+    The keys in the dictionary (e.g. 'left') specify which mouse buttons to watch
+    for responses (others will be ignored). Their values (e.g. 'same') specify
+    the response label returned by the listener if that button is pressed. Valid
+    mouse button names are 'left', 'right', 'middle', or 'any' (if any mouse
+    button should be considered a valid response).
+
+    Args:
+        buttonmap (dict): A dictionary specifying the mouse buttons to check for
+            input and their corresponding response labels.
+        timeout (float, optional): The maximum duration (in seconds) to wait for a
+            valid response. Defaults to None (no timeout).
+        loop_callback (callable, optional): An optional function or method to be
+            called every time the collection loop checks for new input.
+
+    """
+    def __init__(self, buttonmap, timeout=None, loop_callback=None):
+        super(MouseButtonListener, self).__init__(timeout, loop_callback)
+        self._buttonmap = self._parse_buttonmap(buttonmap)
+
+    def _timestamp(self):
+        # Since click events have SDL timestamps, use SDL_GetTicks to mark the
+        # start of the collection loop.
+        return sdl2.SDL_GetTicks()
+
+    def _parse_buttonmap(self, b_map):
+        # Perform basic validation of the button map
+        if not isinstance(b_map, dict):
+            raise TypeError("button map must be a properly-formatted dict.")
+        if len(b_map) == 0:
+            raise ValueError("button map must contain at least one key/label pair.")
+        # Convert all buttons in the map to SDL constants
+        name_map = {
+            "left": sdl2.SDL_BUTTON_LEFT,
+            "right": sdl2.SDL_BUTTON_RIGHT,
+            "middle": sdl2.SDL_BUTTON_MIDDLE,
+        }
+        sdl_button_map = {}
+        for button, label in b_map.items():
+            button = button.lower()
+            # If any button allowed, set same label for all buttons
+            if button == "any":
+                for b in ["left", "right", "middle"]:
+                    sdl_button_map[name_map[b]] = label
+                return sdl_button_map
+            # Otherwise, set button labels individually based on map
+            if not button in name_map.keys():
+                e = "Invalid mouse button name '{0}'."
+                raise ValueError(e.format(button))
+            sdl_button_map[name_map[button]] = label
+
+        return sdl_button_map
+
+    def collect(self):
+        """Collects a single mouse button response from the participant.
+
+        This method starts the response collection loop and waits until either a
+        response is made or the listener times out to return::
+
+            response, rt = self.mouse_listener.collect()
+
+        If the listener times out before a response is made, this will return a
+        response value of ``None`` and a reaction time of -1.
+
+        Returns:
+            tuple: A ``(response, rt)`` tuple containing the response button's
+            label and the reaction time of the response (in milliseconds).
+        
+        """
+        return super(MouseButtonListener, self).collect()
+
+    def listen(self, q):
+        """Checks a queue of input events for valid mouse button responses.
+
+        Along with :meth:`init` and :meth:`cleanup`, this method can be used to
+        create custom response collection loops is cases where :meth:`collect`
+        doesn't offer enough flexibility.
+
+        Args:
+            q (list): A list of input events to check for mouse button events.
+
+        Returns:
+            tuple or None: A ``(response, rt)`` tuple if a mouse button response
+            has been made, otherwise None.
+
+        """
+        # Checks the input queue for any matching mouse button events
+        for event in q:
+            if event.type == sdl2.SDL_MOUSEBUTTONDOWN:
+                b = event.button.button
+                if b in self._buttonmap.keys():
+                    value = self._buttonmap[b]
+                    rt = (event.button.timestamp - self._loop_start)
                     return (value, rt)
         return None

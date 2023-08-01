@@ -44,6 +44,9 @@ Runtime Changes:
   by pressing the space bar in addition to clicking.
 * The EyeLink camera setup image is now always scaled to a height of 480 pixels
   for a larger view and easier setup.
+* Changed :func:`~klibs.KLUserInterface.any_key` to flush existing input before
+  starting and require that the mouse be both clicked `and` released before
+  returning to avoid registering spurious input.
 
 
 API Changes:

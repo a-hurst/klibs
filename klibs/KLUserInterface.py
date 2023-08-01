@@ -12,7 +12,7 @@ from sdl2.mouse import SDL_GetMouseState, SDL_GetMouseFocus, SDL_WarpMouseInWind
 from klibs import TK_S, TK_MS
 from klibs import P
 from klibs.KLTime import precise_time as time
-from klibs.KLEventQueue import pump
+from klibs.KLEventQueue import pump, flush
 
 
 def any_key(allow_mouse_click=True):
@@ -31,14 +31,22 @@ def any_key(allow_mouse_click=True):
             clicks in addition to key presses.
     
     """
-    any_key_pressed = False
-    while not any_key_pressed:
+    flush()
+    mouse_down = False
+    done = False
+    while not done:
         for event in pump(True):
             if event.type == SDL_KEYDOWN:
                 ui_request(event.key.keysym)
-                any_key_pressed = True
-            if event.type == SDL_MOUSEBUTTONUP and allow_mouse_click:
-                any_key_pressed = True
+                done = True
+                break
+            # For mouse, require both click and release to break loop
+            if allow_mouse_click:
+                if event.type == SDL_MOUSEBUTTONDOWN:
+                    mouse_down = True
+                if mouse_down and event.type == SDL_MOUSEBUTTONUP:
+                    done = True
+                    break
 
 
 def key_pressed(key=None, released=False, queue=None):

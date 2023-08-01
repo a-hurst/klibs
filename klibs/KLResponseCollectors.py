@@ -22,8 +22,7 @@ from klibs.KLGraphics.utils import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import Annulus, ColorWheel, Drawbject
 from klibs.KLAudio import PYAUDIO_AVAILABLE
 
-# TODO: Add a callback that's called during collection that can end collection early
-#       (e.g. for checking if gaze leaves fixation during response period)
+# NOTE: This module is deprecated, KLResponseListeners should be used for all future projects
 
 
 class Response(namedtuple('Response', ['value', 'rt'])):
@@ -950,6 +949,9 @@ class DrawResponse(ResponseListener, BoundarySet):
 class ResponseCollector(EnvAgent):
     """A container class used for collecting responses from one or more :class:`ResponseListener`
     types.
+
+    .. NOTE:: This class has been deprecated in favour of the listener classes in
+              KLResponseListener.
 
     Args:
         uses (:obj:`List` of :class:`ResponseListener` classes, optional): A list specifying the

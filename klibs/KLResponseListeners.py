@@ -1,4 +1,4 @@
-"""The ResponseListener Module
+"""
 
 The purpose of this module is to make it easy to collect responses of different types
 from participants (e.g. keypress responses, color wheel judgements). There are a number
@@ -84,12 +84,15 @@ methods::
 
 The ``init`` method sets the timestamp for the start of the collection loop and
 performs any other necessary setup for the listener (e.g. making sure the mouse
-cursor is visible for color wheel responses). The ``listen`` method checks a
-given event queue for response input, returning the response and reaction time
-if a valid response has been made or ``None`` otherwise. The ``cleanup`` method
-resets the start time for the listener and does any other necessary cleanup
-(e.g. re-hiding the cursor if it was originally hidden prior to collecting a
-color wheel response).
+cursor is visible for color wheel responses).
+
+The ``listen`` method checks a given event queue for response input, returning
+the response and reaction time if a valid response has been made or ``None``
+otherwise.
+
+The ``cleanup`` method resets the start time for the listener and does any other
+necessary cleanup (e.g. re-hiding the cursor if it was originally hidden prior
+to collecting a color wheel response).
 
 """
 
@@ -99,6 +102,9 @@ from klibs.KLTime import precise_time
 from klibs.KLEventQueue import pump, flush
 from klibs.KLUserInterface import ui_request
 
+# TODO: Add some sort of tests for elapsed, collect, timeout, callback?
+# TODO: Add tests for ColorWheelListener
+# TODO: Update changelog
 
 
 class BaseResponseListener(object):

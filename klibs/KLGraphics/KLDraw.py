@@ -862,8 +862,7 @@ class ColorWheel(Drawbject):
     def __init__(self, diameter, thickness=None, colors=None, rotation=0, auto_draw=True):
         if colors == None:
             colors = COLORSPACE_CONST
-        self.__colors = None
-        self.colors = colors
+        self._colors = [rgb_to_rgba(tuple(c)) for c in colors]
         self.diameter = diameter
         self.radius = self.diameter / 2.0
         self.thickness = 0.20 * diameter if not thickness else thickness
@@ -882,7 +881,7 @@ class ColorWheel(Drawbject):
                 r_shift = -0.25 if i < 2 else 1.25
                 r_shift -= rotation
                 func = cos if i % 2 else sin
-                vertices.append(r + r * func(radians(r_shift+180)))
+                vertices.append(r + r * func(radians(r_shift + 180)))
             self.surface.polygon(vertices, brush)
             rotation += 360.0 / len(self.colors)
         self.surface.flush()
@@ -890,8 +889,8 @@ class ColorWheel(Drawbject):
         # Create annulus mask and apply it to colour disc
         mask = Image.new('L', (self.surface_width, self.surface_height), 0)
         d = Draw(mask)
-        xy_1 = center - (self.radius-self.thickness/2.0)
-        xy_2 = center + (self.radius-self.thickness/2.0)
+        xy_1 = center - (self.radius-self.thickness / 2.0)
+        xy_2 = center + (self.radius-self.thickness / 2.0)
         path_pen = Pen(255, self.thickness)
         d.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
         d.flush()
@@ -905,9 +904,9 @@ class ColorWheel(Drawbject):
         if not rotation:
             rotation = self.rotation
         
-        degrees_per_colour = 360.0/len(self.colors)
+        degrees_per_colour = 360.0 / len(self.colors)
         adj_angle = (angle - rotation) % 360
-        i = int(adj_angle/degrees_per_colour)
+        i = int(adj_angle / degrees_per_colour)
         color = self.colors[i]
         return color
 
@@ -924,17 +923,13 @@ class ColorWheel(Drawbject):
         except ValueError:
             err_str = "The color '{0}' does not exist in the color wheel palette."
             raise ValueError(err_str.format(rgb_to_rgba(color)))
-        degrees_per_colour = 360.0/len(self.colors)
-        angle = ((i+0.5) * degrees_per_colour + rotation) % 360
+        degrees_per_colour = 360.0 / len(self.colors)
+        angle = ((i + 0.5) * degrees_per_colour + rotation) % 360
         return angle
 
     @property
     def colors(self):
-        return self.__colors
-
-    @colors.setter
-    def colors(self, colorlist):
-        self.__colors = [rgb_to_rgba(tuple(c)) for c in colorlist]
+        return self._colors
 
     @property
     def __name__(self):

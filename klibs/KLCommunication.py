@@ -17,10 +17,10 @@ from klibs.KLJSON_Object import import_json, AttributeDict
 from klibs.KLEventQueue import pump, flush
 from klibs.KLUtilities import pretty_list, now, utf8, make_hash
 from klibs.KLUtilities import colored_stdout as cso
-from klibs.KLDatabase import EntryTemplate
+from klibs.KLDatabase import _get_session_info
 from klibs.KLRuntimeInfo import runtime_info_init
 from klibs.KLGraphics import blit, clear, fill, flip
-from klibs.KLUserInterface import ui_request, any_key
+from klibs.KLUserInterface import ui_request, key_pressed
 from klibs.KLText import TextStyle, add_text_style
 
 
@@ -36,6 +36,29 @@ def alert(text):
     clear()
     message(text, "alert", blit_txt=True)
     flip()
+
+
+def _simple_prompt(msg, loc=None, resp_keys=[]):
+    # Shows a message and waits for a key response
+    if not loc:
+        loc = P.screen_c
+    fill()
+    blit(msg, 5, location=loc)
+    flip()
+    resp = None
+    while not resp:
+        q = pump()
+        ui_request(queue=q)
+        # If specific response keys defined, check each of them
+        for key in resp_keys:
+            if key_pressed(key, queue=q):
+                resp = key
+                break
+        # Otherwise, end the loop if any key is pressed
+        if not len(resp_keys):
+            if key_pressed(queue=q):
+                resp = True
+    return resp
 
 
 def _get_demographics_queries(db, queries):
@@ -91,35 +114,62 @@ def collect_demographics(anonymous=False):
     queries.pop(P.unique_identifier)
 
     # Collect the unique identifier for the participant
-    unique_id = None
-    existing = [utf8(pid) for pid in db.get_unique_ids()]
-    while not unique_id:
-        unique_id = query(id_query, anonymous=anonymous)
-        if utf8(unique_id) in existing:
-            unique_id = None
+    unique_id = query(id_query, anonymous=anonymous)
+    p_id = db.get_db_id(unique_id)
+    while p_id is not None:
+        id_info = _get_session_info(db, p_id)[-1]
+        if P.session_count > 1:
+            session_num = id_info['num'] + 1
+            # Already completed all sessions of the task. Create new ID?
+            if session_num > P.session_count:
+                txt = (
+                    "This participant has already completed all sessions of the task.\n"
+                    "Please enter a different identifier."
+                )
+                msg = message(txt, align="center")
+                _simple_prompt(msg)
+            # Participant has completed X of N sessions. Begin next session?
+            else:
+                txt = (
+                    "This participant has completed {0} of {1} sessions.\n"
+                    "Begin next session? (Yes / No)"
+                )
+                txt = txt.format(id_info['num'], P.session_count)
+                msg = message(txt, align="center")
+                resp = _simple_prompt(msg, resp_keys=["y", "n", "return"])
+                if resp != "n":
+                    P.condition = id_info['condition']
+                    P.session_number = session_num
+                    break
+        else:
             err = ("A participant with that ID already exists!\n"
                    "Please try a different identifier.")
-            fill()
-            blit(message(err, "alert", align='center', blit_txt=False), 5, P.screen_c)
-            flip()
-            any_key()
+            msg = message(err, style="alert", align="center")
+            _simple_prompt(msg)
+        # Retry with another id
+        unique_id = query(id_query, anonymous=anonymous)
+        p_id = db.get_db_id(unique_id)
 
-    # Initialize demographics info for partcipant
-    demographics = {
-        P.unique_identifier: unique_id,
-        "created": now(True),
-    }
-    if "random_seed" in db.get_columns("participants"):
-        # Required for compatibility with older projects
-        demographics["random_seed"] = P.random_seed
-        demographics["klibs_commit"] = P.klibs_commit
+    # If not reloading an existing participant, collect demographics
+    if p_id is None:
+        # Initialize demographics info for participant
+        demographics = {
+            P.unique_identifier: unique_id,
+            "created": now(True),
+        }
+        if "random_seed" in db.get_columns("participants"):
+            # Required for compatibility with older projects
+            demographics["random_seed"] = P.random_seed
+            demographics["klibs_commit"] = P.klibs_commit
 
-    # Collect all other demographics queries
-    for db_col, q in queries.items():
-        demographics[db_col] = query(q, anonymous=anonymous)
+        # Collect all demographics queries
+        for db_col, q in queries.items():
+            demographics[db_col] = query(q, anonymous=anonymous)
 
-    # Insert demographics in database and get db id number
-    P.participant_id = P.p_id = db.insert(demographics, "participants")
+        # Insert demographics in database and get db id number
+        p_id = db.insert(demographics, "participants")
+
+    P.participant_id = P.p_id = p_id
     P.demographics_collected = True
 
     # Log info about current runtime environment to database
@@ -132,6 +182,7 @@ def collect_demographics(anonymous=False):
 
     # Save copy of experiment.py and config files as they were for participant
     if not P.development_mode:
+        # TODO: Break this into a separate function, make it more useful
         pid = P.random_seed if P.multi_user else P.participant_id # pid set at end for multiuser
         P.version_dir = join(P.versions_dir, "p{0}_{1}".format(pid, now(True)))
         os.mkdir(P.version_dir)

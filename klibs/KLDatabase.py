@@ -252,6 +252,16 @@ def rebuild_database(path, schema):
     shutil.move(tmppath, path)
 
 
+def _get_session_info(db, pid):
+    # Gathers previous session info for a given database ID
+    cols = ['condition', 'session_number', 'complete']
+    info = db.select('session_info', columns=cols, where={'participant_id': pid})
+    sessions = []
+    for cond, num, completed in info:
+        sessions.append({'condition': cond, 'num': num, 'completed': completed})
+    return sessions
+
+
 
 class EntryTemplate(object):
 
@@ -625,18 +635,22 @@ class DatabaseManager(EnvAgent):
                 raise RuntimeError(e.format(table))
 
     def _is_complete(self, pid):
-        # TODO: For multisession projects, need to know the number of sessions
-        # per experiment for this to work correctly: currently, this only checks
-        # whether all sessions so far were completed, even if there are more
-        # sessions remaining.
-        if 'session_info' in self._primary.table_schemas:	
-            q = "SELECT complete FROM session_info WHERE participant_id = ?"
-            sessions = self._primary.query(q, q_vars=[pid])
+        this_id = {'participant_id': pid}
+        db = self._primary # Always use primary db for data export
+        if 'session_info' in db.tables:
+            # Ensure participant has completed all sessions of task
+            if "session_count" in db.get_columns("session_info"):
+                last_session, num_sessions = db.select(
+                    'session_info', ['session_number', 'session_count'], where=this_id
+                )[-1]
+                if last_session < num_sessions:
+                    return False
+            # Ensure all sessions were successfully completed
+            sessions = db.select('session_info', ['complete'], where=this_id)
             complete = [bool(s[0]) for s in sessions]
             return all(complete)
         else:
-            q = "SELECT id FROM trials WHERE participant_id = ?"
-            trialcount = len(self._primary.query(q, q_vars=[pid]))
+            trialcount = len(db.select('trials', ['id'], where=this_id))
             return trialcount >= P.trials_per_block * P.blocks_per_experiment
 
     def _log_export(self, pid, table):
@@ -655,13 +669,25 @@ class DatabaseManager(EnvAgent):
         matches = self._primary.select('export_history', where=this_id)
         return len(matches) > 0
     
+    def get_db_id(self, unique_id):
+        """Gets the numeric database ID for a given unique identifier.
 
-    def get_unique_ids(self):
-        """Retrieves all existing unique id values from the main database.
+        If no matching unique ID exists in the 'participants' table, this will
+        return None.
 
+        Args:
+            unique_id (str): The participant identifier (e.g. 'P03') for which
+                to retrieve the corresponding database ID.
+
+        Returns:
+            int or None: The numeric database ID corresponding to the given
+            unique identifier, or None if no match found.
         """
-        id_rows = self._primary.select('participants', columns=[P.unique_identifier])
-        return [row[0] for row in id_rows]
+        id_filter = {P.unique_identifier: unique_id}
+        ret = self._primary.select('participants', columns=['id'], where=id_filter)
+        if not ret:
+            return None
+        return ret[0][0]
     
 
     def write_local_to_master(self):

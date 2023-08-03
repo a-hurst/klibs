@@ -111,6 +111,7 @@ class TestDatabase(object):
         # Test handling of 'allow null' columns
         _init_params_pytest()
         data = runtime_info_init()
+        data['session_count'] = 1
         db.insert(data, table='session_info')
         assert db.last_row_id('session_info') == 1
         # Test exception when unable to coerce value to column type
@@ -220,18 +221,15 @@ class TestDatabaseManager(object):
         assert dat.table_schemas['participants']['age']['type'] == klibs.PY_INT
         dat.close()
 
-    def test_get_unique_ids(self, db_test_path):
+    def test_get_db_id(self, db_test_path):
         dat = kldb.DatabaseManager(db_test_path)
         # Add test data
         id_data = build_test_data()
         for row in id_data:
             dat.insert(row, table='participants')
         for pid in (1, 2, 3):
-            dat.insert(generate_data_row(pid), table='trials')
-            dat.insert(generate_data_row(pid, trial=2), table='trials')
-            assert "P0{0}".format(pid) in dat.get_unique_ids()
-        assert len(dat.get_unique_ids()) == 3
-        assert not "P04" in dat.get_unique_ids()
+            assert dat.get_db_id("P0{0}".format(pid)) == pid
+        assert not dat.get_db_id("P04")
         dat.close()
 
     def test_remove_data(self, db_test_path):

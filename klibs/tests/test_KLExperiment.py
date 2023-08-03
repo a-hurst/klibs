@@ -14,6 +14,7 @@ def experiment():
     template_path = resource_filename('klibs', 'resources/template')
     P.ind_vars_file_path = os.path.join(template_path, "independent_variables.py")
     P.ind_vars_file_local_path = os.path.join(template_path, "doesnt_exist.py")
+    P.demographics_collected = True
     P.manual_trial_generation = True
     P.project_name = "PROJECT_NAME"
     return Experiment()

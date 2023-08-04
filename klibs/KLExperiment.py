@@ -45,6 +45,7 @@ class Experiment(EnvAgent):
 
         """
         from klibs.KLGraphics import clear
+        from klibs.KLTrialFactory import TrialIterator
 
         if not P.demographics_collected:
             e = "Demographics must be collected before the first block of the task."
@@ -54,14 +55,33 @@ class Experiment(EnvAgent):
             # If structure provided, just ignore trial factory and use structure to generate?
             self.blocks = self.trial_factory.export_trials()
 
-        P.block_number = 0
+        # Check whether we're resuming from an incomplete session and fast-forward if we are
+        resume_session = False
+        if P.block_number > 0 or P.trial_number > 0:
+            # Drop completed blocks
+            trimmed = [block for block in self.blocks][(P.block_number - 1): ]
+            # Drop completed trials
+            if P.trial_number < len(trimmed[0].trials):
+                practice_first = trimmed[0].practice
+                trimmed[0] = TrialIterator(trimmed[0][(P.trial_number - 1): ])
+                trimmed[0].practice = practice_first # re-set practice flag if needed
+            else:
+                # If at end of current block, jump to next block
+                trimmed = trimmed[1:]
+                P.block_number += 1
+            # Prepare for resuming session
+            self.blocks = trimmed
+            P.block_number -= 1
+            resume_session = True
+
         P.trial_id = 0
         for block in self.blocks:
             P.recycle_count = 0
             P.block_number += 1
             P.practicing = block.practice
             self.block()
-            P.trial_number = 1
+            P.trial_number = P.trial_number if resume_session else 1
+            resume_session = False
             for trial in block:  # ie. list of trials
                 try:
                     P.trial_id += 1 # Increments regardless of recycling

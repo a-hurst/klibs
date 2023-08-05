@@ -11,6 +11,10 @@ Released on 2023-02-XX
 
 New Features:
 
+* Added a new module, :mod:`~klibs.KLResponseListeners`, to replace the
+  ``ResponseCollector`` API for a much simpler and more Pythonic way of
+  collecting common response types. The ``KLResponseCollector`` module is now
+  deprecated and should not be used for future projects.
 * Added :obj:`~klibs.KLText.TextStyle` to the public API, allowing easy
   on-the-fly definitions of new custom text styles as objects.
 * Added a new function :func:`~klibs.KLText.add_text_style` for defining new
@@ -44,6 +48,9 @@ Runtime Changes:
   by pressing the space bar in addition to clicking.
 * The EyeLink camera setup image is now always scaled to a height of 480 pixels
   for a larger view and easier setup.
+* Changed :func:`~klibs.KLUserInterface.any_key` to flush existing input before
+  starting and require that the mouse be both clicked `and` released before
+  returning to avoid registering spurious input.
 
 
 API Changes:

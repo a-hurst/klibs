@@ -13,9 +13,6 @@ class PROJECT_NAME(klibs.Experiment):
     def block(self):
         pass
 
-    def setup_response_collector(self):
-        pass
-
     def trial_prep(self):
         pass
 

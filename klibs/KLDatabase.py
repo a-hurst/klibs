@@ -596,7 +596,7 @@ class DatabaseManager(EnvAgent):
         self._local_path = local_path
         # Initialize connections to database(s)
         self._primary = Database(path)
-        self._validate_structure(self._primary)
+        self._validate_structure(self._primary, P.session_count > 1)
         self._local = None
         if self.multi_user:
             shutil.copy(path, local_path)
@@ -613,7 +613,7 @@ class DatabaseManager(EnvAgent):
         # mode and the normal database otherwise
         return self._local if self.multi_user else self._primary
     
-    def _validate_structure(self, db):
+    def _validate_structure(self, db, multisession=False):
         # Ensure basic required tables exist
         e = "Required table '{0}' is not present in the database."
         required = ['participants', P.primary_table]
@@ -633,6 +633,14 @@ class DatabaseManager(EnvAgent):
         for table in _get_user_tables(db):
             if not 'participant_id' in db.get_columns(table):
                 raise RuntimeError(e.format(table))
+        # Ensure that the required columns are present for multisession
+        e = "Missing required column for multi-session project '{0}' in table '{1}'."
+        if multisession:
+            user_tables = _get_user_tables(db)
+            for table in user_tables:
+                if not 'session_num' in db.get_columns(table):
+                    raise RuntimeError(e.format('session_num', table))
+
 
     def _is_complete(self, pid):
         this_id = {'participant_id': pid}

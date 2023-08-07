@@ -51,6 +51,8 @@ Runtime Changes:
 * Changed :func:`~klibs.KLUserInterface.any_key` to flush existing input before
   starting and require that the mouse be both clicked `and` released before
   returning to avoid registering spurious input.
+* KLibs will now raise an error on launch if any required tables or columns are
+  missing from the database.
 
 
 API Changes:
@@ -85,6 +87,9 @@ API Changes:
   own self-contained .py file instead of KLibs itself.
 * Changed :func:`~klibs.KLEventQueue.pump()` to always return the contents of
   the input event queue, deprecating the ``return_events`` argument.
+* The ``KLDatabase.EntryTemplate`` class has been deprecated in favour of
+  the :meth:`~klibs.KLDatabase.insert` method, which now handles null columns
+  correctly.
 
 
 Fixed Bugs:

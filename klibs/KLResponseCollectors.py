@@ -183,7 +183,7 @@ class ResponseListener(NamedObject, EnvAgent):
             raise ValueError("Why have you asked me to return nothing? Is this is a joke?")
 
         response = Response(self.null_response, TIMEOUT)
-        if len(responses):
+        if len(self.responses):
             response = self.responses[0]
 
         if value and rt:

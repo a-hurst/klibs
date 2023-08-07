@@ -325,24 +325,25 @@ class Database(object):
                 table_cols = OrderedDict()
                 self.cursor.execute("PRAGMA table_info({0})".format(table))
                 columns = self.cursor.fetchall()
-
+                
                 # convert sqlite3 types to python types
                 for col in columns:
-                    if col[2].lower() == SQL_STR:
-                        col_type = PY_STR
-                    elif col[2].lower() == SQL_BIN:
-                        col_type = PY_BIN
-                    elif col[2].lower() in (SQL_INT, SQL_KEY):
-                        col_type = PY_INT
-                    elif col[2].lower() in (SQL_FLOAT, SQL_REAL, SQL_NUMERIC):
-                        col_type = PY_FLOAT
-                    elif col[2].lower() == SQL_BOOL:
-                         col_type = PY_BOOL
+                    colname, coltype, not_null, default= col[1:5]
+                    if coltype.lower() == SQL_STR:
+                        py_type = PY_STR
+                    elif coltype.lower() == SQL_BIN:
+                        py_type = PY_BIN
+                    elif coltype.lower() in (SQL_INT, SQL_KEY):
+                        py_type = PY_INT
+                    elif coltype.lower() in (SQL_FLOAT, SQL_REAL, SQL_NUMERIC):
+                        py_type = PY_FLOAT
+                    elif coltype.lower() == SQL_BOOL:
+                        py_type = PY_BOOL
                     else:
                         err_str = "Invalid or unsupported type ({0}) for {1}.{2}'"
-                        raise ValueError(err_str.format(col[2], table, col[1]))
-                    allow_null = col[3] == 0
-                    table_cols[col[1]] = {'type': col_type, 'allow_null': allow_null}
+                        raise ValueError(err_str.format(coltype, table, colname))
+                    allow_null = (not_null == 0 or default is not None)
+                    table_cols[colname] = {'type': py_type, 'allow_null': allow_null}
                 tables[table] = table_cols
         return tables
 

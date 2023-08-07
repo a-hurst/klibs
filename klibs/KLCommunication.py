@@ -65,8 +65,9 @@ def _get_demographics_queries(db, queries):
     # Get all columns that need to be filled during demographics
     required = []
     exclude = ['id', 'created', 'random_seed', 'klibs_commit']
+    col_info = db.table_schemas['participants']
     for col in db.get_columns('participants'):
-        if col not in exclude:
+        if col not in exclude and not col_info[col]['allow_null']:
             required.append(col)
 
     # Ensure all required demographics cols have corresponding queries

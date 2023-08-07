@@ -42,58 +42,67 @@ def _set_type_conversions(export=False):
         sqlite3.register_converter("BOOLEAN", lambda x: bool(int(x)))
 
 
-def _convert_to_query_format(value, col_name, col_type):
-    '''A convenience function for converting Python variables to sqlite column types so
-    they can then be used in SQL INSERT statements using Python's str.format() method. For
-    internal KLibs use.
+def _as_column_type(value, col_type):
+    # Coerces a value to the correct type for a given database column
+    if col_type == PY_BOOL:
+        # convert to int because sqlite3 has no native boolean type
+        if utf8(value).lower() in ['true', '1']: value = 1
+        elif utf8(value).lower() in ['false', '0']: value = 0
+        else: raise TypeError
+    elif col_type == PY_FLOAT:
+        value = float(value)
+    elif col_type == PY_INT:
+        value = int(value)
+    elif col_type == PY_STR:
+        value = utf8(value)
+        # convert true/false to uppercase for R
+        if value.lower() in ['true', 'false']:
+            value = value.upper()
+    elif col_type == PY_BIN:
+        raise NotImplementedError("SQL blob insertion is not supported.")
+    else:
+        e = "Unknown or unsupported column type '{0}'"
+        raise RuntimeError(e.format(col_type))
 
+    return value
+
+
+def _convert_to_query_format(value, col_name, col_type):
+    """Formats a given value for use in an SQL statement string.
+
+    For internal KLibs use.
+    
     Args:
-        value: The Python value to convert.
-        colname(str): The name of the database column the value will be inserted into.
-        coltype(str): A string indicating the Python type to convert the value to before
-            formatting for query use. Must be one of 'str', 'int', 'float', or 'bool'.
+        value: The value to convert.
+        col_name (str): The name of the database column corresponding to the value.
+        col_type (str): A string indicating data type for the corresponding column.
+            Must be either 'str', 'int', 'float', or 'bool'.
 
     Returns:
-        str: the SQL query-formatted value.
+        str: The value as an SQL-formatted string.
 
-    Raises:
-        ValueError: if the value cannot be coerced to the given data type, or if an invalid
-            data type is given.
-
-    '''
-
-    err_str = "'{0}' could not be coerced to '{1}' for insertion into column '{2}'"
-    
+    """
     if value is None:
         return SQL_NULL
 
-    if col_type not in [PY_BOOL, PY_FLOAT, PY_INT, PY_STR, PY_BIN]:
-        type_err = "'{0}' is not a valid EntryTemplate data type."
-        raise ValueError(type_err.format(col_type))
-
+    # Get converted value as string & escape string if needed
     try:
-        if col_type == PY_BOOL:
-            # convert to int because sqlite3 has no native boolean type
-            if utf8(value).lower() in ['true', '1']: value = '1'
-            elif utf8(value).lower() in ['false', '0']: value = '0'
-            else: raise TypeError
-        elif col_type == PY_FLOAT:
-            value = str(float(value))
-        elif col_type == PY_INT:
-            value = str(int(value))
-        elif col_type == PY_STR:
-            if utf8(value).lower() in ['true', 'false']:
-                value = utf8(value).upper() # convert true/false to uppercase for R
-            value = u"'{0}'".format(utf8(value))
-        elif col_type == PY_BIN:
-            raise NotImplementedError("SQL blob insertion is not yet supported.")
-
+        value = utf8(_as_column_type(value, col_type))
     except (TypeError, ValueError):
-        # if value can't be converted to column type, raise an exception
-        raise ValueError(err_str.format(value, col_type, col_name))
-    
+        e = "Could not coerce '{0}' to type '{1}' for column '{2}'"
+        raise ValueError(e.format(value, col_type, col_name))
+
+    if col_type == PY_STR:
+        value = u"'{0}'".format(value)
+
     return value
 
+
+def _get_user_tables(db):
+    # Gets names of all user-defined tables in the database (including 'trials')
+    non_user = ['session_info', 'export_history', 'participants']
+    return [t for t in db.tables if not t in non_user]
+            
 
 def _build_filepath(multi, id_info=None, base=None, joined=[], duplicate=False):
     # If alternate base table or joined tables specified, note this in filename
@@ -133,9 +142,9 @@ def _build_export_header(db, user_id=None):
     # Old versions of KLibs didn't have session_info table for runtime info,
     # so we do a bit of work to keep export compatibility with old databases
     legacy = False
-    if 'session_info' in db.table_schemas:
+    if 'session_info' in db.tables:
         info_table = 'session_info'
-        info_cols = list(db.table_schemas['session_info'].keys())
+        info_cols = db.get_columns('session_info')
         info_cols.remove('participant_id')
     else:
         info_table = 'participants'
@@ -246,49 +255,12 @@ def rebuild_database(path, schema):
 
 class EntryTemplate(object):
 
-
     def __init__(self, table):
         from klibs.KLEnvironment import db
         self.table = table
         self.schema = db.table_schemas[table]
-        self.defined = {}
         self.data = [None] * len(self.schema)  # create an empty list of appropriate length
-
-
-    def __str__(self):
-        s = "<klibs.KLDatabase.EntryTemplate[{0}] object at {1}>"
-        return s.format(self.table, hex(id(self)))
-
-
-    def _get_insert_query(self):
-        # Generates the SQL INSERT statement for writing the template data
-        insert_template = [SQL_NULL, ] * len(self.schema)
-        query_template = u"INSERT INTO `{0}` ({1}) VALUES ({2})"
-
-        cols = list(self.schema.keys())
-        for col_name in cols:
-            col_index = cols.index(col_name)
-            if self.data[col_index] in [SQL_NULL, None]:
-                if self.schema[col_name]['allow_null']:
-                    insert_template[col_index] = SQL_NULL
-                    self.data[col_index] = SQL_NULL
-                elif col_name == 'id':
-                    self.data[0] = SQL_NULL
-                    insert_template[0] = SQL_NULL
-                elif self.table in P.table_defaults:
-                    for i in P.table_defaults[self.table]:
-                        if i[0] == col_name:
-                            insert_template[col_index] = utf8(i[1])
-                else:
-                    print(self.data)
-                    raise ValueError("Column '{0}' may not be null.".format(col_name))
-            else:
-                insert_template[col_index] = col_name
-
-        values = u",".join([utf8(i) for i in self.data if i != SQL_NULL])
-        columns = u",".join([i for i in insert_template if i != SQL_NULL])
-        return query_template.format(self.table, columns, values)
-
+        self._values = {}
 
     def log(self, field, value):
         try:
@@ -298,7 +270,7 @@ class EntryTemplate(object):
             raise ValueError(err.format(field, self.table))
         formatted_value = _convert_to_query_format(value, field, self.schema[field]['type'])
         self.data[index] = formatted_value
-        self.defined[field] = value
+        self._values[field] = value
 
 
 
@@ -372,6 +344,36 @@ class Database(object):
             self.cursor.execute(u"DELETE FROM sqlite_sequence WHERE name='{0}'".format(table))
         self.db.commit()
 
+    def _gather_insert_values(self, data, table):
+        # Gathers and validates columns/values for insertion into a given table
+        self._ensure_table(table)
+        template = copy(self.table_schemas[table])
+        template.pop('id', None) # remove id column from template if present
+        # Ensure all provided values correspond to an existing column
+        for colname in data.keys():
+            if colname not in template.keys():
+                err = "Column '{0}' does not exist in table '{1}'."
+                raise ValueError(err.format(colname, table))
+        # Gather all values to insert into the database
+        cols = []
+        values = []
+        for colname, info in template.items():
+            if colname in data.keys():
+                try:
+                    value = _as_column_type(data[colname], info['type'])
+                except (TypeError, ValueError):
+                    e = "Could not coerce '{0}' to type '{1}' for column '{2}' in '{3}'"
+                    raise ValueError(
+                        e.format(data[colname], info['type'], colname, table)
+                    )
+                cols.append(u"`{0}`".format(colname))
+                values.append(value)
+            elif info['allow_null']:
+                continue
+            else:
+                raise ValueError("No value provided for column '{0}'.".format(colname))
+        return cols, values
+
     
     def close(self):
         """Closes the connection to the database.
@@ -384,6 +386,20 @@ class Database(object):
         self.table_schemas = {}
 
 
+    def get_columns(self, table):
+        """Retrieves the names of all columns in a given table.
+
+        Args:
+            table (str): The name of the table to query.
+
+        Returns:
+            list: The names of the columns in the table.
+
+        """
+        self._ensure_table(table)
+        return list(self.table_schemas[table].keys())
+
+
     def exists(self, table, column, value):
         """Checks whether a value already exists within a given column.
 
@@ -394,6 +410,7 @@ class Database(object):
 
         Returns:
             bool: True if the value already exists in the column, otherwise False.
+
         """
         self._ensure_table(table)
         q = "SELECT * FROM `{0}` WHERE `{1}` = ?".format(table, column)
@@ -413,20 +430,23 @@ class Database(object):
         if isinstance(data, EntryTemplate):
             if not table:
                 table = data.table
-            query = data._get_insert_query()
+            data = data._values
         elif isinstance(data, dict):
             if not table:
                 raise ValueError("A table must be specified when inserting a dict.")
-            query = self.query_str_from_raw_data(data, table)
         else:
             raise TypeError("Argument 'data' must be either an EntryTemplate or a dict.")
 
+        cols, values = self._gather_insert_values(data, table)
+        cols_str = u", ".join(cols)
+        qmark_str = u", ".join(["?"] * len(values))
+        q = u"INSERT INTO `{0}` ({1}) VALUES({2})".format(table, cols_str, qmark_str)
         try:
-            self.cursor.execute(query)
+            self.cursor.execute(q, values)
         except sqlite3.OperationalError as e:
             err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
             print(full_trace())
-            print(err.format(self.table_schemas[table], query))
+            print(err.format(self.table_schemas[table], q))
             raise e
         self.db.commit()
         return self.cursor.lastrowid
@@ -446,44 +466,12 @@ class Database(object):
         return self.query("SELECT max({0}) from `{1}`".format('id', table))[0][0]
 
 
-    def query(self, query, query_type=QUERY_SEL, q_vars=None, return_result=True, fetch_all=True):
+    def query(self, query, q_vars=(), commit=False):
         # Can probably also be made private after updating TraceLab
-        if q_vars:
-            result = self.cursor.execute(query, tuple(q_vars))
-        else:
-            result = self.cursor.execute(query)
-
-        if query_type != QUERY_SEL: self.db.commit()
-        if return_result:
-            if fetch_all:
-                return result.fetchall()
-            else:
-                return result
-        return True
-
-
-    def query_str_from_raw_data(self, data, table):
-        # TODO: replace this with EntryTemplate for consistency? Or vice versa?
-        self._ensure_table(table)
-        template = copy(self.table_schemas[table])
-        values = []
-        columns = []
-        template.pop('id', None) # remove id column from template if present
-        for colname in list(data.keys()):
-            if colname not in list(template.keys()):
-                err = "Column '{0}' does not exist in table '{1}'."
-                raise ValueError(err.format(colname, table))
-        for colname, info in template.items():
-            try:
-                value = data[colname]
-            except KeyError:
-                raise ValueError("No value provided for column '{0}'.".format(colname))
-            formatted_value = _convert_to_query_format(value, colname, info['type'])
-            values.append(formatted_value)
-            columns.append(colname)
-        columns_str = u",".join(columns)
-        values_str = u",".join(values)
-        return u"INSERT INTO `{0}` ({1}) VALUES ({2})".format(table, columns_str, values_str)
+        result = self.cursor.execute(query, tuple(q_vars))
+        if commit:
+            self.db.commit()
+        return result.fetchall()
 
 
     def select(self, table, columns=None, where=None, distinct=False):
@@ -505,7 +493,7 @@ class Database(object):
         """
         self._ensure_table(table)
         if not columns:
-            columns = list(self.table_schemas[table].keys())
+            columns = self.get_columns(table)
 
         columns_str = ", ".join(columns)
         q = "SELECT DISTINCT " if distinct else "SELECT "
@@ -598,6 +586,7 @@ class DatabaseManager(EnvAgent):
         self._local_path = local_path
         # Initialize connections to database(s)
         self._primary = Database(path)
+        self._validate_structure(self._primary)
         self._local = None
         if self.multi_user:
             shutil.copy(path, local_path)
@@ -613,6 +602,27 @@ class DatabaseManager(EnvAgent):
         # An alias for the current database, which is the local db in multi-user
         # mode and the normal database otherwise
         return self._local if self.multi_user else self._primary
+    
+    def _validate_structure(self, db):
+        # Ensure basic required tables exist
+        e = "Required table '{0}' is not present in the database."
+        required = ['participants', P.primary_table]
+        for table in required:
+            if not table in db.tables:
+                raise RuntimeError(e.format(table))  
+        # Ensure participants table has the basic required columns
+        if not P.unique_identifier in db.get_columns('participants'):
+            e = ("The unique identifier specified in the project's params file "
+                "('{0}') does not exist in the database's 'participants' table.")
+            raise RuntimeError(e.format(P.unique_identifier))
+        e = "Requred column '{0}' not present in the database's 'participants' table."
+        if not 'created' in db.get_columns('participants'):
+            raise RuntimeError(e.format('created'))
+        # Ensure all user-defined tables have a participant_id column
+        e = "User-defined table '{0}' missing required column 'participant_id'."
+        for table in _get_user_tables(db):
+            if not 'participant_id' in db.get_columns(table):
+                raise RuntimeError(e.format(table))
 
     def _is_complete(self, pid):
         # TODO: For multisession projects, need to know the number of sessions
@@ -672,7 +682,7 @@ class DatabaseManager(EnvAgent):
 
     def copy_columns(self, table, ignore=[], sub={}):
         colnames = []
-        for colname in self._local.table_schemas[table].keys():
+        for colname in self._local.get_columns(table):
             if colname not in ignore:
                 colnames.append(colname)
         columns = ", ".join(colnames)
@@ -712,16 +722,16 @@ class DatabaseManager(EnvAgent):
                 else:
                     colnames.append(field)
         else:
-            for colname in self._primary.table_schemas['participants'].keys():
+            for colname in self._primary.get_columns('participants'):
                 if colname not in ['id'] + P.exclude_data_cols:
                     colnames.append(colname)
         for colname in P.append_info_cols:
-            if colname not in self._primary.table_schemas['session_info'].keys():
+            if colname not in self._primary.get_columns('session_info'):
                 err = "Column '{0}' does not exist in the session_info table."
                 raise RuntimeError(err.format(colname))
             colnames.append(colname)
         for t in [base_table] + join_tables:
-            for colname in self._primary.table_schemas[t].keys():
+            for colname in self._primary.get_columns(t):
                 if colname not in ['id', P.id_field_name] + P.exclude_data_cols:
                     colnames.append(colname)
         column_names = TAB.join(colnames)
@@ -889,6 +899,9 @@ class DatabaseManager(EnvAgent):
 
     def update(self, *args, **kwargs):
         return self._current.update(*args, **kwargs)
+    
+    def get_columns(self, table):
+        return self._current.get_columns(table)
 
     @property
     def tables(self):

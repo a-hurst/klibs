@@ -101,7 +101,19 @@ def collect_demographics(anonymous=False):
 
     '''
     from klibs.KLEnvironment import db
-    # NOTE: Prior to starting block/trial loop, should ensure participant ID has been obtained
+
+    # Define user init prompt strings
+    txt = {
+        'exists':
+            ("A participant with that ID already exists!\n"
+            "Please try a different identifier."),
+        'next_session':
+            ("This participant has completed {0} of {1} sessions.\n"
+            "Begin next session? (Yes / No)"),
+        'all_done': 
+            ("This participant has already completed all sessions of the task.\n"
+            "Please enter a different identifier."),
+    }
 
     # If demographics already collected, raise error
     if P.demographics_collected:
@@ -117,34 +129,27 @@ def collect_demographics(anonymous=False):
     unique_id = query(id_query, anonymous=anonymous)
     p_id = db.get_db_id(unique_id)
     while p_id is not None:
-        id_info = _get_session_info(db, p_id)[-1]
+        last_session = _get_session_info(db, p_id)[-1]
         if P.session_count > 1:
-            session_num = id_info['num'] + 1
+            session_num = last_session['num'] + 1
             # Already completed all sessions of the task. Create new ID?
             if session_num > P.session_count:
-                txt = (
-                    "This participant has already completed all sessions of the task.\n"
-                    "Please enter a different identifier."
-                )
-                msg = message(txt, align="center")
+                msg = message(txt['all_done'], align="center")
                 _simple_prompt(msg)
             # Participant has completed X of N sessions. Begin next session?
             else:
-                txt = (
-                    "This participant has completed {0} of {1} sessions.\n"
-                    "Begin next session? (Yes / No)"
+                msg = message(
+                    txt['next_session'].format(last_session['num'], P.session_count),
+                    align="center"
                 )
-                txt = txt.format(id_info['num'], P.session_count)
-                msg = message(txt, align="center")
                 resp = _simple_prompt(msg, resp_keys=["y", "n", "return"])
                 if resp != "n":
-                    P.condition = id_info['condition']
+                    P.condition = last_session['condition']
                     P.session_number = session_num
                     break
         else:
-            err = ("A participant with that ID already exists!\n"
-                   "Please try a different identifier.")
-            msg = message(err, style="alert", align="center")
+            # Participant exists and not multisession, so try another
+            msg = message(txt['exists'], style="alert", align="center")
             _simple_prompt(msg)
         # Retry with another id
         unique_id = query(id_query, anonymous=anonymous)
@@ -183,6 +188,7 @@ def collect_demographics(anonymous=False):
     # Save copy of experiment.py and config files as they were for participant
     if not P.development_mode:
         # TODO: Break this into a separate function, make it more useful
+        # TODO: FileExistsError if re-creating ID within same minute
         pid = P.random_seed if P.multi_user else P.participant_id # pid set at end for multiuser
         P.version_dir = join(P.versions_dir, "p{0}_{1}".format(pid, now(True)))
         os.mkdir(P.version_dir)

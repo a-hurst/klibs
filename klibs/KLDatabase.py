@@ -252,16 +252,6 @@ def rebuild_database(path, schema):
     shutil.move(tmppath, path)
 
 
-def _get_session_info(db, pid):
-    # Gathers previous session info for a given database ID
-    cols = ['condition', 'session_number', 'complete']
-    info = db.select('session_info', columns=cols, where={'participant_id': pid})
-    sessions = []
-    for cond, num, completed in info:
-        sessions.append({'condition': cond, 'num': num, 'completed': completed})
-    return sessions
-
-
 
 class EntryTemplate(object):
 
@@ -697,6 +687,46 @@ class DatabaseManager(EnvAgent):
         if not ret:
             return None
         return ret[0][0]
+    
+
+    def get_session_progress(self, pid):
+        """Gets information about the last session for a given database ID.
+
+        This retrieves the task condition, session number, and random seed,
+        as well the participants' progress through the task (last block/trial
+        number) and whether they fully completed the last session.
+
+        This is used internally for reloading multisession projects.
+
+        Args:
+            pid (int): The database ID for the participant.
+        
+        Returns:
+            dict: A dictonary containing information about the participant's
+            last session.
+
+        """
+        db = self._primary
+        # Gathers previous session info for a given database ID
+        cols = ['condition', 'session_number', 'complete', 'random_seed']
+        info = db.select('session_info', columns=cols, where={'participant_id': pid})
+        cond, last_session_num, completed, random_seed = info[-1]
+        # Gather info about the participant's progress on the last session
+        where = {'participant_id': pid}
+        if 'session_num' in db.get_columns(P.primary_table):
+            where['session_num'] = last_session_num
+        last_trial, last_block = (0, 0)
+        progress = db.select(P.primary_table, ['trial_num', 'block_num'], where=where)
+        if len(progress):
+            last_trial, last_block = progress[-1]
+        return {
+            'condition': cond,
+            'num': last_session_num,
+            'completed': completed,
+            'random_seed': random_seed,
+            'last_block': last_block,
+            'last_trial': last_trial,
+        }
     
 
     def write_local_to_master(self):

@@ -17,7 +17,7 @@ from klibs.KLJSON_Object import import_json, AttributeDict
 from klibs.KLEventQueue import pump, flush
 from klibs.KLUtilities import pretty_list, now, utf8, make_hash
 from klibs.KLUtilities import colored_stdout as cso
-from klibs.KLDatabase import _get_session_info
+from klibs.KLDatabase import _get_user_tables
 from klibs.KLRuntimeInfo import runtime_info_init
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, key_pressed
@@ -86,21 +86,45 @@ def _get_demographics_queries(db, queries):
     return query_set
 
 
-def collect_demographics(anonymous=False):
-    '''Collects participant demographics and writes them to the 'participants' table in the
-    experiment's database, based on the queries in the "demographic" section of the project's
-    user_queries.json file.
+def collect_demographics(anonymous=False, unique_id=None):
+    """Initializes the participant ID and collects any demographics queries.
+
+    Calling this function collects a unique identifier from the participant (e.g.
+    'P03') and initializes the session.
     
-    If P.manual_demographics_collection = True, this function should be called at some point during
-    the setup() section of your experiment class. Otherwise, this function will be run
-    automatically when the experiment is launched.
+    If no participant with that identifier already exists, this function will perform
+    demographics collection and add the participant to the database. All queries
+    in the project's ``user_queries.json`` file that have corresponding columns in the
+    'participants' table in the database will be collected. If klibs was launched in
+    development mode, demographics will skipped and filled in with default values.
+
+    If an entered ID already exists in the database, a few different things can
+    happen:
+      * If the participant exists but did not fully complete the last session of the
+        task, they will be prompted whether to a) restart the last session, b) resume
+        the last session from the last completed trial, or c) skip to the next session
+        (if the project is multi-session and not on the last session).
+      * If the participant completed the last session and the project is multi-session,
+        they will be asked if they want to reload the participant and start the next
+        session. If the participant has already completed all sessions, they will be
+        asked to try a different unique ID.
+      * If the participant completed the task and the project is `not` multi-session,
+        they will be told that the ID already exists and to try a different one.
+
+    By default, this function is run automatically when an experiment is launched.
+    However, you can disable this by setting ``manual_demographics_collection`` to
+    True in the project's params file and call it manually at some later point
+    yourself. This function must be called before the start of the first block of
+    the task.
 
     Args:
-        anonymous (bool, optional): If True, this function will log all of the anonymous values for
-            the experiment's demographic queries to the database immediately without prompting the
-            user for input.
+        anonymous (bool, optional): If True, this function will auto-fill all
+            demographics fields with their anonymous values instead of collecting
+            responses from the participant. Defaults to False.
+        unique_id (str, optional): If provided, the initial unique ID prompt will be
+            skipped and this ID will be tried instead.
 
-    '''
+    """
     from klibs.KLEnvironment import db
 
     # Define user init prompt strings
@@ -114,6 +138,14 @@ def collect_demographics(anonymous=False):
         'all_done': 
             ("This participant has already completed all sessions of the task.\n"
             "Please enter a different identifier."),
+        'incomplete':
+            ("This participant did not complete {0} of the task.\n"
+            "Would you like to (r)estart from the beginning, or (c)ontinue from\n"
+            "the last completed trial?"),
+        'incomplete_alt':
+            ("This participant did not complete {0} of the task.\n"
+            "Would you like to (r)estart from the beginning, (c)ontinue from the\n"
+            "last completed trial, or (s)kip to the next session?"),
     }
 
     # If demographics already collected, raise error
@@ -127,11 +159,46 @@ def collect_demographics(anonymous=False):
     queries.pop(P.unique_identifier)
 
     # Collect the unique identifier for the participant
-    unique_id = query(id_query, anonymous=anonymous)
+    if not unique_id:
+        unique_id = query(id_query, anonymous=anonymous)
     p_id = db.get_db_id(unique_id)
     while p_id is not None:
-        last_session = _get_session_info(db, p_id)[-1]
-        if P.session_count > 1:
+        last_session = db.get_session_progress(p_id)
+        if not last_session['completed'] and not P.multi_user:
+            # Participant exists but didn't complete last session, so ask what to do
+            s = "the last session" if P.session_count > 1 else "all blocks"
+            if last_session['num'] == P.session_count:
+                prompt = txt['incomplete'].format(s)
+                options = ['r', 'c']
+            else:
+                prompt = txt['incomplete_alt'].format(s)
+                options = ['r', 'c', 's']
+            msg = message(prompt, align="center")
+            resp = _simple_prompt(msg, resp_keys=options)
+            if resp == "r":
+                # Delete all data from existing incomplete session & start again
+                # NOTE: Add prompt confirming deletion of old data?
+                P.session_number = last_session['num']
+                last = {'participant_id': p_id}
+                if P.session_count > 1:
+                    last['session_num'] = P.session_number
+                for table in _get_user_tables(db):
+                    db.delete(table, where=last)
+                last = {'participant_id': p_id, 'session_number': P.session_number}
+                db.delete('session_info', where=last)
+            elif resp == "c":
+                # Get last completed block/trial numbers from db and set them
+                P.session_number = last_session['num']
+                P.block_number = last_session['last_block']
+                P.trial_number = last_session['last_trial'] + 1
+                P.random_seed = last_session['random_seed']
+                P.resumed_session = True
+            elif resp == "s":
+                # Increment session number and continue
+                P.session_number = last_session['num'] + 1
+            P.condition = last_session['condition']
+            break
+        elif P.session_count > 1:
             session_num = last_session['num'] + 1
             # Already completed all sessions of the task. Create new ID?
             if session_num > P.session_count:
@@ -184,7 +251,8 @@ def collect_demographics(anonymous=False):
         runtime_info["session_count"] = P.session_count
         if P.condition:
             runtime_info["condition"] = P.condition
-    db.insert(runtime_info, "session_info")
+    if not P.resumed_session:
+        db.insert(runtime_info, "session_info")
 
     # Save copy of experiment.py and config files as they were for participant
     if not P.development_mode:

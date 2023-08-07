@@ -20,9 +20,6 @@ from klibs import P
 from klibs.KLInternal import full_trace, iterable, utf8
 from klibs.KLRuntimeInfo import session_info_schema
 
-# TODO: Add checks for required columns and error early if missing
-# (this includes ensuring the 'unique_identifer' specified in params exists)
-
 
 export_history_schema = """
 CREATE TABLE export_history (
@@ -100,6 +97,12 @@ def _convert_to_query_format(value, col_name, col_type):
 
     return value
 
+
+def _get_user_tables(db):
+    # Gets names of all user-defined tables in the database (including 'trials')
+    non_user = ['session_info', 'export_history', 'participants']
+    return [t for t in db.tables if not t in non_user]
+            
 
 def _build_filepath(multi, id_info=None, base=None, joined=[], duplicate=False):
     # If alternate base table or joined tables specified, note this in filename
@@ -583,6 +586,7 @@ class DatabaseManager(EnvAgent):
         self._local_path = local_path
         # Initialize connections to database(s)
         self._primary = Database(path)
+        self._validate_structure(self._primary)
         self._local = None
         if self.multi_user:
             shutil.copy(path, local_path)
@@ -598,6 +602,27 @@ class DatabaseManager(EnvAgent):
         # An alias for the current database, which is the local db in multi-user
         # mode and the normal database otherwise
         return self._local if self.multi_user else self._primary
+    
+    def _validate_structure(self, db):
+        # Ensure basic required tables exist
+        e = "Required table '{0}' is not present in the database."
+        required = ['participants', P.primary_table]
+        for table in required:
+            if not table in db.tables:
+                raise RuntimeError(e.format(table))  
+        # Ensure participants table has the basic required columns
+        if not P.unique_identifier in db.get_columns('participants'):
+            e = ("The unique identifier specified in the project's params file "
+                "('{0}') does not exist in the database's 'participants' table.")
+            raise RuntimeError(e.format(P.unique_identifier))
+        e = "Requred column '{0}' not present in the database's 'participants' table."
+        if not 'created' in db.get_columns('participants'):
+            raise RuntimeError(e.format('created'))
+        # Ensure all user-defined tables have a participant_id column
+        e = "User-defined table '{0}' missing required column 'participant_id'."
+        for table in _get_user_tables(db):
+            if not 'participant_id' in db.get_columns(table):
+                raise RuntimeError(e.format(table))
 
     def _is_complete(self, pid):
         # TODO: For multisession projects, need to know the number of sessions

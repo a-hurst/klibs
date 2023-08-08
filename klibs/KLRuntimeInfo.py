@@ -22,7 +22,7 @@ CREATE TABLE session_info (
     date text not null,
     time text not null,
     klibs_commit text not null,
-    random_seed text not null,
+    random_seed integer not null,
 
     trials_per_block integer not null,
     blocks_per_session integer not null,

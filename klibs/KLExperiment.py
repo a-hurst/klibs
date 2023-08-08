@@ -35,8 +35,6 @@ class Experiment(EnvAgent):
         self._evm = EventManager()
 
         self.trial_factory = TrialFactory()
-        if P.manual_trial_generation is False:
-            self.trial_factory.generate()
         self.event_code_generator = None
 
 
@@ -341,6 +339,9 @@ class Experiment(EnvAgent):
             self.tracker_dot = Ellipse(8, stroke=[2, WHITE], fill=RED).render()
             if not P.manual_eyelink_setup:
                 self.el.setup()
+
+        if P.manual_trial_generation is False:
+            self.trial_factory.generate()
 
         self.setup()
         try:

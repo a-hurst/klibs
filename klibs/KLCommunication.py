@@ -139,12 +139,12 @@ def collect_demographics(anonymous=False, unique_id=None):
             ("This participant has already completed all sessions of the task.\n"
             "Please enter a different identifier."),
         'incomplete':
-            ("This participant did not complete {0} of the task.\n"
+            ("This participant did not complete {0} of the task.\n\n"
             "Would you like to (r)estart from the beginning, or (c)ontinue from\n"
             "the last completed trial?"),
         'incomplete_alt':
-            ("This participant did not complete {0} of the task.\n"
-            "Would you like to (r)estart from the beginning, (c)ontinue from the\n"
+            ("This participant did not complete {0} of the task.\n\n"
+            "Would you like to (r)estart the session, (c)ontinue from the\n"
             "last completed trial, or (s)kip to the next session?"),
     }
 

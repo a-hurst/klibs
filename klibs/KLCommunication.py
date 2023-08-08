@@ -3,6 +3,7 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import re
+import random
 from os.path import join
 from shutil import copyfile, copytree
 from collections import OrderedDict
@@ -192,6 +193,7 @@ def collect_demographics(anonymous=False, unique_id=None):
                 P.block_number = last_session['last_block']
                 P.trial_number = last_session['last_trial'] + 1
                 P.random_seed = last_session['random_seed']
+                random.seed(P.random_seed)
                 P.resumed_session = True
             elif resp == "s":
                 # Increment session number and continue

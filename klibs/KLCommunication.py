@@ -5,7 +5,7 @@ import os
 import re
 import random
 from os.path import join
-from shutil import copyfile, copytree
+from shutil import copyfile, copytree, rmtree
 from collections import OrderedDict
 
 from sdl2 import (SDL_StartTextInput, SDL_StopTextInput,
@@ -262,6 +262,8 @@ def collect_demographics(anonymous=False, unique_id=None):
         # TODO: FileExistsError if re-creating ID within same minute
         pid = P.random_seed if P.multi_user else P.participant_id # pid set at end for multiuser
         P.version_dir = join(P.versions_dir, "p{0}_{1}".format(pid, now(True)))
+        if os.path.exists(P.version_dir):
+            rmtree(P.version_dir)
         os.mkdir(P.version_dir)
         copyfile("experiment.py", join(P.version_dir, "experiment.py"))
         copytree(P.config_dir, join(P.version_dir, "Config"))

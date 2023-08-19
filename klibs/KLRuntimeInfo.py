@@ -114,6 +114,8 @@ def get_sysinfo():
 
     elif platform.system() == 'Windows':
         version, build, sp = platform.win32_ver()[:3]
+        if int(build.split(".")[-1]) > 22000:
+            version = "11"
         arch = platform.architecture()[0].replace("bit", "-bit")
         build = build.replace("10.0.", "")
         if sp in ('', 'SP0'): # if no service pack

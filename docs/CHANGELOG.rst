@@ -96,6 +96,7 @@ Fixed Bugs:
 
 * Fixed ``klibs export`` with older databases (regression in 0.7.6a1).
 * Updated EyeLink camera setup code to work correctly with latest Pylink.
+* Fixed detection of Windows 11 in KLRuntimeInfo.
 * Fixed a bug that prevented repeated identical lines of text from being
   rendered within the same message.
 

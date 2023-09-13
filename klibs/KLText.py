@@ -195,6 +195,7 @@ class TextManager(object):
         self.add_font("Anonymous Pro", filename="AnonymousPro")
         self.add_font("Roboto-Medium")
         self.add_font("Hind-Medium")
+        self.add_font("Frutiger") # Deprecated, remove w/ warning in next major update
 
         # Load additional fonts from ExpAssets/Resources/font
         self._load_user_fonts()

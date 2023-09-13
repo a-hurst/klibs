@@ -116,6 +116,11 @@ def display_init(diagonal_in, hidpi):
     gl.glOrtho(0, res[0], res[1], 0, 0, 1)
     gl.glMatrixMode(gl.GL_MODELVIEW)
     gl.glDisable(gl.GL_DEPTH_TEST)
+    # Set the blend mode for OpenGL
+    gl.glEnable(gl.GL_BLEND)
+    gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+    # Enable 2D texturing
+    gl.glEnable(gl.GL_TEXTURE_2D)
 
     # Update display properties & and pixels-per-degree in KLParams
     _set_display_params(res, diagonal_in, hz)
@@ -213,9 +218,8 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
         if any([not flip_x and P.blit_flip_x, flip_x]):
             content = np.fliplr(content)
 
-        # configure OpenGL for blit
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        # Create and initialize OpenGL texture from source
+        # TODO: Add support for texture caching
         t_id = gl.glGenTextures(1)
         gl.glBindTexture(gl.GL_TEXTURE_2D, t_id)
         gl.glTexEnvi(gl.GL_TEXTURE_ENV, gl.GL_TEXTURE_ENV_MODE, gl.GL_REPLACE)
@@ -223,11 +227,10 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
         gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP)
         gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
         gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA,
-            gl.GL_UNSIGNED_BYTE, content)
-        gl.glEnable(gl.GL_TEXTURE_2D)
-        gl.glBindTexture(gl.GL_TEXTURE_2D, t_id)
-        gl.glBegin(gl.GL_QUADS)
+        gl.glTexImage2D(
+            gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA,
+            gl.GL_UNSIGNED_BYTE, content
+        )
 
         # location[0] += P.screen_origin[0]
         # location[1] += P.screen_origin[1]
@@ -252,15 +255,17 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
         y_bounds[0] += int(y_offset)
         y_bounds[1] += int(y_offset)
 
+        gl.glBegin(gl.GL_TRIANGLE_STRIP)
         gl.glTexCoord2f(0, 0)
         gl.glVertex2f(x_bounds[0], y_bounds[0])
+        gl.glTexCoord2f(0, 1)
+        gl.glVertex2f(x_bounds[0], y_bounds[1])
         gl.glTexCoord2f(1, 0)
         gl.glVertex2f(x_bounds[1], y_bounds[0])
         gl.glTexCoord2f(1, 1)
         gl.glVertex2f(x_bounds[1], y_bounds[1])
-        gl.glTexCoord2f(0, 1)
-        gl.glVertex2f(x_bounds[0], y_bounds[1])
         gl.glEnd()
+
         gl.glBindTexture(gl.GL_TEXTURE_2D, 0)
         gl.glDeleteTextures([t_id])
         del t_id

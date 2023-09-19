@@ -770,11 +770,9 @@ class DatabaseManager(EnvAgent):
 
 
     def collect_export_data(self, base_table, multi_file=True, join_tables=[]):
-        uid = P.unique_identifier
-        participant_ids = self._primary.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
-
-        colnames = []
+        cols = {'p': []}
         sub = {P.unique_identifier: 'participant'}
+        multisession = "session_num" in self._primary.get_columns(base_table)
 
         # if P.default_participant_fields(_sf) is defined use that, but otherwise use
         # P.exclude_data_cols since that's the better way of doing things
@@ -783,38 +781,53 @@ class DatabaseManager(EnvAgent):
             for field in fields:
                 if iterable(field):
                     sub[field[0]] = field[1]
-                    colnames.append(field[0])
+                    cols['p'].append(field[0])
                 else:
-                    colnames.append(field)
+                    cols['p'].append(field)
         else:
             for colname in self._primary.get_columns('participants'):
                 if colname not in ['id'] + P.exclude_data_cols:
-                    colnames.append(colname)
+                    cols['p'].append(colname)
         for colname in P.append_info_cols:
+            if not 'info' in cols.keys():
+                cols['info'] = []
             if colname not in self._primary.get_columns('session_info'):
                 err = "Column '{0}' does not exist in the session_info table."
                 raise RuntimeError(err.format(colname))
-            colnames.append(colname)
+            cols['info'].append(colname)
         for t in [base_table] + join_tables:
+            cols[t] = []
             for colname in self._primary.get_columns(t):
                 if colname not in ['id', P.id_field_name] + P.exclude_data_cols:
-                    colnames.append(colname)
+                    cols[t].append(colname)
+
+        select_names = []
+        colnames = []
+        for t in ['p', 'info', base_table] + join_tables:
+            if not t in cols.keys():
+                continue
+            for col in cols[t]:
+                select_names.append("{0}.`{1}`".format(t, col))
+                colnames.append(col)
+
         column_names = TAB.join(colnames)
         for colname in sub.keys():
             column_names = column_names.replace(colname, sub[colname])
-        
+
+        uid = P.unique_identifier
+        participant_ids = self._primary.query("SELECT `id` FROM participants")
         data = []
         for p in participant_ids:
-            selected_cols = ",".join(["`"+col+"`" for col in colnames])
-            q = "SELECT " + selected_cols + " FROM participants "
-            if len(P.append_info_cols) and 'session_info' in self._primary.table_schemas:
-                info_cols = ",".join(['participant_id'] + P.append_info_cols)
-                q += "JOIN (SELECT " + info_cols + " FROM session_info) AS info "
-                q += "ON participants.id = info.participant_id "
+            q = "SELECT {0} ".format(", ".join(select_names))
+            q += "FROM participants AS p "
+            if 'info' in cols.keys():
+                q += "JOIN session_info AS info ON p.id = info.participant_id "
             for t in [base_table] + join_tables:
-                q += "JOIN {0} ON participants.id = {0}.participant_id ".format(t)
-            q += " WHERE participants.id = ?"
-            p_data = [] 
+                q += "JOIN {0} ON p.id = {0}.participant_id ".format(t)
+                if multisession:
+                    q += "AND info.session_number = {0}.session_num ".format(t)
+                q += "WHERE p.id = ? "
+            p_data = []
             for trial in self._primary.query(q, q_vars=tuple([p[0]])):
                 row_str = TAB.join(utf8(col) for col in trial)
                 p_data.append(row_str)

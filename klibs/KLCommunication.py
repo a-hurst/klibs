@@ -182,7 +182,7 @@ def collect_demographics(anonymous=False, unique_id=None):
                 P.session_number = last_session['num']
                 last = {'participant_id': p_id}
                 if P.session_count > 1:
-                    last['session_num'] = P.session_number
+                    last[P.session_column] = P.session_number
                 for table in _get_user_tables(db):
                     db.delete(table, where=last)
                 last = {'participant_id': p_id, 'session_number': P.session_number}

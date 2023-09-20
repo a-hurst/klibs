@@ -629,8 +629,8 @@ class DatabaseManager(EnvAgent):
         if multisession:
             user_tables = _get_user_tables(db)
             for table in user_tables:
-                if not 'session_num' in db.get_columns(table):
-                    raise RuntimeError(e.format('session_num', table))
+                if not P.session_column in db.get_columns(table):
+                    raise RuntimeError(e.format(P.session_column, table))
 
 
     def _is_complete(self, pid):
@@ -713,10 +713,12 @@ class DatabaseManager(EnvAgent):
         cond, last_session_num, completed, random_seed = info[-1]
         # Gather info about the participant's progress on the last session
         where = {'participant_id': pid}
-        if 'session_num' in db.get_columns(P.primary_table):
-            where['session_num'] = last_session_num
+        if P.session_column in db.get_columns(P.primary_table):
+            where[P.session_column] = last_session_num
         last_trial, last_block = (0, 0)
-        progress = db.select(P.primary_table, ['trial_num', 'block_num'], where=where)
+        progress = db.select(
+            P.primary_table, [P.trial_column, P.block_column], where=where
+        )
         if len(progress):
             last_trial, last_block = progress[-1]
         return {
@@ -772,7 +774,7 @@ class DatabaseManager(EnvAgent):
     def collect_export_data(self, base_table, multi_file=True, join_tables=[]):
         cols = {'p': []}
         sub = {P.unique_identifier: 'participant'}
-        multisession = "session_num" in self._primary.get_columns(base_table)
+        multisession = P.session_column in self._primary.get_columns(base_table)
 
         # if P.default_participant_fields(_sf) is defined use that, but otherwise use
         # P.exclude_data_cols since that's the better way of doing things
@@ -825,7 +827,8 @@ class DatabaseManager(EnvAgent):
             for t in [base_table] + join_tables:
                 q += "JOIN {0} ON p.id = {0}.participant_id ".format(t)
                 if multisession:
-                    q += "AND info.session_number = {0}.session_num ".format(t)
+                    session_col = "{0}.{1}".format(t, P.session_column)
+                    q += "AND info.session_number = {0} ".format(session_col)
                 q += "WHERE p.id = ? "
             p_data = []
             for trial in self._primary.query(q, q_vars=tuple([p[0]])):

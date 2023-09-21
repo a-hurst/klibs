@@ -220,6 +220,7 @@ def blit(source, registration=7, location=(0,0), flip_x=False):
 
         # Create and initialize OpenGL texture from source
         # TODO: Add support for texture caching
+        gl.glEnable(gl.GL_TEXTURE_2D)
         t_id = gl.glGenTextures(1)
         gl.glBindTexture(gl.GL_TEXTURE_2D, t_id)
         gl.glTexEnvi(gl.GL_TEXTURE_ENV, gl.GL_TEXTURE_ENV_MODE, gl.GL_REPLACE)

@@ -113,6 +113,7 @@ default_participant_fields = [] # for legacy use
 default_participant_fields_sf = [] # for legacy use
 exclude_data_cols = ["created"]
 append_info_cols = []
+append_hostname = False
 datafile_ext = ".txt"
 
 # Development mode & associated switches

@@ -113,14 +113,17 @@ def _build_filepath(multi, id_info=None, base=None, joined=[], duplicate=False):
         tables = '[{0}{1}]'.format(primary, joined_tables)
     
     # Determine the basename, suffix, and output path for the file
+    suffix = ""
+    if P.append_hostname:
+        hostname = os.uname()[1].replace(".local", "").replace(" ", "-")
+        suffix += "-{0}".format(hostname)
     if multi:
         p_id, created, incomplete = id_info
         basename = "p{0}{1}.{2}".format(str(p_id), tables, created[:10])
-        suffix = "_incomplete" if incomplete else ""
+        suffix += ("_incomplete" if incomplete else "")
         outdir = P.incomplete_data_dir if incomplete else P.data_dir
     else:
         basename = "{0}_all_trials{1}".format(P.project_name, tables)
-        suffix = ""
         outdir = P.data_dir
 
     # If the file is a duplicate, add a number to the suffix and increment until

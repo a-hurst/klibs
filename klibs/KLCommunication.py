@@ -442,3 +442,24 @@ def query(query_ob, anonymous=False):
         return input_string in f.accept_as_true
     else:
         return input_string
+
+
+slack_warning = True
+
+def slack_message(message):
+    """Sends a message to a given Slack channel.
+
+    Deprecated, will be removed soon.
+
+    """
+    global slack_warning
+    if slack_warning:
+        e = (
+            "NOTE: Slack messaging has been removed from klibs. "
+            "To continue to use Slack messaging in your experiment, please write "
+            "your own messaging code with the Slacker library."
+        )
+        print("")
+        print(e)
+        print("")
+        slack_warning = False

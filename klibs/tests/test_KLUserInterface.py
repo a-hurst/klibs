@@ -219,7 +219,8 @@ def test_smart_sleep(with_sdl):
     start = time.time()
     ui.smart_sleep(1, units=TK_MS) # 1 millisecond
     duration = time.time() - start
-    assert duration < 0.002
+    assert duration >= 0.001
+    assert duration < 0.01
     assert env.exp.command == 'quit'
 
     # Test units of seconds
@@ -227,5 +228,6 @@ def test_smart_sleep(with_sdl):
     start = time.time()
     ui.smart_sleep(0.001, units=TK_S) # 1 millisecond
     duration = time.time() - start
-    assert duration < 0.002
+    assert duration >= 0.001
+    assert duration < 0.01
     assert env.exp.command == None

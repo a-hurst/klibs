@@ -19,13 +19,22 @@ except:
 
 # The function that gets run when klibs is launched from the command line
 
+def _check_ansi_support():
+    # Checks whether the current terminal supports ANSI color sequences
+    supported = False
+    term_type = os.getenv('TERM')
+    if term_type:
+        supported = ('color' in term_type)
+    # Newer versions of cmd.exe in Windows 10 support ANSI colors
+    elif sys.platform == "win32":
+        supported = sys.getwindowsversion().build >= 18363
+    return supported
+
+
 def klibs_main():
 
     sys.dont_write_bytecode = True # suppress creation of useless .pyc files
-
-    term_type = os.getenv('TERM') # make sure the terminal supports colour before enabling cso
-    if term_type and 'color' in term_type:
-        P.color_output = True
+    P.color_output = _check_ansi_support()
 
     class CustomHelpFormatter(argparse.HelpFormatter):
         # default argparse help formatting is kind of a mess, so we override some things

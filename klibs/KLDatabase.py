@@ -3,6 +3,7 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 import os
 import io
 import time
+import socket
 import shutil
 import sqlite3
 import tempfile
@@ -115,7 +116,9 @@ def _build_filepath(multi, id_info=None, base=None, joined=[], duplicate=False):
     # Determine the basename, suffix, and output path for the file
     suffix = ""
     if P.append_hostname:
-        hostname = os.uname()[1].replace(".local", "").replace(" ", "-")
+        hostname = socket.gethostname()
+        for a, b in [(".local", ""), ("DESKTOP-", ""), (" ", "-")]:
+            hostname = hostname.replace(a, b)
         suffix += "-{0}".format(hostname)
     if multi:
         p_id, created, incomplete = id_info

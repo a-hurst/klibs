@@ -97,9 +97,10 @@ class TestDatabase(object):
         last_row = db.last_row_id('participants')
         assert last_row == None
         data = generate_id_row()
-        db.insert(data, table='participants')
+        row_id = db.insert(data, table='participants')
         last_row = db.last_row_id('participants')
         assert last_row == 1
+        assert last_row == row_id
         # Test exception on non-existant table
         with pytest.raises(ValueError):
             db.insert(data, table='nope')
@@ -113,6 +114,15 @@ class TestDatabase(object):
         data = runtime_info_init()
         db.insert(data, table='session_info')
         assert db.last_row_id('session_info') == 1
+        # Test inserting multiple rows of data
+        rows = [generate_data_row(trial=i+1) for i in range(3)]
+        db.insert(rows, table='trials')
+        assert db.last_row_id('trials') == 3
+        retrieved = db.select('trials')
+        assert len(retrieved) == 3
+        # Test inserting an empty list of rows
+        db.insert([], table='trials')
+        assert db.last_row_id('trials') == 3
         # Test exception when unable to coerce value to column type
         data = generate_id_row(uid=3)
         data["age"] = "hello"

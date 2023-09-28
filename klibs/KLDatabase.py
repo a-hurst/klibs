@@ -424,36 +424,66 @@ class Database(object):
 
 
     def insert(self, data, table=None):
-        """Inserts a row of data into a table in the database.
+        """Inserts one or more rows of data into a table in the database.
+
+        Each row of data is represented as a dict in ``{'column': value}``
+        format, with keys for each required column in the destination table
+        and values specifying the corresponding value to insert for each column.
+        
+        For example, to insert a single row of data, you could do::
+
+           dat = {'participant_id': P.p_id, 'rating': resp, 'rt': resp_rt}
+           self.db.insert(dat, table='ratings')
+
+        Alternatively, you can insert multiple rows of data at once by providing
+        a list of dicts::
+
+           rows = []
+           for timestamp, stick_x, stick_y in axis_data:
+               rows.append({
+                   'participant_id': P.participant_id,
+                   'block_num': P.block_number,
+                   'trial_num': P.trial_number,
+                   'time': timestamp,
+                   'stick_x': stick_x,
+                   'stick_y': stick_y,
+               })
+           self.db.insert(rows, table='gamepad')
 
         Args:
-            data (:obj:`dict`): A dictionary in the format ``{'column': value}``
-                specifying the values to insert for each column in the row. The
-                column names must match the columns of the table.
+            data (:obj:`dict` or :obj:`list`): A dictionary (or list of dicts)
+                containing the data to insert into the database. The column
+                names must match the columns of the destination table.
             table (str): The name of the table to insert the data into.
+
+        Returns:
+            int: The row id of the last row inserted into the table.
 
         """
         if isinstance(data, EntryTemplate):
             if not table:
                 table = data.table
             data = data._values
-        elif isinstance(data, dict):
+        elif isinstance(data, dict) or isinstance(data, list):
             if not table:
-                raise ValueError("A table must be specified when inserting a dict.")
+                raise ValueError("A table must be specified when inserting data.")
         else:
-            raise TypeError("Argument 'data' must be either an EntryTemplate or a dict.")
+            raise TypeError("Argument 'data' must be either a dict or list of dicts.")
 
-        cols, values = self._gather_insert_values(data, table)
-        cols_str = u", ".join(cols)
-        qmark_str = u", ".join(["?"] * len(values))
-        q = u"INSERT INTO `{0}` ({1}) VALUES({2})".format(table, cols_str, qmark_str)
-        try:
-            self.cursor.execute(q, values)
-        except sqlite3.OperationalError as e:
-            err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
-            print(full_trace())
-            print(err.format(self.table_schemas[table], q))
-            raise e
+        if not isinstance(data, list):
+            data = [data]
+        for row in data:
+            cols, values = self._gather_insert_values(row, table)
+            col_str = u", ".join(cols)
+            qmark_str = u", ".join(["?"] * len(values))
+            q = u"INSERT INTO `{0}` ({1}) VALUES({2})".format(table, col_str, qmark_str)
+            try:
+                self.cursor.execute(q, values)
+            except sqlite3.OperationalError as e:
+                err = "\n\n\nTried to match the following:\n\n{0}\n\nwith\n\n{1}"
+                print(full_trace())
+                print(err.format(self.table_schemas[table], q))
+                raise e
         self.db.commit()
         return self.cursor.lastrowid
 

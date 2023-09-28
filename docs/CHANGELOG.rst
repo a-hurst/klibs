@@ -34,6 +34,11 @@ New Features:
   a friendlier, more readable way of adding events to the trial sequencer.
 * Added a convenience function :func:`~klibs.KLTime.time_msec` for getting
   timestamps in milliseconds.
+* The :meth:`~klibs.KLDatabase.Database.insert` method for the
+  :class:`~klibs.KLDatabase.Database` class now supports inserting multiple rows
+  at once via a list of dicts (one for each row). When inserting many rows of
+  data, this can offer substatial speedup over calling ``insert`` on each row
+  individually.
 
 
 Runtime Changes:

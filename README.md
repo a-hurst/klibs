@@ -9,7 +9,7 @@ KLibs also aims to make the distribution, replication, and modification of parad
 
 ## Dependencies
 
-The only dependencies needed to install KLibs on macOS, Windows, and most Linux distros are Git and a supported version of Python. KLibs requires either Python 3.7 (or newer) or Python 2.7 to run.
+The only dependencies needed to install KLibs on macOS, Windows, and most Linux distros are Git and a supported version of Python. KLibs requires Python 3.7 (or newer) run.
 
 You will also need the pip Python package manager to install KLibs on your system. If running 'pip --version' on your system results in a "command not found" message, you can install it using the [official instructions](https://pip.pypa.io/en/stable/installing/#installing-with-get-pip-py).
 

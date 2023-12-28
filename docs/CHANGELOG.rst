@@ -3,6 +3,20 @@ Changelog
 This is a log of the latest changes and improvements to KLibs.
 
 
+0.8.0a1
+-------
+
+(Unreleased)
+
+Runtime Changes:
+
+* KLibs now requires Python 3.7 or newer to run, dropping support for 2.7.
+
+Fixed Bugs:
+
+* KLibs no longer crashes on launch with Python 3.12.
+
+
 0.7.7b1
 -------
 
@@ -42,6 +56,7 @@ New Features:
 
 
 Runtime Changes:
+
 * The way that trials are internally generated and randomized has been changed,
   breaking random seed compatibility with older releases.
 * Previously, it was possible (albeit unlikely) for a block with more than

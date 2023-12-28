@@ -7,8 +7,6 @@ from klibs import P
 
 # Helpers and fixtures
 
-is_python2 = sys.version_info[0] == 2
-
 _path_vars = [
 	"project_name",
 	"database_path",
@@ -78,7 +76,7 @@ def test_initialize_runtime(with_clean_params):
 
     # Check that the random seed was set correctly
     assert P.random_seed == 530453080
-    expected = [13, 95, 1, 12, 98] if is_python2 else [16, 28, 22, 2, 6]
+    expected = [16, 28, 22, 2, 6]
     assert [random.randint(0, 100) for i in range(0, 5)] == expected
 
     # Check that the resources and paths loaded correctly

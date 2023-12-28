@@ -3,9 +3,10 @@ import pytest
 import numpy as np
 from PIL import Image, ImageDraw
 from aggdraw import Draw
-from pkg_resources import resource_filename
 from klibs.KLGraphics import KLDraw as kld
 from klibs.KLGraphics import NumpySurface, aggdraw_to_numpy_surface
+
+from conftest import get_resource_path
 
 
 def maketestsurface():
@@ -71,7 +72,7 @@ class TestSurfaceInit(object):
         assert surf.content[0][0][0] == 255
 
     def test_init_file(self):
-        logo_file_path = resource_filename('klibs', 'resources/splash.png')
+        logo_file_path = get_resource_path('splash.png')
         surf = NumpySurface(logo_file_path)
         assert surf.height == 123 and surf.width == 746
         assert surf.content[0][0][0] == 0

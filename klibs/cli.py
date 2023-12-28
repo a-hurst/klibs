@@ -141,7 +141,7 @@ def create(name, path):
     from random import choice
     from os.path import join
     from tempfile import mkdtemp
-    from pkg_resources import resource_filename
+    from importlib.util import find_spec
 
     template_files = [
         ("schema.sql", ["ExpAssets", "Config"]),
@@ -216,7 +216,8 @@ def create(name, path):
     ensure_directory_structure(tmp_path, create_missing=True)
     cso("  <cyan>...Project template folders successfully created.</cyan>")
 
-    source_path = resource_filename('klibs', 'resources/template')
+    klibs_root = os.path.dirname(find_spec("klibs").origin)
+    source_path = os.path.join(klibs_root, 'resources', 'template')
     for tf in template_files: # replace generic file names with project-specific names
         filename = tf[0] if tf[0] in [".gitignore", "experiment.py"] else "{0}_{1}".format(name, tf[0])
         template_f_path = join(source_path, tf[0] if tf[0] != ".gitignore" else "gitignore.txt")

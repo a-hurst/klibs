@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import os
+import tempfile
+from importlib.util import find_spec
+
 import sdl2
 import pytest
-import tempfile
-from pkg_resources import resource_filename
 
 from klibs import P
 
@@ -20,6 +22,11 @@ def _init_params_pytest():
     P.screen_x, P.screen_y, P.refresh_rate = (1920, 1080, 60.0)
 
 
+def get_resource_path(resource):
+    klibs_root = os.path.dirname(find_spec("klibs").origin)
+    return os.path.join(klibs_root, 'resources', resource)
+
+
 @pytest.fixture(scope='module')
 def with_sdl():
     sdl2.SDL_ClearError()
@@ -33,7 +40,7 @@ def with_sdl():
 def with_txtm(with_sdl):
     import klibs.KLEnvironment as env
     from klibs.KLText import TextManager
-    P.font_dirs = [resource_filename('klibs', 'resources/font')]
+    P.font_dirs = [get_resource_path('font')]
     P.exp_font_dir = tempfile.gettempdir()
     env.txtm = TextManager()
     yield

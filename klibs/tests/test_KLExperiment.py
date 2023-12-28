@@ -1,17 +1,18 @@
-import pytest
-import mock
 import os
-from pkg_resources import resource_filename
+import mock
+import pytest
 
 import klibs
 from klibs.KLJSON_Object import AttributeDict
+
+from conftest import get_resource_path
 
 
 @pytest.fixture
 def experiment():
     from klibs.KLExperiment import Experiment
     from klibs import P
-    template_path = resource_filename('klibs', 'resources/template')
+    template_path = get_resource_path('template')
     P.ind_vars_file_path = os.path.join(template_path, "independent_variables.py")
     P.ind_vars_file_local_path = os.path.join(template_path, "doesnt_exist.py")
     P.manual_trial_generation = True

@@ -14,7 +14,7 @@ the alias ``P`` (e.g. ``from klibs import P``).
 
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-from os.path import join
+from os.path import join, dirname
 
 # TODO: Try making the Params "P" an object or AttributeDict? Could set attributes
 # dynamically but also allow for sanity checks and renaming variables w/o breaking
@@ -234,7 +234,7 @@ def initialize_runtime(exp_name, randseed):
     """
     import random
     import tempfile
-    from pkg_resources import resource_filename, resource_string
+    from importlib.util import find_spec
 
     global random_seed
     global klibs_commit
@@ -252,8 +252,9 @@ def initialize_runtime(exp_name, randseed):
     database_local_path = join(tempfile.gettempdir(), database_local_filename)
 
     # Load extra resources from KLibs package
-    klibs_commit_raw = resource_string('klibs', 'resources/current_commit.txt')
-    klibs_commit = str(klibs_commit_raw.decode('utf-8'))
-    logo_file_path = resource_filename('klibs', 'resources/splash.png')
-    font_dirs = [exp_font_dir, resource_filename('klibs', 'resources/font')]
+    klibs_root = dirname(find_spec("klibs").origin)
+    klibs_commit_path = join(klibs_root, 'resources', 'current_commit.txt')
+    klibs_commit = open(klibs_commit_path, mode='r').read()
+    logo_file_path = join(klibs_root, 'resources', 'splash.png')
+    font_dirs = [exp_font_dir, join(klibs_root, 'resources', 'font')]
     

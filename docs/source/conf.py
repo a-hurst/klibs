@@ -15,7 +15,7 @@
 import sys
 import os
 import shlex
-import pkg_resources
+from importlib.metadata import version as pkg_version
 import sphinx_readable_theme
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -63,7 +63,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'klibs'
-copyright = u'2018, Austin Hurst & Jonathan Mulle'
+copyright = u'2024, Austin Hurst & Jonathan Mulle'
 author = u'Austin Hurst & Jonathan Mulle'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -71,7 +71,7 @@ author = u'Austin Hurst & Jonathan Mulle'
 # built documents.
 #
 # The full version, including alpha/beta/rc tags.
-release = pkg_resources.require("klibs")[0].version
+release = pkg_version('klibs')
 # The short X.Y version.
 version = release[:3]
 

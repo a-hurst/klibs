@@ -291,7 +291,6 @@ class Database(object):
     def __init__(self, path):
         super(Database, self).__init__()
         self.db = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
-        self.db.text_factory = sqlite3.OptimizedUnicode
         self.cursor = self.db.cursor()
         self.table_schemas = self._build_table_schemas()
 

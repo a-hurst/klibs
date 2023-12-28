@@ -7,8 +7,6 @@ from collections import Counter
 from klibs.KLStructure import FactorSet
 from klibs.KLTrialFactory import _generate_blocks
 
-is_python3 = sys.version_info[0] == 3
-
 
 class TestFactorSet(object):
 
@@ -132,9 +130,8 @@ def test_generate_blocks():
     assert all(len(b) == 48 for b in blocks)
 
     # Test whether random seed works as expected
-    if is_python3:
-        random.seed(308053045)
-        block = _generate_blocks(tst._factors, 1, 20)[0]
-        assert block[0]['soa'] == 200 and block[0]['cue_loc'] == 'none'
-        assert block[1]['soa'] == 0 and block[1]['easy_trial'] == True
-        assert block[2]['soa'] == 800 and block[2]['cue_loc'] == 'right'
+    random.seed(308053045)
+    block = _generate_blocks(tst._factors, 1, 20)[0]
+    assert block[0]['soa'] == 200 and block[0]['cue_loc'] == 'none'
+    assert block[1]['soa'] == 0 and block[1]['easy_trial'] == True
+    assert block[2]['soa'] == 800 and block[2]['cue_loc'] == 'right'

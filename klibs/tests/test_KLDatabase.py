@@ -1,16 +1,15 @@
 import os
 import tempfile
 import pytest
-from pkg_resources import resource_filename
 
 import klibs
 from klibs import KLDatabase as kldb
 from klibs.KLRuntimeInfo import runtime_info_init
 
-from conftest import _init_params_pytest
+from conftest import _init_params_pytest, get_resource_path
 
 
-schema_path = resource_filename('klibs', 'resources/template/schema.sql')
+schema_path = get_resource_path('template/schema.sql')
 
 @pytest.fixture
 def db_test_path():

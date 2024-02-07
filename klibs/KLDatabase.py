@@ -320,24 +320,25 @@ class Database(object):
                 table_cols = OrderedDict()
                 self.cursor.execute("PRAGMA table_info({0})".format(table))
                 columns = self.cursor.fetchall()
-
+                
                 # convert sqlite3 types to python types
                 for col in columns:
-                    if col[2].lower() == SQL_STR:
-                        col_type = PY_STR
-                    elif col[2].lower() == SQL_BIN:
-                        col_type = PY_BIN
-                    elif col[2].lower() in (SQL_INT, SQL_KEY):
-                        col_type = PY_INT
-                    elif col[2].lower() in (SQL_FLOAT, SQL_REAL, SQL_NUMERIC):
-                        col_type = PY_FLOAT
-                    elif col[2].lower() == SQL_BOOL:
-                         col_type = PY_BOOL
+                    colname, coltype, not_null, default= col[1:5]
+                    if coltype.lower() == SQL_STR:
+                        py_type = PY_STR
+                    elif coltype.lower() == SQL_BIN:
+                        py_type = PY_BIN
+                    elif coltype.lower() in (SQL_INT, SQL_KEY):
+                        py_type = PY_INT
+                    elif coltype.lower() in (SQL_FLOAT, SQL_REAL, SQL_NUMERIC):
+                        py_type = PY_FLOAT
+                    elif coltype.lower() == SQL_BOOL:
+                        py_type = PY_BOOL
                     else:
                         err_str = "Invalid or unsupported type ({0}) for {1}.{2}'"
-                        raise ValueError(err_str.format(col[2], table, col[1]))
-                    allow_null = col[3] == 0
-                    table_cols[col[1]] = {'type': col_type, 'allow_null': allow_null}
+                        raise ValueError(err_str.format(coltype, table, colname))
+                    allow_null = (not_null == 0 or default is not None)
+                    table_cols[colname] = {'type': py_type, 'allow_null': allow_null}
                 tables[table] = table_cols
         return tables
 
@@ -621,7 +622,7 @@ class DatabaseManager(EnvAgent):
         self._local_path = local_path
         # Initialize connections to database(s)
         self._primary = Database(path)
-        self._validate_structure(self._primary)
+        self._validate_structure(self._primary, P.session_count > 1)
         self._local = None
         if self.multi_user:
             shutil.copy(path, local_path)
@@ -638,7 +639,7 @@ class DatabaseManager(EnvAgent):
         # mode and the normal database otherwise
         return self._local if self.multi_user else self._primary
     
-    def _validate_structure(self, db):
+    def _validate_structure(self, db, multisession=False):
         # Ensure basic required tables exist
         e = "Required table '{0}' is not present in the database."
         required = ['participants', P.primary_table]
@@ -658,20 +659,32 @@ class DatabaseManager(EnvAgent):
         for table in _get_user_tables(db):
             if not 'participant_id' in db.get_columns(table):
                 raise RuntimeError(e.format(table))
+        # Ensure that the required columns are present for multisession
+        e = "Missing required column for multi-session project '{0}' in table '{1}'."
+        if multisession:
+            user_tables = _get_user_tables(db)
+            for table in user_tables:
+                if not P.session_column in db.get_columns(table):
+                    raise RuntimeError(e.format(P.session_column, table))
+
 
     def _is_complete(self, pid):
-        # TODO: For multisession projects, need to know the number of sessions
-        # per experiment for this to work correctly: currently, this only checks
-        # whether all sessions so far were completed, even if there are more
-        # sessions remaining.
-        if 'session_info' in self._primary.table_schemas:	
-            q = "SELECT complete FROM session_info WHERE participant_id = ?"
-            sessions = self._primary.query(q, q_vars=[pid])
+        this_id = {'participant_id': pid}
+        db = self._primary # Always use primary db for data export
+        if 'session_info' in db.tables:
+            # Ensure participant has completed all sessions of task
+            if "session_count" in db.get_columns("session_info"):
+                last_session, num_sessions = db.select(
+                    'session_info', ['session_number', 'session_count'], where=this_id
+                )[-1]
+                if last_session < num_sessions:
+                    return False
+            # Ensure all sessions were successfully completed
+            sessions = db.select('session_info', ['complete'], where=this_id)
             complete = [bool(s[0]) for s in sessions]
             return all(complete)
         else:
-            q = "SELECT id FROM trials WHERE participant_id = ?"
-            trialcount = len(self._primary.query(q, q_vars=[pid]))
+            trialcount = len(db.select('trials', ['id'], where=this_id))
             return trialcount >= P.trials_per_block * P.blocks_per_experiment
 
     def _log_export(self, pid, table):
@@ -690,13 +703,67 @@ class DatabaseManager(EnvAgent):
         matches = self._primary.select('export_history', where=this_id)
         return len(matches) > 0
     
+    def get_db_id(self, unique_id):
+        """Gets the numeric database ID for a given unique identifier.
 
-    def get_unique_ids(self):
-        """Retrieves all existing unique id values from the main database.
+        If no matching unique ID exists in the 'participants' table, this will
+        return None.
+
+        Args:
+            unique_id (str): The participant identifier (e.g. 'P03') for which
+                to retrieve the corresponding database ID.
+
+        Returns:
+            int or None: The numeric database ID corresponding to the given
+            unique identifier, or None if no match found.
+        """
+        id_filter = {P.unique_identifier: unique_id}
+        ret = self._primary.select('participants', columns=['id'], where=id_filter)
+        if not ret:
+            return None
+        return ret[0][0]
+    
+
+    def get_session_progress(self, pid):
+        """Gets information about the last session for a given database ID.
+
+        This retrieves the task condition, session number, and random seed,
+        as well the participants' progress through the task (last block/trial
+        number) and whether they fully completed the last session.
+
+        This is used internally for reloading multisession projects.
+
+        Args:
+            pid (int): The database ID for the participant.
+        
+        Returns:
+            dict: A dictonary containing information about the participant's
+            last session.
 
         """
-        id_rows = self._primary.select('participants', columns=[P.unique_identifier])
-        return [row[0] for row in id_rows]
+        db = self._primary
+        # Gathers previous session info for a given database ID
+        cols = ['condition', 'session_number', 'complete', 'random_seed']
+        info = db.select('session_info', columns=cols, where={'participant_id': pid})
+        cond, last_session_num, completed, random_seed = info[-1]
+        # Gather info about the participant's progress on the last session
+        where = {'participant_id': pid}
+        if P.session_column in db.get_columns(P.primary_table):
+            where[P.session_column] = last_session_num
+        last_trial, last_block = (0, 0)
+        progress = db.select(
+            P.primary_table, [P.trial_column, P.block_column], where=where
+        )
+        if len(progress):
+            last_trial, last_block = progress[-1]
+        return {
+            'condition': cond,
+            'num': last_session_num,
+            'completed': completed,
+            'random_seed': random_seed,
+            'last_block': last_block,
+            'last_trial': last_trial,
+        }
     
 
     def write_local_to_master(self):
@@ -740,11 +807,9 @@ class DatabaseManager(EnvAgent):
 
 
     def collect_export_data(self, base_table, multi_file=True, join_tables=[]):
-        uid = P.unique_identifier
-        participant_ids = self._primary.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
-
-        colnames = []
+        cols = {'p': []}
         sub = {P.unique_identifier: 'participant'}
+        multisession = P.session_column in self._primary.get_columns(base_table)
 
         # if P.default_participant_fields(_sf) is defined use that, but otherwise use
         # P.exclude_data_cols since that's the better way of doing things
@@ -753,38 +818,54 @@ class DatabaseManager(EnvAgent):
             for field in fields:
                 if iterable(field):
                     sub[field[0]] = field[1]
-                    colnames.append(field[0])
+                    cols['p'].append(field[0])
                 else:
-                    colnames.append(field)
+                    cols['p'].append(field)
         else:
             for colname in self._primary.get_columns('participants'):
                 if colname not in ['id'] + P.exclude_data_cols:
-                    colnames.append(colname)
+                    cols['p'].append(colname)
         for colname in P.append_info_cols:
+            if not 'info' in cols.keys():
+                cols['info'] = []
             if colname not in self._primary.get_columns('session_info'):
                 err = "Column '{0}' does not exist in the session_info table."
                 raise RuntimeError(err.format(colname))
-            colnames.append(colname)
+            cols['info'].append(colname)
         for t in [base_table] + join_tables:
+            cols[t] = []
             for colname in self._primary.get_columns(t):
                 if colname not in ['id', P.id_field_name] + P.exclude_data_cols:
-                    colnames.append(colname)
+                    cols[t].append(colname)
+
+        select_names = []
+        colnames = []
+        for t in ['p', 'info', base_table] + join_tables:
+            if not t in cols.keys():
+                continue
+            for col in cols[t]:
+                select_names.append("{0}.`{1}`".format(t, col))
+                colnames.append(col)
+
         column_names = TAB.join(colnames)
         for colname in sub.keys():
             column_names = column_names.replace(colname, sub[colname])
-        
+
+        uid = P.unique_identifier
+        participant_ids = self._primary.query("SELECT `id` FROM participants")
         data = []
         for p in participant_ids:
-            selected_cols = ",".join(["`"+col+"`" for col in colnames])
-            q = "SELECT " + selected_cols + " FROM participants "
-            if len(P.append_info_cols) and 'session_info' in self._primary.table_schemas:
-                info_cols = ",".join(['participant_id'] + P.append_info_cols)
-                q += "JOIN (SELECT " + info_cols + " FROM session_info) AS info "
-                q += "ON participants.id = info.participant_id "
+            q = "SELECT {0} ".format(", ".join(select_names))
+            q += "FROM participants AS p "
+            if 'info' in cols.keys():
+                q += "JOIN session_info AS info ON p.id = info.participant_id "
             for t in [base_table] + join_tables:
-                q += "JOIN {0} ON participants.id = {0}.participant_id ".format(t)
-            q += " WHERE participants.id = ?"
-            p_data = [] 
+                q += "JOIN {0} ON p.id = {0}.participant_id ".format(t)
+                if multisession:
+                    session_col = "{0}.{1}".format(t, P.session_column)
+                    q += "AND info.session_number = {0} ".format(session_col)
+                q += "WHERE p.id = ? "
+            p_data = []
             for trial in self._primary.query(q, q_vars=tuple([p[0]])):
                 row_str = TAB.join(utf8(col) for col in trial)
                 p_data.append(row_str)

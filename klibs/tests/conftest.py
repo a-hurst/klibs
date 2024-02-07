@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import sdl2
 import pytest
 import tempfile
@@ -20,12 +21,18 @@ def _init_params_pytest():
     P.screen_x, P.screen_y, P.refresh_rate = (1920, 1080, 60.0)
 
 
+def _check_error_msg():
+    # Convenience function for retrieving the current SDL error as a str
+    e = sdl2.SDL_GetError()
+    if sys.version_info[0] >= 3:
+        e = e.decode('utf-8', 'replace')
+    return e
+
 @pytest.fixture(scope='module')
 def with_sdl():
     sdl2.SDL_ClearError()
     ret = sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO | sdl2.SDL_INIT_TIMER)
-    assert sdl2.SDL_GetError() == b""
-    assert ret == 0
+    assert ret == 0, _check_error_msg()
     yield
     sdl2.SDL_Quit()
 

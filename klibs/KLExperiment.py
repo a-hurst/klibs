@@ -67,6 +67,7 @@ class Experiment(EnvAgent):
                 # If at end of current block, jump to next block
                 trimmed = trimmed[1:]
                 P.block_number += 1
+                P.trial_number = 1
             # Prepare for resuming session
             self.blocks = trimmed
             P.block_number -= 1

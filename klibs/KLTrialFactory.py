@@ -99,18 +99,18 @@ class BlockIterator(object):
             raise StopIteration
         else:
             self.i += 1
-            trials = TrialIterator(self.blocks[self.i - 1])
-            trials.practice = self.i - 1 in self.practice_blocks
+            practice_block = self.i - 1 in self.practice_blocks
+            trials = TrialIterator(self.blocks[self.i - 1], practice_block)
             return trials
 
 
 class TrialIterator(BlockIterator):
 
-    def __init__(self, block_of_trials):
+    def __init__(self, block_of_trials, practice=False):
         self.trials = block_of_trials
         self.length = len(block_of_trials)
         self.i = 0
-        self.__practice = False
+        self.practice = practice # Should eventually be read-only (backwards compat)
 
     def __next__(self):
         if self.i >= self.length:
@@ -126,14 +126,6 @@ class TrialIterator(BlockIterator):
         random.shuffle(temp)
         self.trials[self.i:] = temp
         self.length += 1
-
-    @property
-    def practice(self):
-        return self.__practice
-
-    @practice.setter
-    def practice(self, practicing):
-        self.__practice = practicing == True
 
 
 

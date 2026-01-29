@@ -44,8 +44,6 @@ class Experiment(EnvAgent):
         """For internal use, actually runs the blocks/trials of the experiment in sequence.
 
         """
-        from klibs.KLGraphics import clear
-
         if self.blocks == None:
             self.blocks = self.trial_factory.export_trials()
 
@@ -65,7 +63,6 @@ class Experiment(EnvAgent):
                 except TrialException:
                     block.recycle()
                     P.recycle_count += 1
-                    clear() # NOTE: is this actually wanted?
                 self.rc.reset()
         self.clean_up()
 

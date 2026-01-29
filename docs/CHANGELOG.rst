@@ -15,6 +15,7 @@ Runtime Changes:
 Fixed Bugs:
 
 * KLibs no longer crashes on launch with Python 3.12.
+* KLibs no longer briefly shows a blank screen when a trial is recycled.
 
 
 0.7.7b1

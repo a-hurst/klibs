@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 import klibs
 from klibs.KLJSON_Object import AttributeDict
-from klibs.KLTrialFactory import BlockIterator, TrialIterator
+from klibs.KLTrialFactory import BlockIterator, TrialIterator, TrialSet
 from klibs.KLExceptions import TrialException
 
 from conftest import get_resource_path
@@ -90,8 +90,8 @@ def test_execute(run_environment):
     tst = TestExperiment()
     tst.setup()
     tst.blocks = [
-        TrialIterator(trials.copy(), practice=True),
-        TrialIterator(trials.copy()),
+        TrialIterator(trials, practice=True),
+        TrialIterator(trials),
     ]
     tst.__execute_experiment__()
     assert tst.last_block == 2
@@ -101,8 +101,10 @@ def test_execute(run_environment):
     # Test with blocks as BlockIterator
     tst = TestExperiment()
     tst.setup()
-    tst.blocks = BlockIterator([trials.copy()])
-    tst.blocks.insert(0, trials.copy(), practice=True)
+    tst.blocks = BlockIterator([
+        TrialSet(trials, practice=True),
+        trials
+    ])
     tst.__execute_experiment__()
     assert tst.last_block == 2
     assert tst.last_trial == 5 # 4 + 1 recycled
@@ -141,5 +143,5 @@ def test_insert_practice_block(experiment):
     assert len(blocks_b[1]) == 12
     assert len(blocks_b[2]) == 6
     assert P.blocks_per_experiment == 4
-    for trial in blocks_b[0]:
+    for trial in blocks_b[0].trials:
         assert trial['fac2'] == 800

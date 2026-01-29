@@ -60,48 +60,22 @@ def _generate_blocks(factors, block_count, trial_count):
     return blocks
 
 
-class BlockIterator(object):
 
+class BlockIterator(object):
+    """Internal class for representing sequences of blocks.
+    
+    """
+    # [Compat] only needed to avoid breaking TraceLab, remove after
     def __init__(self, blocks):
         self.blocks = blocks
-        self.practice_blocks = []
-        self.length = len(blocks)
-        self.i = 0
 
     def __iter__(self):
-        return self
+        for block in self.blocks:
+            yield block if isinstance(block, TrialSet) else TrialSet(block)
 
     def __len__(self):
-        return self.length
+        return len(self.blocks)
 
-    def __getitem__(self, i):
-        return self.blocks[i]
-
-    def __setitem__(self, i, x):
-        self.blocks[i] = x
-    
-    def insert(self, index, block, practice):
-        if self.i <= index:
-            if practice:
-                self.practice_blocks.append(index)
-            self.blocks.insert(index, block)
-            self.length = len(self.blocks)
-        else:
-            insert_err = "Can't insert block at index {0}; it has already passed."
-            raise ValueError(insert_err.format(index))
-
-    def next(self): # alias for python2
-        return self.__next__()
-
-    def __next__(self):
-        if self.i >= self.length:
-            self.i = 0 # reset index so we can iterate over it again
-            raise StopIteration
-        else:
-            self.i += 1
-            practice_block = self.i - 1 in self.practice_blocks
-            trials = TrialIterator(self.blocks[self.i - 1], practice_block)
-            return trials
 
 
 class TrialSet(object):
@@ -121,6 +95,9 @@ class TrialSet(object):
         self.practice = practice
         self.label = label
 
+    def __len__(self):
+        return len(self._trials)
+
     def __str__(self):
         # Custom print method for better readability
         s = "{0} trials".format(len(self._trials))
@@ -132,7 +109,6 @@ class TrialSet(object):
     def trials(self):
         """List: The list of trials contained within the block."""
         return self._trials.copy()
-
 
 # Alias for backwards compatibility
 TrialIterator = TrialSet
@@ -172,7 +148,7 @@ class TrialFactory(object):
         
         exp_factors = self.exp_factors if exp_factors == None else exp_factors
         blocks = self.trial_generator(exp_factors, block_count, trial_count)
-        self.blocks = BlockIterator(blocks)
+        self.blocks = [TrialSet(b) for b in blocks]
 
 
     def export_trials(self):
@@ -207,9 +183,9 @@ class TrialFactory(object):
             # If no factor mask, generate trials randomly based on self.exp_factors
             factors = self.exp_factors
 
-        block = self.trial_generator(factors, 1, trial_count)
+        block = self.trial_generator(factors, 1, trial_count)[0]
         # there is no "zero" block from the UI/UX perspective, so adjust insertion accordingly
-        self.blocks.insert(block_num - 1, block[0], practice)
+        self.blocks.insert(block_num - 1, TrialSet(block, practice=practice))
 
 
     def dump(self):

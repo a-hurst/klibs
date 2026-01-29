@@ -18,6 +18,10 @@ Runtime Changes:
   of all remaining trials, which could unexpectedly affect the even distribution
   of trial factors across blocks that contained multiple complete factor sets.
 
+API Changes:
+
+* Removed method `num_values` from :class:`~klibs.KLTrialFactory.TrialFactory`.
+
 Fixed Bugs:
 
 * KLibs no longer crashes on launch with Python 3.12.

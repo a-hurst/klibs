@@ -157,19 +157,6 @@ class TrialFactory(object):
         self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
 
 
-    def __load_ind_vars(self, path):
-
-        set_name = "{0}_ind_vars".format(P.project_name)
-        try:
-            ind_vars = load_source(path)
-            factors = ind_vars[set_name].to_dict()
-        except KeyError:
-            err = 'Unable to find IndependentVariableSet in independent_vars.py.'
-            raise RuntimeError(err)
-
-        return factors
-
-
     def __generate_trials(self, factors, block_count, trial_count):
         # NOTE: Factored into a separate function for easier unit testing
         return _generate_blocks(factors, block_count, trial_count)
@@ -223,20 +210,6 @@ class TrialFactory(object):
         block = self.trial_generator(factors, 1, trial_count)
         # there is no "zero" block from the UI/UX perspective, so adjust insertion accordingly
         self.blocks.insert(block_num - 1, block[0], practice)
-
-
-    def num_values(self, factor):
-        """
-
-        :param factor:
-        :return: :raise ValueError:
-        """
-        try:
-            n = len(self.exp_factors[factor])
-            return n
-        except KeyError:
-            e_msg = "Factor '{0}' not found.".format(factor)
-            raise ValueError(e_msg)
 
 
     def dump(self):

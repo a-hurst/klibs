@@ -166,9 +166,14 @@ class TrialFactory(object):
             # If no factor mask, generate trials randomly based on self.exp_factors
             factors = self.exp_factors
 
+        # Don't insert practice blocks if practice blocks disabled
+        if P.run_practice_blocks == False:
+            return
+
         block = self.trial_generator(factors, 1, trial_count)[0]
         # there is no "zero" block from the UI/UX perspective, so adjust insertion accordingly
         self.blocks.insert(block_num - 1, TrialSet(block, practice=practice))
+        P.blocks_per_experiment += 1
 
 
     def dump(self):

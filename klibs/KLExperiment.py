@@ -261,13 +261,13 @@ class Experiment(EnvAgent):
         # [Compat]: Messy API to allow multiple insertions at once, fix when possible.
         # Only TOJ_Motion uses multiple insertions. Multiple projects use 'trial_counts'
         # keyword, however.
- 
+
         if self.blocks:
             # If setup has passed and trial execution has started, blocks have already been exported
             # from trial_factory so this function will no longer work. If it is called after it is no
             # longer useful, we throw a TrialException
             raise RuntimeError("Cannot insert practice blocks after setup() is complete.")
-        
+
         if not trial_counts:
             trial_counts = P.trials_per_block
 
@@ -277,7 +277,6 @@ class Experiment(EnvAgent):
                 self.insert_practice_block(b, trial_counts, factor_mask)
         else:
             self.trial_factory.insert_block(block_nums, True, trial_counts, factor_mask)
-            P.blocks_per_experiment += 1
 
     
     def before_flip(self):

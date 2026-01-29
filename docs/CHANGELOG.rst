@@ -17,6 +17,7 @@ Runtime Changes:
   the only trial remaining. Previously recycling a trial would shuffle the order
   of all remaining trials, which could unexpectedly affect the even distribution
   of trial factors across blocks that contained multiple complete factor sets.
+* Practice blocks are no longer added when `P.run_practice_blocks` is False.
 
 API Changes:
 

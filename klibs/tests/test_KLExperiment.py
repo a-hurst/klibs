@@ -133,3 +133,10 @@ def test_insert_practice_block(experiment):
     assert P.blocks_per_experiment == 4
     for trial in blocks_b[0].trials:
         assert trial['fac2'] == 800
+
+    # Test to make sure method does nothing if practice blocks disabled
+    P.run_practice_blocks = False
+    experiment.insert_practice_block(1)
+    blocks_c = experiment.trial_factory.export_trials()
+    assert len(blocks_c) == 4
+    assert P.blocks_per_experiment == 4

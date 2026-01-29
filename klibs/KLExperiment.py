@@ -2,6 +2,7 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
+import random
 from abc import abstractmethod
 from traceback import print_tb, print_stack
 
@@ -55,13 +56,15 @@ class Experiment(EnvAgent):
             P.practicing = block.practice
             self.block()
             P.trial_number = 1
-            for trial in block:  # ie. list of trials
+            remaining = list(block)
+            while len(remaining):
+                trial = remaining.pop(0)
                 try:
                     P.trial_id += 1 # Increments regardless of recycling
                     self.__trial__(trial)
                     P.trial_number += 1
                 except TrialException:
-                    block.recycle()
+                    remaining = self._recycle_trial(remaining, trial)
                     P.recycle_count += 1
                 self.rc.reset()
         self.clean_up()
@@ -127,6 +130,34 @@ class Experiment(EnvAgent):
             trial_template.log(attr, trial_data[attr])
 
         return self.database.insert(trial_template)
+
+
+    def _recycle_trial(self, remaining, trial):
+        """Internal method for recycling a trial within the current block.
+
+        This method re-inserts a trial into the set of remaining trials at a
+        random position, avoiding an immediate repeat of the trial unless it is
+        the only trial remaining in the block.
+
+        Recycling behaviour can be customized by overriding this method.
+
+        Args:
+            remaining (list): The remaining trials for the current block.
+            trial (dict): The trial factors to recycle into the block.
+
+        Returns:
+            list: The new set of remaining trials.
+
+        """
+        # NOTE: Should this be part of public API or stay unofficial/internal?
+        if len(remaining):
+            # Re-insert the trial in a random position after the first element
+            tmp = remaining.copy()
+            new_idx = random.randrange(1, len(tmp)) if len(tmp) > 1 else 1
+            tmp.insert(new_idx, trial)
+            return tmp
+        else:
+            return [trial]
 
 
     ## Define abstract methods to be overridden in experiment.py ##

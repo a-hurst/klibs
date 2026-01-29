@@ -11,6 +11,12 @@ This is a log of the latest changes and improvements to KLibs.
 Runtime Changes:
 
 * KLibs now requires Python 3.7 or newer to run, dropping support for 2.7.
+* Trial recycling behaviour has been changed, such that recycled trials are
+  now re-inserted at a random position in the list of remaining trials, avoiding
+  insertion at the start of the list (to avoid an immediate repeat) unless it is
+  the only trial remaining. Previously recycling a trial would shuffle the order
+  of all remaining trials, which could unexpectedly affect the even distribution
+  of trial factors across blocks that contained multiple complete factor sets.
 
 Fixed Bugs:
 

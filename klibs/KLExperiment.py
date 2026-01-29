@@ -9,7 +9,7 @@ from traceback import print_tb, print_stack
 from klibs import P
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
-from klibs.KLInternal import full_trace
+from klibs.KLInternal import full_trace, iterable
 from klibs.KLInternal import colored_stdout as cso
 
 
@@ -225,51 +225,58 @@ class Experiment(EnvAgent):
     
 
     def insert_practice_block(self, block_nums, trial_counts=None, factor_mask=None):
-        """
-        Adds one or more practice blocks to the experiment. This function must be called during setup(),
-        otherwise the trials will have already been exported and this function will no longer have
-        any effect. If you want to add a block to the experiment after setup() for whatever reason,
-        you can manually generate one using trial_factory.generate() and then insert it using
-        self.blocks.insert().
-        
-        If multiple block indexes are given but only a single integer is given for trial counts, 
-        then all practice blocks inserted will be trial_counts trials long. If not trial_counts 
-        value is provided, the number of trials per practice block defaults to the global 
-        experiment trials_per_block parameter.
+        """Adds a practice block to the experiment.
 
-        If multiple block indexes are given but only a single factor mask is provided, the same
-        factor mask will be applied to all appended practice blocks. If no factor mask is provided,
-        the function will generate a full set of trials based on all possible combination of factors,
-        and will randomly select trial_counts trials from it for each practice block.
+        This method adds an extra block of trials at a given position in the block
+        sequence, optionally with a different trial count and/or different factor
+        levels than the rest of the task. For example, to add a practice block with
+        20 trials at the start of the task, you would add the following somewhere in
+        the `setup()` block of your `experiment.py` file::
+
+           self.insert_practice_block(1, 20)
+
+        During practice blocks the klibs parameter `P.practicing` will be set to True,
+        allowing easy conditional changes during practice blocks (e.g. showing
+        additional feedback if practicing).
+
+        You can also provide a factor mask to override one or more factor levels for
+        the practice block. For example, if the task has a factor 'difficulty' with
+        the levels 'easy' and 'hard' and you want to add separate practice blocks for
+        each trial type, you can specify overrides for the factor levels like so::
+
+           self.insert_practice_block(1, 32, factor_mask={'difficulty': ['easy']})
+           self.insert_practice_block(2, 32, factor_mask={'difficulty': ['hard']})
+
+        This function must be called during setup(), otherwise the block structure of
+        the study will already be set and can no longer be changed.
 
         Args:
-            block_nums (:obj:`list` of int): Index numbers at which to insert the blocks.
-            trial_counts (:obj:`list` of int, optional): The numbers of trials to insert for each
-                of the inserted blocks.
-            factor_mask (:obj:`dict` of :obj:`list`, optional): Override values for the variables
-                specified in independent_variables.py.
-
-        Raises:
-            TrialException: If called after the experiment's :meth:`setup` method has run.
+            block_nums (int): Position at which to insert the block.
+            trial_counts (int, optional): The trial count for the practice block.
+                Defaults to `P.trials_per_block`.
+            factor_mask (:obj:`dict` of :obj:`list`, optional): Overrides for one or
+                more factors in the task's `independent_variables.py` file.
 
         """
+        # [Compat]: Messy API to allow multiple insertions at once, fix when possible.
+        # Only TOJ_Motion uses multiple insertions. Multiple projects use 'trial_counts'
+        # keyword, however.
+ 
         if self.blocks:
             # If setup has passed and trial execution has started, blocks have already been exported
             # from trial_factory so this function will no longer work. If it is called after it is no
             # longer useful, we throw a TrialException
-            raise TrialException("Practice blocks cannot be inserted after setup() is complete.")
-        try:
-            iter(block_nums)
-        except TypeError:
-            block_nums = [block_nums]
-        try:
-            iter(trial_counts)
-        except TypeError:
-            trial_counts = ([P.trials_per_block]  if trial_counts is None else [trial_counts]) * len(block_nums)
-        while len(trial_counts) < len(block_nums):
-            trial_counts.append(P.trials_per_block)
-        for i in range(0, len(block_nums)):
-            self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_mask)
+            raise RuntimeError("Cannot insert practice blocks after setup() is complete.")
+        
+        if not trial_counts:
+            trial_counts = P.trials_per_block
+
+        if iterable(block_nums):
+            # [Compat]: Only TOJ_Motion uses this and it's a bad idea, remove when fixed.
+            for b in block_nums:
+                self.insert_practice_block(b, trial_counts, factor_mask)
+        else:
+            self.trial_factory.insert_block(block_nums, True, trial_counts, factor_mask)
             P.blocks_per_experiment += 1
 
     

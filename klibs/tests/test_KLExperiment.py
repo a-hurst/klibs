@@ -1,6 +1,7 @@
 import os
 import mock
 import pytest
+from collections import OrderedDict
 
 import klibs
 from klibs.KLJSON_Object import AttributeDict
@@ -106,3 +107,39 @@ def test_execute(run_environment):
     assert tst.last_block == 2
     assert tst.last_trial == 5 # 4 + 1 recycled
     assert tst.total_trials == 10
+
+
+def test_insert_practice_block(experiment):
+    from klibs import P
+
+    # Set dummy trial factors and generate trials
+    P.trials_per_block = 30
+    P.blocks_per_experiment = 1
+    experiment.trial_factory.exp_factors = OrderedDict([
+        ('fac1', [True, False]),
+        ('fac2', [200, 400, 800]),
+    ])
+    experiment.trial_factory.generate()
+    blocks_init = experiment.trial_factory.export_trials()
+    assert len(blocks_init) == 1
+    assert len(blocks_init[0]) == 30
+
+    # Try adding a single practice block
+    experiment.insert_practice_block(1, 12)
+    blocks_a = experiment.trial_factory.export_trials()
+    assert len(blocks_a) == 2
+    assert len(blocks_a[0]) == 12
+    assert len(blocks_a[1]) == 30
+    assert P.blocks_per_experiment == 2
+
+    # Try adding two more practice blocks with a factor mask
+    mask = {'fac2': [800]}
+    experiment.insert_practice_block([1, 3], 6, factor_mask=mask)
+    blocks_b = experiment.trial_factory.export_trials()
+    assert len(blocks_b) == 4
+    assert len(blocks_b[0]) == 6
+    assert len(blocks_b[1]) == 12
+    assert len(blocks_b[2]) == 6
+    assert P.blocks_per_experiment == 4
+    for trial in blocks_b[0]:
+        assert trial['fac2'] == 800

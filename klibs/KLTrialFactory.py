@@ -61,23 +61,6 @@ def _generate_blocks(factors, block_count, trial_count):
 
 
 
-class BlockIterator(object):
-    """Internal class for representing sequences of blocks.
-    
-    """
-    # [Compat] only needed to avoid breaking TraceLab, remove after
-    def __init__(self, blocks):
-        self.blocks = blocks
-
-    def __iter__(self):
-        for block in self.blocks:
-            yield block if isinstance(block, TrialSet) else TrialSet(block)
-
-    def __len__(self):
-        return len(self.blocks)
-
-
-
 class TrialSet(object):
     """Internal class for representing blocks of trials.
 
@@ -177,7 +160,7 @@ class TrialFactory(object):
                         new_values = [new_values] # if not iterable, put in list
                     factors[name] = new_values
                 else:
-                    e = "'{0}' is not the name of an active independent variable".format(name)
+                    e = "'{0}' is not the name of an active factor".format(name)
                     raise ValueError(e)
         else:
             # If no factor mask, generate trials randomly based on self.exp_factors

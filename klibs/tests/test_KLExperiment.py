@@ -52,7 +52,7 @@ def test_execute(run_environment):
             self.last_block = P.block_number
             self.last_trial = 0
 
-        def __trial__(self, trial, practice):
+        def __trial__(self, trial):
             # Check trial id increments correctly
             self.total_trials += 1
             assert P.trial_id == self.total_trials

@@ -58,7 +58,7 @@ class Experiment(EnvAgent):
             for trial in block:  # ie. list of trials
                 try:
                     P.trial_id += 1 # Increments regardless of recycling
-                    self.__trial__(trial, block.practice)
+                    self.__trial__(trial)
                     P.trial_number += 1
                 except TrialException:
                     block.recycle()
@@ -72,7 +72,7 @@ class Experiment(EnvAgent):
             self.database.update('session_info', {'complete': True}, where)
 
 
-    def __trial__(self, trial, practice):
+    def __trial__(self, trial):
         """
         Private method; manages a trial.
         """

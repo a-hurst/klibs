@@ -89,14 +89,20 @@ def test_execute(run_environment):
     tst = TestExperiment()
     tst.setup()
     tst.blocks = [
-        TrialIterator(trials, practice=True),
-        TrialIterator(trials),
+        TrialIterator(trials.copy(), practice=True),
+        TrialIterator(trials.copy()),
     ]
     tst.__execute_experiment__()
+    assert tst.last_block == 2
+    assert tst.last_trial == 5 # 4 + 1 recycled
+    assert tst.total_trials == 10
 
     # Test with blocks as BlockIterator
     tst = TestExperiment()
     tst.setup()
-    tst.blocks = BlockIterator([trials])
-    tst.blocks.insert(0, trials, practice=True)
+    tst.blocks = BlockIterator([trials.copy()])
+    tst.blocks.insert(0, trials.copy(), practice=True)
     tst.__execute_experiment__()
+    assert tst.last_block == 2
+    assert tst.last_trial == 5 # 4 + 1 recycled
+    assert tst.total_trials == 10

@@ -104,28 +104,38 @@ class BlockIterator(object):
             return trials
 
 
-class TrialIterator(BlockIterator):
+class TrialSet(object):
+    """Internal class for representing blocks of trials.
 
-    def __init__(self, block_of_trials, practice=False):
-        self.trials = block_of_trials
-        self.length = len(block_of_trials)
-        self.i = 0
-        self.practice = practice # Should eventually be read-only (backwards compat)
+    Args:
+        trials (List): A list of dicts containing trial factors, with each dict
+            representing a trial in the block.
+        practice (bool, optional): Whether the block is a practice block. 
+            Defaults to False.
+        label (str, optional): A label optionally specifying the block type for
+            experiments with multiple types of block. Defaults to None.
 
-    def __next__(self):
-        if self.i >= self.length:
-            self.i = 0
-            raise StopIteration
-        else:
-            self.i += 1
-            return self.trials[self.i - 1]
+    """
+    def __init__(self, trials, practice=False, label=None):
+        self._trials = trials
+        self.practice = practice
+        self.label = label
 
-    def recycle(self):
-        self.trials.append(self.trials[self.i - 1])
-        temp = self.trials[self.i:]
-        random.shuffle(temp)
-        self.trials[self.i:] = temp
-        self.length += 1
+    def __str__(self):
+        # Custom print method for better readability
+        s = "{0} trials".format(len(self._trials))
+        s += ", '{0}'".format(self.label) if self.label else ""
+        s += ", Practice" if self.practice else ""
+        return "TrialSet(" + s + ")"
+
+    @property
+    def trials(self):
+        """List: The list of trials contained within the block."""
+        return self._trials.copy()
+
+
+# Alias for backwards compatibility
+TrialIterator = TrialSet
 
 
 
@@ -247,7 +257,7 @@ class TrialFactory(object):
             for b in self.blocks:
                 log_f.write("Block {0}\n".format(block_num))
                 trial_num = 1
-                for t in b:
+                for t in b.trials:
                     log_f.write("\tTrial {0}: {1} \n".format(trial_num, t))
                     trial_num += 1
                 block_num += 1

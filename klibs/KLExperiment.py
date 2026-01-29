@@ -56,7 +56,7 @@ class Experiment(EnvAgent):
             P.practicing = block.practice
             self.block()
             P.trial_number = 1
-            remaining = list(block)
+            remaining = list(block.trials)
             while len(remaining):
                 trial = remaining.pop(0)
                 try:

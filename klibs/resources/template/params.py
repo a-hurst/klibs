@@ -39,9 +39,9 @@ saccadic_motion_threshold = 0.15
 #########################################
 # Experiment Structure
 #########################################
-multi_session_project = False
 trials_per_block = 0
 blocks_per_experiment = 1
+session_count = 1
 conditions = []
 default_condition = None
 

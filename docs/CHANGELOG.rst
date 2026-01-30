@@ -73,6 +73,10 @@ Runtime Changes:
   returning to avoid registering spurious input.
 * KLibs will now raise an error on launch if any required tables or columns are
   missing from the database.
+* Demographics collection has been changed so that queries in
+  `user_queries.json` are skipped if they do not correspond to a column in the
+  `participants` table of the database. Additionally, the query for the
+  participant's unique identifer is now always collected first.
 
 
 API Changes:

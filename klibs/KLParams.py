@@ -29,6 +29,7 @@ trial_number = 0
 block_number = 0
 session_number = 1
 recycle_count = 0 # reset on a per-block basis
+resumed_session = False
 
 # Runtime Attributes
 project_name = None
@@ -47,13 +48,12 @@ condition = None
 collect_demographics = True
 manual_demographics_collection = False
 manual_trial_generation = False
-multi_session_project = False
 multi_user = False # creates temp copy of db that gets merged into master at end
 trials_per_block = 0
 blocks_per_experiment = 0
+session_count = 1
 conditions = []
 default_condition = None
-table_defaults = {} # default column values for db tables when using EntryTemplate
 run_practice_blocks = True # (not implemented in klibs itself)
 color_output = False # whether cso() outputs colorized text or not
 
@@ -109,6 +109,9 @@ refresh_time = None # Expected time between display refreshes (in ms)
 id_field_name = "participant_id"
 primary_table = "trials"
 unique_identifier = "userhash"
+session_column = "session_num"
+block_column = "block_num"
+trial_column = "trial_num"
 default_participant_fields = [] # for legacy use
 default_participant_fields_sf = [] # for legacy use
 exclude_data_cols = ["created"]

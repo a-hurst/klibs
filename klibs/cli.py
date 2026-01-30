@@ -322,6 +322,10 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
             cond_list = "', '".join(P.conditions)
             err("'{0}' is not a valid condition for this experiment (must be one of '{1}'). "
                 "Please relaunch the experiment.".format(P.condition, cond_list))
+            
+    # Error if trying to use multi-user and multi-session at the same time
+    if P.multi_user and P.session_count > 1:
+        err("Multi-user mode is not currently supported for multi-session projects.")
 
     # set some basic global Params
     if devmode:

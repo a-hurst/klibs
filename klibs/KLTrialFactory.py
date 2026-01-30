@@ -112,6 +112,12 @@ class TrialIterator(BlockIterator):
         self.i = 0
         self.__practice = False
 
+    def __getitem__(self, i):
+        return self.trials[i]
+
+    def __setitem__(self, i, x):
+        self.trials[i] = x
+
     def __next__(self):
         if self.i >= self.length:
             self.i = 0

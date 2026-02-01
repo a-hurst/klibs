@@ -62,7 +62,35 @@ def _generate_blocks(factors, block_count, trial_count):
 
 
 class TrialSet(object):
-    """Internal class for representing blocks of trials.
+    """Class for representing blocks of trials.
+
+    TrialSet objects are how klibs represents blocks of trials internally, and
+    can be used to manually generate custom sequences of blocks/trials during
+    the `self.setup()` phase of the Experiment runtime.
+
+    The full set of blocks of trials for an experiment is stored as a list of
+    TrialSets in the experiment attribute `self.blocks`. By default these blocks
+    and trials are generated for you using the defined factors and specified
+    block/trial counts in the project's configuration files, but you can use
+    your own set of custom blocks by replacing the block list with your own::
+
+        # Define a sequence of 3 trials
+        trials = [{'image': 'a'}, {'image': 'b'}, {'image': 'c'}]
+
+        # Set block sequence for task as 2 identical blocks of trials
+        self.blocks = [
+            TrialSet(trials, practice=True), # Flag block 1 as practice
+            TrialSet(trials),
+        ]
+
+    If a block is provided with a label, the value of the label can be accessed
+    during the block through the Experiment attribute `self.block_label`. This
+    can be used to change things like stimuli or instructions conditionally
+    in your code based on the block label (e.g. different cues for 'endo' and
+    'exo' blocks).
+
+    Note that custom block sequences can only be set during the `self.setup()`
+    phase of the task.
 
     Args:
         trials (List): A list of dicts containing trial factors, with each dict
@@ -74,7 +102,7 @@ class TrialSet(object):
 
     """
     def __init__(self, trials, practice=False, label=None):
-        self._trials = trials
+        self._trials = trials.copy()
         self.practice = practice
         self.label = label
 

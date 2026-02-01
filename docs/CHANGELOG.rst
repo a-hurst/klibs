@@ -22,6 +22,10 @@ Runtime Changes:
 API Changes:
 
 * Removed method `num_values` from :class:`~klibs.KLTrialFactory.TrialFactory`.
+* Added a new class :class:`~klibs.KLTrialFactory.TrialSet` to allow for
+  defining custom block types and block structures as well as setting labels
+  for blocks (accessible during blocks through the `self.block_label` attribute
+  in the experiment runtime).
 * Removed the :class:`~klibs.KLTrialFactory.BlockIterator` class.
   The `self.blocks` attribute of the Experiment class is now a list of
   :class:`~klibs.KLTrialFactory.TrialSet` objects.

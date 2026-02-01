@@ -48,6 +48,7 @@ class Experiment(EnvAgent):
         if self.blocks == None:
             self.blocks = self.trial_factory.export_trials()
 
+        P.blocks_per_experiment = len(self.blocks)
         P.block_number = 0
         P.trial_id = 0
         for block in self.blocks:

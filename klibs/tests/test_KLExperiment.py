@@ -7,9 +7,14 @@ import klibs
 from klibs.KLJSON_Object import AttributeDict
 from klibs.KLTrialFactory import TrialIterator, TrialSet
 from klibs.KLExceptions import TrialException
+from klibs.KLExperiment import Experiment
 
 from conftest import get_resource_path
 
+
+class MockExperiment(Experiment):
+    def __trial__(self, trial):
+        pass
 
 @pytest.fixture
 def run_environment():
@@ -22,20 +27,19 @@ def run_environment():
 
 @pytest.fixture
 def experiment(run_environment):
-    from klibs.KLExperiment import Experiment
-    return Experiment()
+    exp = MockExperiment()
+    exp.database = AttributeDict({'tables': []})
+    return exp
 
 
 def test_Experiment(experiment):
     with mock.patch.object(experiment, 'quit', return_value=None):
         experiment.blocks = []
-        experiment.database = AttributeDict({'tables': []})
         experiment.run()
 
 
 def test_execute(run_environment):
     from klibs import P
-    from klibs.KLExperiment import Experiment
 
     class TestExperiment(Experiment):
 
@@ -123,7 +127,6 @@ def test_insert_practice_block(experiment):
     assert len(blocks_a) == 2
     assert len(blocks_a[0]) == 12
     assert len(blocks_a[1]) == 30
-    assert P.blocks_per_experiment == 2
 
     # Try adding two more practice blocks with a factor mask
     mask = {'fac2': [800]}
@@ -133,7 +136,6 @@ def test_insert_practice_block(experiment):
     assert len(blocks_b[0]) == 6
     assert len(blocks_b[1]) == 12
     assert len(blocks_b[2]) == 6
-    assert P.blocks_per_experiment == 4
     for trial in blocks_b[0].trials:
         assert trial['fac2'] == 800
 
@@ -142,4 +144,8 @@ def test_insert_practice_block(experiment):
     experiment.insert_practice_block(1)
     blocks_c = experiment.trial_factory.export_trials()
     assert len(blocks_c) == 4
+
+    # Test that block count parameter updated when experiment run
+    experiment.database = AttributeDict({'tables': []})
+    experiment.__execute_experiment__()
     assert P.blocks_per_experiment == 4

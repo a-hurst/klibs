@@ -98,10 +98,6 @@ jobs:
         python-version: ['3.11']
         architecture: ['x64']
         name-prefix: ['Windows (Python ']
-        include:
-          - python-version: '3.11'
-            architecture: 'x86'
-            name-prefix: 'Windows 32-bit (Python '
 
     env:
       SDL_VIDEODRIVER: dummy

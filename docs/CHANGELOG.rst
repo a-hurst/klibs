@@ -13,15 +13,16 @@ Runtime Changes:
 * KLibs now requires Python 3.7 or newer to run, dropping support for 2.7.
 * Trial recycling behaviour has been changed, such that recycled trials are
   now re-inserted at a random position in the list of remaining trials, avoiding
-  insertion at the start of the list (to avoid an immediate repeat) unless it is
-  the only trial remaining. Previously recycling a trial would shuffle the order
-  of all remaining trials, which could unexpectedly affect the even distribution
-  of trial factors across blocks that contained multiple complete factor sets.
+  re-insertion as the next trial (to avoid an immediate repeat) unless it is the
+  only trial remaining. Previously recycling a trial would shuffle the order of
+  *all* remaining trials, which could unexpectedly affect the even distribution
+  of trial factors within blocks.
 * Practice blocks are no longer added when `P.run_practice_blocks` is False.
 
 API Changes:
 
-* Removed method `num_values` from :class:`~klibs.KLTrialFactory.TrialFactory`.
+* The :class:`~klibs.KLTrialFactory.TrialFactory` class has been removed from
+  the public API and should no longer be used directly by new projects.
 * Added a new class :class:`~klibs.KLTrialFactory.TrialSet` to allow for
   defining custom block types and block structures as well as setting labels
   for blocks (accessible during blocks through the `self.block_label` attribute

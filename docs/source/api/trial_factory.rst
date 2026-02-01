@@ -1,6 +1,6 @@
 KLTrialFactory
 ==============
 
-.. automodule:: klibs.KLTrialFactory
+.. automodule:: klibs.KLTrialSet
 	:undoc-members:
 	:members:

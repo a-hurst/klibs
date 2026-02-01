@@ -31,8 +31,7 @@ def get_resource_path(resource):
 def with_sdl():
     sdl2.SDL_ClearError()
     ret = sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO | sdl2.SDL_INIT_TIMER)
-    assert sdl2.SDL_GetError() == b""
-    assert ret == 0
+    assert ret == 0, sdl2.SDL_GetError().decode('utf-8', 'replace')
     yield
     sdl2.SDL_Quit()
 

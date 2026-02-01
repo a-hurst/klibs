@@ -229,7 +229,7 @@ class TrialFactory(object):
         """
         # If block/trials-per-block counts aren't specified, use values from params.py
         if num_blocks is None:
-            num_blocks = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
+            num_blocks = 1 if P.blocks_per_experiment <= 0 else P.blocks_per_experiment
         if trials_per_block is None:
             trials_per_block = P.trials_per_block
         

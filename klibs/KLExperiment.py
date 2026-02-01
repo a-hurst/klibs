@@ -29,6 +29,7 @@ class Experiment(EnvAgent):
         self.incomplete = True # flag for keeping track of session completeness
         self.blocks = None # blocks of trials for the experiment
         self.tracker_dot = None # overlay of eye tracker gaze location in devmode
+        self.block_label = None # runtime attribute containing label of current block
 
         self.audio = AudioManager() # initialize audio management for the experiment
         self.rc = ResponseCollector() # add default response collector
@@ -38,7 +39,6 @@ class Experiment(EnvAgent):
         self.trial_factory = TrialFactory()
         if P.manual_trial_generation is False:
             self.trial_factory.generate()
-        self.event_code_generator = None
 
 
     def __execute_experiment__(self, *args, **kwargs):
@@ -54,6 +54,7 @@ class Experiment(EnvAgent):
             P.recycle_count = 0
             P.block_number += 1
             P.practicing = block.practice
+            self.block_label = block.label
             self.block()
             P.trial_number = 1
             remaining = list(block.trials)

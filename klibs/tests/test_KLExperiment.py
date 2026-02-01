@@ -52,6 +52,9 @@ def test_execute(run_environment):
             assert P.block_number == (self.last_block + 1)
             self.last_block = P.block_number
             self.last_trial = 0
+            # Check block label getting set as expected
+            expected = 'test' if P.block_number == 1 else None
+            assert self.block_label == expected
 
         def __trial__(self, trial):
             # Check trial id increments correctly
@@ -90,7 +93,7 @@ def test_execute(run_environment):
     tst = TestExperiment()
     tst.setup()
     tst.blocks = [
-        TrialSet(trials, practice=True),
+        TrialSet(trials, label='test', practice=True),
         TrialIterator(trials), # alias for backwards compat
     ]
     tst.__execute_experiment__()

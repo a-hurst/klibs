@@ -296,6 +296,42 @@ class Experiment(EnvAgent):
             self.trial_factory.insert_block(block_nums, trial_counts, True, factor_mask)
 
     
+    def generate_trials_txt(self, outpath=None):
+        """Writes the current block/trial structure to a text file.
+
+        This method is intended for verifying your blocks and trials are being
+        generated and sequenced as expected during development. The factors for
+        each trial within each block are written in a human-readable format::
+
+            =========================
+            == Block 1 (3 trials) ==
+            =========================
+
+            trial cue_validity soa target_loc
+            ----- ------------ --- ----------
+            1     valid        200 left
+            2     invalid      800 right         
+            3     neutral      800 left
+
+        A summary of the block structure and a list of the experiment factors
+        and their base levels is also included at the top of the file.
+
+        Args:
+            outpath (str, optional): The path at which to save the text file.
+                Defaults to `ExpAssets/Local/[project_name]_trials.txt`.
+
+        """
+        from klibs.KLTrialFactory import _structure_to_str
+
+        if not outpath:
+            fname = "{0}_trials.txt".format(P.project_name)
+            outpath = os.path.join(P.local_dir, fname)
+
+        with open(outpath, "w") as out:
+            blocks = self.blocks if self.blocks else self.trial_factory.blocks
+            out.write(_structure_to_str(blocks, self.exp_factors))
+
+    
     def before_flip(self):
         """A method called immediately before every refresh of the screen (i.e. every time
         :func:`~klibs.KLGraphics.flip` is called).

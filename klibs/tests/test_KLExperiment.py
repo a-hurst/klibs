@@ -1,6 +1,7 @@
 import os
 import mock
 import pytest
+import tempfile
 from collections import OrderedDict
 
 import klibs
@@ -149,3 +150,33 @@ def test_insert_practice_block(experiment):
     experiment.database = AttributeDict({'tables': []})
     experiment.__execute_experiment__()
     assert P.blocks_per_experiment == 4
+
+
+def test_trials_txt(experiment):
+    from klibs import P
+
+    # Set dummy trial factors and generate trials
+    P.trials_per_block = 12
+    P.blocks_per_experiment = 2
+    P.run_practice_blocks = True
+    experiment.trial_factory.exp_factors = OrderedDict([
+        ('fac1', [True, False]),
+        ('fac2', [200, 400, 800]),
+    ])
+    experiment.trial_factory.generate()
+    experiment.insert_practice_block(1, 6)
+
+    # Try exporting to a temporary file
+    tmpdir = tempfile.mkdtemp()
+    tmpfile = os.path.join(tmpdir, "trials.txt")
+    assert not os.path.exists(tmpfile)
+    experiment.generate_trials_txt(tmpfile)
+    assert os.path.exists(tmpfile)
+
+    # Check file to make sure it's working
+    with open(tmpfile, "r") as f:
+        output = f.read()
+        assert "Blocks:" in output
+        assert "Factors:" in output
+        assert "Block 1 (6 trials" in output
+        assert "Block 2 (12 trials" in output

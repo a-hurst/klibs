@@ -60,6 +60,79 @@ def _generate_blocks(factors, block_count, trial_count):
     return blocks
 
 
+def _block_to_str(block, num):
+    # Generates a string describing the structure and factor levels for each
+    # trial in a given block
+
+    # Generate a block header
+    info = "{0} trials".format(len(block))
+    info += ", '{0}'".format(block.label) if block.label else ""
+    info += ", Practice" if block.practice else ""
+    block_info = "== Block {0} ({1}) ==".format(num, info)
+    out = ["=" * len(block_info), block_info, "=" * len(block_info)]
+
+    # Get max character length for each factor level for sake of alignment
+    col_pad = {'trial': max(len(str(len(block))), len('trial'))}
+    factors = list(block.trials[0].keys())
+    for f in factors:
+        if not f in col_pad.keys():
+            col_pad[f] = len(f)
+        for row in block.trials:
+            if len(str(row[f])) > col_pad[f]:
+                col_pad[f] = len(str(row[f]))
+
+    if len(factors):
+        cols = ['trial'] + factors
+
+        # Generate a header for the different factors
+        out.append("")
+        out.append(" ".join([col.ljust(col_pad[col]) for col in cols]))
+        out.append(" ".join(["-" * col_pad[col] for col in cols]))
+
+        # Write the factor levels for each trial in the block
+        t = 1
+        for trial in block.trials:
+            row = str(t).ljust(col_pad['trial']) + " "
+            row += " ".join([str(trial[f]).ljust(col_pad[f]) for f in factors])
+            out.append(row)
+            t += 1
+
+    out.append("")
+    return "\n".join(out)
+
+
+def _structure_to_str(blocks, factors):
+    # Converts the block structure, experiment factors, and trial sequence for
+    # each block into a human-readable string
+
+    # Write out the block structure
+    out = []
+    out.append("")
+    out.append("Blocks:")
+    for i in range(len(blocks)):
+        b = str(blocks[i]).replace("TrialSet", "")
+        out.append(" - Block {0}: ".format(i+1) + b)
+    out.append("")
+    
+    # Write out the factor list
+    if len(factors.items()):
+        out.append("Factors:")
+        for name, values in factors.items():
+            out.append(" - {0}: {1}".format(name, values))
+    else:
+        out.append("Factors: None")
+
+    # Write out the trials (and factors) for each block
+    out.append("\n")
+    block_num = 1
+    for b in blocks:
+        out.append("")
+        out.append(_block_to_str(b, block_num))
+        block_num += 1
+
+    return "\n".join(out)
+
+
 
 class TrialSet(object):
     """Class for representing blocks of trials.
@@ -165,7 +238,7 @@ class TrialFactory(object):
 
 
     def insert_block(self, block_num, trials=0, practice=False, factor_mask=None):
-        """Inserts a new block of trials into the experiment's block sequence.
+        """Inserts a new block of trials into the block sequence.
 
         Args:
             block_num (int): The block number for the inserted block.
@@ -213,27 +286,9 @@ class TrialFactory(object):
 
         return self.blocks
 
-        
+
     def dump(self):
-        # TODO: Needs a rewrite
-        with open(os.path.join(P.local_dir, "TrialFactory_dump.txt"), "w") as log_f:
-            log_f.write("Blocks: {0}, ".format(P.blocks_per_experiment))
-            log_f.write("Trials: {0}\n\n".format(P.trials_per_block))
-            log_f.write("*****************************************\n")
-            log_f.write("*                Factors                *\n")
-            log_f.write("*****************************************\n\n")
-            for name, values in self.exp_factors.items():
-                log_f.write("{0}: {1}\n".format(name, values))
-            log_f.write("\n\n\n")
-            log_f.write("*****************************************\n")
-            log_f.write("*                Trials                 *\n")
-            log_f.write("*****************************************\n\n")
-            block_num = 1
-            for b in self.blocks:
-                log_f.write("Block {0}\n".format(block_num))
-                trial_num = 1
-                for t in b.trials:
-                    log_f.write("\tTrial {0}: {1} \n".format(trial_num, t))
-                    trial_num += 1
-                block_num += 1
-                log_f.write("\n")
+        # Compat: Can remove once taken out of TraceLab
+        outpath = os.path.join(P.local_dir, "TrialFactory_dump.txt")
+        with open(outpath, "w") as log_f:
+            log_f.write(_structure_to_str(self.blocks, self.exp_factors))

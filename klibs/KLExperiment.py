@@ -293,7 +293,7 @@ class Experiment(EnvAgent):
             for b in block_nums:
                 self.insert_practice_block(b, trial_counts, factor_mask)
         else:
-            self.trial_factory.insert_block(block_nums, True, trial_counts, factor_mask)
+            self.trial_factory.insert_block(block_nums, trial_counts, True, factor_mask)
 
     
     def before_flip(self):

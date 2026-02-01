@@ -129,51 +129,53 @@ TrialIterator = TrialSet
 class TrialFactory(object):
     """Generates blocks of trials using a given set of categorical factors.
 
+    For internal use.
+
     Args:
         factors (dict): A dict containing the factor names and factor levels
             to use for generating trials.
 
     """
     def __init__(self, factors):
-
-        self.blocks = None
-        self.trial_generator = self.__generate_trials
-        
         # Create alphabetically-sorted ordered dict from factors
         self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
+        self.blocks = None
 
 
-    def __generate_trials(self, factors, block_count, trial_count):
+    def trial_generator(self, factors, block_count, trial_count):
+        """Method that actually generates blocks of trials.
+
+        """
         # NOTE: Factored into a separate function for easier unit testing
         return _generate_blocks(factors, block_count, trial_count)
 
 
-    def generate(self, exp_factors=None, block_count=None, trial_count=None):
+    def generate(self, num_blocks=None, trials_per_block=None):
+        """Generates an initial set of blocks.
 
+        """
         # If block/trials-per-block counts aren't specified, use values from params.py
-        if block_count is None:
-            block_count = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
-        if trial_count is None:
-            trial_count = P.trials_per_block
+        if num_blocks is None:
+            num_blocks = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
+        if trials_per_block is None:
+            trials_per_block = P.trials_per_block
         
-        exp_factors = self.exp_factors if exp_factors == None else exp_factors
-        blocks = self.trial_generator(exp_factors, block_count, trial_count)
+        blocks = self.trial_generator(self.exp_factors, num_blocks, trials_per_block)
         self.blocks = [TrialSet(b) for b in blocks]
 
 
-    def export_trials(self):
-        if not self.blocks:
-            raise RuntimeError("Trials must be generated before they can be exported.")
-        return self.blocks
+    def insert_block(self, block_num, trials=0, practice=False, factor_mask=None):
+        """Inserts a new block of trials into the experiment's block sequence.
 
+        Args:
+            block_num (int): The block number for the inserted block.
+            trials (int, optional): The trial count for the block. If not specified, a
+                block containing a full set of factor combinations will be inserted.
+            practice (bool, optional): Whether to flag the block as a practice block.
+                Defaults to False.
+            factor_mask (dict, optional): A dict containing overrides for the levels of
+                one or more of the factors.
 
-    def insert_block(self, block_num, practice=False, trial_count=0, factor_mask=None):
-        """
-
-        :param block_num:
-        :param practice:
-        :param trial_count:
-        :param factor_mask:
         """
         if factor_mask:
             if not isinstance(factor_mask, dict):
@@ -197,11 +199,21 @@ class TrialFactory(object):
         if P.run_practice_blocks == False:
             return
 
-        block = self.trial_generator(factors, 1, trial_count)[0]
+        block = self.trial_generator(factors, 1, trials)[0]
         # there is no "zero" block from the UI/UX perspective, so adjust insertion accordingly
         self.blocks.insert(block_num - 1, TrialSet(block, practice=practice))
 
 
+    def export_trials(self):
+        """Exports the current block sequence.
+
+        """
+        if not self.blocks:
+            self.generate()
+
+        return self.blocks
+
+        
     def dump(self):
         # TODO: Needs a rewrite
         with open(os.path.join(P.local_dir, "TrialFactory_dump.txt"), "w") as log_f:

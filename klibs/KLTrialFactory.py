@@ -127,18 +127,17 @@ TrialIterator = TrialSet
 
 
 class TrialFactory(object):
+    """Generates blocks of trials using a given set of categorical factors.
 
-    def __init__(self):
+    Args:
+        factors (dict): A dict containing the factor names and factor levels
+            to use for generating trials.
+
+    """
+    def __init__(self, factors):
 
         self.blocks = None
         self.trial_generator = self.__generate_trials
-
-        # Load experiment factors from the project's _independent_variables.py file(s)
-        factors = _load_factors(P.ind_vars_file_path)
-        if os.path.exists(P.ind_vars_file_local_path):
-            if not P.dm_ignore_local_overrides:
-                local_factors = _load_factors(P.ind_vars_file_local_path)
-                factors.update(local_factors)
         
         # Create alphabetically-sorted ordered dict from factors
         self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))

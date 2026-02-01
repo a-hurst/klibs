@@ -29,6 +29,9 @@ API Changes:
 * Removed the :class:`~klibs.KLTrialFactory.BlockIterator` class.
   The `self.blocks` attribute of the Experiment class is now a list of
   :class:`~klibs.KLTrialFactory.TrialSet` objects.
+* Experiment factor names and levels are now accessible directly through the
+  :attr:`~klibs.KLExperiment.exp_factors` attribute during the Experiment
+  runtime (e.g. `self.exp_factors`).
 
 Fixed Bugs:
 

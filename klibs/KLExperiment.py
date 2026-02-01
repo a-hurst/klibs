@@ -36,9 +36,24 @@ class Experiment(EnvAgent):
         self.database = self.db # use database from env
         self._evm = EventManager()
 
-        self.trial_factory = TrialFactory()
+        self._exp_factors = self._get_exp_factors()
+        self.trial_factory = TrialFactory(self._exp_factors)
         if P.manual_trial_generation is False:
             self.trial_factory.generate()
+
+
+    def _get_exp_factors(self):
+        # Reads in the trial factors for the study, including any local overrides
+        from klibs.KLTrialFactory import _load_factors
+
+        # Load experiment factors from the project's _independent_variables.py file(s)
+        factors = _load_factors(P.ind_vars_file_path)
+        if os.path.exists(P.ind_vars_file_local_path):
+            if not P.dm_ignore_local_overrides:
+                local_factors = _load_factors(P.ind_vars_file_local_path)
+                factors.update(local_factors)
+
+        return factors
 
 
     def __execute_experiment__(self, *args, **kwargs):
@@ -375,6 +390,16 @@ class Experiment(EnvAgent):
             flip()
         any_key()
 
+
+    @property
+    def exp_factors(self):
+        """dict: The names and levels of all categorical factors in the study.
+
+        This attribute is read-only, meaning that any changes to this attribute's
+        keys or values will have no effect on the experiment runtime.
+
+        """
+        return self._exp_factors.copy()
 
     @property
     def evm(self):

@@ -170,7 +170,7 @@ def test_trials_txt(experiment):
     tmpdir = tempfile.mkdtemp()
     tmpfile = os.path.join(tmpdir, "trials.txt")
     assert not os.path.exists(tmpfile)
-    experiment.generate_trials_txt(tmpfile)
+    experiment.write_trials_txt(tmpfile)
     assert os.path.exists(tmpfile)
 
     # Check file to make sure it's working

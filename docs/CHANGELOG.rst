@@ -33,7 +33,7 @@ API Changes:
 * Experiment factor names and levels are now accessible directly through the
   :attr:`~klibs.KLExperiment.exp_factors` attribute during the Experiment
   runtime (e.g. `self.exp_factors`).
-* Added a new method :method:`~klibs.KLExperiment.generate_trials_txt` for
+* Added a new method :method:`~klibs.KLExperiment.write_trials_txt` for
   exporting the full sequence of generated trials and blocks to a human
   readable text file.
 

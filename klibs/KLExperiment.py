@@ -296,7 +296,7 @@ class Experiment(EnvAgent):
             self.trial_factory.insert_block(block_nums, trial_counts, True, factor_mask)
 
     
-    def generate_trials_txt(self, outpath=None):
+    def write_trials_txt(self, outpath=None):
         """Writes the current block/trial structure to a text file.
 
         This method is intended for verifying your blocks and trials are being

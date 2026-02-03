@@ -18,6 +18,8 @@ Runtime Changes:
   *all* remaining trials, which could unexpectedly affect the even distribution
   of trial factors within blocks.
 * Practice blocks are no longer added when `P.run_practice_blocks` is False.
+* During runtime, `P.trials_per_block` is now updated at the start of each
+  block to reflect the actual number of trials in the current block.
 
 API Changes:
 
@@ -47,6 +49,7 @@ Fixed Bugs:
   initialize the trial could (on rare occasions) start with anywhere between 50
   and 1000 ms already elapsed on the clock, making stimuli appear sooner than
   expected.
+
 
 0.7.7b1
 -------

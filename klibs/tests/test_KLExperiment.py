@@ -60,6 +60,8 @@ def test_execute(run_environment):
             # Check block label getting set as expected
             expected = 'test' if P.block_number == 1 else None
             assert self.block_label == expected
+            # Check trials_per_block is updated based on trial count
+            assert P.trials_per_block == 4
 
         def __trial__(self, trial):
             # Check trial id increments correctly
@@ -95,6 +97,7 @@ def test_execute(run_environment):
     ]
 
     # Test with blocks as list
+    P.trials_per_block = 30
     tst = TestExperiment()
     tst.setup()
     tst.blocks = [

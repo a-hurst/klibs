@@ -69,6 +69,7 @@ class Experiment(EnvAgent):
         for block in self.blocks:
             P.recycle_count = 0
             P.block_number += 1
+            P.trials_per_block = len(block)
             P.practicing = block.practice
             self.block_label = block.label
             self.block()

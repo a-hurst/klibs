@@ -41,7 +41,12 @@ Fixed Bugs:
 
 * KLibs no longer crashes on launch with Python 3.12.
 * KLibs no longer briefly shows a blank screen when a trial is recycled.
-
+* When eye tracking, KLibs now starts the trial clock (`self.evm`) *after*
+  setting up the eye tracker to record. Previously tracker setup was run after
+  the clock was started, meaning that if the tracker took unexpectedly long to
+  initialize the trial could (on rare occasions) start with anywhere between 50
+  and 1000 ms already elapsed on the clock, making stimuli appear sooner than
+  expected.
 
 0.7.7b1
 -------

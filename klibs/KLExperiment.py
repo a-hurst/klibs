@@ -96,7 +96,7 @@ class Experiment(EnvAgent):
         """
         Private method; manages a trial.
         """
-        from klibs.KLEventQueue import pump
+        from klibs.KLEventQueue import flush
         from klibs.KLUserInterface import show_cursor, hide_cursor
 
         # At start of every trial, before setup_response_collector or trial_prep are run, retrieve
@@ -105,34 +105,39 @@ class Experiment(EnvAgent):
         for iv, value in trial.items():
             setattr(self, iv, value)
 
-        pump()
+        # Run trial prep methods
         self.setup_response_collector()
         self.trial_prep()
-        tx = None
+        flush()
+
+        # Get everything ready to start the trial
+        trylink = P.eye_tracking and not P.eye_tracker_available
+        if P.development_mode and (P.dm_trial_show_mouse or trylink):
+            show_cursor()
+        if P.eye_tracking and not P.manual_eyelink_recording:
+            self.el.start(P.trial_number)
+        self.evm.start_clock()
+
+        # Actually run the trial and log the data to the database
+        recycle = None
         try:
-            if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
-                show_cursor()
-            self.evm.start_clock()
-            if P.eye_tracking and not P.manual_eyelink_recording:
-                self.el.start(P.trial_number)
             P.in_trial = True
             self.__log_trial__(self.trial())
             P.in_trial = False
-            if P.eye_tracking and not P.manual_eyelink_recording:
-                self.el.stop()
-            if P.development_mode and (P.dm_trial_show_mouse or (P.eye_tracking and not P.eye_tracker_available)):
-                hide_cursor()
-            self.evm.stop_clock()
-            self.trial_clean_up()
         except TrialException as e:
-            self.trial_clean_up()
-            self.evm.stop_clock()
-            tx = e
+            recycle = e
+
+        # Clean up after the trial
+        self.evm.stop_clock()
         if P.eye_tracking and not P.manual_eyelink_recording:
-            # todo: add a warning, here, if the recording hasn't been stopped when under manual control
             self.el.stop()
-        if tx:
-            raise tx
+        if P.development_mode and (P.dm_trial_show_mouse or trylink):
+            hide_cursor()
+        self.trial_clean_up()
+
+        # Recycle trial if TrialException encountered
+        if recycle:
+            raise recycle
 
 
     def __log_trial__(self, trial_data):

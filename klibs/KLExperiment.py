@@ -2,13 +2,14 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
+import random
 from abc import abstractmethod
 from traceback import print_tb, print_stack
 
 from klibs import P
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException
-from klibs.KLInternal import full_trace
+from klibs.KLInternal import full_trace, iterable
 from klibs.KLInternal import colored_stdout as cso
 
 
@@ -28,44 +29,60 @@ class Experiment(EnvAgent):
         self.incomplete = True # flag for keeping track of session completeness
         self.blocks = None # blocks of trials for the experiment
         self.tracker_dot = None # overlay of eye tracker gaze location in devmode
+        self.block_label = None # runtime attribute containing label of current block
 
         self.audio = AudioManager() # initialize audio management for the experiment
         self.rc = ResponseCollector() # add default response collector
         self.database = self.db # use database from env
         self._evm = EventManager()
 
-        self.trial_factory = TrialFactory()
+        self._exp_factors = self._get_exp_factors()
+        self.trial_factory = TrialFactory(self._exp_factors)
         if P.manual_trial_generation is False:
             self.trial_factory.generate()
-        self.event_code_generator = None
+
+
+    def _get_exp_factors(self):
+        # Reads in the trial factors for the study, including any local overrides
+        from klibs.KLTrialFactory import _load_factors
+
+        # Load experiment factors from the project's _independent_variables.py file(s)
+        factors = _load_factors(P.ind_vars_file_path)
+        if os.path.exists(P.ind_vars_file_local_path):
+            if not P.dm_ignore_local_overrides:
+                local_factors = _load_factors(P.ind_vars_file_local_path)
+                factors.update(local_factors)
+
+        return factors
 
 
     def __execute_experiment__(self, *args, **kwargs):
         """For internal use, actually runs the blocks/trials of the experiment in sequence.
 
         """
-        from klibs.KLGraphics import clear
-
         if self.blocks == None:
             self.blocks = self.trial_factory.export_trials()
 
+        P.blocks_per_experiment = len(self.blocks)
         P.block_number = 0
         P.trial_id = 0
         for block in self.blocks:
             P.recycle_count = 0
             P.block_number += 1
             P.practicing = block.practice
+            self.block_label = block.label
             self.block()
             P.trial_number = 1
-            for trial in block:  # ie. list of trials
+            remaining = list(block.trials)
+            while len(remaining):
+                trial = remaining.pop(0)
                 try:
                     P.trial_id += 1 # Increments regardless of recycling
-                    self.__trial__(trial, block.practice)
+                    self.__trial__(trial)
                     P.trial_number += 1
                 except TrialException:
-                    block.recycle()
+                    remaining = self._recycle_trial(remaining, trial)
                     P.recycle_count += 1
-                    clear() # NOTE: is this actually wanted?
                 self.rc.reset()
         self.clean_up()
 
@@ -75,7 +92,7 @@ class Experiment(EnvAgent):
             self.database.update('session_info', {'complete': True}, where)
 
 
-    def __trial__(self, trial, practice):
+    def __trial__(self, trial):
         """
         Private method; manages a trial.
         """
@@ -130,6 +147,34 @@ class Experiment(EnvAgent):
             trial_template.log(attr, trial_data[attr])
 
         return self.database.insert(trial_template)
+
+
+    def _recycle_trial(self, remaining, trial):
+        """Internal method for recycling a trial within the current block.
+
+        This method re-inserts a trial into the set of remaining trials at a
+        random position, avoiding an immediate repeat of the trial unless it is
+        the only trial remaining in the block.
+
+        Recycling behaviour can be customized by overriding this method.
+
+        Args:
+            remaining (list): The remaining trials for the current block.
+            trial (dict): The trial factors to recycle into the block.
+
+        Returns:
+            list: The new set of remaining trials.
+
+        """
+        # NOTE: Should this be part of public API or stay unofficial/internal?
+        if len(remaining):
+            # Re-insert the trial in a random position after the first element
+            tmp = remaining.copy()
+            new_idx = random.randrange(1, len(tmp)) if len(tmp) > 1 else 1
+            tmp.insert(new_idx, trial)
+            return tmp
+        else:
+            return [trial]
 
 
     ## Define abstract methods to be overridden in experiment.py ##
@@ -197,52 +242,94 @@ class Experiment(EnvAgent):
     
 
     def insert_practice_block(self, block_nums, trial_counts=None, factor_mask=None):
-        """
-        Adds one or more practice blocks to the experiment. This function must be called during setup(),
-        otherwise the trials will have already been exported and this function will no longer have
-        any effect. If you want to add a block to the experiment after setup() for whatever reason,
-        you can manually generate one using trial_factory.generate() and then insert it using
-        self.blocks.insert().
-        
-        If multiple block indexes are given but only a single integer is given for trial counts, 
-        then all practice blocks inserted will be trial_counts trials long. If not trial_counts 
-        value is provided, the number of trials per practice block defaults to the global 
-        experiment trials_per_block parameter.
+        """Adds a practice block to the experiment.
 
-        If multiple block indexes are given but only a single factor mask is provided, the same
-        factor mask will be applied to all appended practice blocks. If no factor mask is provided,
-        the function will generate a full set of trials based on all possible combination of factors,
-        and will randomly select trial_counts trials from it for each practice block.
+        This method adds an extra block of trials at a given position in the block
+        sequence, optionally with a different trial count and/or different factor
+        levels than the rest of the task. For example, to add a practice block with
+        20 trials at the start of the task, you would add the following somewhere in
+        the `setup()` block of your `experiment.py` file::
+
+           self.insert_practice_block(1, 20)
+
+        During practice blocks the klibs parameter `P.practicing` will be set to True,
+        allowing easy conditional changes during practice blocks (e.g. showing
+        additional feedback if practicing).
+
+        You can also provide a factor mask to override one or more factor levels for
+        the practice block. For example, if the task has a factor 'difficulty' with
+        the levels 'easy' and 'hard' and you want to add separate practice blocks for
+        each trial type, you can specify overrides for the factor levels like so::
+
+           self.insert_practice_block(1, 32, factor_mask={'difficulty': ['easy']})
+           self.insert_practice_block(2, 32, factor_mask={'difficulty': ['hard']})
+
+        This function must be called during setup(), otherwise the block structure of
+        the study will already be set and can no longer be changed.
 
         Args:
-            block_nums (:obj:`list` of int): Index numbers at which to insert the blocks.
-            trial_counts (:obj:`list` of int, optional): The numbers of trials to insert for each
-                of the inserted blocks.
-            factor_mask (:obj:`dict` of :obj:`list`, optional): Override values for the variables
-                specified in independent_variables.py.
-
-        Raises:
-            TrialException: If called after the experiment's :meth:`setup` method has run.
+            block_nums (int): Position at which to insert the block.
+            trial_counts (int, optional): The trial count for the practice block.
+                Defaults to `P.trials_per_block`.
+            factor_mask (:obj:`dict` of :obj:`list`, optional): Overrides for one or
+                more factors in the task's `independent_variables.py` file.
 
         """
+        # [Compat]: Messy API to allow multiple insertions at once, fix when possible.
+        # Only TOJ_Motion uses multiple insertions. Multiple projects use 'trial_counts'
+        # keyword, however.
+
         if self.blocks:
             # If setup has passed and trial execution has started, blocks have already been exported
             # from trial_factory so this function will no longer work. If it is called after it is no
             # longer useful, we throw a TrialException
-            raise TrialException("Practice blocks cannot be inserted after setup() is complete.")
-        try:
-            iter(block_nums)
-        except TypeError:
-            block_nums = [block_nums]
-        try:
-            iter(trial_counts)
-        except TypeError:
-            trial_counts = ([P.trials_per_block]  if trial_counts is None else [trial_counts]) * len(block_nums)
-        while len(trial_counts) < len(block_nums):
-            trial_counts.append(P.trials_per_block)
-        for i in range(0, len(block_nums)):
-            self.trial_factory.insert_block(block_nums[i], True, trial_counts[i], factor_mask)
-            P.blocks_per_experiment += 1
+            raise RuntimeError("Cannot insert practice blocks after setup() is complete.")
+
+        if not trial_counts:
+            trial_counts = P.trials_per_block
+
+        if iterable(block_nums):
+            # [Compat]: Only TOJ_Motion uses this and it's a bad idea, remove when fixed.
+            for b in block_nums:
+                self.insert_practice_block(b, trial_counts, factor_mask)
+        else:
+            self.trial_factory.insert_block(block_nums, trial_counts, True, factor_mask)
+
+    
+    def write_trials_txt(self, outpath=None):
+        """Writes the current block/trial structure to a text file.
+
+        This method is intended for verifying your blocks and trials are being
+        generated and sequenced as expected during development. The factors for
+        each trial within each block are written in a human-readable format::
+
+            =========================
+            == Block 1 (3 trials) ==
+            =========================
+
+            trial cue_validity soa target_loc
+            ----- ------------ --- ----------
+            1     valid        200 left
+            2     invalid      800 right         
+            3     neutral      800 left
+
+        A summary of the block structure and a list of the experiment factors
+        and their base levels is also included at the top of the file.
+
+        Args:
+            outpath (str, optional): The path at which to save the text file.
+                Defaults to `ExpAssets/Local/[project_name]_trials.txt`.
+
+        """
+        from klibs.KLTrialFactory import _structure_to_str
+
+        if not outpath:
+            fname = "{0}_trials.txt".format(P.project_name)
+            outpath = os.path.join(P.local_dir, fname)
+
+        with open(outpath, "w") as out:
+            blocks = self.blocks if self.blocks else self.trial_factory.blocks
+            out.write(_structure_to_str(blocks, self.exp_factors))
 
     
     def before_flip(self):
@@ -339,6 +426,16 @@ class Experiment(EnvAgent):
             flip()
         any_key()
 
+
+    @property
+    def exp_factors(self):
+        """dict: The names and levels of all categorical factors in the study.
+
+        This attribute is read-only, meaning that any changes to this attribute's
+        keys or values will have no effect on the experiment runtime.
+
+        """
+        return self._exp_factors.copy()
 
     @property
     def evm(self):

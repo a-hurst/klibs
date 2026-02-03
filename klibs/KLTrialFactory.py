@@ -60,145 +60,195 @@ def _generate_blocks(factors, block_count, trial_count):
     return blocks
 
 
-class BlockIterator(object):
+def _block_to_str(block, num):
+    # Generates a string describing the structure and factor levels for each
+    # trial in a given block
 
-    def __init__(self, blocks):
-        self.blocks = blocks
-        self.practice_blocks = []
-        self.length = len(blocks)
-        self.i = 0
+    # Generate a block header
+    info = "{0} trials".format(len(block))
+    info += ", '{0}'".format(block.label) if block.label else ""
+    info += ", Practice" if block.practice else ""
+    block_info = "== Block {0} ({1}) ==".format(num, info)
+    out = ["=" * len(block_info), block_info, "=" * len(block_info)]
 
-    def __iter__(self):
-        return self
+    # Get max character length for each factor level for sake of alignment
+    col_pad = {'trial': max(len(str(len(block))), len('trial'))}
+    factors = list(block.trials[0].keys())
+    for f in factors:
+        if not f in col_pad.keys():
+            col_pad[f] = len(f)
+        for row in block.trials:
+            if len(str(row[f])) > col_pad[f]:
+                col_pad[f] = len(str(row[f]))
+
+    if len(factors):
+        cols = ['trial'] + factors
+
+        # Generate a header for the different factors
+        out.append("")
+        out.append(" ".join([col.ljust(col_pad[col]) for col in cols]))
+        out.append(" ".join(["-" * col_pad[col] for col in cols]))
+
+        # Write the factor levels for each trial in the block
+        t = 1
+        for trial in block.trials:
+            row = str(t).ljust(col_pad['trial']) + " "
+            row += " ".join([str(trial[f]).ljust(col_pad[f]) for f in factors])
+            out.append(row)
+            t += 1
+
+    out.append("")
+    return "\n".join(out)
+
+
+def _structure_to_str(blocks, factors):
+    # Converts the block structure, experiment factors, and trial sequence for
+    # each block into a human-readable string
+
+    # Write out the block structure
+    out = []
+    out.append("")
+    out.append("Blocks:")
+    for i in range(len(blocks)):
+        b = str(blocks[i]).replace("TrialSet", "")
+        out.append(" - Block {0}: ".format(i+1) + b)
+    out.append("")
+    
+    # Write out the factor list
+    if len(factors.items()):
+        out.append("Factors:")
+        for name, values in factors.items():
+            out.append(" - {0}: {1}".format(name, values))
+    else:
+        out.append("Factors: None")
+
+    # Write out the trials (and factors) for each block
+    out.append("\n")
+    block_num = 1
+    for b in blocks:
+        out.append("")
+        out.append(_block_to_str(b, block_num))
+        block_num += 1
+
+    return "\n".join(out)
+
+
+
+class TrialSet(object):
+    """Class for representing blocks of trials.
+
+    TrialSet objects are how klibs represents blocks of trials internally, and
+    can be used to manually generate custom sequences of blocks/trials during
+    the `self.setup()` phase of the Experiment runtime.
+
+    The full set of blocks of trials for an experiment is stored as a list of
+    TrialSets in the experiment attribute `self.blocks`. By default these blocks
+    and trials are generated for you using the defined factors and specified
+    block/trial counts in the project's configuration files, but you can use
+    your own set of custom blocks by replacing the block list with your own::
+
+        # Define a sequence of 3 trials
+        trials = [{'image': 'a'}, {'image': 'b'}, {'image': 'c'}]
+
+        # Set block sequence for task as 2 identical blocks of trials
+        self.blocks = [
+            TrialSet(trials, practice=True), # Flag block 1 as practice
+            TrialSet(trials),
+        ]
+
+    If a block is provided with a label, the value of the label can be accessed
+    during the block through the Experiment attribute `self.block_label`. This
+    can be used to change things like stimuli or instructions conditionally
+    in your code based on the block label (e.g. different cues for 'endo' and
+    'exo' blocks).
+
+    Note that custom block sequences can only be set during the `self.setup()`
+    phase of the task.
+
+    Args:
+        trials (List): A list of dicts containing trial factors, with each dict
+            representing a trial in the block.
+        practice (bool, optional): Whether the block is a practice block. 
+            Defaults to False.
+        label (str, optional): A label optionally specifying the block type for
+            experiments with multiple types of block. Defaults to None.
+
+    """
+    def __init__(self, trials, practice=False, label=None):
+        self._trials = trials.copy()
+        self.practice = practice
+        self.label = label
 
     def __len__(self):
-        return self.length
+        return len(self._trials)
 
-    def __getitem__(self, i):
-        return self.blocks[i]
-
-    def __setitem__(self, i, x):
-        self.blocks[i] = x
-    
-    def insert(self, index, block, practice):
-        if self.i <= index:
-            if practice:
-                self.practice_blocks.append(index)
-            self.blocks.insert(index, block)
-            self.length = len(self.blocks)
-        else:
-            insert_err = "Can't insert block at index {0}; it has already passed."
-            raise ValueError(insert_err.format(index))
-
-    def next(self): # alias for python2
-        return self.__next__()
-
-    def __next__(self):
-        if self.i >= self.length:
-            self.i = 0 # reset index so we can iterate over it again
-            raise StopIteration
-        else:
-            self.i += 1
-            trials = TrialIterator(self.blocks[self.i - 1])
-            trials.practice = self.i - 1 in self.practice_blocks
-            return trials
-
-
-class TrialIterator(BlockIterator):
-
-    def __init__(self, block_of_trials):
-        self.trials = block_of_trials
-        self.length = len(block_of_trials)
-        self.i = 0
-        self.__practice = False
-
-    def __next__(self):
-        if self.i >= self.length:
-            self.i = 0
-            raise StopIteration
-        else:
-            self.i += 1
-            return self.trials[self.i - 1]
-
-    def recycle(self):
-        self.trials.append(self.trials[self.i - 1])
-        temp = self.trials[self.i:]
-        random.shuffle(temp)
-        self.trials[self.i:] = temp
-        self.length += 1
+    def __str__(self):
+        # Custom print method for better readability
+        s = "{0} trials".format(len(self._trials))
+        s += ", '{0}'".format(self.label) if self.label else ""
+        s += ", Practice" if self.practice else ""
+        return "TrialSet(" + s + ")"
 
     @property
-    def practice(self):
-        return self.__practice
+    def trials(self):
+        """List: The list of trials contained within the block."""
+        return self._trials.copy()
 
-    @practice.setter
-    def practice(self, practicing):
-        self.__practice = practicing == True
+# Alias for backwards compatibility
+TrialIterator = TrialSet
 
 
 
 class TrialFactory(object):
+    """Generates blocks of trials using a given set of categorical factors.
 
-    def __init__(self):
+    For internal use.
 
-        self.blocks = None
-        self.trial_generator = self.__generate_trials
+    Args:
+        factors (dict): A dict containing the factor names and factor levels
+            to use for generating trials.
 
-        # Load experiment factors from the project's _independent_variables.py file(s)
-        factors = _load_factors(P.ind_vars_file_path)
-        if os.path.exists(P.ind_vars_file_local_path):
-            if not P.dm_ignore_local_overrides:
-                local_factors = _load_factors(P.ind_vars_file_local_path)
-                factors.update(local_factors)
-        
+    """
+    def __init__(self, factors):
         # Create alphabetically-sorted ordered dict from factors
         self.exp_factors = OrderedDict(sorted(factors.items(), key=lambda t: t[0]))
+        self.blocks = None
 
 
-    def __load_ind_vars(self, path):
+    def trial_generator(self, factors, block_count, trial_count):
+        """Method that actually generates blocks of trials.
 
-        set_name = "{0}_ind_vars".format(P.project_name)
-        try:
-            ind_vars = load_source(path)
-            factors = ind_vars[set_name].to_dict()
-        except KeyError:
-            err = 'Unable to find IndependentVariableSet in independent_vars.py.'
-            raise RuntimeError(err)
-
-        return factors
-
-
-    def __generate_trials(self, factors, block_count, trial_count):
+        """
         # NOTE: Factored into a separate function for easier unit testing
         return _generate_blocks(factors, block_count, trial_count)
 
 
-    def generate(self, exp_factors=None, block_count=None, trial_count=None):
+    def generate(self, num_blocks=None, trials_per_block=None):
+        """Generates an initial set of blocks.
 
-        # If block/trials-per-block counts aren't specified, use values from params.py
-        if block_count is None:
-            block_count = 1 if not P.blocks_per_experiment > 0 else P.blocks_per_experiment
-        if trial_count is None:
-            trial_count = P.trials_per_block
-        
-        exp_factors = self.exp_factors if exp_factors == None else exp_factors
-        blocks = self.trial_generator(exp_factors, block_count, trial_count)
-        self.blocks = BlockIterator(blocks)
-
-
-    def export_trials(self):
-        if not self.blocks:
-            raise RuntimeError("Trials must be generated before they can be exported.")
-        return self.blocks
-
-
-    def insert_block(self, block_num, practice=False, trial_count=0, factor_mask=None):
         """
+        # If block/trials-per-block counts aren't specified, use values from params.py
+        if num_blocks is None:
+            num_blocks = 1 if P.blocks_per_experiment <= 0 else P.blocks_per_experiment
+        if trials_per_block is None:
+            trials_per_block = P.trials_per_block
+        
+        blocks = self.trial_generator(self.exp_factors, num_blocks, trials_per_block)
+        self.blocks = [TrialSet(b) for b in blocks]
 
-        :param block_num:
-        :param practice:
-        :param trial_count:
-        :param factor_mask:
+
+    def insert_block(self, block_num, trials=0, practice=False, factor_mask=None):
+        """Inserts a new block of trials into the block sequence.
+
+        Args:
+            block_num (int): The block number for the inserted block.
+            trials (int, optional): The trial count for the block. If not specified, a
+                block containing a full set of factor combinations will be inserted.
+            practice (bool, optional): Whether to flag the block as a practice block.
+                Defaults to False.
+            factor_mask (dict, optional): A dict containing overrides for the levels of
+                one or more of the factors.
+
         """
         if factor_mask:
             if not isinstance(factor_mask, dict):
@@ -212,51 +262,33 @@ class TrialFactory(object):
                         new_values = [new_values] # if not iterable, put in list
                     factors[name] = new_values
                 else:
-                    e = "'{0}' is not the name of an active independent variable".format(name)
+                    e = "'{0}' is not the name of an active factor".format(name)
                     raise ValueError(e)
         else:
             # If no factor mask, generate trials randomly based on self.exp_factors
             factors = self.exp_factors
 
-        block = self.trial_generator(factors, 1, trial_count)
+        # Don't insert practice blocks if practice blocks disabled
+        if P.run_practice_blocks == False:
+            return
+
+        block = self.trial_generator(factors, 1, trials)[0]
         # there is no "zero" block from the UI/UX perspective, so adjust insertion accordingly
-        self.blocks.insert(block_num - 1, block[0], practice)
+        self.blocks.insert(block_num - 1, TrialSet(block, practice=practice))
 
 
-    def num_values(self, factor):
+    def export_trials(self):
+        """Exports the current block sequence.
+
         """
+        if not self.blocks:
+            self.generate()
 
-        :param factor:
-        :return: :raise ValueError:
-        """
-        try:
-            n = len(self.exp_factors[factor])
-            return n
-        except KeyError:
-            e_msg = "Factor '{0}' not found.".format(factor)
-            raise ValueError(e_msg)
+        return self.blocks
 
 
     def dump(self):
-        # TODO: Needs a rewrite
-        with open(os.path.join(P.local_dir, "TrialFactory_dump.txt"), "w") as log_f:
-            log_f.write("Blocks: {0}, ".format(P.blocks_per_experiment))
-            log_f.write("Trials: {0}\n\n".format(P.trials_per_block))
-            log_f.write("*****************************************\n")
-            log_f.write("*                Factors                *\n")
-            log_f.write("*****************************************\n\n")
-            for name, values in self.exp_factors.items():
-                log_f.write("{0}: {1}\n".format(name, values))
-            log_f.write("\n\n\n")
-            log_f.write("*****************************************\n")
-            log_f.write("*                Trials                 *\n")
-            log_f.write("*****************************************\n\n")
-            block_num = 1
-            for b in self.blocks:
-                log_f.write("Block {0}\n".format(block_num))
-                trial_num = 1
-                for t in b:
-                    log_f.write("\tTrial {0}: {1} \n".format(trial_num, t))
-                    trial_num += 1
-                block_num += 1
-                log_f.write("\n")
+        # Compat: Can remove once taken out of TraceLab
+        outpath = os.path.join(P.local_dir, "TrialFactory_dump.txt")
+        with open(outpath, "w") as log_f:
+            log_f.write(_structure_to_str(self.blocks, self.exp_factors))

@@ -11,10 +11,36 @@ This is a log of the latest changes and improvements to KLibs.
 Runtime Changes:
 
 * KLibs now requires Python 3.7 or newer to run, dropping support for 2.7.
+* Trial recycling behaviour has been changed, such that recycled trials are
+  now re-inserted at a random position in the list of remaining trials, avoiding
+  re-insertion as the next trial (to avoid an immediate repeat) unless it is the
+  only trial remaining. Previously recycling a trial would shuffle the order of
+  *all* remaining trials, which could unexpectedly affect the even distribution
+  of trial factors within blocks.
+* Practice blocks are no longer added when `P.run_practice_blocks` is False.
+
+API Changes:
+
+* The :class:`~klibs.KLTrialFactory.TrialFactory` class has been removed from
+  the public API and should no longer be used directly by new projects.
+* Added a new class :class:`~klibs.KLTrialFactory.TrialSet` to allow for
+  defining custom block types and block structures as well as setting labels
+  for blocks (accessible during blocks through the `self.block_label` attribute
+  in the experiment runtime).
+* Removed the :class:`~klibs.KLTrialFactory.BlockIterator` class.
+  The `self.blocks` attribute of the Experiment class is now a list of
+  :class:`~klibs.KLTrialFactory.TrialSet` objects.
+* Experiment factor names and levels are now accessible directly through the
+  :attr:`~klibs.KLExperiment.exp_factors` attribute during the Experiment
+  runtime (e.g. `self.exp_factors`).
+* Added a new method :method:`~klibs.KLExperiment.write_trials_txt` for
+  exporting the full sequence of generated trials and blocks to a human
+  readable text file.
 
 Fixed Bugs:
 
 * KLibs no longer crashes on launch with Python 3.12.
+* KLibs no longer briefly shows a blank screen when a trial is recycled.
 
 
 0.7.7b1

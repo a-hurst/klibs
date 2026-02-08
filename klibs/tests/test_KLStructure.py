@@ -4,7 +4,8 @@ import pytest
 import random
 from collections import Counter
 
-from klibs.KLStructure import FactorSet
+import klibs.KLParams as P
+from klibs.KLStructure import FactorSet, Block
 from klibs.KLTrialFactory import _generate_blocks
 
 
@@ -135,3 +136,72 @@ def test_generate_blocks():
     assert block[0]['soa'] == 200 and block[0]['cue_loc'] == 'none'
     assert block[1]['soa'] == 0 and block[1]['easy_trial'] == True
     assert block[2]['soa'] == 800 and block[2]['cue_loc'] == 'right'
+
+
+
+class TestBlock(object):
+
+    def test_init(self):
+
+        factors = FactorSet({
+            'cue_loc': ['left', 'right', 'none'],
+            'easy_trial': [True, False],
+        })
+
+        # Test simple initialization
+        P.trials_per_block = 0
+        tst = Block(factors)
+        assert tst.trialcount == 6
+        assert tst.practice == False
+        assert tst.label == None
+
+        # Test initialization with dict
+        tst = Block({'soa': [200, 800], 'target_loc': ['L', 'R']})
+        assert tst.trialcount == 4
+        assert isinstance(tst._factors, FactorSet)
+
+        # Test defaulting trial count to P.trials_per_block
+        P.trials_per_block = 30
+        tst = Block(factors)
+        assert tst.trialcount == 30
+
+        # Test custom trial counts:
+        tst = Block(factors, trials=36)
+        assert tst.trialcount == 36
+
+        # Test labels and practice flags
+        tst = Block(factors, label='endo', practice=True)
+        assert tst.label == 'endo'
+        assert tst.practice == True
+
+    
+    def test_get_trials(self):
+
+        factors = FactorSet({
+            'cue_loc': ['left', 'right', 'none'],
+            'easy_trial': [True, False],
+        })
+
+        # Test generating trials with specified trial count
+        tst = Block(factors, trials=30)
+        trials = tst.get_trials()
+        assert len(trials) == 30
+        assert isinstance(trials[0], dict)
+        assert 'cue_loc' in list(trials[0].keys())
+
+        # Test partial shuffling
+        random.seed(308053045)
+        trials = tst.get_trials()
+        easy_count = 0
+        left_count = 0
+        for trial in trials[:6]:
+            easy_count += int(trial['easy_trial'] == True)
+            left_count += int(trial['cue_loc'] == 'left')
+        assert easy_count == 3
+        assert left_count == 2
+
+
+    def test_factors(self):
+
+        tst = Block({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+        assert tst.factors == ['a', 'b', 'c']

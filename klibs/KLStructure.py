@@ -1,7 +1,9 @@
+import random
 import itertools
 from copy import deepcopy
 from collections import OrderedDict
 
+import klibs.KLParams as P
 from klibs.KLInternal import iterable
 
 
@@ -124,3 +126,95 @@ class FactorSet(object):
     def set_length(self):
         """int: The number of trials required for the full factor set."""
         return len(self._get_combinations())
+
+
+
+class Block(object):
+    """Defines a custom block of trials.
+
+    This class allows you to specify custom block structures for studies that
+    have different blocks types within the same session. For example, if your
+    study involves exposure, training, and test blocks, each with slightly
+    different factors levels and trial lengths, you can use this class to
+    define the block sequence accordingly::
+
+        exp_factors = FactorSet({
+            'sequence_type': ['practiced', 'unpracticed'],
+        })
+        practiced_only = exp_factors.override({'sequence_type': ['practiced']})
+
+        structure = [
+            Block(exp_factors, label='exposure', trials=18),
+            Block(practiced_only, label='training', trials=90),
+            Block(exp_factors, label='test', trials=60),
+        ]
+
+    Different blocks can have different factor levels, but all blocks must
+    contain the same factors. If a factor is unneeded for a given block, it
+    should be given a dummy level (e.g. `None`).
+
+    If provided, the label for the block will be set as `self.block_label` within
+    the Experiment object during runtime. Labels are meant to allow for easy
+    handling of different block types within the experiment code::
+
+        # If first block or block type changed, show instructions
+        if self.last_block_label != self.block_label:
+            if self.block_label == "exo":
+                self.exo_instructions()
+            elif self.block_label == "endo":
+                self.endo_instructions()
+    
+        self.last_block_label = self.block_label
+
+    If you identify a block as a practice block, the runtime parameter
+    `P.practicing` will be set to True during that block.
+
+    Args:
+        factors (:obj:`FactorSet` or dict): The factor set to use for the block.
+        label (str, optional): The label for the block. Defaults to None.
+        trials (int, optional): The trial count for the block. If not specified,
+            defaults to `P.trials_per_block`.
+        practice (bool, optional): Indicates whether the block is a practice
+            block. Defaults to False.
+
+    """
+    def __init__(self, factors, label=None, trials=None, practice=False):
+        self.practice = practice
+        self.label = label
+        if not isinstance(factors, FactorSet):
+            factors = FactorSet(factors)
+        self._factors = factors
+        if trials:
+            self.trialcount = trials
+        elif P.trials_per_block > 0:
+            self.trialcount = P.trials_per_block
+        else:
+            self.trialcount = self._factors.set_length
+    
+    def get_trials(self):
+        """Generates a shuffled set of trials from the block.
+
+        Each complete set of factors is generated and shuffled sequentially
+        to prevent the possibility of all trials of the same type ending up
+        together (e.g. all trials with invalidly cued targets happening
+        consecutively).
+
+        Returns:
+            list: A list of dicts containing the trial factors for each trial.
+
+        """
+        trials = []
+        while len(trials) < self.trialcount:
+            new = self._factors._get_combinations()
+            remaining = self.trialcount - len(trials)
+            random.shuffle(new)
+            if remaining < len(new):
+                new = new[:remaining]
+            trials += new
+
+        return trials
+        
+    @property
+    def factors(self):
+        """list: The names of all trial factors used in the block."""
+        return self._factors.names

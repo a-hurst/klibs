@@ -75,6 +75,8 @@ class Experiment(EnvAgent):
             self.block()
             P.trial_number = 1
             remaining = list(block.trials)
+            if P.max_trials_per_block != False:
+                remaining = remaining[:P.max_trials_per_block]
             while len(remaining):
                 trial = remaining.pop(0)
                 try:

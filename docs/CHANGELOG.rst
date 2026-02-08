@@ -20,6 +20,8 @@ Runtime Changes:
 * Practice blocks are no longer added when `P.run_practice_blocks` is False.
 * During runtime, `P.trials_per_block` is now updated at the start of each
   block to reflect the actual number of trials in the current block.
+* Added new parameter `P.max_trials_per_block` for temporarily limiting the
+  number of trials to run per block for testing and development purposes.
 
 API Changes:
 

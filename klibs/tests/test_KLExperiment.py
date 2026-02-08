@@ -61,7 +61,8 @@ def test_execute(run_environment):
             expected = 'test' if P.block_number == 1 else None
             assert self.block_label == expected
             # Check trials_per_block is updated based on trial count
-            assert P.trials_per_block == 4
+            if not P.max_trials_per_block:
+                assert P.trials_per_block == 4
 
         def __trial__(self, trial):
             # Check trial id increments correctly
@@ -108,6 +109,20 @@ def test_execute(run_environment):
     assert tst.last_block == 2
     assert tst.last_trial == 5 # 4 + 1 recycled
     assert tst.total_trials == 10
+
+    # Test setting max trials per block
+    P.max_trials_per_block = 2
+    tst = TestExperiment()
+    tst.setup()
+    tst.blocks = [
+        TrialSet(trials, label='test', practice=True),
+        TrialIterator(trials), # alias for backwards compat
+    ]
+    tst.__execute_experiment__()
+    P.max_trials_per_block = False
+    assert tst.last_block == 2
+    assert tst.last_trial == 2
+    assert tst.total_trials == 4
 
 
 def test_insert_practice_block(experiment):

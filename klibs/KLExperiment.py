@@ -37,9 +37,8 @@ class Experiment(EnvAgent):
         self._evm = EventManager()
 
         self._exp_factors = self._get_exp_factors()
+        self._exp_structure = self._get_exp_structure()
         self.trial_factory = TrialFactory(self._exp_factors)
-        if P.manual_trial_generation is False:
-            self.trial_factory.generate()
 
 
     def _get_exp_factors(self):
@@ -54,6 +53,22 @@ class Experiment(EnvAgent):
                 factors.update(local_factors)
 
         return factors
+
+
+    def _get_exp_structure(self):
+        # Reads in the block structure for the study (if provided)
+        from klibs.KLTrialFactory import _load_structure
+
+        # Load experiment structure from the project's _independent_variables.py file(s)
+        structure = _load_structure(P.ind_vars_file_path)
+        if structure and os.path.exists(P.ind_vars_file_local_path):
+            if not P.dm_ignore_local_overrides:
+                # If structure exists in overrides, use that instead
+                local = _load_structure(P.ind_vars_file_local_path)
+                if local:
+                    structure = local
+
+        return structure
 
 
     def __execute_experiment__(self, *args, **kwargs):
@@ -288,10 +303,11 @@ class Experiment(EnvAgent):
         # keyword, however.
 
         if self.blocks:
-            # If setup has passed and trial execution has started, blocks have already been exported
-            # from trial_factory so this function will no longer work. If it is called after it is no
-            # longer useful, we throw a TrialException
-            raise RuntimeError("Cannot insert practice blocks after setup() is complete.")
+            if self._exp_structure:
+                e = "in setup() when using a custom block structure."
+            else:
+                e = "after setup() is complete."
+            raise RuntimeError("Cannot insert practice blocks " + e)
 
         if not trial_counts:
             trial_counts = P.trials_per_block
@@ -404,6 +420,7 @@ class Experiment(EnvAgent):
 
         """
         from klibs.KLGraphics.KLDraw import Ellipse
+        from klibs.KLTrialFactory import _parse_structure
     
         if P.eye_tracking:
             RED = (255, 0, 0)
@@ -411,6 +428,12 @@ class Experiment(EnvAgent):
             self.tracker_dot = Ellipse(8, stroke=[2, WHITE], fill=RED).render()
             if not P.manual_eyelink_setup:
                 self.el.setup()
+        
+        # Generate blocks of trials (from either custom structure or trial factory)
+        if self._exp_structure:
+            self.blocks = _parse_structure(self._exp_structure, self.exp_factors)
+        elif P.manual_trial_generation is False:
+            self.trial_factory.generate()
 
         self.setup()
         try:

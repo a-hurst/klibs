@@ -40,6 +40,13 @@ API Changes:
 * Added a new method :method:`~klibs.KLExperiment.write_trials_txt` for
   exporting the full sequence of generated trials and blocks to a human
   readable text file.
+* Added a new flexible API for specifying custom block structures using the new
+  :class:`~klibs.KLStructure.Block` class. If a variable named `structure`
+  exists in a project's `_independent_variables.py` file and is defined as a
+  list of :class:`~klibs.KLStructure.Block` objects, the KLibs runtime will
+  use the specified structure to define the block/trial sequence for the
+  experiment.
+
 
 Fixed Bugs:
 

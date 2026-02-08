@@ -7,7 +7,7 @@ from copy import deepcopy
         
 from klibs import P
 from klibs.KLInternal import load_source
-from klibs.KLStructure import FactorSet
+from klibs.KLStructure import FactorSet, Block
 
 
 def _load_factors(path):
@@ -29,6 +29,59 @@ def _load_factors(path):
         raise RuntimeError(err.format(path))
 
     return factors
+
+
+def _load_structure(path):
+    # Imports a custom task structure from a file, returning an empty list if
+    # a structure is not specified.
+
+    ind_vars = load_source(path)
+    if not 'structure' in ind_vars.keys():
+        return []
+
+    structure = ind_vars['structure']
+    if structure:
+        try:
+            structure = list(structure)
+        except Exception:
+            e = "If specified, task structure must be a list of Blocks."
+            raise TypeError(e)
+
+    return structure
+
+
+def _parse_structure(structure, exp_factors):
+    # Parses/validates a custom task structure and returns a list of TrialSets
+
+    count = 0
+    blocks = []
+    for block in structure:
+
+        if not isinstance(block, Block):
+            raise TypeError("Task structure must be made of Blocks")
+
+        # Ensure all blocks have same factor levels
+        count += 1
+        extra = set(block.factors) - set(exp_factors)
+        missing = set(exp_factors) - set(block.factors)
+        if len(extra):
+            e = "Extra factors" if len(extra) > 1 else "Extra factor"
+            e += " in block {0} not present in exp_factors: {1}"
+            raise RuntimeError(e.format(count, str(list(extra))))
+        if len(missing):
+            e = "Missing the following factors in block {0}: {1}"
+            raise RuntimeError(e.format(count, str(list(missing))))
+
+        # Skip practice blocks if disabled
+        if block.practice and not P.run_practice_blocks:
+            continue
+
+        # Generate trials and add block to block sequence
+        trials = block.get_trials()
+        b = TrialSet(trials, block.practice, block.label)
+        blocks.append(b)
+
+    return blocks
 
 
 def _generate_blocks(factors, block_count, trial_count):

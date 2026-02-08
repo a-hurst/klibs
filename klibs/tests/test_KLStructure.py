@@ -6,7 +6,9 @@ from collections import Counter
 
 import klibs.KLParams as P
 from klibs.KLStructure import FactorSet, Block
-from klibs.KLTrialFactory import _generate_blocks
+from klibs.KLTrialFactory import _generate_blocks, _load_structure, _parse_structure
+
+from conftest import create_tempfile
 
 
 class TestFactorSet(object):
@@ -205,3 +207,76 @@ class TestBlock(object):
 
         tst = Block({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
         assert tst.factors == ['a', 'b', 'c']
+
+
+def test_load_structure():
+    # NOTE: Move to KLTrialFactory tests once created
+    header = "from klibs.KLStructure import FactorSet, Block"
+
+    # Test loading structure
+    tmp = create_tempfile([
+        header, "",
+        "structure = [",
+        "    Block({}, label='a', trials=10),",
+        "    Block({}, label='B', trials=20)",
+        "]"
+    ])
+    tst = _load_structure(tmp)
+    assert len(tst) == 2
+    assert isinstance(tst[0], Block)
+
+    # Test loading missing structure
+    tmp = create_tempfile([
+        header, "",
+        "exp_factors = FactorSet({})"
+    ])
+    tst = _load_structure(tmp)
+    assert not tst
+
+    # Test loading empty structure
+    tmp = create_tempfile([
+        header, "",
+        "exp_factors = FactorSet({})",
+        "",
+        "structure = []",
+    ])
+    tst = _load_structure(tmp)
+    assert not tst
+
+
+def test_parse_structure():
+    # NOTE: Move to KLTrialFactory tests once created
+    exp_factors = {'fac1': ['a', 'b', 'c'], 'fac2': [True, False]}
+    tst = [
+        Block(exp_factors, label='a', trials=10, practice=True),
+        Block(exp_factors, label='b', trials=20)
+    ]
+    blocks = _parse_structure(tst, exp_factors)
+    assert len(blocks) == 2
+
+    # Test exception if structure not made of Blocks
+    with pytest.raises(TypeError):
+        _parse_structure([exp_factors], exp_factors)
+
+    # Test exception on missing factor level
+    fac_missing = {'fac1': ['a', 'b', 'c']}
+    tst_missing = [
+        Block(fac_missing, trials=10),
+        Block(exp_factors, trials=10)
+    ]
+    with pytest.raises(RuntimeError):
+        _parse_structure(tst_missing, exp_factors)
+
+    # Test exception on extra factor level
+    fac_extra = exp_factors.copy()
+    fac_extra['fac3'] = [200, 800]
+    tst_extra = [
+        Block(exp_factors, trials=10),
+        Block(fac_extra, trials=10)
+    ]
+    with pytest.raises(RuntimeError):
+        _parse_structure(tst_extra, exp_factors)
+
+    # Test exception when factors given but exp_factors is empty
+    with pytest.raises(RuntimeError):
+        _parse_structure(tst, {})

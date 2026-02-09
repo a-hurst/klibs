@@ -3,7 +3,7 @@ Changelog
 This is a log of the latest changes and improvements to KLibs.
 
 
-0.8.0a1
+0.7.8a1
 -------
 
 (Unreleased)

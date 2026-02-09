@@ -46,6 +46,10 @@ API Changes:
   list of :class:`~klibs.KLStructure.Block` objects, the KLibs runtime will
   use the specified structure to define the block/trial sequence for the
   experiment.
+* Added a new exception type :class:`~klibs.KLExceptions.TerminateBlock` that
+  can be raised to end a block early, allowing for blocks with flexible lengths
+  based on participant performance (e.g. practice blocks that continue until a
+  minimum performance threshold is met).
 
 
 Fixed Bugs:

@@ -8,7 +8,7 @@ from traceback import print_tb, print_stack
 
 from klibs import P
 from klibs.KLEnvironment import EnvAgent
-from klibs.KLExceptions import TrialException
+from klibs.KLExceptions import TrialException, TerminateBlock
 from klibs.KLInternal import full_trace, iterable
 from klibs.KLInternal import colored_stdout as cso
 
@@ -101,6 +101,8 @@ class Experiment(EnvAgent):
                 except TrialException:
                     remaining = self._recycle_trial(remaining, trial)
                     P.recycle_count += 1
+                except TerminateBlock:
+                    remaining = []
                 self.rc.reset()
         self.clean_up()
 
@@ -137,13 +139,13 @@ class Experiment(EnvAgent):
         self.evm.start_clock()
 
         # Actually run the trial and log the data to the database
-        recycle = None
+        exc = None
         try:
             P.in_trial = True
             self.__log_trial__(self.trial())
             P.in_trial = False
-        except TrialException as e:
-            recycle = e
+        except (TrialException, TerminateBlock) as e:
+            exc = e
 
         # Clean up after the trial
         self.evm.stop_clock()
@@ -153,9 +155,9 @@ class Experiment(EnvAgent):
             hide_cursor()
         self.trial_clean_up()
 
-        # Recycle trial if TrialException encountered
-        if recycle:
-            raise recycle
+        # Raise TerminateBlock or TrialException if encountered
+        if exc:
+            raise exc
 
 
     def __log_trial__(self, trial_data):

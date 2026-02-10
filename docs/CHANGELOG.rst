@@ -62,6 +62,7 @@ Fixed Bugs:
   initialize the trial could (on rare occasions) start with anywhere between 50
   and 1000 ms already elapsed on the clock, making stimuli appear sooner than
   expected.
+* Fixed crash when performing a drift correct without a custom target stimulus.
 
 
 0.7.7b1

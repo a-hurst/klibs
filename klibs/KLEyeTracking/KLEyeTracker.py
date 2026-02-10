@@ -12,6 +12,7 @@ from klibs import P
 from klibs.KLUtilities import iterable, pretty_list
 from klibs.KLBoundary import BoundaryInspector
 from klibs.KLGraphics import blit, fill, flip
+from klibs.KLGraphics.KLDraw import drift_correct_target
 
 # TODO: Add way of specifying calibration type (e.g. 'HV9') in params
 

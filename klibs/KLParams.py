@@ -54,6 +54,7 @@ blocks_per_experiment = 0
 conditions = []
 default_condition = None
 table_defaults = {} # default column values for db tables when using EntryTemplate
+max_trials_per_block = False
 run_practice_blocks = True
 color_output = False # whether cso() outputs colorized text or not
 

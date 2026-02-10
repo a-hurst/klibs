@@ -8,7 +8,7 @@ from traceback import print_tb, print_stack
 
 from klibs import P
 from klibs.KLEnvironment import EnvAgent
-from klibs.KLExceptions import TrialException
+from klibs.KLExceptions import TrialException, TerminateBlock
 from klibs.KLInternal import full_trace, iterable
 from klibs.KLInternal import colored_stdout as cso
 
@@ -37,9 +37,8 @@ class Experiment(EnvAgent):
         self._evm = EventManager()
 
         self._exp_factors = self._get_exp_factors()
+        self._exp_structure = self._get_exp_structure()
         self.trial_factory = TrialFactory(self._exp_factors)
-        if P.manual_trial_generation is False:
-            self.trial_factory.generate()
 
 
     def _get_exp_factors(self):
@@ -56,6 +55,22 @@ class Experiment(EnvAgent):
         return factors
 
 
+    def _get_exp_structure(self):
+        # Reads in the block structure for the study (if provided)
+        from klibs.KLTrialFactory import _load_structure
+
+        # Load experiment structure from the project's _independent_variables.py file(s)
+        structure = _load_structure(P.ind_vars_file_path)
+        if structure and os.path.exists(P.ind_vars_file_local_path):
+            if not P.dm_ignore_local_overrides:
+                # If structure exists in overrides, use that instead
+                local = _load_structure(P.ind_vars_file_local_path)
+                if local:
+                    structure = local
+
+        return structure
+
+
     def __execute_experiment__(self, *args, **kwargs):
         """For internal use, actually runs the blocks/trials of the experiment in sequence.
 
@@ -69,11 +84,14 @@ class Experiment(EnvAgent):
         for block in self.blocks:
             P.recycle_count = 0
             P.block_number += 1
+            P.trials_per_block = len(block)
             P.practicing = block.practice
             self.block_label = block.label
             self.block()
             P.trial_number = 1
             remaining = list(block.trials)
+            if P.max_trials_per_block != False:
+                remaining = remaining[:P.max_trials_per_block]
             while len(remaining):
                 trial = remaining.pop(0)
                 try:
@@ -83,6 +101,8 @@ class Experiment(EnvAgent):
                 except TrialException:
                     remaining = self._recycle_trial(remaining, trial)
                     P.recycle_count += 1
+                except TerminateBlock:
+                    remaining = []
                 self.rc.reset()
         self.clean_up()
 
@@ -119,13 +139,13 @@ class Experiment(EnvAgent):
         self.evm.start_clock()
 
         # Actually run the trial and log the data to the database
-        recycle = None
+        exc = None
         try:
             P.in_trial = True
             self.__log_trial__(self.trial())
             P.in_trial = False
-        except TrialException as e:
-            recycle = e
+        except (TrialException, TerminateBlock) as e:
+            exc = e
 
         # Clean up after the trial
         self.evm.stop_clock()
@@ -135,9 +155,9 @@ class Experiment(EnvAgent):
             hide_cursor()
         self.trial_clean_up()
 
-        # Recycle trial if TrialException encountered
-        if recycle:
-            raise recycle
+        # Raise TerminateBlock or TrialException if encountered
+        if exc:
+            raise exc
 
 
     def __log_trial__(self, trial_data):
@@ -285,10 +305,11 @@ class Experiment(EnvAgent):
         # keyword, however.
 
         if self.blocks:
-            # If setup has passed and trial execution has started, blocks have already been exported
-            # from trial_factory so this function will no longer work. If it is called after it is no
-            # longer useful, we throw a TrialException
-            raise RuntimeError("Cannot insert practice blocks after setup() is complete.")
+            if self._exp_structure:
+                e = "in setup() when using a custom block structure."
+            else:
+                e = "after setup() is complete."
+            raise RuntimeError("Cannot insert practice blocks " + e)
 
         if not trial_counts:
             trial_counts = P.trials_per_block
@@ -401,6 +422,7 @@ class Experiment(EnvAgent):
 
         """
         from klibs.KLGraphics.KLDraw import Ellipse
+        from klibs.KLTrialFactory import _parse_structure
     
         if P.eye_tracking:
             RED = (255, 0, 0)
@@ -408,6 +430,12 @@ class Experiment(EnvAgent):
             self.tracker_dot = Ellipse(8, stroke=[2, WHITE], fill=RED).render()
             if not P.manual_eyelink_setup:
                 self.el.setup()
+        
+        # Generate blocks of trials (from either custom structure or trial factory)
+        if self._exp_structure:
+            self.blocks = _parse_structure(self._exp_structure, self.exp_factors)
+        elif P.manual_trial_generation is False:
+            self.trial_factory.generate()
 
         self.setup()
         try:

@@ -1,4 +1,4 @@
-from klibs.KLStructure import FactorSet
+from klibs.KLStructure import FactorSet, Block
 
 """ ##### FactorSet Tutorial #####
 
@@ -50,3 +50,65 @@ you can also note this using a `(level, count)` tuple as shorthand, e.g. `('vali
 exp_factors = FactorSet({
     # Insert trial factors here
 })
+
+
+""" ##### Structure Tutorial #####
+
+In addition to specifying trial factors and their levels, you can also use this file to
+specify a custom block structure for the experiment.
+
+By default, klibs will generate blocks of trials using the factors defined above and
+the number of blocks (and trials per block) specified in the project's params.py file.
+For experiments that require more complex block structures, such as blocks with
+different lengths or different factors, you can define your own sequences of blocks
+using Block objects:
+
+structure = [
+    Block(exp_factors, trials=24, practice=True),
+    Block(exp_factors, trials=96),
+    Block(exp_factors, trials=96),
+]
+
+This would specify a simple 3-block structure: a 24 trial practice block followed by
+two 96 trial test blocks.
+
+### Block Factors ###
+
+In many experiments, you might want to have different block types with different factor
+levels (e.g. blocks with different difficulties, stimulus types, or task demands). As
+such, the Block class makes it easy to use custom factor sets for different blocks.
+
+For example, to extend the FactorSet example above and add blocks of trials that have
+50% cue validity, you could do the following:
+
+endo_factors = exp_factors
+exo_factors = exp_factors.override({
+    'cue_validity' : ['valid', 'invalid']
+})
+
+exo = Block(exo_factors, label='exo')
+endo = Block(endo_factors, label='endo')
+
+structure = [
+    exo, endo, exo, endo
+]
+
+### Block Labels & Practice Blocks ###
+
+If you specify a label for a block, the value of this label can be accessed from within
+the experiment runtime through the attribute `self.block_label`. For example, at the
+start of each block you can show different instructions depending on the block label:
+
+    self.block(self):
+        # Show instructions based on block type
+        if self.block_label == "endo":
+            self.show_endo_instructions()
+        elif self.block_label == "exo":
+            self.show_exo_instructions()
+
+Similarly, setting `practice` to True for a block will flag it as a practice block,
+meaning that `P.practicing` will be set to True while within the block.
+
+"""
+
+structure = []

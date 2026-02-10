@@ -7,7 +7,7 @@ from collections import OrderedDict
 import klibs
 from klibs.KLJSON_Object import AttributeDict
 from klibs.KLTrialFactory import TrialIterator, TrialSet
-from klibs.KLExceptions import TrialException
+from klibs.KLExceptions import TrialException, TerminateBlock
 from klibs.KLExperiment import Experiment
 
 from conftest import get_resource_path
@@ -50,6 +50,7 @@ def test_execute(run_environment):
             self.total_trials = 0
             self.was_recycled = False
             self.database = AttributeDict({'tables': []})
+            self.test_type = "default"
             self.blocks = []
 
         def block(self):
@@ -60,6 +61,9 @@ def test_execute(run_environment):
             # Check block label getting set as expected
             expected = 'test' if P.block_number == 1 else None
             assert self.block_label == expected
+            # Check trials_per_block is updated based on trial count
+            if not P.max_trials_per_block:
+                assert P.trials_per_block == 4
 
         def __trial__(self, trial):
             # Check trial id increments correctly
@@ -78,6 +82,10 @@ def test_execute(run_environment):
             assert 'fac2' in list(trial.keys())
             # Test that practice getting set correctly
             assert P.practicing == (P.block_number == 1)
+            # Test block termination
+            if self.test_type == "terminate" and P.block_number == 2:
+                if trial_num == 3:
+                    raise TerminateBlock()
             # Test trial recycling
             if self.was_recycled:
                 assert P.recycle_count == 1
@@ -93,18 +101,41 @@ def test_execute(run_environment):
         {'fac1': True, 'fac2': 400},
         {'fac1': False, 'fac2': 400},
     ]
-
-    # Test with blocks as list
-    tst = TestExperiment()
-    tst.setup()
-    tst.blocks = [
+    blocks = [
         TrialSet(trials, label='test', practice=True),
         TrialIterator(trials), # alias for backwards compat
     ]
+
+    # Test with blocks as list
+    P.trials_per_block = 30
+    tst = TestExperiment()
+    tst.setup()
+    tst.blocks = blocks
     tst.__execute_experiment__()
     assert tst.last_block == 2
     assert tst.last_trial == 5 # 4 + 1 recycled
     assert tst.total_trials == 10
+
+    # Test setting max trials per block
+    P.max_trials_per_block = 2
+    tst = TestExperiment()
+    tst.setup()
+    tst.blocks = blocks
+    tst.__execute_experiment__()
+    P.max_trials_per_block = False
+    assert tst.last_block == 2
+    assert tst.last_trial == 2
+    assert tst.total_trials == 4
+
+    # Test terminating blocks early
+    tst = TestExperiment()
+    tst.setup()
+    tst.test_type = "terminate"
+    tst.blocks = blocks
+    tst.__execute_experiment__()
+    assert tst.last_block == 2
+    assert tst.last_trial == 3
+    assert tst.total_trials == 8 # Last two trials skipped
 
 
 def test_insert_practice_block(experiment):

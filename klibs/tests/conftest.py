@@ -27,6 +27,16 @@ def get_resource_path(resource):
     return os.path.join(klibs_root, 'resources', resource)
 
 
+def create_tempfile(content, prefix="klibs", suffix=".py"):
+    tmp = tempfile.NamedTemporaryFile(
+        prefix=prefix, suffix=suffix, delete=False
+    )
+    if isinstance(content, list):
+        content = "\n".join(content)
+    tmp.write(content.encode('utf-8'))
+    return tmp.name
+
+
 @pytest.fixture(scope='module')
 def with_sdl():
     sdl2.SDL_ClearError()

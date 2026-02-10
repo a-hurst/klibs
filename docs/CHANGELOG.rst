@@ -3,7 +3,7 @@ Changelog
 This is a log of the latest changes and improvements to KLibs.
 
 
-0.8.0a1
+0.7.8a1
 -------
 
 (Unreleased)
@@ -18,6 +18,10 @@ Runtime Changes:
   *all* remaining trials, which could unexpectedly affect the even distribution
   of trial factors within blocks.
 * Practice blocks are no longer added when `P.run_practice_blocks` is False.
+* During runtime, `P.trials_per_block` is now updated at the start of each
+  block to reflect the actual number of trials in the current block.
+* Added new parameter `P.max_trials_per_block` for temporarily limiting the
+  number of trials to run per block for testing and development purposes.
 
 API Changes:
 
@@ -36,6 +40,17 @@ API Changes:
 * Added a new method :method:`~klibs.KLExperiment.write_trials_txt` for
   exporting the full sequence of generated trials and blocks to a human
   readable text file.
+* Added a new flexible API for specifying custom block structures using the new
+  :class:`~klibs.KLStructure.Block` class. If a variable named `structure`
+  exists in a project's `_independent_variables.py` file and is defined as a
+  list of :class:`~klibs.KLStructure.Block` objects, the KLibs runtime will
+  use the specified structure to define the block/trial sequence for the
+  experiment.
+* Added a new exception type :class:`~klibs.KLExceptions.TerminateBlock` that
+  can be raised to end a block early, allowing for blocks with flexible lengths
+  based on participant performance (e.g. practice blocks that continue until a
+  minimum performance threshold is met).
+
 
 Fixed Bugs:
 
@@ -47,6 +62,7 @@ Fixed Bugs:
   initialize the trial could (on rare occasions) start with anywhere between 50
   and 1000 ms already elapsed on the clock, making stimuli appear sooner than
   expected.
+
 
 0.7.7b1
 -------

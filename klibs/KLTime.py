@@ -39,33 +39,34 @@ def time_msec():
     return precise_time() * 1000
 
 
+
 class CountDown(object):
-    """A timer that counts down to 0 for a given duration. Can be paused, reset, extended,
-    and checked for time remaining or elapsed, making it flexible and useful for many different
-    situations.
+    """A flexible timer that counts down to 0 for a given duration.
+    
+    A CountDown can be paused and resumed, and also be reset and started again. You can
+    also add extra time to extend the CountDown.
 
     Args:
-        duration(float): The duration in seconds that the timer should count down for.
-        start(bool, optional): Whether to start the countdown immediately upon creation. Defaults
-            to True.
+        duration (float): The duration of the countdown (in seconds).
+        start (bool, optional): Whether to start the countdown immediately when the
+            object is created. Defaults to True.
 
     Attributes:
-        duration(float): The duration that the timer is set to count down for.
-        started(bool): Whether the countdown timer has been started yet.
-        paused(bool): The current pause state of the countdown timer.
+        duration (float): The duration that the timer is set to count.
+        started (bool): Whether the countdown has been started.
+        paused (bool): Whether the countdown is currently paused.
     
     Raises:
         ValueError: if the duration specified is not a positive real number.
 
     """
-    __started = 0
-    __pause_time = 0.0
-    __flex = 0.0 # for add() and finish() 
-    __paused = False
-    __duration = 0
-
     def __init__(self, duration, start=True):
-        super(CountDown, self).__init__()
+        self._started = 0
+        self._pause_time = 0.0
+        self._flex = 0.0 # for add() and finish() 
+        self._paused = False
+        self._duration = 0
+
         self.duration = duration
         self.reset(start)
 
@@ -77,8 +78,8 @@ class CountDown(object):
 
         """
         if not self.started:
-            self.__started = precise_time()
-            self.__paused = False
+            self._started = precise_time()
+            self._paused = False
         else:
             err = "Cannot start CountDown that's already started (use reset method instead)."
             raise RuntimeError(err)
@@ -104,9 +105,9 @@ class CountDown(object):
                 to True.
                 
         """
-        self.__started = 0
-        self.__pause_time = 0.0
-        self.__flex = 0.0
+        self._started = 0
+        self._pause_time = 0.0
+        self._flex = 0.0
         if start:
             self.start()
         else:
@@ -116,7 +117,7 @@ class CountDown(object):
         """Ends the countdown by jumping the time remaining directly to zero.
 
         """
-        self.__flex += self.remaining()
+        self._flex += self.remaining()
 
     def add(self, delta):
         """Add an amount of time to (or subtract an amount from) the elapsed time of the countdown.
@@ -136,7 +137,7 @@ class CountDown(object):
         elif delta >= self.remaining():
             # end timer if duration added is greater than time remaining
             delta = self.remaining()
-        self.__flex += delta
+        self._flex += delta
 
     def pause(self):
         """Pauses the countdown if it is not already paused. The countdown can later be resumed
@@ -144,15 +145,15 @@ class CountDown(object):
 
         """
         if not self.paused:
-            self.__paused = precise_time()
+            self._paused = precise_time()
 
     def resume(self):
         """Unpauses the countdown if it is currently paused. Does nothing if it is not paused.
 
         """
         if self.paused:
-            self.__pause_time += precise_time() - self.__paused
-            self.__paused = False
+            self._pause_time += precise_time() - self._paused
+            self._paused = False
 
     def remaining(self):
         """Returns the amount of time remaining in the countdown (in seconds). Will return 0 if the
@@ -168,36 +169,36 @@ class CountDown(object):
 
         """
         if not self.started:
-            t = self.__flex
+            t = self._flex
         elif self.paused:
-            t = (self.__paused + self.__flex) - (self.__started + self.__pause_time)
+            t = (self._paused + self._flex) - (self._started + self._pause_time)
         else:
-            t = (precise_time() + self.__flex) - (self.__started + self.__pause_time)
+            t = (precise_time() + self._flex) - (self._started + self._pause_time)
         return t if t < self.duration else self.duration
 
     @property
     def started(self):
-        return self.__started != 0
+        return self._started != 0
 
     @property
     def paused(self):
-        return self.__paused is not False
+        return self._paused is not False
     
     @property
     def duration(self):
-        return self.__duration
+        return self._duration
     
     @duration.setter
     def duration(self, value):
         try:
-            self.__duration = float(value)
+            self._duration = float(value)
         except ValueError:
             raise ValueError("Duration must be a positive real number.")
         if value <= 0:
             err = ("Authorization Denied: negative and null duration privileges restricted to "
                 "user dr_who.")
             raise ValueError(err)
-        
+
 
 
 class Stopwatch(object):
@@ -212,14 +213,13 @@ class Stopwatch(object):
         paused(bool): The current pause state of the stopwatch timer.
     
     """
-    __started = 0
-    __pause_time = 0.0
-    __flex = 0.0 # for add()
-    __paused = False
-
     def __init__(self, start=True):
-        super(Stopwatch, self).__init__()
-        if start: self.start()
+        self._started = 0
+        self._pause_time = 0.0
+        self._flex = 0.0 # for add()
+        self._paused = False
+        if start:
+            self.start()
 
     def start(self):
         """Starts the stopwatch if it has not started already.
@@ -228,9 +228,9 @@ class Stopwatch(object):
             RuntimeError: If called after the stopwatch has already been started.
 
         """
-        if self.__started == 0:
-            self.__started = precise_time()
-            self.__paused = False
+        if self._started == 0:
+            self._started = precise_time()
+            self._paused = False
         else:
             err = "Cannot start Stopwatch that's already started (use reset method instead)."
             raise RuntimeError(err)
@@ -244,9 +244,9 @@ class Stopwatch(object):
                 to True.
 
         """
-        self.__started = 0
-        self.__pause_time = 0.0
-        self.__flex = 0.0
+        self._started = 0
+        self._pause_time = 0.0
+        self._flex = 0.0
         if start:
             self.start()
         else:
@@ -260,7 +260,7 @@ class Stopwatch(object):
                 or negative number.
 
         """
-        self.__flex += duration
+        self._flex += duration
 
     def pause(self):
         """Pauses the stopwatch if it is not already paused. The stopwatch can later be resumed
@@ -268,7 +268,7 @@ class Stopwatch(object):
 
         """
         if not self.paused:
-            self.__paused = precise_time()
+            self._paused = precise_time()
 
     def resume(self):
         """Unpauses the stopwatch if it is currently paused. Does nothing if the timer is not
@@ -276,24 +276,24 @@ class Stopwatch(object):
 
         """
         if self.paused:
-            self.__pause_time += precise_time() - self.__paused
-            self.__paused = False
+            self._pause_time += precise_time() - self._paused
+            self._paused = False
 
     def elapsed(self):
         """Returns the amount of time elapsed on the stopwatch (in seconds).
 
         """
-        if self.__started == 0:
-            return self.__flex
+        if self._started == 0:
+            return self._flex
         elif self.paused:
-            return (self.__paused + self.__flex) - (self.__started + self.__pause_time)
+            return (self._paused + self._flex) - (self._started + self._pause_time)
         else:
-            return (precise_time() + self.__flex) - (self.__started + self.__pause_time)	
+            return (precise_time() + self._flex) - (self._started + self._pause_time)	
 
     @property
     def started(self):
-        return self.__started != 0
+        return self._started != 0
 
     @property
     def paused(self):
-        return self.__paused is not False 
+        return self._paused is not False 

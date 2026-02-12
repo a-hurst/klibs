@@ -24,6 +24,8 @@ Runtime Changes:
   number of trials to run per block for testing and development purposes.
 * :func:`~klibs.KLUserInterface.key_pressed` now defaults to ignoring repeated
   'key down' events when a key is being held.
+* The Windows sub-version (e.g. 22H2) is now appended the OS version in the
+  runtime info for Windows 10 and up.
 
 API Changes:
 

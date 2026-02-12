@@ -81,6 +81,25 @@ def _linux_get_distro():
     return distro
 
 
+def _win_get_regval(path, name):
+    # Gets the value of a given key from the Windows registry
+    import winreg
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path) as k:
+            return winreg.QueryValueEx(k, name)[0]
+    except FileNotFoundError:
+        return None
+
+
+def _win_get_subversion():
+    # Gets the sub-version of the Windows release (e.g. 22H2)
+    reg = "SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+    version = _win_get_regval(reg, "DisplayVersion")
+    if not version:
+        version = _win_get+regval(reg, "ReleaseId")
+    return version
+
+
 def get_sysinfo():
 
     # Get python info string
@@ -116,6 +135,9 @@ def get_sysinfo():
         version, build, sp = platform.win32_ver()[:3]
         if int(build.split(".")[-1]) > 22000:
             version = "11"
+        subversion = _win_get_subversion()
+        if subversion:
+            version += (" " + subversion)
         arch = platform.architecture()[0].replace("bit", "-bit")
         build = build.replace("10.0.", "")
         if sp in ('', 'SP0'): # if no service pack

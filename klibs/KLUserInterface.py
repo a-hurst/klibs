@@ -38,8 +38,9 @@ def any_key(allow_mouse_click=True):
         for event in pump(True):
             if event.type == SDL_KEYDOWN:
                 ui_request(event.key.keysym)
-                done = True
-                break
+                if event.key.repeat == 0:
+                    done = True
+                    break
             # For mouse, require both click and release to break loop
             if allow_mouse_click:
                 if event.type == SDL_MOUSEBUTTONDOWN:
@@ -49,27 +50,32 @@ def any_key(allow_mouse_click=True):
                     break
 
 
-def key_pressed(key=None, released=False, queue=None):
-    """Checks a given event queue for keypress events.
+def key_pressed(key=None, released=False, held=False, queue=None):
+    """Checks an event queue for keypress events.
     
-    If no key is specified, the function will return True if any key has been pressed.
-    If an event queue is not manually specified, this function will fetch and clear the
-    current contents of the input event queue.
+    This function can either check for a specific key (e.g. 'space') or any key press
+    if no key is specified. It can also check for key release events.
+
+    Note that when a key is pressed and held, systems often send repeated 'key down'
+    events at regular intervals until the key is released. By default this function
+    ignores these events and only checks for actual key presses, but you can toggle
+    checking for 'key still down' events by setting `held` to True.
     
-    For a comprehensive list of valid key names, see the 'Name' column of the following 
+    For a comprehensive list of valid key names, see the 'Name' column of the following
     table: https://wiki.libsdl.org/StuartPBentley/CombinedKeyTable
 
     For a comprehensive list of valid SDL keycodes, consult the following table:
     https://wiki.libsdl.org/SDL_Keycode
 
     Args:
-        key (str or :obj:`sdl2.SDL_Keycode`, optional): The key name or SDL keycode
-            corresponding to the key to check. If not specified, any keypress will return
-            True.
+        key (str or :obj:`sdl2.SDL_Keycode`, optional): The name or keycode of the key
+            to check. If not specified, will check for any key presses.
         released (bool, optional): If True, this function will look for 'key up' events
             instead of 'key down' events. Defaults to False.
-        queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to check
-            for valid keypress events.
+        held (bool, optional): Whether to check for 'key still down' events when a key
+            is being held in addition to actual key presses. Defaults to False.
+        queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of input events
+            retrieved from :func:`~klibs.KLEventQueue.pump`.
 
     Returns:
         bool: True if key has been pressed, otherwise False.
@@ -97,7 +103,8 @@ def key_pressed(key=None, released=False, queue=None):
             ui_request(e.key.keysym)
         if e.type == (SDL_KEYUP if released else SDL_KEYDOWN):
             if not keycode or e.key.keysym.sym == keycode:
-                pressed = True
+                if e.key.repeat == 0 or held:
+                    pressed = True
 
     return pressed
 

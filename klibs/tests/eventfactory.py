@@ -43,11 +43,12 @@ def _keysym_attrs(key, mod=None):
 
 # SDL_Event simulation functions
 
-def keydown(key, mod = None):
+def keydown(key, mod = None, repeat=False):
     keycode, modval = _keysym_attrs(key, mod)
     e = sdl2.SDL_Event()
     e.type = sdl2.SDL_KEYDOWN
     e.key.type = sdl2.SDL_KEYDOWN
+    e.key.repeat = 1 if repeat else 0
     e.key.keysym.sym = keycode
     e.key.keysym.mod = modval
     return e
@@ -57,6 +58,7 @@ def keyup(key, mod = None):
     e = sdl2.SDL_Event()
     e.type = sdl2.SDL_KEYUP
     e.key.type = sdl2.SDL_KEYUP
+    e.key.repeat = 0
     e.key.keysym.sym = keycode
     e.key.keysym.mod = modval
     return e

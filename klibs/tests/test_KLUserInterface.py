@@ -9,6 +9,7 @@ from klibs import TK_S, TK_MS
 from klibs import KLUserInterface as ui
 from klibs.KLBoundary import RectangleBoundary
 
+from mock import patch
 from conftest import with_sdl
 from eventfactory import click, keydown, keyup, queue_event
 
@@ -32,9 +33,37 @@ class UIRequestTester(object):
 
 # Actual tests
 
-@pytest.mark.skip("not implemented")
 def test_any_key(with_sdl):
-    pass
+
+    # Create mock function for faking input events
+    event_seq = []
+    def mock_pump(x):
+        if not len(event_seq):
+            raise RuntimeError("no more events")
+        return event_seq.pop(0)
+
+    with patch("klibs.KLUserInterface.pump", wraps=mock_pump):
+
+        # Test that any_key ends on keypress
+        event_seq.append([keydown('a')])
+        event_seq.append([])
+        ui.any_key()
+        assert len(event_seq) == 1 # make sure it ends on the first key
+
+        # Test that repeat keys are ignored
+        event_seq.append([keydown('a', repeat=True)])
+        event_seq.append([keydown('b')])
+        ui.any_key()
+        assert len(event_seq) == 0 # make sure it ends on the last key
+
+        # Test that any_key ends on mouse click/release
+        event_seq = [
+            [click()],
+            [click(release=True)],
+            [], [],
+        ]
+        ui.any_key()
+        assert len(event_seq) == 2
 
 
 def test_key_pressed(with_sdl):
@@ -51,6 +80,13 @@ def test_key_pressed(with_sdl):
     assert ui.key_pressed('b', queue=pressed_ab) == True
     assert ui.key_pressed('z', queue=pressed_ab) == False
     assert ui.key_pressed(queue=pressed_ab, released=True) == False
+
+    # Test ignoring of key repeat events
+    pressed_ab = [keydown('a', repeat=True), keydown('b')]
+    assert ui.key_pressed('a', queue=pressed_ab) == False
+    assert ui.key_pressed('a', held=True, queue=pressed_ab) == True
+    assert ui.key_pressed('b', queue=pressed_ab) == True
+    assert ui.key_pressed('b', held=True, queue=pressed_ab) == True
 
     # Test key released checking
     pressed_ab = [keydown('a'), keyup('b')]

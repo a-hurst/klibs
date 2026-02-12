@@ -77,6 +77,7 @@ class CountDown(object):
             RuntimeError: If called after the countdown has already been started.
 
         """
+        # NOTE: Is this redundant with reset?
         if not self.started:
             self._started = precise_time()
             self._paused = False
@@ -190,6 +191,7 @@ class CountDown(object):
     
     @duration.setter
     def duration(self, value):
+        # [Compat]: drop ability to set duration after created once confirmed unused?
         try:
             self._duration = float(value)
         except ValueError:
@@ -202,15 +204,11 @@ class CountDown(object):
 
 
 class Stopwatch(object):
-    """A timer that counts upwards and can be paused, resumed, and reset, just like a stopwatch.
+    """A timer that counts upwards and can be paused, resumed, and reset.
 
     Args:
-        start(bool, optional): Whether to start the stopwatch immediately upon creation. Defaults
-            to True.
-
-    Attributes:
-        started(bool): Whether the stopwatch timer has been started yet.
-        paused(bool): The current pause state of the stopwatch timer.
+        start (bool, optional): Whether to start the stopwatch immediately after it is
+            created. Defaults to True.
     
     """
     def __init__(self, start=True):
@@ -236,14 +234,14 @@ class Stopwatch(object):
             raise RuntimeError(err)
 
     def reset(self, start=True):
-        """Resets the stopwatch so it starts back at zero.
+        """Resets the stopwatch back to zero.
         
         Args:
-            start(bool, optional): If True, the stopwatch will immediately start again after
-                resetting. If False, the stopwatch will be reset into a paused state. Defaults
-                to True.
+            start (bool, optional): Whether to start the stopwatch immediately after
+                reset. Defaults to True.
 
         """
+        # NOTE: Starting automatically after reset seems unexpected to me, change default?
         self._started = 0
         self._pause_time = 0.0
         self._flex = 0.0
@@ -253,26 +251,26 @@ class Stopwatch(object):
             self.pause()
 
     def add(self, duration):
-        """Add an amount of time to (or subtract an amount from) the stopwatch timer.
+        """Adds a given amount of time to the stopwatch timer.
         
         Args:
-            duration(float): The number of seconds to add to the stopwatch timer. Can be a positive
-                or negative number.
+            duration (float): The number of seconds to add to the stopwatch timer. Can
+                be a positive or negative number.
 
         """
         self._flex += duration
 
     def pause(self):
-        """Pauses the stopwatch if it is not already paused. The stopwatch can later be resumed
-        with the resume() method. Does nothing if the timer is already paused.
+        """Pauses the stopwatch timer (if counting).
+        
+        The stopwatch can later be resumed with the :meth:`resume` method.
 
         """
         if not self.paused:
             self._paused = precise_time()
 
     def resume(self):
-        """Unpauses the stopwatch if it is currently paused. Does nothing if the timer is not
-        paused.
+        """Unpauses the stopwatch timer (if paused).
 
         """
         if self.paused:
@@ -280,7 +278,10 @@ class Stopwatch(object):
             self._paused = False
 
     def elapsed(self):
-        """Returns the amount of time elapsed on the stopwatch (in seconds).
+        """Returns the total time elapsed on the stopwatch.
+
+        Returns:
+            float: The elapsed time (in seconds).
 
         """
         if self._started == 0:
@@ -292,8 +293,10 @@ class Stopwatch(object):
 
     @property
     def started(self):
+        """bool: True if the stopwatch has been started, otherwise False."""
         return self._started != 0
 
     @property
     def paused(self):
+        """bool: True if the stopwatch is currently paused, otherwise False."""
         return self._paused is not False 

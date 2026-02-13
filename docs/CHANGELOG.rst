@@ -3,6 +3,20 @@ Changelog
 This is a log of the latest changes and improvements to KLibs.
 
 
+0.7.9b1
+-------
+
+(Unreleased)
+
+
+Runtime Changes:
+
+* Demographics collection has been changed so that queries in
+  `user_queries.json` are skipped if they do not correspond to a column in the
+  `participants` table of the database. Additionally, the query for the
+  participant's unique identifer is now always collected first.
+
+
 0.7.8b2
 -------
 

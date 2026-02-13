@@ -5,6 +5,7 @@ import os
 import re
 from os.path import join
 from shutil import copyfile, copytree
+from collections import OrderedDict
 
 from sdl2 import (SDL_StartTextInput, SDL_StopTextInput,
     SDL_KEYDOWN, SDLK_ESCAPE, SDLK_BACKSPACE, SDLK_RETURN, SDLK_KP_ENTER, SDL_TEXTINPUT)
@@ -25,6 +26,35 @@ from klibs.KLText import TextStyle, add_text_style
 
 user_queries = None
 default_strings = None
+
+
+def _get_demographics_queries(db, queries):
+    # Get all columns that need to be filled during demographics
+    required = []
+    exclude = ['id', 'created', 'random_seed', 'klibs_commit']
+    participants = db.table_schemas['participants']
+    for col in participants.keys():
+        if col not in exclude and not participants[col]['allow_null']:
+            required.append(col)
+
+    # Ensure all required demographics cols have corresponding queries
+    query_cols = [q.database_field for q in queries]
+    missing = set(required).difference(set(query_cols))
+    if len(missing):
+        e = "Missing entries in '{0}' for the following database fields: {1}"
+        raise RuntimeError(e.format("user_queries.json", str(list(missing))))
+    
+    # Gather queries into a dict for easy use
+    query_set = OrderedDict()
+    for q in queries:
+        if not q.database_field in db.get_columns('participants'):
+            msg = ("Query '{0}' does not correspond to any column in the participants "
+                "table, skipping...")
+            print(" * Warning: " + msg.format(q.title) + "\n")
+            continue
+        query_set[q.database_field] = q
+
+    return query_set
 
 
 def alert(text):
@@ -69,26 +99,29 @@ def collect_demographics(anonymous=False):
     except ValueError: 
         pass
 
-    # collect a response and handle errors for each question
-    for q in user_queries.demographic:
-        if q.active:
-            # if querying unique identifier, make sure it doesn't already exist in db
-            if q.database_field == P.unique_identifier:
-                existing = [utf8(pid) for pid in db.get_unique_ids()]
-                while True:
-                    value = query(q, anonymous=anonymous)
-                    if utf8(value) in existing:
-                        err = ("A participant with that ID already exists!\n"
-                                "Please try a different identifier.")
-                        fill()
-                        blit(message(err, "alert", align='center', blit_txt=False), 5, P.screen_c)
-                        flip()
-                        any_key()
-                    else:
-                        break
-            else:
-                value = query(q, anonymous=anonymous)
-            demographics.log(q.database_field, value)
+    # Gather demographic queries, separating id query from others
+    queries = _get_demographics_queries(db, user_queries.demographic)
+    id_query = queries.pop(P.unique_identifier)
+
+    # Collect the unique identifier for the participant
+    unique_id = None
+    existing = [utf8(pid) for pid in db.get_unique_ids()]
+    while not unique_id:
+        unique_id = query(id_query, anonymous=anonymous)
+        if utf8(unique_id) in existing:
+            unique_id = None
+            err = ("A participant with that ID already exists!\n"
+                   "Please try a different identifier.")
+            fill()
+            blit(message(err, "alert", align='center'), 5, P.screen_c)
+            flip()
+            any_key()
+    demographics.log(P.unique_identifier, unique_id)
+
+    # Collect all other demographics queries
+    for db_col, q in queries.items():
+        value = query(q, anonymous=anonymous)
+        demographics.log(db_col, value)
 
     # Insert demographics in database and get db id number
     P.participant_id = db.insert(demographics)

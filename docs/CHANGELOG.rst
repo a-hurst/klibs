@@ -13,6 +13,7 @@ Fixed Bugs:
 * The independent_variables.py file for a project is now only loaded once (was
   previously loaded twice, causing issues when using randomization functions
   in the file).
+* Fixed bug generating tones or noise with recent versions of numpy.
 
 
 0.7.8b1

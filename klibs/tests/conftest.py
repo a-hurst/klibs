@@ -5,6 +5,7 @@ import tempfile
 from importlib.util import find_spec
 
 import sdl2
+import sdl2.sdlmixer as mixer
 import pytest
 
 from klibs import P
@@ -40,8 +41,9 @@ def create_tempfile(content, prefix="klibs", suffix=".py"):
 @pytest.fixture(scope='module')
 def with_sdl():
     sdl2.SDL_ClearError()
-    ret = sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO | sdl2.SDL_INIT_TIMER)
+    ret = sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO | sdl2.SDL_INIT_AUDIO | sdl2.SDL_INIT_TIMER)
     assert ret == 0, sdl2.SDL_GetError().decode('utf-8', 'replace')
+    mixer.Mix_OpenAudio(44100, mixer.MIX_DEFAULT_FORMAT, 2, 1024)
     yield
     sdl2.SDL_Quit()
 

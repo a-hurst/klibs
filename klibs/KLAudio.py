@@ -161,7 +161,7 @@ class AudioClip(object):
         """Creates an SDL2_mixer MixChunk sample from a 2-channel 16-bit numpy array.
         
         """
-        arr_bytes = arr.tostring()
+        arr_bytes = arr.tobytes()
         buflen = len(arr_bytes)
         self._buf = (c_ubyte * buflen).from_buffer_copy(arr_bytes)
         return Mix_QuickLoad_RAW(ctypes.cast(self._buf, ctypes.POINTER(c_ubyte)), c_uint(buflen))

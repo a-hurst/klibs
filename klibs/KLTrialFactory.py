@@ -10,12 +10,11 @@ from klibs.KLInternal import load_source
 from klibs.KLStructure import FactorSet, Block
 
 
-def _load_factors(path):
-    # Imports either a FactorSet or IndependentVariableSet from a file and
-    # coerces it to a dict of trial factors.
+def _load_factors(ind_vars):
+    # Imports either a FactorSet or IndependentVariableSet from a sourced file
+    # and coerces it to a dict of trial factors.
 
     # Try loading an IndependentVariableSet first, if one exists
-    ind_vars = load_source(path)
     set_name = "{0}_ind_vars".format(P.project_name)
     if set_name in ind_vars.keys():
         factors = ind_vars[set_name].to_dict()
@@ -31,11 +30,10 @@ def _load_factors(path):
     return factors
 
 
-def _load_structure(path):
-    # Imports a custom task structure from a file, returning an empty list if
-    # a structure is not specified.
+def _load_structure(ind_vars):
+    # Imports a custom task structure from a sourced file, returning an empty
+    # list if a structure is not specified.
 
-    ind_vars = load_source(path)
     if not 'structure' in ind_vars.keys():
         return []
 

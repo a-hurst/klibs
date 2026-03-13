@@ -3,6 +3,18 @@ Changelog
 This is a log of the latest changes and improvements to KLibs.
 
 
+0.7.8b2
+-------
+
+Unreleased
+
+Fixed Bugs:
+
+* The independent_variables.py file for a project is now only loaded once (was
+  previously loaded twice, causing issues when using randomization functions
+  in the file).
+
+
 0.7.8b1
 -------
 

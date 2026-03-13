@@ -9,7 +9,7 @@ from traceback import print_tb, print_stack
 from klibs import P
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLExceptions import TrialException, TerminateBlock
-from klibs.KLInternal import full_trace, iterable
+from klibs.KLInternal import full_trace, iterable, load_source
 from klibs.KLInternal import colored_stdout as cso
 
 
@@ -36,39 +36,32 @@ class Experiment(EnvAgent):
         self.database = self.db # use database from env
         self._evm = EventManager()
 
-        self._exp_factors = self._get_exp_factors()
-        self._exp_structure = self._get_exp_structure()
+        self._exp_factors, self._exp_structure = self._get_exp_structure()
         self.trial_factory = TrialFactory(self._exp_factors)
 
 
-    def _get_exp_factors(self):
-        # Reads in the trial factors for the study, including any local overrides
-        from klibs.KLTrialFactory import _load_factors
+    def _get_exp_structure(self):
+        # Reads in the trial factors and block structure (if any) for the study
+        from klibs.KLTrialFactory import _load_factors, _load_structure
 
-        # Load experiment factors from the project's _independent_variables.py file(s)
-        factors = _load_factors(P.ind_vars_file_path)
+        # Load and parse _intependent_variables.py
+        idvars = load_source(P.ind_vars_file_path)
+        factors = _load_factors(idvars)
+        structure = _load_structure(idvars)
+
+        # Load and apply any local overrides
         if os.path.exists(P.ind_vars_file_local_path):
             if not P.dm_ignore_local_overrides:
-                local_factors = _load_factors(P.ind_vars_file_local_path)
+                # Override values for individual factor levels
+                local = load_source(P.ind_vars_file_local_path)
+                local_factors = _load_factors(local)
                 factors.update(local_factors)
-
-        return factors
-
-
-    def _get_exp_structure(self):
-        # Reads in the block structure for the study (if provided)
-        from klibs.KLTrialFactory import _load_structure
-
-        # Load experiment structure from the project's _independent_variables.py file(s)
-        structure = _load_structure(P.ind_vars_file_path)
-        if structure and os.path.exists(P.ind_vars_file_local_path):
-            if not P.dm_ignore_local_overrides:
-                # If structure exists in overrides, use that instead
-                local = _load_structure(P.ind_vars_file_local_path)
-                if local:
-                    structure = local
-
-        return structure
+                # Use local structure if specified
+                local_structure = _load_structure(local)
+                if structure and local_structure:
+                    structure = local_structure
+            
+        return factors, structure
 
 
     def __execute_experiment__(self, *args, **kwargs):

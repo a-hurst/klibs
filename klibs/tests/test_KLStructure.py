@@ -5,6 +5,7 @@ import random
 from collections import Counter
 
 import klibs.KLParams as P
+from klibs.KLInternal import load_source
 from klibs.KLStructure import FactorSet, Block
 from klibs.KLTrialFactory import _generate_blocks, _load_structure, _parse_structure
 
@@ -221,7 +222,7 @@ def test_load_structure():
         "    Block({}, label='B', trials=20)",
         "]"
     ])
-    tst = _load_structure(tmp)
+    tst = _load_structure(load_source(tmp))
     assert len(tst) == 2
     assert isinstance(tst[0], Block)
 
@@ -230,7 +231,7 @@ def test_load_structure():
         header, "",
         "exp_factors = FactorSet({})"
     ])
-    tst = _load_structure(tmp)
+    tst = _load_structure(load_source(tmp))
     assert not tst
 
     # Test loading empty structure
@@ -240,7 +241,7 @@ def test_load_structure():
         "",
         "structure = []",
     ])
-    tst = _load_structure(tmp)
+    tst = _load_structure(load_source(tmp))
     assert not tst
 
 

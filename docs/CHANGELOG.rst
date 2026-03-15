@@ -6,7 +6,7 @@ This is a log of the latest changes and improvements to KLibs.
 0.7.8b2
 -------
 
-Unreleased
+Released on 2026-03-15
 
 Fixed Bugs:
 

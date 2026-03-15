@@ -93,7 +93,7 @@ def _win_get_regval(path, name):
 
 def _win_get_subversion():
     # Gets the sub-version of the Windows release (e.g. 22H2)
-    reg = "SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+    reg = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion"
     version = _win_get_regval(reg, "DisplayVersion")
     if not version:
         version = _win_get+regval(reg, "ReleaseId")

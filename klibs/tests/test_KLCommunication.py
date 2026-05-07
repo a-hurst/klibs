@@ -5,7 +5,34 @@ from PIL import Image
 from klibs import P
 from klibs.KLGraphics import NumpySurface
 from klibs.KLText import TextStyle
-from klibs.KLCommunication import message
+from klibs.KLCommunication import message, _get_demographics_queries
+from klibs.KLJSON_Object import import_json, AttributeDict
+
+from conftest import get_resource_path, db_test_path, db
+
+
+def test_get_demograpics_queries(db):
+
+    # Test basic loading and parsing of demographic queries
+    qpath = get_resource_path('template/user_queries.json')
+    qset = import_json(qpath).demographic
+    queries = _get_demographics_queries(db, qset)
+    assert len(queries) == len(qset)
+    assert "age" in list(queries.keys())
+    assert queries["age"].database_field == "age"
+
+    # Test error when missing query for a required column
+    with pytest.raises(RuntimeError):
+        _get_demographics_queries(db, qset[:-1])
+    
+    # Test non-failure if extra query exists
+    extra_q = AttributeDict({
+        "title": "test",
+        "database_field": "non_existant"
+    })
+    qset.append(extra_q)
+    queries = _get_demographics_queries(db, qset)
+    assert len(queries) < len(qset)
 
 
 def test_message(with_text_init):

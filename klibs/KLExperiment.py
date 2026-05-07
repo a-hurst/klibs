@@ -68,6 +68,10 @@ class Experiment(EnvAgent):
         """For internal use, actually runs the blocks/trials of the experiment in sequence.
 
         """
+        if not P.demographics_collected:
+            e = "Demographics must be collected prior to the start of the first block."
+            raise RuntimeError(e)
+
         if self.blocks == None:
             self.blocks = self.trial_factory.export_trials()
 

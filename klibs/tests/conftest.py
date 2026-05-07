@@ -65,3 +65,21 @@ def with_text_init(with_txtm):
     _set_display_params((1920, 1080), 21.5, 60.0)
     init_default_textstyles()
     yield
+
+@pytest.fixture
+def db_test_path():
+    from klibs import KLDatabase as kldb
+    schema_path = get_resource_path('template/schema.sql')
+    tmpdir = tempfile.gettempdir()
+    testpath = os.path.join(tmpdir, "tmp.db")
+    kldb.rebuild_database(testpath, schema_path)
+    assert os.path.exists(testpath)
+    yield testpath
+    os.remove(testpath)
+
+@pytest.fixture
+def db(db_test_path):
+    from klibs import KLDatabase as kldb
+    tmp = kldb.Database(db_test_path)
+    yield tmp
+    tmp.close()

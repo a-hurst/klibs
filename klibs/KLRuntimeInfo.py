@@ -178,6 +178,9 @@ def runtime_info_init():
         'viewing_dist': '{0} cm'.format(int(round(P.view_distance)))
     }
 
+    if P.condition:
+        info['condition'] = P.condition
+
     if P.eye_tracking:
         from klibs.KLEnvironment import el
         info['eyetracker'] = el.version if el.initialized else 'NA'

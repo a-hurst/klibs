@@ -6,25 +6,10 @@ import klibs
 from klibs import KLDatabase as kldb
 from klibs.KLRuntimeInfo import runtime_info_init
 
-from conftest import _init_params_pytest, get_resource_path
+from conftest import _init_params_pytest, get_resource_path, db_test_path, db
 
 
 schema_path = get_resource_path('template/schema.sql')
-
-@pytest.fixture
-def db_test_path():
-    tmpdir = tempfile.gettempdir()
-    testpath = os.path.join(tmpdir, "tmp.db")
-    kldb.rebuild_database(testpath, schema_path)
-    assert os.path.exists(testpath)
-    yield testpath
-    os.remove(testpath)
-
-@pytest.fixture
-def db(db_test_path):
-    tmp = kldb.Database(db_test_path)
-    yield tmp
-    tmp.close()
 
 def generate_id_row(uid=1, gender="f", age=24, handedness="r"):
     # Generate participant data

@@ -27,6 +27,7 @@ def _check_ansi_support():
         supported = ('color' in term_type)
     # Newer versions of cmd.exe in Windows 10 support ANSI colors
     elif sys.platform == "win32":
+        os.system("") # Needed to enable ANSI in cmd.exe?
         supported = sys.getwindowsversion().build >= 18363
     return supported
 

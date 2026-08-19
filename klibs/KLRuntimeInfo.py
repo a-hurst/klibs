@@ -5,8 +5,16 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 import os
 import re
 import sys
+import time
+import shutil
+import hashlib
+import fnmatch
+import tempfile
 import platform
+
 from datetime import datetime
+from zipfile import ZipFile
+from threading import Thread
 
 from klibs import P
 
@@ -23,6 +31,7 @@ CREATE TABLE session_info (
     time text not null,
     klibs_commit text not null,
     random_seed integer not null,
+    codehash text,
     devmode integer not null,
 
     trials_per_block integer not null,
@@ -191,3 +200,121 @@ def runtime_info_init():
         info['el_motion_thresh'] = P.saccadic_motion_threshold
     
     return info
+
+
+def _gather_task_files(paths, filters=None):
+    """Gathers the list of file paths to include in the archive."""
+    filters = [] if not filters else filters
+    exclude = ["__pycache__", ".*"] + filters
+    # Gather list of files to archive
+    taskfiles = []
+    for p in paths:
+        if os.path.isfile(p):
+            taskfiles.append(p)
+        elif os.path.isdir(p):
+            for root, dirs, files in os.walk(p):
+                # If folder name matches filter, skip it
+                if os.path.basename(root) in exclude:
+                    continue
+                # Get paths of all files not matching filters
+                for f in files:
+                    include = True
+                    for pattern in exclude:
+                        if fnmatch.fnmatch(f, pattern):
+                            include = False
+                            break
+                    if include:
+                        fpath = os.path.join(root, f)
+                        taskfiles.append(fpath)
+    return taskfiles
+
+
+def _archive_code(taskfiles, shared):
+    """Threaded function for archiving and hashing the task code."""
+    # Create the archive and get CRCs for each file
+    crcdat = []
+    tmpdir = tempfile.mkdtemp()
+    zippath = os.path.join(tmpdir, "code.zip")
+    with ZipFile(zippath, "w") as z:
+        for file in taskfiles:
+            z.write(file)
+        for zi in z.infolist():
+            crcdat.append("{0} {1}".format(zi.filename, zi.CRC))
+
+    # Get hash of list of CRCs
+    crc_list = " ".join(crcdat).encode('utf-8')
+    ziphash = hashlib.md5(crc_list).hexdigest()[:10]
+    
+    # Send hash and zip path back to main process
+    shared.append(ziphash)
+    shared.append(zippath)
+
+
+class TaskArchiver():
+    """An internal class for archiving a task's current code and stimuli.
+    
+    Tweaks are often made to the code and/or stimuli of a task during data collection
+    to fix bugs and make adjustments. The purpose of this class is to make it easy to
+    keep track of these changes by hashing the task code & resources for each
+    participant and saving a zip archive of the code/resources to given folder that
+    contains copies of all the unique task variations used during collection.
+
+    By default, this class archives all files and folders in the specified paths
+    (excluding invisible files).
+
+    Args:
+        paths (list): A list of paths of files and/or folders to include in the
+            archive.
+        filters (list): A list of filter strings with the names of any subfolders
+            or filename patterns to exclude from the archive (e.g. ["images", "*.mp4"]).
+
+    """
+    def __init__(self, paths, filters=None):
+        self._start = None
+        self._shared = []
+        taskfiles = _gather_task_files(paths, filters)
+        self._thread = Thread(
+            target=_archive_code, args=(taskfiles, self._shared, ), daemon=True
+        )
+
+    def start(self):
+        """Starts the archiving process."""
+        if not self._thread.is_alive():
+            self._thread.start()
+        self._start = time.perf_counter()
+
+    def save(self, outdir, timeout=1.0):
+        """Saves the code archive to a given folder and returns its hash."""
+        # If not finished archiving, wait a while to let it complete
+        if not self.done:
+            self._thread.join(timeout=timeout)
+            elapsed = time.perf_counter() - self._start
+            if self.done:
+                msg = (
+                    "NOTE: Code archive creation took longer than expected ({:.2f} "
+                    "seconds), consider excluding large folders / file types by adding "
+                    "them to the list of 'archive_exclusions' in params.py (e.g. "
+                    "['images', '*.mp4'])."
+                )
+                print(msg.format(elapsed))
+            else:
+                e = "Code archive failed to complete after {:.2f} seconds."
+                raise RuntimeError(e.format(elapsed))
+        # Get the path of the archive and save it to the given folder
+        codehash, zippath = self._shared
+        outpath = os.path.join(outdir, codehash + ".zip")
+        if not os.path.exists(outpath):
+            shutil.move(zippath, outpath)
+        return codehash
+
+    @property
+    def done(self):
+        """bool: True if the archiving process has completed, otherwise False."""
+        done = False
+        if self._start and not self._thread.is_alive():
+            if len(self._shared) == 2:
+                done = True
+            else:
+                e = "Archive thread terminated without completing."
+                raise RuntimeError(e)
+        return done

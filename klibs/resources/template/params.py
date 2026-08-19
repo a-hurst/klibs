@@ -55,7 +55,7 @@ dm_ignore_local_overrides = False
 dm_show_gaze_dot = True
 
 #########################################
-# Data Export Settings
+# Database Settings
 #########################################
 primary_table = "trials"
 unique_identifier = "userhash"
@@ -63,6 +63,7 @@ exclude_data_cols = ["created"]
 append_info_cols = ["random_seed"]
 datafile_ext = ".txt"
 append_hostname = False
+archive_exclusions = ["*.pyc"]
 
 #########################################
 # PROJECT-SPECIFIC VARS

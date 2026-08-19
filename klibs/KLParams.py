@@ -106,7 +106,7 @@ monitor_width = None
 refresh_rate = None # Number of times the display refreshes per second (in Hz)
 refresh_time = None # Expected time between display refreshes (in ms)
 
-# Database Export Settings
+# Database Settings
 id_field_name = "participant_id"
 primary_table = "trials"
 unique_identifier = "userhash"
@@ -116,6 +116,7 @@ exclude_data_cols = ["created"]
 append_info_cols = []
 append_hostname = False
 datafile_ext = ".txt"
+archive_exclusions = ["*.pyc"]
 
 # Development mode & associated switches
 development_mode = False # when True, skips collect_demographics & prints various details to screen

@@ -13,12 +13,23 @@ from klibs.KLExperiment import Experiment
 from conftest import get_resource_path
 
 
+mock_idvars = """
+from klibs.KLStructure import FactorSet, Block
+
+exp_factors = FactorSet({
+    'fac1': [True, False],
+    'fac2': [100, 200, 400],
+})
+
+"""
+
 class MockExperiment(Experiment):
     def __trial__(self, trial):
         pass
 
 @pytest.fixture
-def run_environment():
+def run_environment_manual():
+    # Creates a runtime environment with no factors and manual trial generation
     from klibs import P
     template_path = get_resource_path('template')
     P.ind_vars_file_path = os.path.join(template_path, "independent_variables.py")
@@ -28,7 +39,22 @@ def run_environment():
     P.project_name = "PROJECT_NAME"
 
 @pytest.fixture
-def experiment(run_environment):
+def run_environment(tmp_path):
+    # Creates a runtime environment with a test idvars file
+    from klibs import P
+    config = tmp_path / "Config"
+    idvars = config / "independent_variables.py"
+    if not os.path.exists(config):
+        config.mkdir()
+        idvars.write_text(mock_idvars)
+    P.ind_vars_file_path = idvars
+    P.ind_vars_file_local_path = os.path.join(config, "doesnt_exist.py")
+    P.manual_trial_generation = False
+    P.demographics_collected = True
+    P.project_name = "PROJECT_NAME"
+
+@pytest.fixture
+def experiment(run_environment_manual):
     exp = MockExperiment()
     exp.database = AttributeDict({'tables': []})
     return exp
@@ -40,7 +66,7 @@ def test_Experiment(experiment):
         experiment.run()
 
 
-def test_execute(run_environment):
+def test_execute(run_environment_manual):
     from klibs import P
 
     class TestExperiment(Experiment):
@@ -211,3 +237,11 @@ def test_trials_txt(experiment, tmp_path):
         assert "Factors:" in output
         assert "Block 1 (6 trials" in output
         assert "Block 2 (12 trials" in output
+
+
+def test_exp_factors(run_environment):
+    exp = MockExperiment()
+    assert len(exp.exp_factors.keys()) == 2
+    assert len(exp.exp_factors['fac1']) == 2
+    assert len(exp.exp_factors['fac2']) == 3
+    assert exp.exp_factors['fac2'][0] == 100

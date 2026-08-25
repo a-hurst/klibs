@@ -184,7 +184,7 @@ def test_insert_practice_block(experiment):
     assert P.blocks_per_experiment == 4
 
 
-def test_trials_txt(experiment):
+def test_trials_txt(experiment, tmp_path):
     from klibs import P
 
     # Set dummy trial factors and generate trials
@@ -199,8 +199,7 @@ def test_trials_txt(experiment):
     experiment.insert_practice_block(1, 6)
 
     # Try exporting to a temporary file
-    tmpdir = tempfile.mkdtemp()
-    tmpfile = os.path.join(tmpdir, "trials.txt")
+    tmpfile = os.path.join(tmp_path, "trials.txt")
     assert not os.path.exists(tmpfile)
     experiment.write_trials_txt(tmpfile)
     assert os.path.exists(tmpfile)

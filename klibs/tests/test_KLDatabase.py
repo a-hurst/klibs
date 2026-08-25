@@ -40,9 +40,8 @@ def build_test_data():
     return rows
 
 
-def test_rebuild_database():
-    tmpdir = tempfile.gettempdir()
-    testpath = os.path.join(tmpdir, "test.db")
+def test_rebuild_database(tmp_path):
+    testpath = os.path.join(tmp_path, "test.db")
     # Test creating a database from the default schema
     kldb.rebuild_database(testpath, schema_path)
     assert os.path.exists(testpath)
@@ -204,9 +203,8 @@ class TestDatabaseManager(object):
         assert dat.table_schemas['participants']['age']['type'] == klibs.PY_INT
         dat.close()
 
-    def test_init_multi_user(self, db_test_path):
-        tmpdir = tempfile.gettempdir()
-        localpath = os.path.join(tmpdir, "tmp_local.db")
+    def test_init_multi_user(self, tmp_path, db_test_path):
+        localpath = os.path.join(tmp_path, "tmp_local.db")
         dat = kldb.DatabaseManager(db_test_path, localpath)
         assert os.path.exists(localpath)
         assert "participants" in list(dat.table_schemas.keys())

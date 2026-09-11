@@ -67,11 +67,10 @@ def with_text_init(with_txtm):
     yield
 
 @pytest.fixture
-def db_test_path():
+def db_test_path(tmp_path):
     from klibs import KLDatabase as kldb
     schema_path = get_resource_path('template/schema.sql')
-    tmpdir = tempfile.gettempdir()
-    testpath = os.path.join(tmpdir, "tmp.db")
+    testpath = os.path.join(tmp_path, "tmp.db")
     kldb.rebuild_database(testpath, schema_path)
     assert os.path.exists(testpath)
     yield testpath

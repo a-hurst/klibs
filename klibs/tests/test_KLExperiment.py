@@ -247,7 +247,7 @@ def test_exp_factors(run_environment):
     assert exp.exp_factors['fac2'][0] == 100
 
 
-def test_demographics(run_environment, db):
+def test_participant_info(run_environment, db):
     from klibs import P
     exp = MockExperiment()
     exp.database = db
@@ -255,7 +255,7 @@ def test_demographics(run_environment, db):
         'userhash': 'ABCD', 'gender': 'n', 'age': 20, 'handedness': 'l', 'created': ''
     }
     P.p_id = db.insert(tst, table='participants')
-    demographics = exp.demographics
+    demographics = exp.participant_info
     assert 'gender' in demographics.keys()
     assert 'handedness' in demographics.keys()
     assert not 'id' in demographics.keys()
@@ -264,4 +264,4 @@ def test_demographics(run_environment, db):
     # Test that access fails when demographics not collected yet
     P.demographics_collected = False
     with pytest.raises(RuntimeError):
-        age = exp.demographics["age"]
+        age = exp.participant_info["age"]

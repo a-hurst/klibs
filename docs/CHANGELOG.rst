@@ -22,6 +22,12 @@ Runtime Changes:
   a required column in the `participants` table does not have a corresponding
   query.
 
+API Changes:
+
+* Added a new attribute :attr:`~klibs.Experiment.participant_info` to the
+  Experiment class that provides a dictionary for easy access to participant
+  information collected during demographics (e.g. handedness).
+
 
 0.7.8b2
 -------

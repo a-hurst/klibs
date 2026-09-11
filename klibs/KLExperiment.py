@@ -467,6 +467,39 @@ class Experiment(EnvAgent):
         """
         return self._exp_factors.copy()
 
+
+    @property
+    def participant_info(self):
+        """dict: The demographics values for the current participant.
+
+        This property allows easy access to the current participant's self-reported
+        demographics attributes (e.g. handedness) for cases where these attributes
+        affect the experiment runtime (e.g. different instructions and/or controls
+        for left-handed participants)::
+
+           handedness = self.participant_info['handedness']
+           self.button_loc = b_left_loc if handedness == "l" else b_right_loc
+               
+        The keys of this dict correspond to the columns in the 'participants' table
+        of the task's database.
+
+        This attribute is read-only, meaning that any changes to this attribute's
+        keys or values will have no effect on the experiment runtime.
+
+        """
+        if not P.demographics_collected:
+            e = "Demographics accessed prior to demographics collection."
+            raise RuntimeError(e)
+        
+        colnames = self.database.get_columns('participants')
+        values = self.database.select('participants', where={'id': P.p_id})[0]
+        out = {}
+        for i in range(len(colnames)):
+            if not colnames[i] == 'id':
+                out[colnames[i]] = values[i]
+        return out
+
+
     @property
     def evm(self):
         """:obj:`~klibs.KLEventInterface.EventManager`: The trial event sequencer for

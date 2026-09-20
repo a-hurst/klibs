@@ -341,5 +341,5 @@ class TrialFactory(object):
     def dump(self):
         # Compat: Can remove once taken out of TraceLab
         outpath = os.path.join(P.local_dir, "TrialFactory_dump.txt")
-        with open(outpath, "w") as log_f:
+        with open(outpath, 'w', encoding='utf-8') as log_f:
             log_f.write(_structure_to_str(self.blocks, self.exp_factors))

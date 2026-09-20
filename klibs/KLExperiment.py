@@ -350,7 +350,7 @@ class Experiment(EnvAgent):
             fname = "{0}_trials.txt".format(P.project_name)
             outpath = os.path.join(P.local_dir, fname)
 
-        with open(outpath, "w") as out:
+        with open(outpath, 'w', encoding='utf-8') as out:
             blocks = self.blocks if self.blocks else self.trial_factory.blocks
             out.write(_structure_to_str(blocks, self.exp_factors))
 

@@ -20,7 +20,7 @@ if not os.path.isfile(commit_file):
     
     cmd = 'git rev-parse --verify HEAD'.split(' ')
     commit = sub.check_output(cmd, universal_newlines=True).strip()
-    with open(commit_file, 'w+') as f:
+    with open(commit_file, 'w+', encoding='utf-8') as f:
         f.write(commit)
     
     

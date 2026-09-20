@@ -80,7 +80,7 @@ def initialize_path(path):
             "Please make sure you are in a valid KLibs project folder and try again.")
 
     # Get experiment name from experiment.py file
-    with open(exp_file, 'r') as f:
+    with open(exp_file, 'r', encoding='utf-8') as f:
         name_regex = re.compile(r"\nclass\s+(\w+)\((?:klibs\.)?Experiment.*")
         exp_class_names = name_regex.findall(f.read())
     if not len(exp_class_names):
@@ -222,11 +222,12 @@ def create(name, path):
         filename = tf[0] if tf[0] in [".gitignore", "experiment.py"] else "{0}_{1}".format(name, tf[0])
         template_f_path = join(source_path, tf[0] if tf[0] != ".gitignore" else "gitignore.txt")
         project_f_path = filename if len(tf[1]) == 0 else join(join(*tf[1]), filename)
-        with open(template_f_path, "rt") as temp, open(join(tmp_path, project_f_path), "w+") as out:
-            contents = temp.read()
-            contents = contents.replace('PROJECT_NAME', name)
-            contents = contents.replace('EXPERIMENTER_NAME', author)
-            out.write(contents)
+        with open(template_f_path, "rt", encoding='utf-8') as temp:
+            with open(join(tmp_path, project_f_path), "w+", encoding='utf-8') as out:
+                contents = temp.read()
+                contents = contents.replace('PROJECT_NAME', name)
+                contents = contents.replace('EXPERIMENTER_NAME', author)
+                out.write(contents)
         cso("  <cyan>...'{0}' successfully created.</cyan>".format(project_f_path))
 
     # Once successfully initialized, copy template to target directory

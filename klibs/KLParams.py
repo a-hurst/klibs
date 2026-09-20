@@ -255,7 +255,7 @@ def initialize_runtime(exp_name, randseed):
     # Load extra resources from KLibs package
     klibs_root = dirname(find_spec("klibs").origin)
     klibs_commit_path = join(klibs_root, 'resources', 'current_commit.txt')
-    klibs_commit = open(klibs_commit_path, mode='r').read()
+    klibs_commit = open(klibs_commit_path, 'r', encoding='utf-8').read()
     logo_file_path = join(klibs_root, 'resources', 'splash.png')
     font_dirs = [exp_font_dir, join(klibs_root, 'resources', 'font')]
     

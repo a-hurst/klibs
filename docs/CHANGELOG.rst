@@ -28,6 +28,12 @@ API Changes:
   Experiment class that provides a dictionary for easy access to participant
   information collected during demographics (e.g. handedness).
 
+Fixed Bugs:
+
+* Fixed an issue where klibs would fail to run on Windows if the Python
+  interpreter defaulted to CP-1252 encoding.
+* Fixed a number of SyntaxWarnings with newer versions of Python.
+
 
 0.7.8b2
 -------

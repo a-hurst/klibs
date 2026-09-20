@@ -1272,9 +1272,8 @@ class ResponseCollector(EnvAgent):
 
     @property
     def display_args(self):
-        """:obj:`list`: A list of positional arguments (\*args) to pass to the display callback
-        function. See `here <https://www.agiliq.com/blog/2012/06/understanding-args-and-kwargs/>`_
-        for an explanation of how \*args work in Python.
+        """:obj:`list`: A list of positional arguments to pass to the display callback
+        function.
 
         """
         return self.__callbacks['display'][1]
@@ -1285,9 +1284,8 @@ class ResponseCollector(EnvAgent):
 
     @property
     def display_kwargs(self):
-        """:obj:`dict`: A list of keyword arguments (\*\*kwargs) to pass to the display callback
-        function. See `here <https://www.agiliq.com/blog/2012/06/understanding-args-and-kwargs/>`_
-        for an explanation of how \*\*kwargs work in Python.
+        """:obj:`dict`: A list of keyword arguments  to pass to the display callback
+        function.
 
         """
         return self.__callbacks['display'][2]
@@ -1314,9 +1312,8 @@ class ResponseCollector(EnvAgent):
 
     @property
     def after_flip_args(self):
-        """:obj:`list`: A list of positional arguments (\*args) to pass to the after_flip callback
-        function. See `here <https://www.agiliq.com/blog/2012/06/understanding-args-and-kwargs/>`_
-        for an explanation of how \*args work in Python.
+        """:obj:`list`: A list of positional arguments to pass to the after_flip callback
+        function.
 
         """
         return self.__callbacks['after_flip'][1]
@@ -1327,9 +1324,8 @@ class ResponseCollector(EnvAgent):
 
     @property
     def after_flip_kwargs(self):
-        """:obj:`dict`: A list of keyword arguments (\*\*kwargs) to pass to the after_flip callback
-        function. See `here <https://www.agiliq.com/blog/2012/06/understanding-args-and-kwargs/>`_
-        for an explanation of how \*\*kwargs work in Python.
+        """:obj:`dict`: A list of keyword arguments to pass to the after_flip callback
+        function.
 
         """
         return self.__callbacks['after_flip'][2]
@@ -1356,10 +1352,8 @@ class ResponseCollector(EnvAgent):
 
     @property
     def before_return_args(self):
-        """:obj:`list`: A list of positional arguments (\*args) to pass to the before_return
+        """:obj:`list`: A list of positional arguments to pass to the before_return
         callback function.
-        See `here <https://www.agiliq.com/blog/2012/06/understanding-args-and-kwargs/>`_ for an
-        explanation of how \*args work in Python.
 
         """
         return self.__callbacks['before_return'][1]
@@ -1370,10 +1364,8 @@ class ResponseCollector(EnvAgent):
 
     @property
     def before_return_kwargs(self):
-        """:obj:`dict`: A list of keyword arguments (\*\*kwargs) to pass to the before_return
+        """:obj:`dict`: A list of keyword arguments to pass to the before_return
         callback function.
-        See `here <https://www.agiliq.com/blog/2012/06/understanding-args-and-kwargs/>`_ for an
-        explanation of how \*\*kwargs work in Python.
 
         """
         return self.__callbacks['before_return'][2]

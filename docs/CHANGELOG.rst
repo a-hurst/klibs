@@ -21,6 +21,11 @@ Runtime Changes:
 * Demographics collection now fails immediately with an informative message if
   a required column in the `participants` table does not have a corresponding
   query.
+* EyeLink EDF files collected while in development mode are now saved in the
+  subfolder ``EDF/devmode/`` to separate them from actual participant data.
+* ``klibs export`` no longer exports data collected in development mode unless
+  specifically requested. Development mode data can still be exported manually
+  using ``klibs export -d``.
 
 API Changes:
 

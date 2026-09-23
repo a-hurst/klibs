@@ -121,10 +121,15 @@ def _build_filepath(multi, id_info=None, base=None, joined=[], duplicate=False):
             hostname = hostname.replace(a, b)
         suffix += "-{0}".format(hostname)
     if multi:
-        p_id, created, incomplete = id_info
+        p_id, created, incomplete, devmode = id_info
         basename = "p{0}{1}.{2}".format(str(p_id), tables, created[:10])
         suffix += ("_incomplete" if incomplete else "")
-        outdir = P.incomplete_data_dir if incomplete else P.data_dir
+        if devmode:
+            outdir = P.devmode_data_dir
+        elif incomplete:
+            outdir = P.incomplete_data_dir
+        else:
+            outdir = P.data_dir
     else:
         basename = "{0}_all_trials{1}".format(P.project_name, tables)
         outdir = P.data_dir
@@ -689,7 +694,13 @@ class DatabaseManager(EnvAgent):
         this_id = {'participant_id': pid, 'table_name': table}
         matches = self._primary.select('export_history', where=this_id)
         return len(matches) > 0
-    
+
+    def _get_devmode_ids(self):
+        # Gets a list of all development mode IDs
+        ids = []
+        if 'age' in self.get_columns('participants'):
+            ids = self._primary.select('participants', ['id'], where={'age': -1})
+        return [row[0] for row in ids]
 
     def get_unique_ids(self):
         """Retrieves all existing unique id values from the main database.
@@ -739,16 +750,21 @@ class DatabaseManager(EnvAgent):
             self._local.close()
 
 
-    def collect_export_data(self, base_table, multi_file=True, join_tables=[]):
-        uid = P.unique_identifier
-        participant_ids = self._primary.query("SELECT `id`, `{0}` FROM `participants`".format(uid))
+    def collect_export_data(self, base_table, multi_file, join_tables=[], dev=False):
+        # Gather IDs for export, excluding devmode IDs unless specifically requested
+        participant_ids = [row[0] for row in self.select('participants', ['id'])]
+        if not dev:
+            dev_ids = self._get_devmode_ids()
+            participant_ids = list(set(participant_ids) - set(dev_ids))
 
         colnames = []
         sub = {P.unique_identifier: 'participant'}
 
         # if P.default_participant_fields(_sf) is defined use that, but otherwise use
         # P.exclude_data_cols since that's the better way of doing things
-        fields = P.default_participant_fields if multi_file else P.default_participant_fields_sf
+        if not multi_file:
+            P.default_participant_fields = P.default_participant_fields_sf
+        fields = P.default_participant_fields
         if len(fields) > 0:
             for field in fields:
                 if iterable(field):
@@ -785,16 +801,15 @@ class DatabaseManager(EnvAgent):
                 q += "JOIN {0} ON participants.id = {0}.participant_id ".format(t)
             q += " WHERE participants.id = ?"
             p_data = [] 
-            for trial in self._primary.query(q, q_vars=tuple([p[0]])):
+            for trial in self._primary.query(q, q_vars=tuple([p])):
                 row_str = TAB.join(utf8(col) for col in trial)
                 p_data.append(row_str)
-            data.append([p[0], p_data])
+            data.append([p, p_data])
 
         return [column_names, data]
 
 
-    def export(self, table=None, multi_file=True, join_tables=None):
-        #TODO: make option for exporting non-devmode/complete participants only
+    def export(self, table=None, multi_file=True, join_tables=None, dev=False):
         table = P.primary_table if not table else table
         try:
             join_tables = join_tables[0].split(",")
@@ -802,16 +817,18 @@ class DatabaseManager(EnvAgent):
             join_tables = []
 
         _set_type_conversions(export=True)
-        column_names, data = self.collect_export_data(table, multi_file, join_tables)
+        colnames, data = self.collect_export_data(table, multi_file, join_tables, dev)
+        dev_ids = self._get_devmode_ids()
 
         if multi_file:
             for p_id, trials in data:
                 header = _build_export_header(self._primary, p_id)
                 incomplete = (self._is_complete(p_id) == False)
+                devmode = p_id in dev_ids
                 created = self._primary.select(
                     'participants', ['created'], where={'id': p_id}
                 )[0][0]
-                id_info = (p_id, created, incomplete)
+                id_info = (p_id, created, incomplete, devmode)
                 file_path = _build_filepath(True, id_info, table, join_tables)
                 # If file already exists at path and id/table was already exported, skip
                 if os.path.exists(file_path):
@@ -822,7 +839,7 @@ class DatabaseManager(EnvAgent):
                     )
                 # Actually write out the file
                 with io.open(file_path, 'w+', encoding='utf-8') as out:
-                    out.write(u"\n".join([header, column_names, "\n".join(trials)]))
+                    out.write(u"\n".join([header, colnames, "\n".join(trials)]))
                 self._log_export(p_id, table) # Log successful export in database
                 print("    - Participant {0} successfully exported.".format(p_id))
         else:
@@ -840,9 +857,28 @@ class DatabaseManager(EnvAgent):
                 )
             # Actually write out the file
             with io.open(file_path, 'w+', encoding='utf-8') as out:
-                out.write(u"\n".join([header, column_names, "\n".join(combined_data)]))
+                out.write(u"\n".join([header, colnames, "\n".join(combined_data)]))
             msg = "    - Data for {0} participant{1} successfully exported."
             print(msg.format(p_count, "" if p_count == 1 else "s"))
+
+        # Let user know if any devmode participants were skipped
+        n_dev = len(dev_ids)
+        if not dev and n_dev > 0:
+            # Check whether devmode data already exported
+            if multi_file and os.path.exists(P.devmode_data_dir):
+                files = [f for f in os.listdir(P.devmode_data_dir) if f[0] == "p"]
+                if len(files):
+                    exported = sum([self._already_exported(p, table) for p in dev_ids])
+                    n_dev = n_dev - exported
+                    if n_dev == 0:
+                        return
+            # If there are unexported devmode ids, warn user
+            if len(data):
+                print("")
+            msg = "Note: Data from {} development mode {} {}."
+            suffix = "not exported" if multi_file else "excluded"
+            print(msg.format(n_dev, "ids" if n_dev > 1 else "id", suffix))
+            print("Use the '-d' flag to export development mode data.")
 
 
     def num_data_rows(self, unique_id):

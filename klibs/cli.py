@@ -378,7 +378,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
         ))
 
 
-def export(path, table=None, combined=False, join=None):
+def export(path, table=None, devmode=False, combined=False, join=None):
     from klibs import P
     from klibs.KLDatabase import DatabaseManager
 
@@ -386,21 +386,25 @@ def export(path, table=None, combined=False, join=None):
     project_name = initialize_path(path)
     cso("\n<green>*** Exporting data from {0} ***</green>\n".format(project_name))
 
-    # set initial param values for project's context
+    # Set initial param values for project's context
     P.initialize_paths(project_name)
 
-    # ensure that 'Data' and 'Data/incomplete' directories exist, creating if missing
+    # Ensure that 'Data' and 'Data/incomplete' directories exist, creating if missing
     if not os.path.isdir(P.incomplete_data_dir):
         os.makedirs(P.incomplete_data_dir)
 
-    # import params defined in project's local params file in ExpAssets/Config
+    # If exporting devmode data, make sure the folder for it exists
+    if devmode and not combined and not os.path.isdir(P.devmode_data_dir):
+        os.mkdir(P.devmode_data_dir)
+
+    # Import params defined in project's local params file in ExpAssets/Config
     for k, v in load_source(P.params_file_path).items():
         setattr(P, k, v)
     multi_file = combined != True
 
     # Validate database path and export
     P.database_path = validate_database_path(P.database_path)
-    DatabaseManager(P.database_path).export(table, multi_file, join)
+    DatabaseManager(P.database_path).export(table, multi_file, join, devmode)
 
 
 def rebuild_db(path):
@@ -444,7 +448,9 @@ def hard_reset(path):
     P.initialize_paths(project_name)
     reset_files = [P.database_path, P.database_backup_path]
     reset_dirs = [
-        P.incomplete_data_dir, P.incomplete_edf_dir, P.logs_dir, P.versions_dir
+        P.incomplete_data_dir, P.incomplete_edf_dir,
+        P.devmode_data_dir, P.devmode_edf_dir,
+        P.logs_dir, P.versions_dir
     ]
 
     reset_prompt = cso(

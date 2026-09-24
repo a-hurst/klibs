@@ -171,7 +171,8 @@ def _build_export_header(db, user_id=None):
             values = db.query(q, q_vars=[user_id])
         else:
             values = db.query(q)
-        runtime_info[colname] = "(multiple)" if len(values) > 1 else values[0][0]
+        values = [v[0] for v in values]
+        runtime_info[colname] = values[0] if len(values) == 1 else values
 
     # If database is from a legacy project, guess at runtime values from params
     if legacy:
@@ -218,7 +219,13 @@ def _build_export_header(db, user_id=None):
         lines = ["# {0}".format(section)]
         for field, key in header[section]:
             if key in runtime_info.keys():
-                lines += ["#  > {0}: {1}".format(field, runtime_info[key])]
+                value = runtime_info[key]
+                if iterable(value) and key != "random_seed":
+                    lines += ["#  > {0}: {1}".format(field, "(multiple)")]
+                    for v in value:
+                        lines += ["#    - {0}".format(v)]
+                else:
+                    lines += ["#  > {0}: {1}".format(field, value)]
         chunks.append("\n".join(lines) + "\n")
 
     return "#\n".join(chunks)

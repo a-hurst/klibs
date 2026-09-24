@@ -13,6 +13,7 @@ from sdl2 import (SDL_StartTextInput, SDL_StopTextInput,
 from klibs.KLConstants import (AUTO_POS, BL_CENTER, QUERY_ACTION_UPPERCASE,
     QUERY_ACTION_HASH)
 import klibs.KLParams as P
+from klibs.KLInternal import subset_dict
 from klibs.KLJSON_Object import import_json, AttributeDict
 from klibs.KLEventQueue import pump, flush
 from klibs.KLUtilities import pretty_list, now, utf8, make_hash
@@ -128,6 +129,10 @@ def collect_demographics(anonymous=False):
 
     # Log info about current runtime environment to database
     runtime_info = runtime_info_init()
+    runtime_info = subset_dict(
+        # Ensures new columns don't break runtime if klibs updated mid-collection
+        runtime_info, db.get_columns("session_info")
+    )
     db.insert(runtime_info, "session_info")
 
     # Save copy of experiment.py and config files as they were for participant

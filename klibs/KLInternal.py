@@ -25,6 +25,28 @@ will be quick to load and won't break if there's an issue with an external depen
 
 # NOTE: Should pretty_list and/or make_hash go here as well?
 
+def subset_dict(d, keys, exclude=False):
+    """Subsets a dictionary based on a given set of keys.
+    
+    Args:
+        d (dict): The dictionary to subset.
+        keys (list): The keys to include in (or exclude from) the returned dict.
+        exclude (bool, optional): If True, the specified keys will be excluded
+            from the returned dict instead of included. Defaults to False.
+
+    Returns:
+        dict: A filtered copy of the original dict.
+
+    """
+    out = d.copy()
+    for f in d.keys():
+        if exclude:
+            if f in keys:
+                out.pop(f, None)
+        else:
+            if f not in keys:
+                out.pop(f, None)
+    return out
 
 
 def valid_coords(coords):

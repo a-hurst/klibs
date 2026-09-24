@@ -126,15 +126,17 @@ def klibs_main():
 
     export_parser = subparsers.add_parser('export', formatter_class=CustomHelpFormatter,
         help='Export data to ExpAssets/Data/',
-        usage='klibs export [path] [-c] [-t <primary_table>] [-j <table1,...>] [--help]'
+        usage='klibs export [path] [-c] [-d] [-t <table>] [-j <table1,...>] [--help]'
     )
     export_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, metavar="path",
         help=("Path to the directory containing the KLibs project. "
         "Defaults to current working directory.")
     )
     export_parser.add_argument('-t', '--table', nargs="?", type=str, metavar="table",
-        help=("Specify the primary table to join with the participants table during export. "
-        "Defaults to the 'trials' table unless otherwise specified.")
+        help=("The primary table to export from the database (defaults to 'trials').")
+    )
+    export_parser.add_argument('-d', '--devmode', action="store_true",
+        help=("Include development mode ids in the exported data.")
     )
     export_parser.add_argument('-c', '--combined', action="store_true",
         help=("Export data to a single file instead of individual files for each participant. "

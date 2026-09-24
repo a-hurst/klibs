@@ -145,6 +145,8 @@ versions_dir = join(asset_dir, ".versions")
 # Project Subdirectories
 incomplete_data_dir = join(data_dir, "incomplete")
 incomplete_edf_dir = join(edf_dir, "incomplete")
+devmode_data_dir = join(data_dir, "devmode")
+devmode_edf_dir = join(edf_dir, "devmode")
 audio_dir = join(resources_dir, "audio")
 code_dir = join(resources_dir, "code")
 image_dir = join(resources_dir, "image")

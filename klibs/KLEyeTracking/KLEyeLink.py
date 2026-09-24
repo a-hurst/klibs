@@ -160,7 +160,10 @@ class EyeLink(BaseEyeLink, EyeTracker):
 
         """
         # Determine destination path for EDF (creating parent folder if needed)
-        edf_dir = P.incomplete_edf_dir if incomplete else P.edf_dir
+        if P.development_mode:
+            edf_dir = P.devmode_edf_dir
+        else:
+            edf_dir = P.incomplete_edf_dir if incomplete else P.edf_dir
         if not os.path.isdir(edf_dir):
             os.makedirs(edf_dir)
         edf_path = os.path.join(edf_dir, self.edf_filename)

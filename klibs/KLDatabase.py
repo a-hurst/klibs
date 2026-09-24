@@ -698,7 +698,11 @@ class DatabaseManager(EnvAgent):
     def _get_devmode_ids(self):
         # Gets a list of all development mode IDs
         ids = []
-        if 'age' in self.get_columns('participants'):
+        info_t = 'session_info'
+        if info_t in self.tables and 'devmode' in self.get_columns(info_t):
+            ids = self._primary.select(info_t, ['participant_id'], where={'devmode': 1})
+        elif 'age' in self.get_columns('participants'):
+            # For backwards compatibilty with older projects
             ids = self._primary.select('participants', ['id'], where={'age': -1})
         return [row[0] for row in ids]
 

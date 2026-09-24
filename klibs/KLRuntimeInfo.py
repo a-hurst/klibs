@@ -23,6 +23,7 @@ CREATE TABLE session_info (
     time text not null,
     klibs_commit text not null,
     random_seed integer not null,
+    devmode integer not null,
 
     trials_per_block integer not null,
     blocks_per_session integer not null,
@@ -169,6 +170,7 @@ def runtime_info_init():
         'time': datetime.now().strftime("%H:%M:%S"),
         'klibs_commit': P.klibs_commit,
         'random_seed': P.random_seed,
+        'devmode': P.development_mode,
         'trials_per_block': P.trials_per_block,
         'blocks_per_session': P.blocks_per_experiment,
         'os_version': sysinfo['os'],

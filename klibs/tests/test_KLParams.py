@@ -24,7 +24,6 @@ _runtime_vars = [
 	"klibs_commit",
 	"database_local_path",
 	"logo_file_path",
-	"font_dirs",
 ]
 
 def _reset_params():
@@ -84,4 +83,3 @@ def test_initialize_runtime(with_clean_params):
     assert type(P.klibs_commit) == str
     assert P.project_name in P.database_local_path
     assert ".png" in P.logo_file_path
-    assert len(P.font_dirs) >= 2

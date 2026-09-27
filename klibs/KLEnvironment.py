@@ -37,7 +37,9 @@ class EnvAgent(object):
     @property
     def txtm(self):
         """:obj:`~klibs.KLText.TextManager`: The TextManager instance for the current KLibs
-        runtime environment. 
+        runtime environment.
+
+        Deprecated, do not use!
 
         """
         from klibs.KLEnvironment import txtm

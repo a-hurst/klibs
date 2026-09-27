@@ -2,20 +2,17 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import re
-from os.path import isfile, join, basename
 import ctypes
 from ctypes import byref, c_int
 
 from sdl2.sdlttf import (TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_Blended,
-    TTF_SizeUTF8, TTF_GlyphMetrics, TTF_FontLineSkip)
+    TTF_SizeUTF8, TTF_GlyphMetrics)
 from sdl2 import SDL_Color
 from sdl2.ext.compat import byteify
 from sdl2.ext import surface_to_ndarray, raise_sdl_err
 from sdl2.ext.ttf import _ttf_init
 
-from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
 from klibs import P
-from klibs.KLEnvironment import EnvAgent
 from klibs.KLUtilities import deg_to_px, utf8
 from klibs.KLGraphics import rgb_to_rgba, blit
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
@@ -26,6 +23,19 @@ from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 _fonts = {}
 _styles = {}
 
+
+def _add_fonts(path):
+    # Adds all TTF/OTF fonts in a given directory to the runtime
+    global _fonts
+    for f in os.listdir(path):
+        # Skip invisible files
+        if f[0] == "." or not "." in f:
+            continue
+        # If file extension is valid, add font to dict
+        fontname, delim, ext = f.rpartition('.')
+        if ext in ['ttf', 'otf']:
+            fontpath = os.path.join(path, f)
+            _fonts[fontname] = fontpath
 
 
 def _split_units(s):
@@ -66,7 +76,7 @@ def _load_font(fontpath, size_pt):
     # Loads a font at a given size and checks for any errors
     font = TTF_OpenFont(fontpath, int(size_pt))
     if not font:
-        fname = basename(fontpath)
+        fname = os.path.basename(fontpath)
         raise_sdl_err("opening the font '{0}'".format(fname))
     return font
 
@@ -198,9 +208,6 @@ class TextStyle():
     A text style defines a specific combination of font, font size, font color, and
     line spacing to use for rendering text.
 
-    Note that if specifying a particular font for a text style, the font must already
-    exist within the klibs :obj:`~klibs.KLText.TextManager`.
-
     Args:
         font (str, optional): The name of the font to use when rendering text with the
             style. Defaults to ``P.default_font_name`` if not specified.
@@ -215,7 +222,7 @@ class TextStyle():
     """
     def __init__(self, font=None, size=None, color=None, line_space=None):
 
-        # First, make sure TextManager has been initialized
+        # First, make sure text rendering has been initialized
         self._initialized = False
         if not len(_fonts):
             e = "KLibs runtime must be initialized before creating a text style."
@@ -232,7 +239,7 @@ class TextStyle():
 
         # Make sure requested font actually exists within the text manager
         if self._fontname not in _fonts.keys():
-            e = "No font with the label '{0}' has been added to the KLibs TextManager."
+            e = "No font with the name '{0}' exists within the klibs runtime."
             raise RuntimeError(e.format(self._fontname))
         self._fontpath = byteify(_fonts[self._fontname])
 
@@ -310,25 +317,15 @@ class TextStyle():
 
 
 class TextManager(object):
+    # [Compat]: Legacy font/text management singleton, remove in next major release
 
     def __init__(self):
-        # Initialize SDL_ttf and font/style dicts
+        # Initialize SDL_ttf
         _ttf_init()
-
-        # Load fonts included in klibs
-        self.add_font("Anonymous Pro", filename="AnonymousPro")
-        self.add_font("Roboto-Medium")
-        self.add_font("Hind-Medium")
-        self.add_font("Frutiger") # Deprecated, remove w/ warning in next major update
-
+        # Load built-in fonts included in klibs
+        _add_fonts(P.internal_font_dir)
         # Load additional fonts from ExpAssets/Resources/font
-        self._load_user_fonts()
-
-    @property
-    def fonts(self):
-        # NOTE: Not actually accessed directly in any legacy code
-        global _fonts
-        return _fonts
+        _add_fonts(P.exp_font_dir)
 
     @property
     def styles(self):
@@ -336,61 +333,23 @@ class TextManager(object):
         global _styles
         return _styles
 
-    def _load_user_fonts(self):
-        # Pre-load all supported font files in the ExpAssets/Resources/font dir
-        font_exts = ['ttf', 'otf']
-        for f in os.listdir(P.exp_font_dir):
-            # Skip invisible files
-            if f[0] == "." or not "." in f:
-                continue
-            # If file extension is valid, add font to runtime
-            fontname, delim, ext = f.rpartition('.')
-            if ext in font_exts:
-                fontpath = os.path.join(P.exp_font_dir, f)
-                self.fonts[fontname] = fontpath
-
     def add_style(
         self, label, font_size=None, color=None, line_height=None, font_label=None
     ):
-        # Legacy method for adding font styles, replaced by add_text_style
+        # [Compat]: Legacy method for adding font styles, replaced by add_text_style
         line_space = 2.0
         if line_height:
             h, _ = _split_units(str(line_height))
             line_space = (h + 1.0) * 1.3
         self.styles[label] = TextStyle(font_label, font_size, color, line_space)
 
-
     def add_font(self, name, filename=None):
-        """Adds a font to the Text Manager, so it can be used for creating text styles.
-
-        Args:
-            name (str): The name of the font being added. 
-            filename (str, optional): The filename of the font, excluding the file extension. If
-                the filename of the font is the same as the name you want to use for it, you do not
-                have to provide this argument.
-        
-        Raises:
-            IOError: If no font with the given filename and the extention '.ttf' or '.otf' can be
-                found in the project's or system's font directories.
-
-        """
-        
-        def getfontpath(filename):
-            for d in P.font_dirs:
-                for ext in [".ttf", ".otf"]:
-                    path = join(d, filename + ext)
-                    if isfile(path):
-                        return path
-            return None # if no matching file found
-
-        if not filename:
-            filename = name
-
-        fontpath = getfontpath(filename)
-        if fontpath:
-            self.fonts[name] = fontpath
-        else:
-            raise IOError("Font '{0}' not found in any expected destination.".format(filename))
+        # [Compat]: All internal/user fonts now pre-loaded automatically, only needed to
+        #  avoid breaking old code
+        filename = name if not filename else filename
+        if not filename in _fonts.keys():
+            e = "Font '{0}' not found in any expected destination."
+            raise IOError(e.format(filename))
 
 
 

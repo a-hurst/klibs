@@ -42,6 +42,10 @@ def test_message(with_text_init):
     msg = message("Hello!")
     assert isinstance(msg, NumpySurface)
 
+    # Test empty string rendering
+    empty = message("")
+    assert isinstance(empty, NumpySurface)
+
     # Test multi-line rendering
     msg2 = message("Hello!\nHello!")
     msg3 = message("Hello!\n\nHello!")

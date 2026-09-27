@@ -21,7 +21,7 @@ from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLRuntimeInfo import runtime_info_init
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
-from klibs.KLText import add_text_style, message
+from klibs.KLText import _get_text_style, add_text_style, message
 
 
 user_queries = None
@@ -238,7 +238,7 @@ def query(query_ob, anonymous=False):
         if p.locations[k] == AUTO_POS:
             # NOTE: Query line spacing after new TextStyle overhaul looks different
             # than before (larger spacing), should look into it
-            font = txtm.styles[f.styles.query]
+            font = _get_text_style(f.styles.query)
             v_pad = q_text.height + int(0.5 * font.line_space * font.size_px)
             p.locations[k] = [P.screen_c[0], p.locations.query[1] + v_pad]
             p.registrations[k] = BL_CENTER

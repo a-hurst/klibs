@@ -2,7 +2,6 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import re
-import ctypes
 from ctypes import byref, c_int
 
 from sdl2.sdlttf import (TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_Blended,
@@ -93,8 +92,7 @@ def _render_line(text, font, color):
     # Renders a single line of text to a NumpySurface
     bgra_color = SDL_Color(color[2], color[1], color[0], color[3])
     rendered_text = TTF_RenderUTF8_Blended(font, text, bgra_color).contents
-    surface_array = surface_to_ndarray(rendered_text)
-    surface = NpS(surface_array)
+    surface = surface_to_ndarray(rendered_text)
     return surface
 
 
@@ -132,7 +130,7 @@ def _wrap_lines(text, style, font, align, width=None):
         # when rendered with the specified text style
         wrapped = []
         surf_width = width
-        w, segment_w, h = ctypes.c_int(0), ctypes.c_int(0), ctypes.c_int(0)
+        w, segment_w, h = c_int(0), c_int(0), c_int(0)
         for line in lines:
             if not len(line):
                 continue
@@ -157,7 +155,7 @@ def _wrap_lines(text, style, font, align, width=None):
     else:
         # If no wrap width provided, set surface width to width of longest line
         surf_width = 1
-        w, h = ctypes.c_int(0), ctypes.c_int(0)
+        w, h = c_int(0), c_int(0)
         for line in lines:
             if len(line):
                 TTF_SizeUTF8(font, line, byref(w), byref(h))
@@ -191,14 +189,14 @@ def _render_text(text, style="default", align="left", max_width=None):
     font = style._font_ttf
     needs_wrap = False
     if max_width != None:
-        w, h = ctypes.c_int(0), ctypes.c_int(0)
-        TTF_SizeUTF8(font, text, ctypes.byref(w), ctypes.byref(h))
+        w, h = c_int(0), c_int(0)
+        TTF_SizeUTF8(font, text, byref(w), byref(h))
         needs_wrap = w.value > max_width
 
     if len(text.split(b"\n")) > 1 or needs_wrap:
         return _wrap_lines(text, style, font, align, max_width)
 
-    return _render_line(text, font, style.color)
+    return NpS(_render_line(text, font, style.color))
 
 
 

@@ -144,13 +144,6 @@ def collect_demographics(anonymous=False):
         copytree(P.config_dir, join(P.version_dir, "Config"))
 
 
-def init_default_textstyles():
-    # Need to wait for screen size/DPI to be known before loading default text styles
-    # in case default units are specified in degrees
-    add_text_style("default", font=P.default_font_name)
-    add_text_style("alert", color=P.default_alert_color, font=P.default_font_name)
-
-
 def init_messaging():
     # This function should be removed somehow: user queries should be a) redone, and
     # b) loaded in with a regular function

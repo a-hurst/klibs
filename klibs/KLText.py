@@ -89,96 +89,96 @@ def _render_line(text, font, color):
 
 
 def _render_multiline(lines, style, width, align):
-    # Renders multiple lines of text with a given justification to a surface
-    # with a given width
+    """Renders multiple lines of text with a given justification to a surface."""
+    # Determine required surface height and create surface
     line_pad = int(style.size_px * (style.line_space - 1.0))
     net_line_height = style.size_px + line_pad
-    output = NpS(width=width, height=(len(lines) * net_line_height))
+    surf = NpS(width=width, height=(len(lines) * net_line_height))
+    # Determine line alignment based on justification
+    if align == "left":
+        line_x = 0
+        registration = 7
+    elif align == "center":
+        line_x = width / 2
+        registration = 8
+    elif align == "right":
+        line_x = width
+        registration = 9
+    # Render all lines with proper alignment to surface
     for i in range(len(lines)):
-        line = lines[i]
-        if not len(line):
-            # Skip empty lines
-            continue
-        l_surf = _render_line(line, style._font_ttf, style.color)
-        if align == "left":
-            l_surf_pos = (0, i * net_line_height)
-            output.blit(l_surf, location=l_surf_pos, blend=False, clip=False)
-        elif align == "center":
-            l_surf_pos = (width/2, i * net_line_height)
-            output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=8)
-        elif align == "right":
-            l_surf_pos = (width, i * net_line_height)
-            output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=9)
-
-    return output
+        if not len(lines[i]):
+            continue # Skip empty lines
+        line_pos = (line_x, i * net_line_height)
+        line = _render_line(lines[i], style._font_ttf, style.color)
+        surf.blit(line, registration, line_pos, clip=False, blend=False)
+    return surf
 
 
 def _wrap_lines(text, style, font, align, width=None):
     # Renders multi-line text with a given justification
     lines = text.split(b"\n")
     if width:
-        surface_width = width
-        wrapped_lines = []
+        # If wrap width provided, split lines of text so they fit within the width
+        # when rendered with the specified text style
+        wrapped = []
+        surf_width = width
         w, segment_w, h = ctypes.c_int(0), ctypes.c_int(0), ctypes.c_int(0)
         for line in lines:
-            if len(line):
-                # Get width of rendered string in pixels. If wider than surface, get character
-                # position in string at position nearest cutoff, move backwards until space
-                # character is encountered, and then trim string up to this point, adding it
-                # to wrapped_lines.
-                TTF_SizeUTF8(font, line, byref(w), byref(h))
-                while w.value > surface_width:
-                    pos = int(surface_width/float(w.value) * len(line))
+            if not len(line):
+                continue
+            # Get width of rendered string in pixels. If wider than surface, get character
+            # position in string at position nearest cutoff, move backwards until space
+            # character is encountered, and then trim string up to this point, adding it
+            # to wrapped_lines.
+            TTF_SizeUTF8(font, line, byref(w), byref(h))
+            while w.value > surf_width:
+                pos = int(surf_width / float(w.value) * len(line))
+                segment = line[:pos].rstrip()
+                TTF_SizeUTF8(font, segment, byref(segment_w), byref(h))
+                while line.decode('utf-8')[pos] != ' ' or segment_w.value > surf_width:
+                    pos = pos - 1
                     segment = line[:pos].rstrip()
                     TTF_SizeUTF8(font, segment, byref(segment_w), byref(h))
-                    while line.decode('utf-8')[pos] != ' ' or segment_w.value > surface_width:
-                        pos = pos - 1
-                        segment = line[:pos].rstrip()
-                        TTF_SizeUTF8(font, segment, byref(segment_w), byref(h))
-                    wrapped_lines.append(segment)
-                    line = line[pos:].lstrip()
-                    TTF_SizeUTF8(font, line, byref(w), byref(h))
-            wrapped_lines.append(line)
-        lines = wrapped_lines
+                wrapped.append(segment)
+                line = line[pos:].lstrip()
+                TTF_SizeUTF8(font, line, byref(w), byref(h))
+            wrapped.append(line)
+        lines = wrapped
     else:
-        surface_width = 1
+        # If no wrap width provided, set surface width to width of longest line
+        surf_width = 1
         w, h = ctypes.c_int(0), ctypes.c_int(0)
         for line in lines:
             if len(line):
                 TTF_SizeUTF8(font, line, byref(w), byref(h))
-                if w.value > surface_width:
-                    surface_width = w.value
+                if w.value > surf_width:
+                    surf_width = w.value
 
-    return _render_multiline(lines, style, surface_width, align)
+    return _render_multiline(lines, style, surf_width, align)
 
 
 def _render_text(text, style="default", align="left", max_width=None):
-    """Renders a string of text to a surface that can then be presented on the screen using
-    :func:`~klibs.KLGraphics.blit`.
-
-    Args:
-        text (str or numeric): The string or number to be rendered.
-        style (str, optional): The label of the text style with which the font should be 
-            rendered. Defaults to the "default" text style if none is specified.
-        align (str, optional): The text justification to use when rendering multi-line
-            text. Can be 'left', 'right', or 'center' (defaults to 'left').
-        max_width (int, optional): The maximum line width for the rendered text. Lines longer
-            than this value will be wrapped automatically. Defaults to None.
-
-    Returns:
-        :obj:`~klibs.KLGraphics.KLNumpySurface.NumpySurface`: a NumpySurface object containing
-            the rendered text.
+    """Internal text rendering function.
+    
+    This function handles low-level text rendering, alignment, and wrapping for
+    higher-level user-facing functions.
 
     """
+    if not len(_fonts):
+        e = "KLibs runtime must be initialized before text can be rendered."
+        raise RuntimeError(e)
+    
     if align not in ["left", "center", "right"]:
         raise ValueError("Text alignment must be 'left', 'center', or 'right'.")
     
-    stl = style if isinstance(style, TextStyle) else _styles[style]
+    if not isinstance(style, TextStyle):
+        style = _get_text_style(style)
+
     if not isinstance(text, bytes):
         text = utf8(text).encode('utf-8')
     text = b" " if not len(text) else text
 
-    font = stl._font_ttf
+    font = style._font_ttf
     needs_wrap = False
     if max_width != None:
         w, h = ctypes.c_int(0), ctypes.c_int(0)
@@ -186,9 +186,9 @@ def _render_text(text, style="default", align="left", max_width=None):
         needs_wrap = w.value > max_width
 
     if len(text.split(b"\n")) > 1 or needs_wrap:
-        return _wrap_lines(text, stl, font, align, max_width)
+        return _wrap_lines(text, style, font, align, max_width)
 
-    return _render_line(text, font, stl.color)
+    return _render_line(text, font, style.color)
 
 
 
@@ -514,8 +514,6 @@ def message(
     #       specified width if the line is long enough to be wrapped. Should either
     #       change 'wrap_width' to 'width' and guarantee output surface is the given
     #       width or change the multi-line behaviour.
-    if not isinstance(style, TextStyle):
-        style = _get_text_style(style)
 
     # Render (and optionally blit) the text
     message_surface = _render_text(text, style, align, wrap_width)

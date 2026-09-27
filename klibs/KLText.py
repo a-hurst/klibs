@@ -21,6 +21,12 @@ from klibs.KLGraphics import rgb_to_rgba, blit
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 
 
+# Module-level variables for keeping track of fonts and styles
+
+_fonts = {}
+_styles = {}
+
+
 
 def _split_units(s):
     # Extracts the size and unit from a given size string (e.g. '0.6deg')
@@ -65,8 +71,16 @@ def _load_font(fontpath, size_pt):
     return font
 
 
+def _get_text_style(name):
+    # Retrieves the TextStyle object for an added text style by name
+    if name not in _styles.keys():
+        e = "No text style with the name '{0}' has been added to the klibs runtime."
+        raise RuntimeError(e.format(name))
+    return _styles[name]
 
-class TextStyle(EnvAgent):
+
+
+class TextStyle():
     """A custom style to use for rendering text.
 
     A text style defines a specific combination of font, font size, font color, and
@@ -91,7 +105,7 @@ class TextStyle(EnvAgent):
 
         # First, make sure TextManager has been initialized
         self._initialized = False
-        if self.txtm is None:
+        if not len(_fonts):
             e = "KLibs runtime must be initialized before creating a text style."
             raise RuntimeError(e)
 
@@ -105,10 +119,10 @@ class TextStyle(EnvAgent):
             raise ValueError(e.format(self._line_h))
 
         # Make sure requested font actually exists within the text manager
-        if self._fontname not in self.txtm.fonts.keys():
+        if self._fontname not in _fonts.keys():
             e = "No font with the label '{0}' has been added to the KLibs TextManager."
             raise RuntimeError(e.format(self._fontname))
-        self._fontpath = byteify(self.txtm.fonts[self._fontname])
+        self._fontpath = byteify(_fonts[self._fontname])
 
         # Initialize font size and size units
         self._scale_factor = self._get_scale_factor(self._fontpath)
@@ -188,8 +202,6 @@ class TextManager(object):
     def __init__(self):
         # Initialize SDL_ttf and font/style dicts
         _ttf_init()
-        self.fonts = {}
-        self.styles = {}
 
         # Load fonts included in klibs
         self.add_font("Anonymous Pro", filename="AnonymousPro")
@@ -199,6 +211,18 @@ class TextManager(object):
 
         # Load additional fonts from ExpAssets/Resources/font
         self._load_user_fonts()
+
+    @property
+    def fonts(self):
+        # NOTE: Not actually accessed directly in any legacy code
+        global _fonts
+        return _fonts
+
+    @property
+    def styles(self):
+        # [Compat]: Required to avoid breaking some old projects
+        global _styles
+        return _styles
 
     def _load_user_fonts(self):
         # Pre-load all supported font files in the ExpAssets/Resources/font dir
@@ -401,11 +425,11 @@ def add_text_style(label, size=None, color=None, line_space=None, font=None):
             ``P.default_font_name` if not specified.
 
     """
-    from klibs import env
-    if env.txtm is None:
+    if not len(_fonts):
         e = "KLibs runtime must be initialized before text styles can be added."
         raise RuntimeError(e)
-    env.txtm.styles[label] = TextStyle(font, size, color, line_space)
+    
+    _styles[label] = TextStyle(font, size, color, line_space)
 
 
 def message(
@@ -485,10 +509,7 @@ def message(
     from klibs.KLEnvironment import txtm
 
     if not isinstance(style, TextStyle):
-        if style not in txtm.styles.keys():
-            e = "No text style with the name '{0}' has been added to the klibs runtime."
-            raise RuntimeError(e.format(style))
-        style = txtm.styles[style]
+        style = _get_text_style(style)
 
     # Render (and optionally blit) the text
     message_surface = txtm.render(text, style, align, wrap_width)

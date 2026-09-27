@@ -79,7 +79,42 @@ def _get_text_style(name):
     return _styles[name]
 
 
-def _wrap_lines(text, style, rendering_font, align, width=None):
+def _render_line(text, font, color):
+    # Renders a single line of text to a NumpySurface
+    bgra_color = SDL_Color(color[2], color[1], color[0], color[3])
+    rendered_text = TTF_RenderUTF8_Blended(font, text, bgra_color).contents
+    surface_array = surface_to_ndarray(rendered_text)
+    surface = NpS(surface_array)
+    return surface
+
+
+def _render_multiline(lines, style, width, align):
+    # Renders multiple lines of text with a given justification to a surface
+    # with a given width
+    line_pad = int(style.size_px * (style.line_space - 1.0))
+    net_line_height = style.size_px + line_pad
+    output = NpS(width=width, height=(len(lines) * net_line_height))
+    for i in range(len(lines)):
+        line = lines[i]
+        if not len(line):
+            # Skip empty lines
+            continue
+        l_surf = _render_line(line, style._font_ttf, style.color)
+        if align == "left":
+            l_surf_pos = (0, i * net_line_height)
+            output.blit(l_surf, location=l_surf_pos, blend=False, clip=False)
+        elif align == "center":
+            l_surf_pos = (width/2, i * net_line_height)
+            output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=8)
+        elif align == "right":
+            l_surf_pos = (width, i * net_line_height)
+            output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=9)
+
+    return output
+
+
+def _wrap_lines(text, style, font, align, width=None):
+    # Renders multi-line text with a given justification
     lines = text.split(b"\n")
     if width:
         surface_width = width
@@ -91,18 +126,18 @@ def _wrap_lines(text, style, rendering_font, align, width=None):
                 # position in string at position nearest cutoff, move backwards until space
                 # character is encountered, and then trim string up to this point, adding it
                 # to wrapped_lines.
-                TTF_SizeUTF8(rendering_font, line, byref(w), byref(h))
+                TTF_SizeUTF8(font, line, byref(w), byref(h))
                 while w.value > surface_width:
                     pos = int(surface_width/float(w.value) * len(line))
                     segment = line[:pos].rstrip()
-                    TTF_SizeUTF8(rendering_font, segment, byref(segment_w), byref(h))
+                    TTF_SizeUTF8(font, segment, byref(segment_w), byref(h))
                     while line.decode('utf-8')[pos] != ' ' or segment_w.value > surface_width:
                         pos = pos - 1
                         segment = line[:pos].rstrip()
-                        TTF_SizeUTF8(rendering_font, segment, byref(segment_w), byref(h))
+                        TTF_SizeUTF8(font, segment, byref(segment_w), byref(h))
                     wrapped_lines.append(segment)
                     line = line[pos:].lstrip()
-                    TTF_SizeUTF8(rendering_font, line, byref(w), byref(h))
+                    TTF_SizeUTF8(font, line, byref(w), byref(h))
             wrapped_lines.append(line)
         lines = wrapped_lines
     else:
@@ -110,30 +145,11 @@ def _wrap_lines(text, style, rendering_font, align, width=None):
         w, h = ctypes.c_int(0), ctypes.c_int(0)
         for line in lines:
             if len(line):
-                TTF_SizeUTF8(rendering_font, line, byref(w), byref(h))
+                TTF_SizeUTF8(font, line, byref(w), byref(h))
                 if w.value > surface_width:
                     surface_width = w.value
 
-    line_pad = int(style.size_px * (style.line_space - 1.0))
-    net_line_height = style.size_px + line_pad
-    output = NpS(width=surface_width, height=(len(lines) * net_line_height))
-    for i in range(len(lines)):
-        line = lines[i]
-        if len(line):
-            l_surf = _render_text(line, style)
-        else:
-            continue
-        if align == "left":
-            l_surf_pos = (0, i * net_line_height)
-            output.blit(l_surf, location=l_surf_pos, blend=False, clip=False)
-        elif align == "center":
-            l_surf_pos = (surface_width/2, i * net_line_height)
-            output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=8)
-        elif align == "right":
-            l_surf_pos = (surface_width, i * net_line_height)
-            output.blit(l_surf, location=l_surf_pos, blend=False, clip=False, registration=9)
-
-    return output
+    return _render_multiline(lines, style, surface_width, align)
 
 
 def _render_text(text, style="default", align="left", max_width=None):
@@ -154,33 +170,25 @@ def _render_text(text, style="default", align="left", max_width=None):
             the rendered text.
 
     """
+    if align not in ["left", "center", "right"]:
+        raise ValueError("Text alignment must be 'left', 'center', or 'right'.")
     
     stl = style if isinstance(style, TextStyle) else _styles[style]
-
     if not isinstance(text, bytes):
         text = utf8(text).encode('utf-8')
+    text = b" " if not len(text) else text
 
-    rendering_font = stl._font_ttf
+    font = stl._font_ttf
+    needs_wrap = False
     if max_width != None:
         w, h = ctypes.c_int(0), ctypes.c_int(0)
-        TTF_SizeUTF8(rendering_font, text, ctypes.byref(w), ctypes.byref(h))
+        TTF_SizeUTF8(font, text, ctypes.byref(w), ctypes.byref(h))
         needs_wrap = w.value > max_width
-    else:
-        needs_wrap = False
 
     if len(text.split(b"\n")) > 1 or needs_wrap:
-        if align not in ["left", "center", "right"]:
-            raise ValueError("Text alignment must be one of 'left', 'center', or 'right'.")
-        return _wrap_lines(text, stl, rendering_font, align, max_width)
+        return _wrap_lines(text, stl, font, align, max_width)
 
-    if len(text) == 0:
-        text = " "
-    
-    bgra_color = SDL_Color(stl.color[2], stl.color[1], stl.color[0], stl.color[3])
-    rendered_text = TTF_RenderUTF8_Blended(rendering_font, text, bgra_color).contents
-    surface_array = surface_to_ndarray(rendered_text)
-    surface = NpS(surface_array)
-    return surface
+    return _render_line(text, font, stl.color)
 
 
 

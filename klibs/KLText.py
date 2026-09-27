@@ -17,7 +17,7 @@ from klibs.KLConstants import TEXT_PX, TEXT_MULTIPLE, TEXT_PT
 from klibs import P
 from klibs.KLEnvironment import EnvAgent
 from klibs.KLUtilities import deg_to_px, utf8
-from klibs.KLGraphics import rgb_to_rgba
+from klibs.KLGraphics import rgb_to_rgba, blit
 from klibs.KLGraphics.KLNumpySurface import NumpySurface as NpS
 
 
@@ -406,3 +406,93 @@ def add_text_style(label, size=None, color=None, line_space=None, font=None):
         e = "KLibs runtime must be initialized before text styles can be added."
         raise RuntimeError(e)
     env.txtm.styles[label] = TextStyle(font, size, color, line_space)
+
+
+def message(
+        text, style='default', align='left', wrap_width=None, registration=5,
+        location=None, blit_txt=False
+    ):
+    """Renders a string of text with a given set of style/formatting parameters.
+
+    Messages can be single or multiple lines of text. To add a line break in the
+    rendered message, add a newline character (``\n``) wherever you want the split
+    between lines to be. Multi-line messages can be rendered as either left-justified
+    (default), right-justified, or center-aligned using the ``align`` argument. For
+    example, to render three centered lines in a single message, you can do::
+
+       msg = message("Line One\nLine Two\nLine Three", align='center')
+
+    To render text with a different size, color, or font than the defaults set in your
+    project's ``params.py`` file, first define a new text style with
+    :func:`~klibs.KLText.add_text_style` and then pass its name to the ``style``
+    argument::
+
+        RED = (255, 0, 0)
+        add_text_style('small_red', size='0.3deg', color=RED)
+        msg = message("Small red text!", style='small_red')
+
+    In addition to rendering text, the ``message`` function can also be used to blit
+    messages directly to the screen, which can be handy if a message is only getting
+    drawn to the screen once (e.g. each update of a countdown timer). This can be done
+    by specifying a location (and optionally a registration) for the message.
+
+    For example, the following two chunks of code have the same result::
+
+       # Render, then blit
+       msg = message("Hello there!")
+       blit(msg, 5, P.screen_c)
+
+       # Render and blit
+       message("Hello there!", registration=5, location=P.screen_c)
+
+    Note that unlike :func:`~klibs.KLGraphics.blit`, the default registration for
+    blitted messages is 5 (i.e. center-aligned). This means that, for example, a message
+    with a location of ``P.screen_c`` will be centered in the middle of the screen
+    unless a different registration is manually specified.
+
+    Args:
+        text (str): The string of text to render.
+        style (str or :obj:`~klibs.KLText.TextStyle`, optional): The text style to use
+            for rendering the string. Defaults to the 'default' style if not specified.
+        align (str, optional): The alignment method for multi-line text. Can be "left"
+            (left-justified, default), "right" (right-justified), or "center".
+        wrap_width (int, optional): The maximum width (in pixels) of the rendered text
+            surface. If a line of text exceeds this width, it will wrap around to the
+            next line. Defaults to None (no text wrapping).
+        registration (int, optional): If blitting, specifies the corner or side of the
+            rendered text to align to the ``location`` coordinates. Defaults to the
+            center of the rendered text. See :func:`~klibs.KLGraphics.blit` for more info.
+        location (tuple, optional): A tuple of (x, y) pixel coordinates. If provided,
+            the message will be automatically blit to this location on the screen.
+            Defaults to None (not blitted).
+        blit_txt (bool, optional): Deprecated, use 'location' to indicate whether the
+            text should be blitted instead.
+
+    Returns:
+        :obj:`~klibs.KLGraphics.NumpySurface`: A NumpySurface containing the rendered
+        text.
+
+    """
+    # TODO: consider whether a separate 'textbox' method (with justification/width/formatting)
+    #		would be appropriate, or if having it all rolled into message() is best.
+    # NOTE: Bit of an API mess: if wrap_width is set and text contains any line breaks,
+    #       the resulting surface will be the width specified by wrap_width regardless
+    #       of whether any of the lines were long enough to be wrapped. Conversely, if
+    #       wrap_width is set and the text is only one line, the surface is only the
+    #       specified width if the line is long enough to be wrapped. Should either
+    #       change 'wrap_width' to 'width' and guarantee output surface is the given
+    #       width or change the multi-line behaviour.
+    from klibs.KLEnvironment import txtm
+
+    if not isinstance(style, TextStyle):
+        if style not in txtm.styles.keys():
+            e = "No text style with the name '{0}' has been added to the klibs runtime."
+            raise RuntimeError(e.format(style))
+        style = txtm.styles[style]
+
+    # Render (and optionally blit) the text
+    message_surface = txtm.render(text, style, align, wrap_width)
+    if location is not None:
+        blit(message_surface, registration, location)
+
+    return message_surface

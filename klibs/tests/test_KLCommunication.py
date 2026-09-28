@@ -42,6 +42,10 @@ def test_message(with_text_init):
     msg = message("Hello!")
     assert isinstance(msg, NumpySurface)
 
+    # Test empty string rendering
+    empty = message("")
+    assert isinstance(empty, NumpySurface)
+
     # Test multi-line rendering
     msg2 = message("Hello!\nHello!")
     msg3 = message("Hello!\n\nHello!")
@@ -62,6 +66,10 @@ def test_message(with_text_init):
     msg = message("This is a very long message")
     msg2 = message("This is a very long message", wrap_width=300)
     assert msg2.height > msg.height
+    msg3 = message("ThisIsAVeryLongMessage", wrap_width=300)
+    assert msg3.height > msg.height
+    with pytest.raises(RuntimeError):
+        message("ThisIsAVeryLongMessage", wrap_width=5)
 
     # Test alignment
     x_offset = {}

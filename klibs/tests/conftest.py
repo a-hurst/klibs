@@ -51,7 +51,7 @@ def with_sdl():
 def with_txtm(with_sdl):
     import klibs.KLEnvironment as env
     from klibs.KLText import TextManager
-    P.font_dirs = [get_resource_path('font')]
+    P.internal_font_dir = get_resource_path('font')
     P.exp_font_dir = tempfile.gettempdir()
     env.txtm = TextManager()
     yield
@@ -61,9 +61,10 @@ def with_txtm(with_sdl):
 def with_text_init(with_txtm):
     import klibs.KLGraphics
     from klibs.KLGraphics.core import _set_display_params
-    from klibs.KLCommunication import init_default_textstyles
+    from klibs.KLText import add_text_style
     _set_display_params((1920, 1080), 21.5, 60.0)
-    init_default_textstyles()
+    add_text_style("default", font=P.default_font_name)
+    add_text_style("alert", color=P.default_alert_color, font=P.default_font_name)
     yield
 
 @pytest.fixture

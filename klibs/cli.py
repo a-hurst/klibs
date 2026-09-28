@@ -256,8 +256,8 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
     from klibs import env
     from klibs.KLGraphics.core import display_init
     from klibs.KLDatabase import DatabaseManager
-    from klibs.KLText import TextManager
-    from klibs.KLCommunication import init_messaging, collect_demographics, init_default_textstyles
+    from klibs.KLText import TextManager, add_text_style
+    from klibs.KLCommunication import init_messaging, collect_demographics
 
     # Sanitize and switch to path, exiting with error if not a KLibs project directory
     project_name = initialize_path(path)
@@ -362,7 +362,8 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
         env.exp.show_logo()
 
         # once display size and pixels-per-degree known, initialize default text styles
-        init_default_textstyles()
+        add_text_style("default", font=P.default_font_name)
+        add_text_style("alert", color=P.default_alert_color, font=P.default_font_name)
 
         # create an anonymous user if not collecting demographic information
         if not P.manual_demographics_collection:

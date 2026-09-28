@@ -153,7 +153,6 @@ image_dir = join(resources_dir, "image")
 logs_dir = join(local_dir, "logs")
 exp_font_dir = join(resources_dir, "font")
 version_dir = None  # Dynamically set at runtime
-font_dirs = None  # Dynamically set at runtime
 
 # Project Filepaths (dynamically set at runtime)
 database_path = None
@@ -167,6 +166,7 @@ schema_file_path = None
 user_queries_file_path = None
 log_file_path = None
 logo_file_path = None
+internal_font_dir = None
 
 
 def initialize_paths(exp_name):
@@ -243,7 +243,7 @@ def initialize_runtime(exp_name, randseed):
     global klibs_commit
     global database_local_path
     global logo_file_path
-    global font_dirs
+    global internal_font_dir
 
     # Initialize Python's random number generator with a reproducible seed
     random_seed = randseed
@@ -259,5 +259,5 @@ def initialize_runtime(exp_name, randseed):
     klibs_commit_path = join(klibs_root, 'resources', 'current_commit.txt')
     klibs_commit = open(klibs_commit_path, 'r', encoding='utf-8').read()
     logo_file_path = join(klibs_root, 'resources', 'splash.png')
-    font_dirs = [exp_font_dir, join(klibs_root, 'resources', 'font')]
+    internal_font_dir = join(klibs_root, 'resources', 'font')
     

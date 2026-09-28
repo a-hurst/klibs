@@ -32,12 +32,16 @@ API Changes:
 * Added a new attribute :attr:`~klibs.Experiment.participant_info` to the
   Experiment class that provides a dictionary for easy access to participant
   information collected during demographics (e.g. handedness).
+* The :class:`TextManager` class and corresponding ``self.txtm`` environment
+  attribute have been fully deprecated and should not be used in new code.
 
 Fixed Bugs:
 
 * Fixed an issue where klibs would fail to run on Windows if the Python
   interpreter defaulted to CP-1252 encoding.
 * Fixed a number of SyntaxWarnings with newer versions of Python.
+* Fixed a bug where rendering an empty message would crash the runtime.
+* Fixed single-word wrapping in :func:`~klibs.KLCommunication.message`.
 
 
 0.7.8b2

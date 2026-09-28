@@ -41,6 +41,7 @@ Fixed Bugs:
   interpreter defaulted to CP-1252 encoding.
 * Fixed a number of SyntaxWarnings with newer versions of Python.
 * Fixed a bug where rendering an empty message would crash the runtime.
+* Fixed single-word wrapping in :func:`~klibs.KLCommunication.message`.
 
 
 0.7.8b2

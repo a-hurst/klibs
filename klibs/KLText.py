@@ -134,19 +134,41 @@ def _wrap_lines(text, style, font, align, width=None):
         for line in lines:
             if not len(line):
                 continue
-            # Get width of rendered string in pixels. If wider than surface, get character
-            # position in string at position nearest cutoff, move backwards until space
-            # character is encountered, and then trim string up to this point, adding it
-            # to wrapped_lines.
+            # Wrap lines of text based on their rendered size + the wrap width
             TTF_SizeUTF8(font, line, byref(w), byref(h))
             while w.value > surf_width:
+                # Estimate split position based on average character width
                 pos = int(surf_width / float(w.value) * len(line))
-                segment = line[:pos].rstrip()
-                TTF_SizeUTF8(font, segment, byref(segment_w), byref(h))
-                while line.decode('utf-8')[pos] != ' ' or segment_w.value > surf_width:
-                    pos = pos - 1
+                if b" " in line[pos:].rstrip():
+                    # If not on last word, move pos to end of current word
+                    while line[pos] != b" "[0]:
+                        pos = pos + 1
+                elif b" " in line[:pos].strip():
+                    # If on last word, move pos to end of previous word
+                    while line[pos] != b" "[0]:
+                        pos = pos - 1
+                elif (pos + 1) < len(line):
+                    # If line is single word, move pos forward a character
+                    pos = pos + 1
+                split = False
+                while not split:
                     segment = line[:pos].rstrip()
+                    pos = len(segment)
                     TTF_SizeUTF8(font, segment, byref(segment_w), byref(h))
+                    if segment_w.value <= surf_width:
+                        split = True
+                        break
+                    # If segment still too wide for surface, make it smaller
+                    elif b" " in segment:
+                        # If multiple words in segment, drop the last word
+                        while line[:pos][-1] != b" "[0]:
+                            pos = pos - 1
+                    else:
+                        # If segment is a single word, drop character on the end
+                        pos = pos - 1
+                        if pos == 0:
+                            e = "Character '{}' exceeds text wrap width."
+                            raise RuntimeError(e.format(segment[0]))
                 wrapped.append(segment)
                 line = line[pos:].lstrip()
                 TTF_SizeUTF8(font, line, byref(w), byref(h))

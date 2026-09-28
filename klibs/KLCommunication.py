@@ -191,8 +191,6 @@ def query(query_ob, anonymous=False):
             query_ob.format.range is specified and it is not a two-item list.
             
     '''
-    from klibs.KLEnvironment import txtm
-
     if anonymous:
         try:
             # Check if anon value is an EVAL statement, and if so evaluate it

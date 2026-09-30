@@ -1,6 +1,5 @@
-KLText
-======
+`klibs.KLText` - Defining text styles and rendering text
+========================================================
 
 .. automodule:: klibs.KLText
-	:undoc-members:
 	:members:

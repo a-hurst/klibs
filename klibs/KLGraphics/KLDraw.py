@@ -98,14 +98,6 @@ class Drawbject(object):
             transparent) to 255 (fully opaque).
         object_width (int): The width of the shape in pixels.
         object_height (int): The height of the shape in pixels.
-        surface_width (int): The width of the draw surface in pixels. At minimum two 
-            pixels wider than the object_width (if no stroke or stroke is inner aligned),
-            at maximum (2 + 2*stroke_width) pixels wider than object width (if stroke is
-            outer aligned).
-        surface_height (int): The height of the draw surface in pixels. At minimum two 
-            pixels wider than the object_height (if no stroke or stroke is inner aligned),
-            at maximum (2 + 2*stroke_height) pixels wider than object height (if stroke is
-            outer aligned).
         surface (:obj:`aggdraw.Draw`): The aggdraw context on which the shape is drawn.
             When a shape is drawn to the surface, it is immediately applied to the canvas.
         canvas (:obj:`PIL.Image.Image`): The Image object that contains the shape of the
@@ -207,10 +199,24 @@ class Drawbject(object):
 
     @property
     def surface_width(self):
+        """int: The width of the draw surface in pixels.
+        
+        At minimum two pixels wider than the object_width (if no stroke or stroke is
+        inner aligned), at maximum (2 + 2 * stroke_width) pixels wider than object width
+        (if stroke is outer aligned).
+
+        """
         return self.__dimensions[0]
 
     @property
     def surface_height(self):
+        """int: The height of the draw surface in pixels.
+        
+        At minimum two pixels wider than the object_height (if no stroke or stroke is
+        inner aligned), at maximum (2 + 2 * stroke_height) pixels wider than object
+        height (if stroke is outer aligned).
+
+        """
         return self.__dimensions[1]
 
     @property
@@ -321,9 +327,6 @@ class FixationCross(Drawbject):
             when rendered. Defaults to 0 (no rotation).
         auto_draw (bool, optional): If True, draws the shape internally when created.
 
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified fixation cross.
-
     """
     def __init__(self, size, thickness, stroke=None, fill=None, rotation=0, auto_draw=True):
         self.thickness = thickness
@@ -364,9 +367,6 @@ class Ellipse(Drawbject):
         fill (Tuple[color], optional): The fill color for the ellipse in RGB or RGBA
             format. Defaults to transparent fill.
         auto_draw (bool, optional): If True, internally draws the ellipse on initialization.	
-
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified ellipse.
 
     """
 
@@ -446,9 +446,6 @@ class Circle(Ellipse):
             format. Defaults to transparent fill.
         auto_draw (bool, optional): If True, internally draws the circle on initialization.	
 
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified circle.
-
     """
 
     def __init__(self, diameter, stroke=None, fill=None, auto_draw=True):
@@ -467,9 +464,6 @@ class Annulus(Drawbject):
         fill (Tuple[color], optional): The fill color for the annulus in RGB or RGBA
             format. Defaults to transparent fill.
         auto_draw (bool): If True, internally draws the annulus on initialization.
-
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified annulus.
 
     """
 
@@ -537,9 +531,6 @@ class Rectangle(Drawbject):
             when rendered. Defaults to 0 (no rotation).
         auto_draw (bool, optional): If True, draws the rectangle internally when created.
 
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified rectangle.
-
     """
 
     def __init__(self, width, height=None, stroke=None, fill=None, rotation=0, auto_draw=True):
@@ -577,9 +568,6 @@ class Asterisk(Drawbject):
         rotation (numeric, optional): The angle in degrees by which to rotate the asterisk 
             when rendered. Defaults to 0 (no rotation).
         auto_draw (bool, optional): If True, draws the shape internally when created.
-
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified asterisk.
 
     """
     def __init__(self, size, thickness, fill, spokes=6, rotation=0, auto_draw=True):
@@ -632,9 +620,6 @@ class SquareAsterisk(Drawbject):
             when rendered. Defaults to 0 (no rotation).
         auto_draw (bool, optional): If True, draws the shape internally when created.
 
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified asterisk.
-
     """
     def __init__(self, size, thickness, fill, rotation=0, auto_draw=True):
         self.size = size
@@ -681,9 +666,6 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
             your line in the proper location if you want to draw a line between two
             specific points on the screen.
         auto_draw (bool): If True, internally draws the line on initialization.
-
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified line.
 
     """
 
@@ -754,9 +736,6 @@ class Triangle(Drawbject):
         rotation (numeric, optional): The angle in degrees by which to rotate the triangle
             when rendered. Defaults to 0 (no rotation).
 
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified triangle.
-
     """
     def __init__(self, base, height=None, stroke=None, fill=None, rotation=0):
         self.base = base
@@ -799,9 +778,6 @@ class Arrow(Drawbject):
             color of the stroke. Defaults to no stroke.
         fill (Tuple[color], optional): The fill color for the arrow in RGB or RGBA format.
             Defaults to transparent fill.
-
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified arrow.
 
     """
     def __init__(self, tail_w, tail_h, head_w, head_h, rotation=0, stroke=None, fill=None):
@@ -853,9 +829,6 @@ class ColorWheel(Drawbject):
         rotation (int, optional): The angle in degrees by which to rotate the color wheel
             when rendered. Defaults to 0 (no rotation).
         auto_draw (bool): If True, internally draws the color wheel on initialization.
-
-    Returns:
-        :obj:`KLDraw.Drawbject`: A Drawbject containing the specified color wheel.
         
     """
 

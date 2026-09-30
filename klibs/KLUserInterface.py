@@ -181,7 +181,7 @@ def get_clicks(button=None, released=False, queue=None):
     clicks of that button. Otherwise, this function will return click coordinates for
     all buttons. Valid button names are ``'left'``, ``'right'``, and ``'middle'``.
     
-     If an event queue is not provided, this function will fetch and clear the current
+    If an event queue is not provided, this function will fetch and clear the current
     contents of the input event queue.
 
     Args:

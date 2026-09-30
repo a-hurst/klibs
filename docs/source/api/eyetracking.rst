@@ -1,5 +1,5 @@
-KLEyeTracking
-*************
+`klibs.KLEyeTracking` - Working with eye trackers
+**************************************************
 
 The KLEyeTracking module provides a simple unified interface for working with different kinds of
 eye trackers in your experiments. All supported eye trackers make use of the same common interface

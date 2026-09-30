@@ -51,11 +51,6 @@ class CountDown(object):
         start (bool, optional): Whether to start the countdown immediately when the
             object is created. Defaults to True.
 
-    Attributes:
-        duration (float): The duration that the timer is set to count.
-        started (bool): Whether the countdown has been started.
-        paused (bool): Whether the countdown is currently paused.
-    
     Raises:
         ValueError: if the duration specified is not a positive real number.
 
@@ -179,14 +174,17 @@ class CountDown(object):
 
     @property
     def started(self):
+        """bool: Whether the countdown has been started."""
         return self._started != 0
 
     @property
     def paused(self):
+        """bool: Whether the countdown is currently paused."""
         return self._paused is not False
     
     @property
     def duration(self):
+        """float: The duration in seconds that the timer is set to count."""
         return self._duration
     
     @duration.setter

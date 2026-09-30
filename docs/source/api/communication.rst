@@ -2,5 +2,4 @@ KLCommunication
 ===============
 
 .. automodule:: klibs.KLCommunication
-	:undoc-members:
-	:members:
+	:members: collect_demographics, query

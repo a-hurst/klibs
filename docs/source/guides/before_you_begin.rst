@@ -68,19 +68,3 @@ safest way to proceed will always be:
 2. Understand the consequences of departing from convention before you do it, or be prepared to wrangle some code
 
 As for these conventions themselves, read on to The KLIBs Paradigm
-
-
-A Note For Experienced Developers
----------------------------------
-When I started this project, I was an *extremely* novice programmer. There is absolutely legacy code
-in the guts of this thing that would make me shudder, today. But iterative updating has routed out most of this.
-Though I've tried to be as pythonic as possible, in some places ignorance will have led me astray, and in other
-places I'll have made choices that are about facilitating the novice programmer's getting immediately to work. 
-One particularly strange aspect of KLIBs is it's KLParams module, which, really, is a proper module that
-gets terribly overwritten at runtime. This decision was made because it consolidates a great deal of global
-variables *as well as* project-specific variables in one location, all with default values where appropriate. 
-When you find these quirks of KLIBs, I encourage you to consider the experience of the intended user-base; novice
-programmers who have no ambitions to become developers in their own right but whose academic progress requires them
-to write code. KLIBs is for them, the people who were probably never going to do it all just right in the first place.
-It's for taking some of the stress out of authoring a project ostensibly beyond themselves by housing a rudimentary but
-ostensibly comprehensive toolkit under one roof. 

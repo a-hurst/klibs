@@ -1,9 +1,5 @@
-============
-KLExperiment
-============
-
-This is the central pillar of both KLIBs as a library and also each individual experiment.
-If a KLIBs project is a 
+`klibs.KLExperiment` - The core of every project
+================================================
 
 .. automodule:: klibs.KLExperiment
 	:members:

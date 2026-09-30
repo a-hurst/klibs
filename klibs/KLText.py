@@ -418,14 +418,14 @@ def add_text_style(label, size=None, color=None, line_space=None, font=None):
     Args:
         label (str): The name of the new text style.
         size (str or float, optional): The font size for the text style. Defaults to
-            ``P.default_font_size` if not specified.
+            ``P.default_font_size`` if not specified.
         color (tuple, optional): The RGBA color for the text style. Defaults to
-            ``P.default_color` if not specified.
+            ``P.default_color`` if not specified.
         line_space (float, optional): The line spacing to use when rendering multi-line
             text, as a multiple of the font line height. Defaults to ``2.0`` unless
             ``P.default_line_space`` has been set.
         font (str, optional): The font to use for the text style. Defaults to
-            ``P.default_font_name` if not specified.
+            ``P.default_font_name`` if not specified.
 
     """
     if not len(_fonts):
@@ -442,15 +442,15 @@ def message(
     """Renders a string of text with a given set of style/formatting parameters.
 
     Messages can be single or multiple lines of text. To add a line break in the
-    rendered message, add a newline character (``\n``) wherever you want the split
+    rendered message, add a newline character (``\\n``) wherever you want the split
     between lines to be. Multi-line messages can be rendered as either left-justified
     (default), right-justified, or center-aligned using the ``align`` argument. For
     example, to render three centered lines in a single message, you can do::
 
-       msg = message("Line One\nLine Two\nLine Three", align='center')
+       msg = message("Line One\\nLine Two\\nLine Three", align='center')
 
-    To render text with a different size, color, or font than the defaults set in your
-    project's ``params.py`` file, first define a new text style with
+    To render text with a specific size, color, or font (overriding the defaults set
+    in your project's `params.py` file), first define a new text style with
     :func:`~klibs.KLText.add_text_style` and then pass its name to the ``style``
     argument::
 
@@ -465,12 +465,12 @@ def message(
 
     For example, the following two chunks of code have the same result::
 
-       # Render, then blit
-       msg = message("Hello there!")
-       blit(msg, 5, P.screen_c)
-
-       # Render and blit
-       message("Hello there!", registration=5, location=P.screen_c)
+        # Render, then blit
+        msg = message("Hello there!")
+        blit(msg, 5, P.screen_c)
+        
+        # Render and blit
+        message("Hello there!", registration=5, location=P.screen_c)
 
     Note that unlike :func:`~klibs.KLGraphics.blit`, the default registration for
     blitted messages is 5 (i.e. center-aligned). This means that, for example, a message

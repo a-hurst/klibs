@@ -1,6 +1,5 @@
-KLAudio
-=======
+`klibs.KLAudio` - Audio playback and generation
+===============================================
 
 .. automodule:: klibs.KLAudio
-	:undoc-members:
-	:members:
+	:members: AudioClip, Noise, Tone

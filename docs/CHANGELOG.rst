@@ -42,6 +42,9 @@ Fixed Bugs:
 * Fixed a number of SyntaxWarnings with newer versions of Python.
 * Fixed a bug where rendering an empty message would crash the runtime.
 * Fixed single-word wrapping in :func:`~klibs.KLCommunication.message`.
+* Fixed a bug causing multi-line text to have extra padding at the bottom of
+  the rendered surface. Note that this may change the alignment of rendered
+  multi-line text slightly in existing tasks.
 
 
 0.7.8b2

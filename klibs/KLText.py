@@ -2,10 +2,11 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import os
 import re
+import math
 from ctypes import byref, c_int
 
 from sdl2.sdlttf import (TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_Blended,
-    TTF_SizeUTF8, TTF_GlyphMetrics)
+    TTF_SizeUTF8, TTF_GlyphMetrics, TTF_FontLineSkip)
 from sdl2 import SDL_Color
 from sdl2.ext.compat import byteify
 from sdl2.ext import surface_to_ndarray, raise_sdl_err
@@ -99,9 +100,10 @@ def _render_line(text, font, color):
 def _render_multiline(lines, style, width, align):
     """Renders multiple lines of text with a given justification to a surface."""
     # Determine required surface height and create surface
-    line_pad = int(style.size_px * (style.line_space - 1.0))
+    line_pad = int(round(style.size_px * (style.line_space - 1.0)))
     net_line_height = style.size_px + line_pad
-    surf = NpS(width=width, height=(len(lines) * net_line_height))
+    height = (len(lines) - 1) * net_line_height + style._lineskip_px
+    surf = NpS(width=width, height=height)
     # Determine line alignment based on justification
     if align == "left":
         line_x = 0
@@ -225,8 +227,9 @@ def _render_text(text, style="default", align="left", max_width=None):
 class TextStyle():
     """A custom style to use for rendering text.
 
-    A text style defines a specific combination of font, font size, font color, and
-    line spacing to use for rendering text.
+    Defines a custom text style without adding it by name to the klibs runtime.
+
+    See :func:`~add_text_style` for documentation of the parameters.
 
     Args:
         font (str, optional): The name of the font to use when rendering text with the
@@ -236,7 +239,7 @@ class TextStyle():
         color (tuple, optional): The RGBA font color to use when rendering text with the
             style. Defaults to ``P.default_color`` if not specified.
         line_space (float, optional): The line spacing to use when rendering multi-line
-            text with the font. Defaults to ``2.0`` (double-spaced) unless a custom
+            text with the font. Defaults to ``2.0`` unless a custom
             ``P.default_line_space`` has been set.
 
     """
@@ -272,6 +275,12 @@ class TextStyle():
 
         # Load in font
         self._font_ttf = _load_font(self._fontpath, self._size_pt)
+        self._lineskip_px = TTF_FontLineSkip(self._font_ttf)
+        line_pad = int(round(self.size_px * self.line_space))
+        if self._lineskip_px > line_pad:
+            min_space = math.ceil((self._lineskip_px / self.size_px) * 100) / 100
+            e = "Font '{}' requires a minimum line spacing of {:.2f} (got {:.2f})."
+            raise RuntimeError(e.format(self._fontname, min_space, self.line_space))
         self._initialized = True
 
     def __repr__(self):
@@ -399,6 +408,13 @@ def add_text_style(label, size=None, color=None, line_space=None, font=None):
 
        add_text_style('bold', size='40px', font='Helvetica-Bold')
 
+    Note that line spacing here works differently than in most text editors: instead of
+    being semi-arbitrary and variable across fonts, line spacing for a text style is
+    defined as an exact multiple of the font's height. This means that a line spacing of
+    2.0 specifies a gap of exactly one line between the bottom of one line and the top
+    of the next (e.g. 20 pixels of spacing between lines for a 20px font). This is
+    similar to a line spacing of ~1.3 in most other programs.
+
     Args:
         label (str): The name of the new text style.
         size (str or float, optional): The font size for the text style. Defaults to
@@ -406,7 +422,7 @@ def add_text_style(label, size=None, color=None, line_space=None, font=None):
         color (tuple, optional): The RGBA color for the text style. Defaults to
             ``P.default_color` if not specified.
         line_space (float, optional): The line spacing to use when rendering multi-line
-            text with the style. Defaults to ``2.0`` (double-spaced) unless
+            text, as a multiple of the font line height. Defaults to ``2.0`` unless
             ``P.default_line_space`` has been set.
         font (str, optional): The font to use for the text style. Defaults to
             ``P.default_font_name` if not specified.

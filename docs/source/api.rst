@@ -32,6 +32,7 @@ Useful Modules
 	api/eyetracking.rst
 	api/eventinterface.rst
 	api/structure.rst
+	api/queries.rst
 
 
 Advanced Modules

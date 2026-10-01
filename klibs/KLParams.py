@@ -153,7 +153,6 @@ code_dir = join(resources_dir, "code")
 image_dir = join(resources_dir, "image")
 logs_dir = join(local_dir, "logs")
 exp_font_dir = join(resources_dir, "font")
-version_dir = None  # Dynamically set at runtime
 
 # Project Filepaths (dynamically set at runtime)
 database_path = None

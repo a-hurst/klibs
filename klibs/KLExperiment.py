@@ -397,10 +397,6 @@ class Experiment(EnvAgent):
                 err += full_trace()+"\n\n"
                 err += "<red>You may need to manually stop the tracker from recording.</red>\n\n\n"
 
-        if P.multi_user and P.version_dir:
-            newpath = P.version_dir.replace(str(P.random_seed), str(P.participant_id))
-            os.rename(P.version_dir, newpath)
-
         sdl2.ext.quit()
 
         if err:

@@ -34,6 +34,11 @@ API Changes:
   information collected during demographics (e.g. handedness).
 * The :class:`TextManager` class and corresponding ``self.txtm`` environment
   attribute have been fully deprecated and should not be used in new code.
+* All code relating to audio input (e.g. ``AudioManager``, ``AudioStream``) has
+  been removed from klibs. This means that any tasks that access the
+  ``self.audio`` attribute of the Experiment class or collect audio responses
+  using the legacy ResponseCollector module will no longer work. Reworked
+  audio input handling may be re-added at a later date.
 
 Fixed Bugs:
 

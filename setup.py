@@ -45,9 +45,6 @@ setup(
         'aggdraw>1.2.0',
         'PyOpenGL>=3.1.0'
     ],
-    extras_require={
-        'AudioResponse': ['PyAudio>=0.2.9']
-    }
 )
 
 

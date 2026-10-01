@@ -20,7 +20,6 @@ class Experiment(EnvAgent):
 
     def __init__(self):
         from klibs.KLEventInterface import EventManager
-        from klibs.KLAudio import AudioManager
         from klibs.KLResponseCollectors import ResponseCollector
         from klibs.KLTrialFactory import TrialFactory
 
@@ -31,7 +30,6 @@ class Experiment(EnvAgent):
         self.tracker_dot = None # overlay of eye tracker gaze location in devmode
         self.block_label = None # runtime attribute containing label of current block
 
-        self.audio = AudioManager() # initialize audio management for the experiment
         self.rc = ResponseCollector() # add default response collector
         self.database = self.db # use database from env
         self._evm = EventManager()
@@ -403,7 +401,6 @@ class Experiment(EnvAgent):
             newpath = P.version_dir.replace(str(P.random_seed), str(P.participant_id))
             os.rename(P.version_dir, newpath)
 
-        self.audio.shut_down()
         sdl2.ext.quit()
 
         if err:

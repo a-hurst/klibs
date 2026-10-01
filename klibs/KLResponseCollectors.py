@@ -20,7 +20,6 @@ from klibs.KLBoundary import BoundarySet, AnnulusBoundary
 from klibs.KLGraphics import flip
 from klibs.KLGraphics.utils import aggdraw_to_array
 from klibs.KLGraphics.KLDraw import Annulus, ColorWheel, Drawbject
-from klibs.KLAudio import PYAUDIO_AVAILABLE
 
 # NOTE: This module is deprecated, KLResponseListeners should be used for all future projects
 
@@ -321,99 +320,15 @@ class AudioResponse(ResponseListener):
     """A response listener that listens for audio input above a given volume threshold.
     Intended for collecting vocal responses from a microphone.
 
-    **ResponseCollector attribute:** 
-    
-    .. code-block:: python
-
-        self.rc.audio_listener
-
-    **Response value:** The peak loudness of the above-threshold audio sample, on a scale from 0
-    to 37267.
-
-    **Response rt:** The time between the first refresh of the screen during the
-    :meth:`ResponseCollector.collect` loop and the time when the above-threshold audio sample was
-    detected.
+    Removed from klibs. 
 
     """
 
     def __init__(self):
         super(AudioResponse, self).__init__(RC_AUDIO)
-        self.__threshold = None
-        self._stream_error = False
-        if not PYAUDIO_AVAILABLE:
-            e = ("The 'pyaudio' package must be installed in order to use the "
-                "AudioResponse listener.")
-            raise RuntimeError(e)
-
-    def init(self):
-        """See :meth:`ResponseListener.init`.
-
-        """
-        if not self.threshold:
-            raise RuntimeError("A threshold must be set before audio responses can be collected.")
-        self.exp.audio.stream.start()
-
-    def listen(self, event_queue):
-        """See :meth:`ResponseListener.listen`.
-
-        """
-        if self.exp.audio.stream.sample().peak >= self.threshold:
-            value = self.exp.audio.stream.sample().peak
-            rt = (self.evm.trial_time_ms - self._rc_start)
-            return Response(value, rt)
-        return None
-
-    def cleanup(self):
-        """See :meth:`ResponseListener.cleanup`.
-
-        """
-        err = self.exp.audio.reload_stream()
-        if err:
-            self._stream_error = True
-
-    def reset(self):
-        """See :meth:`ResponseListener.reset`.
-
-        """
-        self.responses = []
-        self._stream_error = False
-
-    @property
-    def stream_error(self):
-        """bool: A flag indicating whether an audio input error occurred during the last collection
-        loop.
-        
-        If you are using an external input device to record audio (e.g. a USB Microphone) and
-        the connection cuts out for an instant, the stream will continue to record but the stream
-        will be completely silent, meaning that any audio responses on that trial will fail to be
-        detected. You can check this flag after collection to determine if a lack of response was
-        due to this problem.
-
-        """
-        return self._stream_error
-
-    @property
-    def threshold(self):
-        """int: The threshold value to for collecting audio responses. Any samples with peaks
-        higher than this value will be considered responses, any samples with peaks lower than this
-        value will be ignored. Should be set using :meth:`klibs.KLAudio.AudioCalibrator.calibrate`.
-
-        Raises:
-            ValueError: If the threshold is not an integer between 0 and 32767.
-
-        """
-        return self.__threshold
-
-    @threshold.setter
-    def threshold(self, value):
-        try:
-            value = float(value)
-            err = False
-        except TypeError:
-            err = True
-        if err or not 0 < value < 37267:
-            raise ValueError("Threshold must be an integer between 0 and 32767 exclusive") 
-        self.__threshold = value
+        e = ("The AudioResponse listener has been removed from klibs. Please use a "
+            "custom ResponseListener (or process audio input directly) instead.")
+        raise RuntimeError(e)
 
 
 class MouseButtonResponse(ResponseListener):

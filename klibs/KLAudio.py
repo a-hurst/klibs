@@ -151,6 +151,9 @@ class Noise(AudioClip):
     """
     
     def __init__(self, duration, color="white", dichotic=False, volume=1.0):
+        if color not in ('white', 'white_gaussian'):
+            e = "Noise color must be either 'white' or 'white_gaussian' (got '{}')."
+            raise ValueError(e.format(color))
         self._color = color
         noise_L = self._generate_noise(color, duration)
         noise_R = self._generate_noise(color, duration) if dichotic else noise_L
@@ -195,6 +198,9 @@ class Tone(AudioClip):
     """
     
     def __init__(self, duration, wave_type='sine', frequency=432, volume=1.0):
+        if wave_type not in ('sine', 'square'):
+            e = "Tone wave type must be either 'sine' or 'square' (got '{}')."
+            raise ValueError(e.format(wave_type))
         self._type = wave_type
         self._frequency = frequency
         tone = self._generate_tone(wave_type, frequency, duration)

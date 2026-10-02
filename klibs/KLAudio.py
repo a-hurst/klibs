@@ -152,7 +152,7 @@ class Noise(AudioClip):
         background_noise.volume = 0.5 # return loudness to original value
 
     Args:
-        duration (int): The milliseconds of noise to generate.
+        duration (int): The length of the generated noise (in milliseconds).
         color (str, optional): The type of noise to generate, can be either 'white' or
             'white_gaussian'. Defaults to 'white'.
         dichotic (bool, optional): If True, generates dichotic noise instead of
@@ -200,7 +200,7 @@ class Tone(AudioClip):
         alerting_cue.play()
 
     Args:
-        duration (int): The length of the tone (in milliseconds) to generate.
+        duration (int): The length of the tone (in milliseconds).
         wave_type (str, optional): The type of tone to generate, can be either 'sine'
             or 'square'. Defaults to 'sine'.
         frequency (int, optional): The frequency (in Hz) of the tone to generate.

@@ -24,24 +24,23 @@ def _init_audio():
         Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)
 
 
-# Note AudioClip is an adaption of code originally written by mike lawrence (github.com/mike-lawrence)
 class AudioClip(object):
-    """A class for loading and playing sound clips from files or :obj:`~numpy.ndarray` arrays. Only
-    16-bit WAVE files with a sample rate of 44100Hz are currently supported, but broader
-    OGG/FLAC/WAV support is planned. Multiple AudioClip objects can be played simultaneously.
+    """A class for loading and playing sound files.
+    
+    A range of different audio formats are supported, including WAV, MP3, OGG, and FLAC.
+    See the SDL_mixer documentation for a full list of supported formats.
+    
+    Audio files in the project's ``ExpAssets/Resources/audio`` folder can be loaded
+    directly by name without providing the full path. For example, if 'ping.ogg' has
+    been added to the audio folder, you can open and play it like so::
 
-    If loading a clip from a file located in the project's ``ExpAssets/Resources/audio`` folder,
-    you only need to provide the name of the file. Otherwise, you need to provide the full path.
-
-    Usage::
-
-        alert = AudioClip("Ping.wav", volume=0.5)
+        alert = AudioClip("ping.ogg")
         alert.play()
 
     Args:
-        clip (str or :obj:`~numpy.ndarray`): The audio clip to load, can be either a path to a file
-            or a 2-column :class:`~numpy.int16` numpy array.
-        volume (float, optional): The volume of the audio clip. Defaults to 1.0 (max volume).
+        clip (str): The name or path of the audio clip to load.
+        volume (float, optional): The default playback volume of the clip. Defaults
+            to 1.0 (max volume).
 
     """
 
@@ -74,14 +73,18 @@ class AudioClip(object):
         arr_bytes = arr.tobytes()
         buflen = len(arr_bytes)
         self._buf = (c_ubyte * buflen).from_buffer_copy(arr_bytes)
-        return Mix_QuickLoad_RAW(ctypes.cast(self._buf, ctypes.POINTER(c_ubyte)), c_uint(buflen))
+        return Mix_QuickLoad_RAW(
+            ctypes.cast(self._buf, ctypes.POINTER(c_ubyte)), c_uint(buflen)
+        )
 
     def play(self, loop=False):
-        """Plays the audio clip, if it is not already playing.
+        """Plays the audio clip.
+
+        If the clip is already playing, this method does nothing.
 
         Args:
-            loop (bool, optional): Whether the audio clip should play in a loop until it is
-                stopped manually, or only play once. Defaults to False (play once).
+            loop (bool, optional): Whether the audio clip should loop continouously
+                instead of stopping when done. Defaults to False.
 
         """
         if not self.playing:
@@ -89,7 +92,7 @@ class AudioClip(object):
             self.started = True
     
     def stop(self):
-        """Stops the audio clip if it is currently playing.
+        """Stops playback of the audio clip.
 
         """
         if self.playing:
@@ -104,7 +107,9 @@ class AudioClip(object):
 
     @property
     def volume(self):
-        """float: The volume of the audio clip, ranging from 0.0 (silent) to 1.0 (100% volume).
+        """float: The playback volume of the audio clip.
+        
+        Ranges between 0.0 (silent) and 1.0 (100% volume).
 
         """
         return self._volume
@@ -112,20 +117,21 @@ class AudioClip(object):
     @volume.setter
     def volume(self, value):
         if type(value) != float or not (0.0 <= value <= 1.0):
-            raise ValueError("Clip volume must be a float between 0.0 and 1.0, inclusive.")
+            e = "Volume must be a float between 0.0 and 1.0, inclusive."
+            raise ValueError(e)
         self._volume = value
         Mix_VolumeChunk(self._sample, int(self._volume * 128))
 
 
 class Noise(AudioClip):
-    """A class for generating audio clips of different types of random noise.
+    """A class for generating audio clips of random noise.
 
-    Currently supports generating pure white noise (uniform distribution, fully random) or
-    gaussian white noise (normal distrubution, less harsh).
+    Currently supports generating pure white noise (uniform distribution, fully random)
+    and gaussian white noise (normal distrubution, less harsh).
     
-    Generated noise can also be *dichotic* (i.e. stereo), where different random noise is
-    generated for the left and right channels, or *non-dichotic* (i.e. mono), where the noise
-    is identical in both channels.
+    Generated noise can also be *dichotic* (i.e. stereo), where different random noise
+    is generated for the left and right channels, or *non-dichotic* (i.e. mono), where
+    the noise is identical in both channels.
 
     Example usage::
 
@@ -144,9 +150,10 @@ class Noise(AudioClip):
         duration (int): The milliseconds of noise to generate.
         color (str, optional): The type of noise to generate, can be either 'white' or
             'white_gaussian'. Defaults to 'white'.
-        dichotic (bool, optional): If True, generates dichotic noise instead of non-dichotic
-            noise. Defaults to False.
-        volume (float, optional): The volume of the audio clip. Defaults to 1.0 (max volume).
+        dichotic (bool, optional): If True, generates dichotic noise instead of
+            non-dichotic noise. Defaults to False.
+        volume (float, optional): The playback volume of the noise. Defaults to
+            1.0 (max volume).
 
     """
     
@@ -179,8 +186,8 @@ class Noise(AudioClip):
 class Tone(AudioClip):
     """A class for generating audio clips of different types of tones.
 
-    Currently supports generating sine wave tones (a.k.a. 'pure tones') and square wave tones,
-    which have a more digital, buzz-like sound.
+    Currently supports generating sine wave tones (a.k.a. 'pure tones') as well as
+    square wave tones, which have a more digital, buzz-like sound.
 
     Example usage::
 
@@ -188,12 +195,13 @@ class Tone(AudioClip):
         alerting_cue.play()
 
     Args:
-        duration (int): The milliseconds of tone to generate.
-        wave_type (str, optional): The type of tone waveform to generate, can be either 'sine'
+        duration (int): The length of the tone (in milliseconds) to generate.
+        wave_type (str, optional): The type of tone to generate, can be either 'sine'
             or 'square'. Defaults to 'sine'.
-        frequency (int, optional): The frequency (in Hz) of the tone to generate. Defaults to
-            432 Hz.
-        volume (float, optional): The volume of the audio clip. Defaults to 1.0 (max volume).
+        frequency (int, optional): The frequency (in Hz) of the tone to generate.
+            Defaults to 432 Hz.
+        volume (float, optional): The playback volume of the tone. Defaults to
+            1.0 (max volume).
 
     """
     

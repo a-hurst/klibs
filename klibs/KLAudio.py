@@ -15,6 +15,11 @@ from sdl2.sdlmixer import (
 
 from klibs import P
 
+# NOTE: Audio input recording/monitoring functions have been removed, but may be
+# re-added at a later date. SDL2 has fairly robust audio input recording support
+# and I have a working prototype of some classes that use it, but it's not worth
+# the trouble of fully testing and polishing and documenting when there aren't
+# any projects currently in need of it!
 
 
 def _init_audio():

@@ -40,6 +40,7 @@ def create_tempfile(content, prefix="klibs", suffix=".py"):
 
 @pytest.fixture(scope='module')
 def with_sdl():
+    os.environ["SDL_AUDIODRIVER"] = "dummy"
     sdl2.SDL_ClearError()
     ret = sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO | sdl2.SDL_INIT_AUDIO | sdl2.SDL_INIT_TIMER)
     assert ret == 0, sdl2.SDL_GetError().decode('utf-8', 'replace')

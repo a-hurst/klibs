@@ -254,6 +254,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 
     from klibs import P
     from klibs import env
+    from klibs.KLAudio import _init_audio
     from klibs.KLGraphics.core import display_init
     from klibs.KLDatabase import DatabaseManager
     from klibs.KLText import TextManager, add_text_style
@@ -360,6 +361,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
         # create a display context if everything's gone well so far
         env.exp.window = display_init(screen_size, P.allow_hidpi)
         env.exp.show_logo()
+        _init_audio()
 
         # once display size and pixels-per-degree known, initialize default text styles
         add_text_style("default", font=P.default_font_name)

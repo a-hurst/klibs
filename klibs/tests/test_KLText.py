@@ -42,11 +42,6 @@ def test_TextStyle(with_text_init):
     assert tst.line_space == 3.0
     with pytest.raises(ValueError):
         TextStyle(line_space=0.5)
-    with pytest.raises(RuntimeError):
-        # Since line spacing is in multiples of pixel-wise font size,
-        # line spacings that result in the spacing being smaller than
-        # the font's lineskip (texture height) are not supported.
-        TextStyle(line_space=1.2)
 
     # Test init w/ custom size in px
     tst = TextStyle(size='20px')

@@ -7,10 +7,11 @@ from ctypes import byref, c_int
 
 from sdl2.sdlttf import (TTF_OpenFont, TTF_CloseFont, TTF_RenderUTF8_Blended,
     TTF_SizeUTF8, TTF_GlyphMetrics, TTF_FontLineSkip)
-from sdl2 import SDL_Color
+from sdl2 import SDL_Color, SDL_Rect, SDL_BlitSurface, SDL_FreeSurface
 from sdl2.ext.compat import byteify
 from sdl2.ext import surface_to_ndarray, raise_sdl_err
 from sdl2.ext.ttf import _ttf_init
+from sdl2.ext.surface import _create_surface
 
 from klibs import P
 from klibs.KLUtilities import deg_to_px, utf8
@@ -89,12 +90,17 @@ def _get_text_style(name):
     return _styles[name]
 
 
+def _sdl_to_nps(surf):
+    # Converts an SDL surface to a NumpySurface, freeing the SDL surface after
+    arr = surface_to_ndarray(surf)
+    SDL_FreeSurface(surf)
+    return NpS(arr)
+
+
 def _render_line(text, font, color):
     # Renders a single line of text to a NumpySurface
     bgra_color = SDL_Color(color[2], color[1], color[0], color[3])
-    rendered_text = TTF_RenderUTF8_Blended(font, text, bgra_color).contents
-    surface = surface_to_ndarray(rendered_text)
-    return surface
+    return TTF_RenderUTF8_Blended(font, text, bgra_color)
 
 
 def _render_multiline(lines, style, width, align):
@@ -103,25 +109,24 @@ def _render_multiline(lines, style, width, align):
     line_pad = int(round(style.size_px * (style.line_space - 1.0)))
     net_line_height = style.size_px + line_pad
     height = (len(lines) - 1) * net_line_height + style._lineskip_px
-    surf = NpS(width=width, height=height)
-    # Determine line alignment based on justification
-    if align == "left":
-        line_x = 0
-        registration = 7
-    elif align == "center":
-        line_x = width / 2
-        registration = 8
-    elif align == "right":
-        line_x = width
-        registration = 9
+    surf = _create_surface((width, height))
     # Render all lines with proper alignment to surface
     for i in range(len(lines)):
         if not len(lines[i]):
             continue # Skip empty lines
-        line_pos = (line_x, i * net_line_height)
         line = _render_line(lines[i], style._font_ttf, style.color)
-        surf.blit(line, registration, line_pos, clip=False, blend=False)
-    return surf
+        lw, lh = (line.contents.w, line.contents.h)
+        if align == "left":
+            line_x = 0
+        elif align == "center":
+            line_x = int((width - lw) / 2)
+        elif align == "right":
+            line_x = width - lw
+        line_rect = SDL_Rect(line_x, i * net_line_height, lw, lh)
+        SDL_BlitSurface(line, None, surf, line_rect)
+        SDL_FreeSurface(line)
+    
+    return _sdl_to_nps(surf)
 
 
 def _wrap_lines(text, style, font, align, width=None):
@@ -220,7 +225,8 @@ def _render_text(text, style="default", align="left", max_width=None):
     if len(text.split(b"\n")) > 1 or needs_wrap:
         return _wrap_lines(text, style, font, align, max_width)
 
-    return NpS(_render_line(text, font, style.color))
+    line = _render_line(text, font, style.color)
+    return _sdl_to_nps(line)
 
 
 
@@ -276,11 +282,6 @@ class TextStyle():
         # Load in font
         self._font_ttf = _load_font(self._fontpath, self._size_pt)
         self._lineskip_px = TTF_FontLineSkip(self._font_ttf)
-        line_pad = int(round(self.size_px * self.line_space))
-        if self._lineskip_px > line_pad:
-            min_space = math.ceil((self._lineskip_px / self.size_px) * 100) / 100
-            e = "Font '{}' requires a minimum line spacing of {:.2f} (got {:.2f})."
-            raise RuntimeError(e.format(self._fontname, min_space, self.line_space))
         self._initialized = True
 
     def __repr__(self):

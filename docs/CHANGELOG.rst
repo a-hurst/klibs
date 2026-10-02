@@ -50,6 +50,8 @@ Fixed Bugs:
 * Fixed a bug causing multi-line text to have extra padding at the bottom of
   the rendered surface. Note that this may change the alignment of rendered
   multi-line text slightly in existing tasks.
+* Multiline text no longer clips the bottoms of characters when lines of text
+  are spaced too closely together.
 
 
 0.7.8b2

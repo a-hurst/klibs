@@ -721,6 +721,18 @@ class DatabaseManager(EnvAgent):
         """
         id_rows = self._primary.select('participants', columns=[P.unique_identifier])
         return [row[0] for row in id_rows]
+
+
+    def get_codehashes(self):
+        """Retrieves all unique code hash values from the main database.
+
+        """
+        if not 'session_info' in self.tables:
+            return []
+        if not 'codehash' in self.get_columns('session_info'):
+            return []
+        rows = self._primary.select('session_info', columns=['codehash'], distinct=True)
+        return [row[0] for row in rows if row[0] != None]
     
 
     def write_local_to_master(self):

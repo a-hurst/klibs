@@ -320,3 +320,38 @@ class TaskArchiver():
                 e = "Archive thread terminated without completing."
                 raise RuntimeError(e)
         return done
+
+
+def _generate_version_report(archive_info):
+    # Generates a report on the differences between revisions of the task
+    # based on the extracted file lists and CRCs from the code archives
+    diffs = {}
+    versions = list(archive_info.keys())
+    for i in range(1, len(versions)):
+        v1 = versions[i - 1]
+        v2 = versions[i]
+        h = "Version {} ({}) -> Version {} ({})".format(i, v1, i+1, v2)
+        # Get added/removed files
+        prev = archive_info[v1]
+        current = archive_info[v2]
+        added = set(current.keys()) - set(prev.keys())
+        removed = set(prev.keys()) - set(current.keys())
+        # Get changed files
+        changed = []
+        for file, crc in current.items():
+            if file in list(prev.keys()) and prev[file] != crc:
+                changed.append(file)
+        diffs[h] = {'Added': added, 'Deleted': removed, 'Changed': changed}
+
+    lines = []
+    for header, sections in diffs.items():
+        lines.append(header)
+        lines.append("-" * len(header))
+        for section, files in sections.items():
+            if len(files):
+                lines.append("{}:".format(section))
+                for f in files:
+                    lines.append(" - " + f)
+        lines.append("\n")
+
+    return "\n".join(lines)

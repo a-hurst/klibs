@@ -210,6 +210,8 @@ def _build_export_header(db, user_id=None):
     sections = ["KLIBS INFO", "EXPERIMENT SETTINGS"]
     if info_table == 'session_info':
         sections += ["SYSTEM INFO", "DISPLAY INFO"]
+    if 'codehash' in info_cols:
+        header['KLIBS INFO'].append(("Code Hash", 'codehash'))
     if P.eye_tracking:
         sections.append("EYELINK SETTINGS")
 

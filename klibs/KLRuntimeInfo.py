@@ -303,7 +303,9 @@ class TaskArchiver():
         # Get the path of the archive and save it to the given folder
         codehash, zippath = self._shared
         outpath = os.path.join(outdir, codehash + ".zip")
-        if not os.path.exists(outpath):
+        if os.path.exists(outpath):
+            os.remove(zippath)
+        else:
             shutil.move(zippath, outpath)
         return codehash
 

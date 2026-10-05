@@ -252,7 +252,6 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
         warnings.simplefilter("ignore")
         import sdl2
 
-    from klibs import P
     from klibs import env
     from klibs.KLAudio import _init_audio
     from klibs.KLGraphics.core import display_init
@@ -382,7 +381,6 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 
 
 def export(path, table=None, devmode=False, combined=False, join=None):
-    from klibs import P
     from klibs.KLDatabase import DatabaseManager
 
     # Sanitize and switch to path, exiting with error if not a KLibs project directory
@@ -411,7 +409,7 @@ def export(path, table=None, devmode=False, combined=False, join=None):
 
 
 def rebuild_db(path):
-    from klibs import P
+    import shutil
     from klibs.KLDatabase import rebuild_database
 
     # Sanitize and switch to path, exiting with error if not a KLibs project directory
@@ -428,6 +426,9 @@ def rebuild_db(path):
     P.database_path = validate_database_path(P.database_path)
     try:
         rebuild_database(P.database_path, P.schema_file_path)
+        if os.path.isdir(P.versions_dir):
+            shutil.rmtree(P.versions_dir)
+            os.mkdir(P.versions_dir)
         cso("Database successfully rebuilt! Please make sure to update experiment.py\n"
             "to reflect any changes you might have made to tables or column names.")
     except Exception as e:

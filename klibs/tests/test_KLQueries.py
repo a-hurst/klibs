@@ -5,12 +5,16 @@ from klibs.KLQueries import QueryStyle, NumberQuery, ChoiceQuery, TextQuery
 
 
 def test_query_style(with_text_init):
-    add_text_style("querystyle-test", size = '30px')
+    add_text_style("querystyle-test", size = '30px', line_space = 2.0)
     # Test init for QueryStyles
     s1 = QueryStyle(align="left", registration=7, location=(100, 100))
     s2 = QueryStyle("querystyle-test", bg_color=(0, 0, 0), err_color=(0, 0, 255))
+    s3 = QueryStyle("querystyle-test", input_offset=1.5)
     with pytest.raises(RuntimeError):
         QueryStyle("nonexistent-text-style")
+    # Test that input offset calculated correctly
+    end_pad = 60 - s3.style._lineskip_px
+    assert s3.input_offset_px == (30 + end_pad)
 
 
 def test_number_query(with_text_init):

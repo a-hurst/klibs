@@ -437,17 +437,13 @@ class Experiment(EnvAgent):
 
 
     def show_logo(self):
-        from klibs.KLEventQueue import flush
-        from klibs.KLUserInterface import any_key
         from klibs.KLGraphics import fill, blit, flip
         from klibs.KLGraphics import NumpySurface as NpS
         logo = NpS(P.logo_file_path)
-        flush()
         for i in (1, 2):
             fill()
             blit(logo, 5, P.screen_c)
             flip()
-        any_key()
 
 
     @property

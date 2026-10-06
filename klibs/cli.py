@@ -258,6 +258,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
     from klibs.KLDatabase import DatabaseManager
     from klibs.KLText import TextManager, add_text_style
     from klibs.KLCommunication import init_messaging, collect_demographics
+    from klibs.KLUserInterface import any_key
 
     # Sanitize and switch to path, exiting with error if not a KLibs project directory
     project_name = initialize_path(path)
@@ -361,6 +362,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
         env.exp.window = display_init(screen_size, P.allow_hidpi)
         env.exp.show_logo()
         _init_audio()
+        any_key()
 
         # once display size and pixels-per-degree known, initialize default text styles
         add_text_style("default", font=P.default_font_name)

@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
-import os
 import re
-from os.path import join
-from shutil import copyfile, copytree
 from collections import OrderedDict
 
 from sdl2 import (SDL_StartTextInput, SDL_StopTextInput,
@@ -12,13 +9,13 @@ from sdl2 import (SDL_StartTextInput, SDL_StopTextInput,
 
 from klibs.KLConstants import (AUTO_POS, BL_CENTER, QUERY_ACTION_UPPERCASE,
     QUERY_ACTION_HASH)
-import klibs.KLParams as P
+from klibs import P
 from klibs.KLInternal import subset_dict
 from klibs.KLJSON_Object import import_json, AttributeDict
 from klibs.KLEventQueue import pump, flush
 from klibs.KLUtilities import pretty_list, now, utf8, make_hash
 from klibs.KLUtilities import colored_stdout as cso
-from klibs.KLRuntimeInfo import runtime_info_init
+from klibs.KLRuntimeInfo import runtime_info_init, TaskArchiver
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
 from klibs.KLText import _get_text_style, add_text_style, message
@@ -89,6 +86,13 @@ def collect_demographics(anonymous=False):
         e = "Demographics have already been collected for this participant."
         raise RuntimeError(e)
 
+    # If not in devmode, archive/hash the current task code
+    archiver = None
+    if not P.development_mode:
+        paths = ['experiment.py', P.config_dir, P.resources_dir]
+        archiver = TaskArchiver(paths, filters=P.archive_exclusions)
+        archiver.start()
+
     # Gather demographic queries, separating id query from others
     queries = _get_demographics_queries(db, user_queries.demographic)
     id_query = queries.pop(P.unique_identifier)
@@ -106,6 +110,18 @@ def collect_demographics(anonymous=False):
             blit(message(err, "alert", align='center'), 5, P.screen_c)
             flip()
             any_key()
+
+    # If code archive created, save to versions dir and retrieve hash
+    codehash = None
+    if archiver:
+        codehash = archiver.save(P.versions_dir)
+        # If hash doesn't match any previous ones, print warning
+        versions = db.get_codehashes()
+        if len(versions) and not codehash in versions:
+            msg = ("NOTE: The code or stimuli have changed since the task was last run!"
+                " If this\nwas unexpected, please double-check the task files for"
+                " accidental changes.")
+            print(msg)
 
     # Initialize demographics info for partcipant
     demographics = {
@@ -129,19 +145,13 @@ def collect_demographics(anonymous=False):
 
     # Log info about current runtime environment to database
     runtime_info = runtime_info_init()
+    if codehash and "codehash" in db.get_columns("session_info"):
+        runtime_info["codehash"] = codehash
     runtime_info = subset_dict(
         # Ensures new columns don't break runtime if klibs updated mid-collection
         runtime_info, db.get_columns("session_info")
     )
     db.insert(runtime_info, "session_info")
-
-    # Save copy of experiment.py and config files as they were for participant
-    if not P.development_mode:
-        pid = P.random_seed if P.multi_user else P.participant_id # pid set at end for multiuser
-        P.version_dir = join(P.versions_dir, "p{0}_{1}".format(pid, now(True)))
-        os.mkdir(P.version_dir)
-        copyfile("experiment.py", join(P.version_dir, "experiment.py"))
-        copytree(P.config_dir, join(P.version_dir, "Config"))
 
 
 def init_messaging():

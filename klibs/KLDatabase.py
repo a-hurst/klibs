@@ -210,6 +210,8 @@ def _build_export_header(db, user_id=None):
     sections = ["KLIBS INFO", "EXPERIMENT SETTINGS"]
     if info_table == 'session_info':
         sections += ["SYSTEM INFO", "DISPLAY INFO"]
+    if 'codehash' in info_cols:
+        header['KLIBS INFO'].append(("Code Hash", 'codehash'))
     if P.eye_tracking:
         sections.append("EYELINK SETTINGS")
 
@@ -719,6 +721,18 @@ class DatabaseManager(EnvAgent):
         """
         id_rows = self._primary.select('participants', columns=[P.unique_identifier])
         return [row[0] for row in id_rows]
+
+
+    def get_codehashes(self):
+        """Retrieves all unique code hash values from the main database.
+
+        """
+        if not 'session_info' in self.tables:
+            return []
+        if not 'codehash' in self.get_columns('session_info'):
+            return []
+        rows = self._primary.select('session_info', columns=['codehash'], distinct=True)
+        return [row[0] for row in rows if row[0] != None]
     
 
     def write_local_to_master(self):
@@ -831,6 +845,7 @@ class DatabaseManager(EnvAgent):
         colnames, data = self.collect_export_data(table, multi_file, join_tables, dev)
         dev_ids = self._get_devmode_ids()
 
+        any_exported = False
         if multi_file:
             for p_id, trials in data:
                 header = _build_export_header(self._primary, p_id)
@@ -853,6 +868,7 @@ class DatabaseManager(EnvAgent):
                     out.write(u"\n".join([header, colnames, "\n".join(trials)]))
                 self._log_export(p_id, table) # Log successful export in database
                 print("    - Participant {0} successfully exported.".format(p_id))
+                any_exported = True
         else:
             combined_data = []
             p_count = 0
@@ -871,6 +887,7 @@ class DatabaseManager(EnvAgent):
                 out.write(u"\n".join([header, colnames, "\n".join(combined_data)]))
             msg = "    - Data for {0} participant{1} successfully exported."
             print(msg.format(p_count, "" if p_count == 1 else "s"))
+            any_exported = True
 
         # Let user know if any devmode participants were skipped
         n_dev = len(dev_ids)
@@ -881,15 +898,23 @@ class DatabaseManager(EnvAgent):
                 if len(files):
                     exported = sum([self._already_exported(p, table) for p in dev_ids])
                     n_dev = n_dev - exported
-                    if n_dev == 0:
-                        return
             # If there are unexported devmode ids, warn user
-            if len(data):
-                print("")
-            msg = "Note: Data from {} development mode {} {}."
-            suffix = "not exported" if multi_file else "excluded"
-            print(msg.format(n_dev, "ids" if n_dev > 1 else "id", suffix))
-            print("Use the '-d' flag to export development mode data.")
+            if n_dev > 0:
+                if any_exported:
+                    print("")
+                msg = "Note: Data from {} development mode {} {}."
+                suffix = "not exported" if multi_file else "excluded"
+                print(msg.format(n_dev, "ids" if n_dev > 1 else "id", suffix))
+                print("Use the '-d' flag to export development mode data.")
+    
+        # Notify the user if task was modified across participants
+        revisions = self.get_codehashes()
+        n_rev = len(revisions)
+        if n_rev > 1 and any_exported:
+            s = " " if n_rev == 2 else " {} times ".format(n_rev - 1)
+            print("")
+            print("Note: The experiment was modified" + s + "during data collection.")
+            print("Run 'klibs revisions' to examine the changes.")
 
 
     def num_data_rows(self, unique_id):

@@ -26,6 +26,12 @@ Runtime Changes:
 * ``klibs export`` no longer exports data collected in development mode unless
   specifically requested. Development mode data can still be exported manually
   using ``klibs export -d``.
+* Changes made to task stimuli or code during data collection are now tracked
+  by the klibs runtime, with each unique revision of the task being hashed and
+  saved for later reporting and comparison. Revisions of the task can be listed,
+  compared, and extracted for further inspection using the new
+  ``klibs revisions`` command line tool. 
+
 
 API Changes:
 

@@ -226,6 +226,32 @@ class TestDatabaseManager(object):
         assert not "P04" in dat.get_unique_ids()
         dat.close()
 
+    def test_get_codehashes(self, db_test_path):
+        dat = kldb.DatabaseManager(db_test_path)
+        # Add test data
+        test_hashes = {
+            1: '2f55222f4b', 2: '50e1417019', 3: 'f598a1ed77'
+        }
+        id_data = build_test_data()
+        for row in id_data:
+            dat.insert(row, table='participants')
+        for pid, codehash in test_hashes.items():
+            info = runtime_info_init()
+            info['participant_id'] = pid
+            info['codehash'] = codehash
+            dat.insert(info, table='session_info')
+        hashes = dat.get_codehashes()
+        assert len(hashes) == 3
+        assert 'f598a1ed77' in hashes
+        # Make sure duplicates and empty hashes aren't returned
+        info['participant_id'] = 1
+        dat.insert(info, table='session_info')
+        info['participant_id'] = 2
+        info.pop('codehash')
+        dat.insert(info, table='session_info')
+        assert len(dat.get_codehashes()) == 3
+        dat.close()
+
     def test_remove_data(self, db_test_path):
         dat = kldb.DatabaseManager(db_test_path)
         # Add test data

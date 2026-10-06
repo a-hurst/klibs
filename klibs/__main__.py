@@ -147,6 +147,17 @@ def klibs_main():
         "Only 'participant' and 'data' tables are joined by default.")
     )
 
+    revisions_parser = subparsers.add_parser('revisions', formatter_class=CustomHelpFormatter,
+        help='Report any changes to the task between participants',
+        usage='klibs revisions'
+    )
+    revisions_parser.add_argument('path', default=os.getcwd(), nargs="?", type=str, metavar="path",
+        help="Path to the project directory."
+    )
+    revisions_parser.add_argument('-r', '--report', action="store_true",
+        help="Export all revisions and generate a report on the differences."
+    )
+
     update_parser = subparsers.add_parser('update', formatter_class=CustomHelpFormatter,
         help='Update KLibs to the latest available version',
         usage='klibs update [-b <branch>] [-h]'
@@ -186,6 +197,7 @@ def klibs_main():
         "create": cli.create,
         "run": cli.run,
         "export": cli.export,
+        "revisions": cli.revisions,
         "db-rebuild": cli.rebuild_db,
         "hard-reset": cli.hard_reset,
         "update": cli.update,

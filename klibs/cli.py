@@ -252,7 +252,6 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
         warnings.simplefilter("ignore")
         import sdl2
 
-    from klibs import P
     from klibs import env
     from klibs.KLAudio import _init_audio
     from klibs.KLGraphics.core import display_init
@@ -382,7 +381,6 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
 
 
 def export(path, table=None, devmode=False, combined=False, join=None):
-    from klibs import P
     from klibs.KLDatabase import DatabaseManager
 
     # Sanitize and switch to path, exiting with error if not a KLibs project directory
@@ -410,8 +408,97 @@ def export(path, table=None, devmode=False, combined=False, join=None):
     DatabaseManager(P.database_path).export(table, multi_file, join, devmode)
 
 
+def revisions(path, report=False):
+    from klibs.KLDatabase import DatabaseManager
+    from klibs.KLRuntimeInfo import _generate_version_report
+    from zipfile import ZipFile
+    import shutil
+
+    # Validate project folder and initialize paths
+    project_name = initialize_path(path)
+    P.initialize_paths(project_name)
+
+    # Load database and extract version info (if present)
+    db = DatabaseManager(P.database_path)
+    col = 'session_info'
+    if not (col in db.tables and 'codehash' in db.get_columns(col)):
+        cso("<red>Task revisions were not tracked for the current project.</red>")
+        return
+
+    # Get list of unique code versions used during data collection
+    versions = db.get_codehashes()
+    if not len(versions):
+        print("No participants have been collected yet!")
+        return
+
+    # Generate list of all versions of the task
+    counts = {}
+    for v in versions:
+        # Determine number of participants/sessions per revision
+        ids = db.select('session_info', ['participant_id'], where={'codehash': v})
+        counts[v] = {'id': len(set(ids)), 'sessions': len(ids)}
+    i = 1
+    lines = []
+    for v, n in counts.items():
+        ids = n['id']
+        suffix = "1 participant" if ids == 1 else "{} participants".format(ids)
+        if P.multi_session_project:
+            s = n['sessions']
+            suffix += " (1 session)" if s == 1 else " ({} sessions)".format(s)
+        lines.append(" - Version {} ({}): ".format(i, v) + suffix)
+        i += 1
+    version_list = "\n".join(lines)
+
+    # If a full report wasn't requested, just print a list of the different versions
+    if not report:
+        print(version_list)
+        print("")
+        if len(versions) > 1:
+            msg = ("To extract all versions of the task and generate a report on the "
+                "changes between\nrevisions, run 'klibs revisions -r'.")
+            print(msg)
+        return
+
+    # Create output folder for code versions, replacing if it exists
+    versions_path = os.path.join(P.local_dir, "versions")
+    if os.path.exists(versions_path):
+        shutil.rmtree(versions_path)
+    os.mkdir(versions_path)
+    
+    # Extract each version to separate folder & get file lists/hashes
+    file_lists = {}
+    for v in versions:
+        file_lists[v] = {}
+        i = len(file_lists.keys())
+        zippath = os.path.join(P.versions_dir, v + ".zip")
+        if not os.path.isfile(zippath):
+            e = "Archive of version {} not present at the expected path ({})"
+            err(e.format(i, zippath))
+        outpath = os.path.join(versions_path, "Version {} ({})".format(i, v))
+        with ZipFile(zippath, 'r') as z:
+            z.extractall(outpath)
+            for zi in z.infolist():
+                file_lists[v][zi.filename] = zi.CRC
+
+    # Generate & save summary report on differences
+    header = "{} Revisions Report".format(P.project_name)
+    lines = [
+        "", header, "=" * len(header), "",
+        "Revisions:", version_list,
+    ]
+    if len(versions) > 1:
+        lines += ["\n", _generate_version_report(file_lists)]
+    report_path = os.path.join(versions_path, "report.txt")
+    with open(report_path, "w", encoding='utf-8') as out:
+        out.write("\n".join(lines))
+
+    msg = "<green>All task revisions successfully extracted to {}\n</green>"
+    cso(msg.format(versions_path))
+    print("Report path: {}".format(report_path))
+
+
 def rebuild_db(path):
-    from klibs import P
+    import shutil
     from klibs.KLDatabase import rebuild_database
 
     # Sanitize and switch to path, exiting with error if not a KLibs project directory
@@ -428,6 +515,9 @@ def rebuild_db(path):
     P.database_path = validate_database_path(P.database_path)
     try:
         rebuild_database(P.database_path, P.schema_file_path)
+        if os.path.isdir(P.versions_dir):
+            shutil.rmtree(P.versions_dir)
+            os.mkdir(P.versions_dir)
         cso("Database successfully rebuilt! Please make sure to update experiment.py\n"
             "to reflect any changes you might have made to tables or column names.")
     except Exception as e:

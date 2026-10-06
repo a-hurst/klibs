@@ -52,7 +52,8 @@ class QueryStyle():
     klibs runtime. This class allows for customizing the appearance of queries by
     overriding one or more of these defaults::
 
-        q_style = QueryStyle(align='left', location=(100, 100), registration=7)
+        # Configures the query to appear centered on the screen
+        q_style = QueryStyle(location=P.screen_c, registration=5)
         rating_q = NumberQuery(
             "On a scale from 1 to 10, how well do you think you did?",
             min=1, max=10, style=q_style
@@ -64,8 +65,13 @@ class QueryStyle():
     these parameters).
 
     Additional style parameters that can be overridden include the text style, the
-    text alignment, the vertical offset of the input text relative to the bottom edge
-    of the query, the background fill color, and the colour to use for error text.
+    text alignment, the vertical offset of the input relative to the query, the
+    background fill color, and the colour to use for error text.
+
+    The input offset is relative to the line spacing of its text style. For example,
+    if a text style has a line spacing equivalent to 40 px between lines, a query with
+    an input offset of 1.5 will have a `60 px` offset between the last line of query
+    text and the rendered input.
 
     Args:
         textstyle (str or :obj:`~KLText.TextStyle`): The text style (font, size, color,
@@ -77,8 +83,8 @@ class QueryStyle():
             of the top edge.
         location (tuple, optional): A custom location in (x, y) pixel coordinates
             specifying where to draw the query text.
-        input_offset (float, optional): The offset between the last line of query text
-            and the rendered query input in units of line height.
+        input_offset (float, optional): The vertical offset between the last line of
+            query text and the rendered input in units of line spacing.
         bg_color (tuple, optional): A custom background fill color to use for the query.
         err_color (tuple, optional): A custom color to use for error text if an invalid
             response is entered.
@@ -113,8 +119,9 @@ class QueryStyle():
         self.style = style
         err_color = P.default_alert_color if err_color == None else err_color
         self.err = TextStyle(style.fontname, style._size, err_color)
-        line_offset = style.size_px * style.line_space
-        self.input_offset_px = (self.input_offset * line_offset) - style.size_px
+        line_offset = int(round(style.size_px * style.line_space))
+        end_pad = line_offset - style._lineskip_px
+        self.input_offset_px = end_pad + ((self.input_offset - 1) * line_offset)
 
 
 class Query():
@@ -176,7 +183,7 @@ class Query():
             input_x = int(q_bcx + self._q_msg.width / 2)
             input_reg = 9
 
-        input_y = q_bcy + style.input_offset_px
+        input_y = int(q_bcy + style.input_offset_px)
         return (input_x, input_y), input_reg
 
     def _render(self, userinput, err=None):

@@ -35,6 +35,11 @@ Runtime Changes:
 
 API Changes:
 
+* Added a new module :mod:`~klibs.KLQueries` which provides a set of classes
+  for prompting participants for input and collecting/validating responses.
+* The :func:`~klibs.KLCommunication.query` function has been deprecated in
+  favour of the :mod:`~klibs.KLQueries` module and should be not be used for
+  new projects.
 * Added a new attribute :attr:`~klibs.Experiment.participant_info` to the
   Experiment class that provides a dictionary for easy access to participant
   information collected during demographics (e.g. handedness).

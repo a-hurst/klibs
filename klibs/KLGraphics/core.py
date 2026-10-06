@@ -164,19 +164,42 @@ def fill(color=None, context=None):
 
 
 def blit(source, registration=7, location=(0,0), flip_x=False):
-    """
-    Draws passed content to the display buffer. All content that is not in already
-    rendered to Numpy Array format will be rendered when it is passed to this
-    function, thus it is recommended to render beforehand whenever possible to
-    avoid performance issues resulting from the extra overhead.
+    """Draws a source image or texture to the display buffer.
 
-    Valid source content types include :obj:`NumpySurface` objects, :obj:`Drawbject` shapes,
-    and :obj:`numpy.ndarray` or :obj:`Pillow.Image` objects in RGBA format.
+    Valid source content types include :obj:`~NumpySurface` objects, :obj:`~Drawbject`
+    shapes, and Numpy arrays (:obj:`numpy.ndarray`) in RGBA format.
+
+    When drawing to the display buffer, you can specify both a location and a
+    registration for the texture. The `registration` parameter is a digit from 1 to 9
+    that defines an anchor point on the texture to align with the given location, with
+    the different digits corresponding to different anchor points on the texture:
+
+    .. code-block:: text
+
+       7 -- 8 -- 9    1 = Bottom Left     6 = Middle Right
+       |    |    |    2 = Bottom Center   7 = Top Left
+       4 -- 5 -- 6    3 = Bottom Right    8 = Top Center
+       |    |    |    4 = Middle Left     9 = Top Right
+       1 -- 2 -- 3    5 = Center
+
+    For example, the default registration of 7 indicates that the *top-left corner* of
+    the texture should be drawn to the specified location. If you wanted to draw
+    something with its `midpoint` aligned to the given location, you would use a
+    registration of 5::
+
+        # Draw fixation to middle of screen
+        fill()
+        blit(fixation, 5, P.screen_c)
+        flip()
+
+    Note that drawing an image to the display buffer does not cause that image to
+    appear immediately on screen: anything drawn to the buffer will not be shown to
+    the user until :func:`~flip` is called.
 
     Args:
         source: Image data to draw to the display buffer.
-        registration (int): An integer from 1 to 9 indicating which location on the
-            surface will be aligned to the location value (see manual for more info).
+        registration (int): An integer from 1 to 9 indicating the anchor point on the
+            source to align with the given location. Defaults to the top-left corner.
         location(tuple(int,int)): A tuple of x,y pixel coordinates indicating where to
             draw the object to.
         flip_x (bool): If True, flips the content along its x-axis before drawing to

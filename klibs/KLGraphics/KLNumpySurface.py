@@ -168,6 +168,9 @@ class NumpySurface(object):
         Valid source content types include :obj:`NumpySurface` objects, :obj:`Drawbject` shapes,
         and :obj:`numpy.ndarray` or :obj:`Pillow.Image` objects in RGBA format.
 
+        See the :func:`~klibs.KLGraphics.blit` documentation for more information on the
+        `registration` and `location` parameters.
+
         Args:
             source: The content to draw to the surface.
             registration (int, optional): An integer from 1 to 9 indicating which point on the

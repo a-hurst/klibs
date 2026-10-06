@@ -106,9 +106,8 @@ def _render_line(text, font, color):
 def _render_multiline(lines, style, width, align):
     """Renders multiple lines of text with a given justification to a surface."""
     # Determine required surface height and create surface
-    line_pad = int(round(style.size_px * (style.line_space - 1.0)))
-    net_line_height = style.size_px + line_pad
-    height = (len(lines) - 1) * net_line_height + style._lineskip_px
+    line_offset = int(round(style.size_px * style.line_space))
+    height = (len(lines) - 1) * line_offset + style._lineskip_px
     surf = _create_surface((width, height))
     # Render all lines with proper alignment to surface
     for i in range(len(lines)):
@@ -122,7 +121,7 @@ def _render_multiline(lines, style, width, align):
             line_x = int((width - lw) / 2)
         elif align == "right":
             line_x = width - lw
-        line_rect = SDL_Rect(line_x, i * net_line_height, lw, lh)
+        line_rect = SDL_Rect(line_x, i * line_offset, lw, lh)
         SDL_BlitSurface(line, None, surf, line_rect)
         SDL_FreeSurface(line)
     

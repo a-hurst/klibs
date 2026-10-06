@@ -418,7 +418,12 @@ def revisions(path, report=False):
     project_name = initialize_path(path)
     P.initialize_paths(project_name)
 
+    # Import params defined in project's local params file in ExpAssets/Config
+    for k, v in load_source(P.params_file_path).items():
+        setattr(P, k, v)
+
     # Load database and extract version info (if present)
+    P.database_path = validate_database_path(P.database_path)
     db = DatabaseManager(P.database_path)
     col = 'session_info'
     if not (col in db.tables and 'codehash' in db.get_columns(col)):

@@ -1,0 +1,10 @@
+[project]
+name = "PROJECT_NAME"
+version = "1.0"
+requires-python = "PYTHON_VERSIONS"
+dependencies = [
+    "klibs @ https://github.com/a-hurst/klibs/releases/download/0.7.8b2/klibs-0.7.8b2.tar.gz",
+]
+
+[dependency-groups]
+dev = []

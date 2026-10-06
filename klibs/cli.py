@@ -141,15 +141,17 @@ def create(name, path):
     from random import choice
     from os.path import join
     from tempfile import mkdtemp
+    from platform import python_version_tuple
     from importlib.util import find_spec
 
     template_files = [
-        ("schema.sql", ["ExpAssets", "Config"]),
-        ("independent_variables.py", ["ExpAssets", "Config"]),
-        ("params.py", ["ExpAssets", "Config"]),
-        ("user_queries.json", ["ExpAssets", "Config"]),
-        ("experiment.py", []),
-        (".gitignore", [])
+        ("schema.sql", f"{name}_", ["ExpAssets", "Config"]),
+        ("independent_variables.py", f"{name}_", ["ExpAssets", "Config"]),
+        ("params.py", f"{name}_", ["ExpAssets", "Config"]),
+        ("user_queries.json", f"{name}_", ["ExpAssets", "Config"]),
+        ("pyproject.toml", "", []),
+        ("experiment.py", "", []),
+        ("gitignore", ".", [])
     ]
 
     # TODO: Prompt user if project involves eye tracking & configure params accordingly
@@ -210,6 +212,11 @@ def create(name, path):
         else:
             cso("\n<green_d>Pardon? I didn't catch that.</green_d>\n")
 
+    # Determine default Python version range for project
+    py_release = int(python_version_tuple()[1])
+    max_release = 15 if py_release < 15 else py_release + 1
+    py_range = ">=3.{},<3.{}".format(py_release, max_release)
+
     # Create temporary folder and assemble project template inside it
     tmp_path = mkdtemp(prefix='klibs_')
     tmp_dir = os.path.split(tmp_path)[1]
@@ -218,17 +225,18 @@ def create(name, path):
 
     klibs_root = os.path.dirname(find_spec("klibs").origin)
     source_path = os.path.join(klibs_root, 'resources', 'template')
-    for tf in template_files: # replace generic file names with project-specific names
-        filename = tf[0] if tf[0] in [".gitignore", "experiment.py"] else "{0}_{1}".format(name, tf[0])
-        template_f_path = join(source_path, tf[0] if tf[0] != ".gitignore" else "gitignore.txt")
-        project_f_path = filename if len(tf[1]) == 0 else join(join(*tf[1]), filename)
-        with open(template_f_path, "rt", encoding='utf-8') as temp:
-            with open(join(tmp_path, project_f_path), "w+", encoding='utf-8') as out:
+    for file, prefix, dirs in template_files:
+        dirs.append(prefix + file)
+        templatepath = join(source_path, file)
+        outpath = join(tmp_path, join(*dirs))
+        with open(templatepath, "rt", encoding='utf-8') as temp:
+            with open(outpath, "w+", encoding='utf-8') as out:
                 contents = temp.read()
                 contents = contents.replace('PROJECT_NAME', name)
                 contents = contents.replace('EXPERIMENTER_NAME', author)
+                contents = contents.replace('PYTHON_VERSIONS', py_range)
                 out.write(contents)
-        cso("  <cyan>...'{0}' successfully created.</cyan>".format(project_f_path))
+        cso("  <cyan>...'{0}' successfully created.</cyan>".format(join(*dirs)))
 
     # Once successfully initialized, copy template to target directory
     shutil.move(tmp_path, path)

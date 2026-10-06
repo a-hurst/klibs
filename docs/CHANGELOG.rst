@@ -30,7 +30,11 @@ Runtime Changes:
   by the klibs runtime, with each unique revision of the task being hashed and
   saved for later reporting and comparison. Revisions of the task can be listed,
   compared, and extracted for further inspection using the new
-  ``klibs revisions`` command line tool. 
+  ``klibs revisions`` command line tool.
+* ``klibs create`` now adds a ``pyproject.toml`` file to the project root for
+  environment management utilities such as uv and Poetry. Any packages required
+  by a project beyond klibs itself should be added to the 'dependencies' section
+  of this file.
 
 
 API Changes:

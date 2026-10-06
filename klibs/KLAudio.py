@@ -25,8 +25,15 @@ from klibs import P
 def _init_audio():
     # Internal method for initializing audio playback
     if not sdl2.SDL_WasInit(sdl2.SDL_INIT_AUDIO):
-        sdl2.SDL_Init(sdl2.SDL_INIT_AUDIO)
-        Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)
+        # NOTE: Can take 100-200 ms to initialize!
+        ret = Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024)
+        if ret == -1:
+            print("Warning: Error initializing audio device, audio playback will not "
+                "be available!")
+            err = sdl2.SDL_GetError().decode('utf-8')
+            if err:
+                print("(Error: {})".format(err))
+                sdl2.SDL_ClearError()
 
 
 class AudioClip(object):
@@ -69,7 +76,14 @@ class AudioClip(object):
             file_path = filename
         else:
             raise IOError("Unable to locate audio file at ({0})".format(filename))
-        return Mix_LoadWAV(sdl2.ext.compat.byteify(file_path, "utf-8"))
+        sample = Mix_LoadWAV(sdl2.ext.compat.byteify(file_path, "utf-8"))
+        if not sample:
+            e = "Unable to load audio file '{}'".format(filename)
+            err = sdl2.SDL_GetError().decode('utf-8')
+            if err:
+                e += " ({})".format(err)
+            raise RuntimeError(e)
+        return sample
 
     def _array_to_sample(self, arr):
         """Creates an SDL2_mixer MixChunk sample from a 2-channel 16-bit numpy array.

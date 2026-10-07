@@ -90,9 +90,6 @@ class Drawbject(object):
             shape has no stroke.
         stroke_alignment (int): The stroke alignment for the shape (inner, center, or
             outer). Defaults to '1' (STROKE_INNER) if the shape has no stroke.
-        fill_color (None or Tuple[color]): The fill color for the shape, expressed as an
-            iterable of integer values from 0 to 255 representing an RGB or RGBA color.
-            Defaults to 'None' if the shape has no fill.
         opacity (int): The opacity of the shape, expressed as an integer from 0 (fully
             transparent) to 255 (fully opaque).
         object_width (int): The width of the shape in pixels.
@@ -268,25 +265,18 @@ class Drawbject(object):
 
     @property
     def fill(self):
-        """None or :obj:`aggdraw.Brush`: An aggdraw Brush object set to the specified fill
-        color, or None if the Drawbject has no fill.
+        """None or Tuple: The RGBA fill colour for the shape (or None if no fill).
         
         """
-        return self._fill
+        return self.fill_color
 
     @fill.setter
     def fill(self, color):
-        if not color:
-            self.fill_color = None
-            return self
-        color = list(color)
-        if len(color)==3:
-            color += [255]
-        self.fill_color = color
-        self._fill = Brush(tuple(color[:3]), color[3])
-        if self.surface: # don't call this when initializing the Drawbject for the first time
+        self.fill_color = rgb_to_rgba(color) if color else None
+        self._fill = Brush(color[:3], color[3]) if color else None
+        # If shape already initialized, re-render
+        if self.surface:
             self._init_surface()
-        return self
 
     @abc.abstractmethod
     def _draw_points(self, outline=False):
@@ -300,7 +290,7 @@ class Drawbject(object):
         pts = translate_points(pts, delta=(dx, dy), flat=True)
         
         stroke = self._stroke if self._stroke else _null_stroke
-        self.surface.polygon(pts, stroke, self.fill)
+        self.surface.polygon(pts, stroke, self._fill)
         self.surface.flush()
         return self.canvas
 
@@ -372,7 +362,7 @@ class Ellipse(Drawbject):
         y1 = surf_c-(self.object_height/2.0 + self.stroke_offset)
         x2 = surf_c+(self.object_width/2.0 + self.stroke_offset)
         y2 = surf_c+(self.object_height/2.0 + self.stroke_offset)
-        self.surface.ellipse([x1, y1, x2, y2], self.stroke, self.fill)
+        self.surface.ellipse([x1, y1, x2, y2], self.stroke, self._fill)
         self.surface.flush()
         return self.canvas
 
@@ -489,7 +479,7 @@ class Annulus(Drawbject):
         if self.fill:
             xy_1 = surf_c - (self.radius - self.thickness / 2.0)
             xy_2 = surf_c + (self.radius - self.thickness / 2.0)
-            ring_pen = Pen(tuple(self.fill_color), self.thickness)
+            ring_pen = Pen(self.fill, self.thickness)
             self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], ring_pen)
         self.surface.flush()
         return self.canvas

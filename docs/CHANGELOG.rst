@@ -57,6 +57,10 @@ API Changes:
 * Removed the unused and unnecessary ``auto_draw`` parameter from all shapes
   in KLDraw. All shapes are now automatically pre-rendered internally when
   created.
+* The ``fill`` attribute of KLDraw shapes now returns the fill colour (if any)
+  of the shape instead of the internal aggdraw Brush. This attribute should be
+  used instead of ``fill_colour`` for any new projects.
+
 
 Fixed Bugs:
 

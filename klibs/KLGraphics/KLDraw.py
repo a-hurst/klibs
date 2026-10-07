@@ -527,7 +527,7 @@ class Rectangle(Drawbject):
 
 
 class Asterisk(Drawbject):
-    """Creates a Drawbject containing a six-spoke asterisk.
+    """Creates a Drawbject containing an asterisk.
 
     Args:
         size (int): The height and width of the asterisk in pixels.
@@ -540,6 +540,8 @@ class Asterisk(Drawbject):
 
     """
     def __init__(self, size, thickness, fill, spokes=6, rotation=0):
+        if spokes not in range(3, 13):
+            raise ValueError("Number of spokes must be between 3 and 12.")
         self.size = size
         self.thickness = thickness
         self.spokes = spokes
@@ -555,17 +557,6 @@ class Asterisk(Drawbject):
         if self.rotation != 0:
             pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
         return pts
-
-    @property
-    def spokes(self):
-        return self._spokes
-
-    @spokes.setter
-    def spokes(self, n):
-        if n not in range(3, 13):
-            raise ValueError("Number of spokes must be int between 3 and 12")
-        else:
-            self._spokes = n
 
     @property
     def __name__(self):

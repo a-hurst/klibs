@@ -111,7 +111,6 @@ class Drawbject(object):
     """
 
     def __init__(self, width, height, stroke, fill, rotation=0):
-        super(Drawbject, self).__init__()
 
         self.surface = None
         self.canvas = None
@@ -132,7 +131,7 @@ class Drawbject(object):
         self.object_height = height
         self.rotation = rotation
 
-        self._init_surface()
+        self.render()
 
 
     def __str__(self):
@@ -323,14 +322,11 @@ class FixationCross(Drawbject):
             Defaults to transparent fill.
         rotation (numeric, optional): The angle in degrees by which to rotate the cross 
             when rendered. Defaults to 0 (no rotation).
-        auto_draw (bool, optional): If True, draws the shape internally when created.
 
     """
-    def __init__(self, size, thickness, stroke=None, fill=None, rotation=0, auto_draw=True):
+    def __init__(self, size, thickness, stroke=None, fill=None, rotation=0):
         self.thickness = thickness
         super(FixationCross, self).__init__(size, size, stroke, fill, rotation)
-        if auto_draw:
-            self.draw()
 
     def _draw_points(self, outline=False):
         sw = self.stroke_width
@@ -362,16 +358,13 @@ class Ellipse(Drawbject):
             stroke. Defaults to no stroke.
         fill (Tuple[color], optional): The fill color for the ellipse in RGB or RGBA
             format. Defaults to transparent fill.
-        auto_draw (bool, optional): If True, internally draws the ellipse on initialization.	
 
     """
 
-    def __init__(self, width, height=None, stroke=None, fill=None, auto_draw=True):
+    def __init__(self, width, height=None, stroke=None, fill=None):
         if not height:
             height = width
         super(Ellipse, self).__init__(width, height, stroke, fill)
-        if auto_draw:
-            self.draw()
 
     def draw(self):
         surf_c = self.surface_width / 2.0 # center of the drawing surface
@@ -440,12 +433,11 @@ class Circle(Ellipse):
             stroke. Defaults to no stroke.
         fill (Tuple(color), optional): The fill color for the circle in RGB or RGBA
             format. Defaults to transparent fill.
-        auto_draw (bool, optional): If True, internally draws the circle on initialization.	
 
     """
 
-    def __init__(self, diameter, stroke=None, fill=None, auto_draw=True):
-        super(Circle, self).__init__(diameter, diameter, stroke, fill, auto_draw)
+    def __init__(self, diameter, stroke=None, fill=None):
+        super(Circle, self).__init__(diameter, diameter, stroke, fill)
 
 
 class Annulus(Drawbject):
@@ -459,19 +451,16 @@ class Annulus(Drawbject):
             color of the stroke. Defaults to no stroke.
         fill (Tuple[color], optional): The fill color for the annulus in RGB or RGBA
             format. Defaults to transparent fill.
-        auto_draw (bool): If True, internally draws the annulus on initialization.
 
     """
 
-    def __init__(self, diameter, thickness, stroke=None, fill=None, auto_draw=True):
+    def __init__(self, diameter, thickness, stroke=None, fill=None):
         if thickness > (diameter / 2.0):
             raise ValueError("Annulus thickness cannot exceed radius.")
         self.thickness = thickness
         self.diameter = diameter
         self.radius = self.diameter / 2.0
         super(Annulus, self).__init__(diameter, diameter, stroke, fill)
-        if auto_draw:
-            self.draw()
 
     def draw(self):
         surf_c = self.surface_width / 2.0 # center of the drawing surface
@@ -523,16 +512,13 @@ class Rectangle(Drawbject):
             format. Defaults to transparent fill.
         rotation (numeric, optional): The angle in degrees by which to rotate the rectangle
             when rendered. Defaults to 0 (no rotation).
-        auto_draw (bool, optional): If True, draws the rectangle internally when created.
 
     """
 
-    def __init__(self, width, height=None, stroke=None, fill=None, rotation=0, auto_draw=True):
+    def __init__(self, width, height=None, stroke=None, fill=None, rotation=0):
         if not height:
             height = width
         super(Rectangle, self).__init__(width, height, stroke, fill, rotation)
-        if auto_draw:
-            self.draw()
     
     def _draw_points(self, outline=False):
         so = self.stroke_offset + self.stroke_width / 2.0 if outline else self.stroke_offset
@@ -561,16 +547,13 @@ class Asterisk(Drawbject):
             if no value is given.
         rotation (numeric, optional): The angle in degrees by which to rotate the asterisk 
             when rendered. Defaults to 0 (no rotation).
-        auto_draw (bool, optional): If True, draws the shape internally when created.
 
     """
-    def __init__(self, size, thickness, fill, spokes=6, rotation=0, auto_draw=True):
+    def __init__(self, size, thickness, fill, spokes=6, rotation=0):
         self.size = size
         self.thickness = thickness
         self.spokes = spokes
         super(Asterisk, self).__init__(size, size, None, fill, rotation)
-        if auto_draw:
-            self.draw()
 
     def _draw_points(self, outline=False):
         ht = self.thickness / 2.0 # half of the asterisk's thickness
@@ -611,15 +594,12 @@ class SquareAsterisk(Drawbject):
             if no value is given.
         rotation (numeric, optional): The angle in degrees by which to rotate the asterisk 
             when rendered. Defaults to 0 (no rotation).
-        auto_draw (bool, optional): If True, draws the shape internally when created.
 
     """
-    def __init__(self, size, thickness, fill, rotation=0, auto_draw=True):
+    def __init__(self, size, thickness, fill, rotation=0):
         self.size = size
         self.thickness = thickness
         super(SquareAsterisk, self).__init__(size, size, None, fill, rotation)
-        if auto_draw:
-            self.draw()
     
     def _draw_points(self, outline=False):
         ht = self.thickness / 2.0 # half of the asterisk's thickness
@@ -657,11 +637,10 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
             a surface just large enough to contain the line, so you will still need to blit
             your line in the proper location if you want to draw a line between two
             specific points on the screen.
-        auto_draw (bool): If True, internally draws the line on initialization.
 
     """
 
-    def __init__(self, length, color, thickness, rotation=0, pts=None, auto_draw=True):
+    def __init__(self, length, color, thickness, rotation=0, pts=None):
         if pts:
             self.p1, self.p2 = pts
         else:
@@ -676,8 +655,6 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
         w = abs(self.p1[0] - self.p2[0]) + self.margin[1] * 2
         h = abs(self.p1[1] - self.p2[1]) + self.margin[0] * 2
         super(Line, self).__init__(w, h, [thickness, color, STROKE_INNER], fill=None)
-        if auto_draw:
-            self.draw()
 
     def _translate_to_positive(self):
         """Translates line coordinates into aggdraw space (i.e. top-left corner becomes (0,0)) 
@@ -809,11 +786,10 @@ class ColorWheel(Drawbject):
             constant-luminance colour wheel if not specified.
         rotation (int, optional): The angle in degrees by which to rotate the color wheel
             when rendered. Defaults to 0 (no rotation).
-        auto_draw (bool): If True, internally draws the color wheel on initialization.
         
     """
 
-    def __init__(self, diameter, thickness=None, colors=None, rotation=0, auto_draw=True):
+    def __init__(self, diameter, thickness=None, colors=None, rotation=0):
         if colors == None:
             colors = COLORSPACE_CONST
         self._colors = [rgb_to_rgba(tuple(c)) for c in colors]
@@ -821,8 +797,6 @@ class ColorWheel(Drawbject):
         self.radius = self.diameter / 2.0
         self.thickness = 0.20 * diameter if not thickness else thickness
         super(ColorWheel, self).__init__(diameter, diameter, None, None, rotation)
-        if auto_draw:
-            self.draw()
 
     def draw(self):
         rotation = self.rotation

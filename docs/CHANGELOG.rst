@@ -54,6 +54,9 @@ API Changes:
   ``self.audio`` attribute of the Experiment class or collect audio responses
   using the legacy ResponseCollector module will no longer work. Reworked
   audio input handling may be re-added at a later date.
+* Removed the unused and unnecessary ``auto_draw`` parameter from all shapes
+  in KLDraw. All shapes are now automatically pre-rendered internally when
+  created.
 
 Fixed Bugs:
 

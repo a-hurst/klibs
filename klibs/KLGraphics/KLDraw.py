@@ -106,8 +106,6 @@ class Drawbject(object):
 
     """
 
-    transparent_brush = Brush((255, 0, 0), 0)
-
     def __init__(self, width, height, stroke, fill, rotation=0):
         super(Drawbject, self).__init__()
 
@@ -484,11 +482,11 @@ class Annulus(Drawbject):
                 # draw outer stroke ring
                 xy_1 = surf_c - (self.radius+self.stroke_width/4.0)
                 xy_2 = surf_c + (self.radius+self.stroke_width/4.0)
-                self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen, self.transparent_brush)
+                self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen)
                 # draw inner stroke ring
                 xy_1 = surf_c - (self.radius-(self.thickness+self.stroke_width/4.0))
                 xy_2 = surf_c + (self.radius-(self.thickness+self.stroke_width/4.0))
-                self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen, self.transparent_brush)
+                self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen)
             else:
                 if self.stroke_alignment == STROKE_OUTER:
                     xy_1 = surf_c - (self.radius+self.stroke_width/2.0)
@@ -497,12 +495,12 @@ class Annulus(Drawbject):
                     xy_1 = surf_c - (self.radius-(self.thickness+self.stroke_width/2.0))
                     xy_2 = surf_c + (self.radius-(self.thickness+self.stroke_width/2.0))
                 stroke_pen = Pen(tuple(self.stroke_color), self.stroke_width)
-                self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen, self.transparent_brush)
+                self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen)
         if self.fill:
             xy_1 = surf_c - (self.radius-self.thickness/2.0)
             xy_2 = surf_c + (self.radius-self.thickness/2.0)
             ring_pen = Pen(tuple(self.fill_color), self.thickness)
-            self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], ring_pen, self.transparent_brush)
+            self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], ring_pen)
         self.surface.flush()
         return self.canvas
 
@@ -860,7 +858,7 @@ class ColorWheel(Drawbject):
         xy_1 = center - (self.radius-self.thickness / 2.0)
         xy_2 = center + (self.radius-self.thickness / 2.0)
         path_pen = Pen(255, self.thickness)
-        d.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen, self.transparent_brush)
+        d.ellipse([xy_1, xy_1, xy_2, xy_2], path_pen)
         d.flush()
         self.canvas.putalpha(mask)
 

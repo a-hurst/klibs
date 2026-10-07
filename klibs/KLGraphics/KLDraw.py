@@ -23,6 +23,10 @@ __all__ = [
 ]
 
 
+# Needed to avoid anti-aliasing weirdness on shapes without stroke
+_null_stroke = Pen((0, 0, 0), 0, 0)
+
+
 def cursor(color=None):
     dc =  Draw("RGBA", [32, 32], (0, 0, 0, 0))
     if color is not None:
@@ -296,7 +300,8 @@ class Drawbject(object):
         dy = self.surface_height / 2.0
         pts = translate_points(pts, delta=(dx, dy), flat=True)
         
-        self.surface.polygon(pts, self.stroke, self.fill)
+        stroke = self._stroke if self._stroke else _null_stroke
+        self.surface.polygon(pts, stroke, self.fill)
         self.surface.flush()
         return self.canvas
 
@@ -324,8 +329,6 @@ class FixationCross(Drawbject):
     def __init__(self, size, thickness, stroke=None, fill=None, rotation=0, auto_draw=True):
         self.thickness = thickness
         super(FixationCross, self).__init__(size, size, stroke, fill, rotation)
-        if stroke == None:
-            self._stroke = Pen((0, 0, 0), 0, 0)
         if auto_draw:
             self.draw()
 
@@ -566,7 +569,6 @@ class Asterisk(Drawbject):
         self.thickness = thickness
         self.spokes = spokes
         super(Asterisk, self).__init__(size, size, None, fill, rotation)
-        self._stroke = Pen((0, 0, 0), 0, 0)
         if auto_draw:
             self.draw()
 
@@ -616,7 +618,6 @@ class SquareAsterisk(Drawbject):
         self.size = size
         self.thickness = thickness
         super(SquareAsterisk, self).__init__(size, size, None, fill, rotation)
-        self._stroke = Pen((0, 0, 0), 0, 0)
         if auto_draw:
             self.draw()
     
@@ -771,9 +772,6 @@ class Arrow(Drawbject):
         arrow_w = self.head_w + self.tail_w
         arrow_h = self.head_h if head_h > tail_h else tail_h
         super(Arrow, self).__init__(arrow_w, arrow_h, stroke, fill, rotation)
-        # Set stroke to empty pen to avoid aggdraw anti-aliasing weirdness
-        if stroke == None:
-            self._stroke = Pen((0, 0, 0), 0, 0)
     
     def _draw_points(self, outline=False):
         so = self.stroke_offset + self.stroke_width / 2.0 if outline else self.stroke_offset

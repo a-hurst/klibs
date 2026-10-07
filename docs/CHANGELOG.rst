@@ -67,6 +67,8 @@ Fixed Bugs:
   multi-line text slightly in existing tasks.
 * Multiline text no longer clips the bottoms of characters when lines of text
   are spaced too closely together.
+* Fixed a minor anti-aliasing issue with ``KLDraw.Rectangle`` when drawn
+  without a stroke.
 
 
 0.7.8b2

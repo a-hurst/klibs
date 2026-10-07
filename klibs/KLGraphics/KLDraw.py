@@ -11,13 +11,14 @@ from numpy import asarray
 
 from klibs.KLConstants import STROKE_CENTER, STROKE_INNER, STROKE_OUTER
 from klibs import P
+from klibs.KLInternal import iterable
 from klibs.KLUtilities import point_pos, rotate_points, translate_points, canvas_size_from_points
 from klibs.KLGraphics.utils import rgb_to_rgba, aggdraw_to_array
 from klibs.KLGraphics.colorspaces import COLORSPACE_CONST
 
 
 __all__ = [
-    "drift_correct_target", "Drawbject",
+    "drift_correct_target", "Stroke", "Drawbject",
     "Rectangle", "Ellipse", "Circle", "Triangle",  "Annulus", "Line", 
     "Arrow", "FixationCross", "Asterisk", "SquareAsterisk", "ColorWheel"
 ]
@@ -64,6 +65,65 @@ def drift_correct_target():
     return aggdraw_to_array(draw_context)
 
 
+class Stroke(object):
+    """Defines the outline properties of a shape.
+
+    A Stroke defines the color, width (thickness), and alignment for the outline of a
+    shape. For example, to create an empty red square with a stroke width of 10 pixels,
+    you would do the following::
+
+        RED = (255, 0, 0)
+        outline = Stroke(10, RED)
+        rect = Rectangle(100, 100, stroke=outline)
+
+    The alignment of the stroke determines whether the outline is along the outside
+    of the shape ('outer'), the inside of the shape ('inner'), or centered along the
+    edges of the shape ('center'). For example, if an outer-aligned stroke with a width
+    of 10 is applied to a square with a width of 100, the width of the square inside
+    the stroke will still be 100 and total width of the square will be 120. If the same
+    stroke was inner-aligned (the default), the total width of the square would instead
+    be 100 and the width of the inner square would be 80.
+
+    The same Stroke can be reused for multiple shapes.
+
+    Args:
+        width (int): The thickness of the outline (in pixels).
+        color (tuple): The color of the outline (as an RGB or RGBA list).
+        align (str, optional): The alignment of the outline with the shape.
+            Defaults to 'inner'.
+
+    """
+    def __init__(self, width, color, align='inner'):
+        # Initialize parameters
+        self._width = int(width)
+        self._color = rgb_to_rgba(color)
+        self._align = str(align).lower()
+        # Validate parameter values
+        if self._width <= 0:
+            e = "Stroke width must be a positive integer (got '{0}')"
+            raise ValueError(e.format(str(width)))
+        if not self._align in ['outer', 'inner', 'center']:
+            e = "Invalid stroke alignment '{0}'".format(align)
+            raise ValueError(e)
+        
+        # Create actual Pen object
+        self._pen = Pen(self._color[:3], self._width, self._color[3])
+
+    @property
+    def width(self):
+        """int: The width of the stroke."""
+        return self._width
+
+    @property
+    def color(self):
+        """tuple: The RGBA color of the stroke."""
+        return self._color
+
+    @property
+    def alignment(self):
+        """str: The alignment of the stroke ('inner', 'outer', or 'center')."""
+        return self._align
+
 
 class Drawbject(object):
     """An abstract class that serves as the foundation for all KLDraw shapes. All Drawbjects
@@ -74,8 +134,7 @@ class Drawbject(object):
     Args:
         width (int): The width of the shape in pixels.
         height (int): The height of the shape in pixels.
-        stroke (List[width, Tuple[color], alignment]): The stroke of the shape, indicating
-            the width, color, and alignment (inner, center, or outer) of the stroke.
+        stroke (:obj:`Stroke`): The outline properties of the shape.
         fill (Tuple[color]): The fill color for the shape expressed as an iterable of integer 
             values from 0 to 255 representing an RGB or RGBA color (e.g. (255,0,0,128)
             for bright red with 50% transparency.)
@@ -83,15 +142,6 @@ class Drawbject(object):
             rendering. Defaults to 0.
 
     Attributes:
-        stroke_color (None or Tuple[color]): The stroke color for the shape, expressed as an
-            iterable of integer values from 0 to 255 representing an RGB or RGBA color.
-            Defaults to 'None' if the shape has no stroke.
-        stroke_width (int): The stroke width for the in pixels. Defaults to '0' if the
-            shape has no stroke.
-        stroke_alignment (int): The stroke alignment for the shape (inner, center, or
-            outer). Defaults to '1' (STROKE_INNER) if the shape has no stroke.
-        opacity (int): The opacity of the shape, expressed as an integer from 0 (fully
-            transparent) to 255 (fully opaque).
         object_width (int): The width of the shape in pixels.
         object_height (int): The height of the shape in pixels.
         surface (:obj:`aggdraw.Draw`): The aggdraw context on which the shape is drawn.
@@ -114,9 +164,6 @@ class Drawbject(object):
         self.rendered = None
 
         self._stroke = None
-        self.stroke_width = 0
-        self.stroke_color = None
-        self.stroke_alignment = STROKE_OUTER
         self.stroke = stroke
 
         self._fill = None
@@ -139,12 +186,12 @@ class Drawbject(object):
         self._update_dimensions()
         self.rendered = None # Clear any existing rendered texture
         if self.fill_color:
-            if self.stroke_color and self.fill_color[3] == 255:
-                col = self.stroke_color
+            if self.stroke and self.fill_color[3] == 255:
+                col = self.stroke.color
             else:
                 col = self.fill_color
-        elif self.stroke_color:
-            col = self.stroke_color
+        elif self.stroke:
+            col = self.stroke.color
         else:
             col = (0, 0, 0)
         self.canvas = Image.new("RGBA", self.dimensions, (col[0], col[1], col[2], 0))
@@ -174,12 +221,12 @@ class Drawbject(object):
         if pts != None:
             self._dimensions = canvas_size_from_points(pts, flat=True)
         else:
-            if self.stroke_alignment == STROKE_OUTER:
-                stroke_w = self.stroke_width * 2
-            elif self.stroke_alignment == STROKE_CENTER:
-                stroke_w = self.stroke_width
-            else:
-                stroke_w = 0
+            stroke_w = 0
+            if self.stroke:
+                if self.stroke.alignment == 'outer':
+                    stroke_w = self.stroke.width * 2
+                elif self.stroke.alignment == 'center':
+                    stroke_w = self.stroke.width
             w, h = [self.object_width, self.object_height]
             self._dimensions = [int(ceil(w+stroke_w))+2, int(ceil(h+stroke_w))+2]
 
@@ -214,65 +261,59 @@ class Drawbject(object):
 
     @property
     def stroke(self):
-        """None or :obj:`aggdraw.Pen`: An aggdraw Pen object set to the specified stroke width
-        and color, or None if the Drawbject has no stroke.
-
-        Raises:
-            ValueError: If an invalid stroke alignment value is passed to the stroke setter.
-                Valid values are 1 (STROKE_INNER), 2 (STROKE_CENTER), or 3 (STROKE_OUTER).
-                For the sake of clarity, it is recommended that you define stroke alignment
-                using the variable names provided in KLConstants (in brackets above).
+        """:obj:`~Stroke` or None: The outline of the shape (or None if no outline).
 
         """
         return self._stroke
 
     @stroke.setter
     def stroke(self, style):
+        # Parse provided stroke
         if not style:
-            self.stroke_width = 0
-            self.stroke_color = None
-            self.stroke_alignment = STROKE_OUTER
-            return self
-        try:
-            width, color, alignment = style
-        except ValueError:
-            width, color = style
-            alignment = STROKE_OUTER
-
-        if alignment in [STROKE_INNER, STROKE_CENTER, STROKE_OUTER]:
-            self.stroke_alignment = alignment
+            self._stroke = None
+        elif isinstance(style, Stroke):
+            self._stroke = style
+        elif iterable(style) and len(style) in (2, 3):
+            # [Compat]: for matching old API
+            if len(style) == 3:
+                const_map = {
+                    STROKE_INNER: 'inner',
+                    STROKE_OUTER: 'outer',
+                    STROKE_CENTER: 'center',
+                }
+                width, color, align = style
+                self._stroke = Stroke(width, color, const_map[align])
+            elif len(style) == 2:
+                width, color = style
+                self._stroke = Stroke(width, color, 'outer')
         else:
-            raise ValueError("Invalid stroke alignment, see KLConstants for accepted values")
+            e = "Invalid stroke format '{0}'"
+            raise ValueError(e.format(str(style)))
 
-        color = list(color)
-        if len(color)==3:
-            color += [255]
-        self.stroke_color = color
-        self.stroke_width = width
-        self._stroke = Pen(tuple(color[:3]), width, color[3])
-        if self.surface: # don't call this when initializing the Drawbject for the first time
+        # Re-initialize surface if it already exists
+        if self.surface:
             self._init_surface()
-        return self
 
     @property
     def stroke_offset(self):
-        if self.stroke_alignment == STROKE_OUTER:
-            return self.stroke_width * 0.5
-        if self.stroke_alignment == STROKE_INNER:
-            return self.stroke_width * -0.5
-        else:
-            return 0 
+        if self.stroke:
+            if self.stroke.alignment == 'outer':
+                return self.stroke.width * 0.5
+            if self.stroke.alignment == 'inner':
+                return self.stroke.width * -0.5
+        return 0 
 
     @property
     def fill(self):
-        """None or Tuple: The RGBA fill colour for the shape (or None if no fill).
+        """Tuple or None: The RGBA fill colour for the shape (or None if no fill).
         
         """
         return self.fill_color
 
     @fill.setter
     def fill(self, color):
-        self.fill_color = rgb_to_rgba(color) if color else None
+        color = rgb_to_rgba(color) if color else None
+        self.fill_color = color
         self._fill = Brush(color[:3], color[3]) if color else None
         # If shape already initialized, re-render
         if self.surface:
@@ -289,7 +330,7 @@ class Drawbject(object):
         dy = self.surface_height / 2.0
         pts = translate_points(pts, delta=(dx, dy), flat=True)
         
-        stroke = self._stroke if self._stroke else _null_stroke
+        stroke = self.stroke._pen if self.stroke else _null_stroke
         self.surface.polygon(pts, stroke, self._fill)
         self.surface.flush()
         return self.canvas
@@ -305,9 +346,8 @@ class FixationCross(Drawbject):
     Args:
         size (int): The height and width of the cross in pixels.
         thickness (int): The thickness of the cross in pixels.
-        stroke (List[alignment, width, Tuple[color]], optional): The stroke of the cross,
-            indicating the alignment of the stroke (inner, center, or outer), the stroke
-            width, and the color of the stroke. Defaults to no stroke.
+        stroke (:obj:`~Stroke`, optional): The outline properties of the cross.
+            Defaults to None (no outline).
         fill (Tuple[color], optional): The fill color for the cross in RGB or RGBA format.
             Defaults to transparent fill.
         rotation (numeric, optional): The angle in degrees by which to rotate the cross 
@@ -319,7 +359,7 @@ class FixationCross(Drawbject):
         super(FixationCross, self).__init__(size, size, stroke, fill, rotation)
 
     def _draw_points(self, outline=False):
-        sw = self.stroke_width
+        sw = self.stroke.width if self.stroke else 0
         so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
         ht = self.thickness / 2.0 + so # half of the cross' thickness
         hs = self.object_width / 2.0 + so # half of the cross' size
@@ -343,9 +383,8 @@ class Ellipse(Drawbject):
     Args:
         width (int): The width of the ellipse in pixels.
         height (int, optional): The height of the ellipse in pixels. Defaults to width.
-        stroke (List[alignment, width, Tuple[color]], optional): The stroke of the ellipse,
-            indicating the alignment (inner, center, or outer), width, and color of the
-            stroke. Defaults to no stroke.
+        stroke (:obj:`~Stroke`, optional): The outline properties of the ellipse.
+            Defaults to None (no outline).
         fill (Tuple[color], optional): The fill color for the ellipse in RGB or RGBA
             format. Defaults to transparent fill.
 
@@ -362,7 +401,8 @@ class Ellipse(Drawbject):
         y1 = surf_c-(self.object_height/2.0 + self.stroke_offset)
         x2 = surf_c+(self.object_width/2.0 + self.stroke_offset)
         y2 = surf_c+(self.object_height/2.0 + self.stroke_offset)
-        self.surface.ellipse([x1, y1, x2, y2], self.stroke, self._fill)
+        stroke = self.stroke._pen if self.stroke else None
+        self.surface.ellipse([x1, y1, x2, y2], stroke, self._fill)
         self.surface.flush()
         return self.canvas
 
@@ -436,9 +476,8 @@ class Annulus(Drawbject):
     Args:
         diameter (int): The diameter of the annulus in pixels.
         thickness (int): The thickness of the ring of the annulus in pixels.
-        stroke (List[alignment, width, Tuple[color]], optional): The stroke of the
-            annulus, indicating the alignment (inner, center, or outer), width, and
-            color of the stroke. Defaults to no stroke.
+        stroke (:obj:`~Stroke`, optional): The outline properties of the annulus.
+            Defaults to None (no outline).
         fill (Tuple[color], optional): The fill color for the annulus in RGB or RGBA
             format. Defaults to transparent fill.
 
@@ -454,10 +493,10 @@ class Annulus(Drawbject):
 
     def draw(self):
         surf_c = self.surface_width / 2.0 # center of the drawing surface
-        stroke_w = self.stroke_width if self.stroke else 0
-        stroke_col = tuple(self.stroke_color) if self.stroke else (0, 0, 0, 0)
+        stroke_w = self.stroke.width if self.stroke else 0
+        stroke_col = tuple(self.stroke.color) if self.stroke else (0, 0, 0, 0)
         if self.stroke:
-            if self.stroke_alignment == STROKE_CENTER:
+            if self.stroke.alignment == 'center':
                 stroke_pen = Pen(stroke_col, stroke_w / 2.0)
                 # draw outer stroke ring
                 xy_1 = surf_c - (self.radius + stroke_w / 4.0)
@@ -468,13 +507,13 @@ class Annulus(Drawbject):
                 xy_2 = surf_c + (self.radius - (self.thickness + stroke_w / 4.0))
                 self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen)
             else:
-                if self.stroke_alignment == STROKE_OUTER:
+                if self.stroke.alignment == 'outer':
                     xy_1 = surf_c - (self.radius + stroke_w / 2.0)
                     xy_2 = surf_c + (self.radius + stroke_w / 2.0)
-                elif self.stroke_alignment == STROKE_INNER:
+                elif self.stroke.alignment == 'inner':
                     xy_1 = surf_c - (self.radius - (self.thickness + stroke_w / 2.0))
                     xy_2 = surf_c + (self.radius - (self.thickness + stroke_w / 2.0))
-                stroke_pen = Pen(stroke_col, self.stroke_width)
+                stroke_pen = Pen(stroke_col, stroke_w)
                 self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen)
         if self.fill:
             xy_1 = surf_c - (self.radius - self.thickness / 2.0)
@@ -495,9 +534,8 @@ class Rectangle(Drawbject):
     Args:
         width (int): The width of the rectangle in pixels.
         height (int, optional): The height of the rectangle in pixels. Defaults to width.
-        stroke (List[alignment, width, Tuple[color]], optional): The stroke of the
-            rectangle, indicating the alignment (inner, center, or outer), width, and
-            color of the stroke. Defaults to no stroke.
+        stroke (:obj:`~Stroke`, optional): The outline properties of the rectangle.
+            Defaults to None (no outline).
         fill (Tuple[color], optional): The fill color for the rectangle in RGB or RGBA
             format. Defaults to transparent fill.
         rotation (numeric, optional): The angle in degrees by which to rotate the rectangle
@@ -511,7 +549,8 @@ class Rectangle(Drawbject):
         super(Rectangle, self).__init__(width, height, stroke, fill, rotation)
     
     def _draw_points(self, outline=False):
-        so = self.stroke_offset + self.stroke_width / 2.0 if outline else self.stroke_offset
+        sw = self.stroke.width if self.stroke else 0
+        so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
         x1 = -(self.object_width/2.0 + so)
         y1 = -(self.object_height/2.0 + so)
         x2 = (self.object_width/2.0 + so)
@@ -652,7 +691,7 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
         y1 = self.p1[1] + (self.margin[0] + 1)
         x2 = self.p2[0] + (self.margin[1] + 1)
         y2 = self.p2[1] + (self.margin[0] + 1)
-        self.surface.line((x1, y2, x2, y1), self.stroke)
+        self.surface.line((x1, y2, x2, y1), self.stroke._pen)
         self.surface.flush()
         return self.canvas
 
@@ -670,9 +709,8 @@ class Triangle(Drawbject):
             an equilateral triangle will be drawn.
         rotation (float|int, optional): The degrees by which to rotate the triangle when
             rendering. Defaults to 0 (no rotation).
-        stroke (List[alignment, width, Tuple[color]], optional): The stroke of the
-            triangle, indicating the alignment (inner, center, or outer), width, and
-            color of the stroke. Defaults to no stroke.
+        stroke (:obj:`~Stroke`, optional): The outline properties of the triangle.
+            Defaults to None (no outline).
         fill (Tuple[color], optional): The fill color for the triangle in RGB or RGBA format.
             Defaults to transparent fill.
         rotation (numeric, optional): The angle in degrees by which to rotate the triangle
@@ -687,7 +725,8 @@ class Triangle(Drawbject):
         super(Triangle, self).__init__(base, height, stroke, fill, rotation)
     
     def _draw_points(self, outline=False):
-        so = self.stroke_offset + self.stroke_width / 2.0 if outline else self.stroke_offset
+        sw = self.stroke.width if self.stroke else 0
+        so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
         half_y = self.height / 2.0 + so
         half_x = (half_y*2)/(self.height/(self.base/2.0)) # to preserve angles when adding stroke
         pts = [-half_x, half_y, 0, -half_y, half_x, half_y]
@@ -715,9 +754,8 @@ class Arrow(Drawbject):
         head_h (int): The height of the head of the arrow in pixels.
         rotation (int, optional): The degrees by which to rotate the arrow when
             rendered. Defaults to 0 (no rotation).
-        stroke (List[alignment, width, Tuple[color]], optional): The stroke of the
-            arrow, indicating the alignment (inner, center, or outer), width, and
-            color of the stroke. Defaults to no stroke.
+        stroke (:obj:`~Stroke`, optional): The outline properties of the arrow. Defaults
+            to None (no outline).
         fill (Tuple[color], optional): The fill color for the arrow in RGB or RGBA format.
             Defaults to transparent fill.
 
@@ -732,7 +770,8 @@ class Arrow(Drawbject):
         super(Arrow, self).__init__(arrow_w, arrow_h, stroke, fill, rotation)
     
     def _draw_points(self, outline=False):
-        so = self.stroke_offset + self.stroke_width / 2.0 if outline else self.stroke_offset
+        sw = self.stroke.width if self.stroke else 0
+        so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
         xo = -(self.tail_w + self.head_w) / 2.0 - so # starting x value (x origin)
         half_hh = (self.head_w+2*so)/(self.head_w/(self.head_h/2.0)) # half head height
         pts = []

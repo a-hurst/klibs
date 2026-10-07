@@ -60,6 +60,8 @@ API Changes:
 * The ``fill`` attribute of KLDraw shapes now returns the fill colour (if any)
   of the shape instead of the internal aggdraw Brush. This attribute should be
   used instead of ``fill_colour`` for any new projects.
+* Added a new class :class:`~klibs.KLGraphics.KLDraw.Stroke` for defining the
+  outline properties of shapes.
 
 
 Fixed Bugs:

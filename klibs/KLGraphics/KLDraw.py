@@ -461,44 +461,42 @@ class Annulus(Drawbject):
     """
 
     def __init__(self, diameter, thickness, stroke=None, fill=None, auto_draw=True):
+        if thickness > (diameter / 2.0):
+            raise ValueError("Annulus thickness cannot exceed radius.")
         self.thickness = thickness
         self.diameter = diameter
         self.radius = self.diameter / 2.0
         super(Annulus, self).__init__(diameter, diameter, stroke, fill)
-        if not stroke:
-            self.stroke_color = (0,0,0,0)
-            self.stroke_width = 0
-
-        if self.thickness > self.radius:
-            raise ValueError("Thickness larger than radius; reduce thickness or increase diameter")
         if auto_draw:
             self.draw()
 
     def draw(self):
         surf_c = self.surface_width / 2.0 # center of the drawing surface
+        stroke_w = self.stroke_width if self.stroke else 0
+        stroke_col = tuple(self.stroke_color) if self.stroke else (0, 0, 0, 0)
         if self.stroke:
             if self.stroke_alignment == STROKE_CENTER:
-                stroke_pen = Pen(tuple(self.stroke_color), self.stroke_width/2.0)
+                stroke_pen = Pen(stroke_col, stroke_w / 2.0)
                 # draw outer stroke ring
-                xy_1 = surf_c - (self.radius+self.stroke_width/4.0)
-                xy_2 = surf_c + (self.radius+self.stroke_width/4.0)
+                xy_1 = surf_c - (self.radius + stroke_w / 4.0)
+                xy_2 = surf_c + (self.radius + stroke_w / 4.0)
                 self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen)
                 # draw inner stroke ring
-                xy_1 = surf_c - (self.radius-(self.thickness+self.stroke_width/4.0))
-                xy_2 = surf_c + (self.radius-(self.thickness+self.stroke_width/4.0))
+                xy_1 = surf_c - (self.radius - (self.thickness + stroke_w / 4.0))
+                xy_2 = surf_c + (self.radius - (self.thickness + stroke_w / 4.0))
                 self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen)
             else:
                 if self.stroke_alignment == STROKE_OUTER:
-                    xy_1 = surf_c - (self.radius+self.stroke_width/2.0)
-                    xy_2 = surf_c + (self.radius+self.stroke_width/2.0)
+                    xy_1 = surf_c - (self.radius + stroke_w / 2.0)
+                    xy_2 = surf_c + (self.radius + stroke_w / 2.0)
                 elif self.stroke_alignment == STROKE_INNER:
-                    xy_1 = surf_c - (self.radius-(self.thickness+self.stroke_width/2.0))
-                    xy_2 = surf_c + (self.radius-(self.thickness+self.stroke_width/2.0))
-                stroke_pen = Pen(tuple(self.stroke_color), self.stroke_width)
+                    xy_1 = surf_c - (self.radius - (self.thickness + stroke_w / 2.0))
+                    xy_2 = surf_c + (self.radius - (self.thickness + stroke_w / 2.0))
+                stroke_pen = Pen(stroke_col, self.stroke_width)
                 self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], stroke_pen)
         if self.fill:
-            xy_1 = surf_c - (self.radius-self.thickness/2.0)
-            xy_2 = surf_c + (self.radius-self.thickness/2.0)
+            xy_1 = surf_c - (self.radius - self.thickness / 2.0)
+            xy_2 = surf_c + (self.radius - self.thickness / 2.0)
             ring_pen = Pen(tuple(self.fill_color), self.thickness)
             self.surface.ellipse([xy_1, xy_1, xy_2, xy_2], ring_pen)
         self.surface.flush()
@@ -677,14 +675,6 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
         w = abs(self.p1[0] - self.p2[0]) + self.margin[1] * 2
         h = abs(self.p1[1] - self.p2[1]) + self.margin[0] * 2
         super(Line, self).__init__(w, h, [thickness, color, STROKE_INNER], fill=None)
-        if P.development_mode:
-            linestr = "Line: {0}px at {1}deg: ({2}, {3}) => ({4}, {5}) on canvas ({6} x {7})"
-            f_vars = [
-                length, rotation, self.p1[0], self.p1[1], self.p2[0], self.p2[1], 
-                self.surface_width, self.surface_height
-            ]
-            print(linestr.format(*f_vars))
-
         if auto_draw:
             self.draw()
 

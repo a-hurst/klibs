@@ -15,11 +15,6 @@ from klibs.KLUtilities import point_pos, rotate_points, translate_points, canvas
 from klibs.KLGraphics.utils import rgb_to_rgba, aggdraw_to_array
 from klibs.KLGraphics.colorspaces import COLORSPACE_CONST
 
-##########################################################################
-#                                                                        #
-#  aggdraw Documentation: http://effbot.org/zone/pythondoc-aggdraw.html  #
-#                                                                        #
-##########################################################################
 
 __all__ = [
     "drift_correct_target", "Drawbject",
@@ -120,17 +115,17 @@ class Drawbject(object):
         self.canvas = None
         self.rendered = None
 
-        self.__stroke = None
+        self._stroke = None
         self.stroke_width = 0
         self.stroke_color = None
         self.stroke_alignment = STROKE_OUTER
         self.stroke = stroke
 
-        self.__fill = None
+        self._fill = None
         self.fill_color = None
         self.fill = fill
 
-        self.__dimensions = None
+        self._dimensions = None
         self.object_width = width
         self.object_height = height
         self.rotation = rotation
@@ -179,7 +174,7 @@ class Drawbject(object):
     def _update_dimensions(self):
         pts = self._draw_points(outline=True)
         if pts != None:
-            self.__dimensions = canvas_size_from_points(pts, flat=True)
+            self._dimensions = canvas_size_from_points(pts, flat=True)
         else:
             if self.stroke_alignment == STROKE_OUTER:
                 stroke_w = self.stroke_width * 2
@@ -188,14 +183,14 @@ class Drawbject(object):
             else:
                 stroke_w = 0
             w, h = [self.object_width, self.object_height]
-            self.__dimensions = [int(ceil(w+stroke_w))+2, int(ceil(h+stroke_w))+2]
+            self._dimensions = [int(ceil(w+stroke_w))+2, int(ceil(h+stroke_w))+2]
 
     @property
     def dimensions(self):
         """List[int, int]: The height and width of the internal surface on which the shape
         is drawn.
         """
-        return self.__dimensions
+        return self._dimensions
 
     @property
     def surface_width(self):
@@ -206,7 +201,7 @@ class Drawbject(object):
         (if stroke is outer aligned).
 
         """
-        return self.__dimensions[0]
+        return self._dimensions[0]
 
     @property
     def surface_height(self):
@@ -217,7 +212,7 @@ class Drawbject(object):
         height (if stroke is outer aligned).
 
         """
-        return self.__dimensions[1]
+        return self._dimensions[1]
 
     @property
     def stroke(self):
@@ -231,7 +226,7 @@ class Drawbject(object):
                 using the variable names provided in KLConstants (in brackets above).
 
         """
-        return self.__stroke
+        return self._stroke
 
     @stroke.setter
     def stroke(self, style):
@@ -256,7 +251,7 @@ class Drawbject(object):
             color += [255]
         self.stroke_color = color
         self.stroke_width = width
-        self.__stroke = Pen(tuple(color[:3]), width, color[3])
+        self._stroke = Pen(tuple(color[:3]), width, color[3])
         if self.surface: # don't call this when initializing the Drawbject for the first time
             self._init_surface()
         return self
@@ -276,7 +271,7 @@ class Drawbject(object):
         color, or None if the Drawbject has no fill.
         
         """
-        return self.__fill
+        return self._fill
 
     @fill.setter
     def fill(self, color):
@@ -287,7 +282,7 @@ class Drawbject(object):
         if len(color)==3:
             color += [255]
         self.fill_color = color
-        self.__fill = Brush(tuple(color[:3]), color[3])
+        self._fill = Brush(tuple(color[:3]), color[3])
         if self.surface: # don't call this when initializing the Drawbject for the first time
             self._init_surface()
         return self
@@ -332,7 +327,7 @@ class FixationCross(Drawbject):
         self.thickness = thickness
         super(FixationCross, self).__init__(size, size, stroke, fill, rotation)
         if stroke == None:
-            self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
+            self._stroke = Pen((0, 0, 0), 0, 0)
         if auto_draw:
             self.draw()
 
@@ -575,7 +570,7 @@ class Asterisk(Drawbject):
         self.thickness = thickness
         self.spokes = spokes
         super(Asterisk, self).__init__(size, size, None, fill, rotation)
-        self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
+        self._stroke = Pen((0, 0, 0), 0, 0)
         if auto_draw:
             self.draw()
 
@@ -592,14 +587,14 @@ class Asterisk(Drawbject):
 
     @property
     def spokes(self):
-        return self.__spokes
+        return self._spokes
 
     @spokes.setter
     def spokes(self, n):
         if n not in range(3, 13):
             raise ValueError("Number of spokes must be int between 3 and 12")
         else:
-            self.__spokes = n
+            self._spokes = n
 
     @property
     def __name__(self):
@@ -625,7 +620,7 @@ class SquareAsterisk(Drawbject):
         self.size = size
         self.thickness = thickness
         super(SquareAsterisk, self).__init__(size, size, None, fill, rotation)
-        self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
+        self._stroke = Pen((0, 0, 0), 0, 0)
         if auto_draw:
             self.draw()
     
@@ -676,7 +671,7 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
             self.p1 = (0,0)
             self.p2 = point_pos(self.p1, length, -90, rotation) # rotation of 0 = vertical line
 
-        self.__translate_to_positive__()
+        self._translate_to_positive()
         # determine surface margins based on the rotation and thickness of the line so it doesn't
         # get cropped at the corners
         margin = point_pos((0,0), thickness/2.0, -90, rotation)
@@ -695,7 +690,7 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
         if auto_draw:
             self.draw()
 
-    def __translate_to_positive__(self):
+    def _translate_to_positive(self):
         """Translates line coordinates into aggdraw space (i.e. top-left corner becomes (0,0)) 
         by offsetting the coordinates such that the furthest left point is aligned to x=0 and
         the furthest up point is aligned to y=0.
@@ -790,7 +785,7 @@ class Arrow(Drawbject):
         super(Arrow, self).__init__(arrow_w, arrow_h, stroke, fill, rotation)
         # Set stroke to empty pen to avoid aggdraw anti-aliasing weirdness
         if stroke == None:
-            self._Drawbject__stroke = Pen((0, 0, 0), 0, 0)
+            self._stroke = Pen((0, 0, 0), 0, 0)
     
     def _draw_points(self, outline=False):
         so = self.stroke_offset + self.stroke_width / 2.0 if outline else self.stroke_offset
@@ -907,12 +902,3 @@ class ColorWheel(Drawbject):
     @property
     def __name__(self):
         return "ColorWheel"
-
-
-
-# polygon
-    #hs = self.size / 2.0 # half of the asterisk's size
-    #sides = 6
-    #pts = []
-    #for s in range(0, sides):
-    #	pts += rotate_points([0, hs], (0, 0), s*(360.0/sides), flat=True)

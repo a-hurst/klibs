@@ -78,7 +78,8 @@ Fixed Bugs:
   are spaced too closely together.
 * Fixed a minor anti-aliasing issue with ``KLDraw.Rectangle`` when drawn
   without a stroke.
-
+* Fixed a bug where some shapes (Arrows, Triangles, Asterisks with odd numbers
+  of spokes) could be clipped when rendered if rotated.
 
 0.7.8b2
 -------

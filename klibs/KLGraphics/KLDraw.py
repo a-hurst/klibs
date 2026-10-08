@@ -31,6 +31,14 @@ __all__ = [
 _null_stroke = Pen((0, 0, 0), 0, 0)
 
 
+def _get_midpoint(pts):
+    # Gets the midpoint of a list of (x, y) tuples
+    x_points, y_points = list(zip(*pts))
+    xc = (max(x_points) + min(x_points)) / 2.0
+    yc = (max(y_points) + min(y_points)) / 2.0
+    return (int(xc), int(yc))
+
+
 def cursor(color=None):
     dc =  Draw("RGBA", [32, 32], (0, 0, 0, 0))
     if color is not None:
@@ -325,9 +333,10 @@ class Drawbject():
     @abc.abstractmethod
     def draw(self):
         pts = self._draw_points()
+        xc, yc = _get_midpoint(pts)
         dx = self.surface_width / 2.0
         dy = self.surface_height / 2.0
-        pts = translate_points(pts, delta=(dx, dy))
+        pts = translate_points(pts, delta=(dx - xc, dy - yc))
         pts = flatten_points(pts) # aggdraw requires flat x, y list
 
         stroke = self.stroke._pen if self.stroke else _null_stroke

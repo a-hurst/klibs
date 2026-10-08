@@ -65,7 +65,7 @@ def drift_correct_target():
     return aggdraw_to_array(draw_context)
 
 
-class Stroke(object):
+class Stroke():
     """Defines the outline properties of a shape.
 
     A Stroke defines the color, width (thickness), and alignment for the outline of a
@@ -125,7 +125,7 @@ class Stroke(object):
         return self._align
 
 
-class Drawbject(object):
+class Drawbject():
     """An abstract class that serves as the foundation for all KLDraw shapes. All Drawbjects
     are drawn on an internal surface using the aggdraw drawing library, which can then be drawn
     to the display buffer using blit() and displayed on the screen using flip(). For more
@@ -177,10 +177,6 @@ class Drawbject(object):
 
         self.render()
 
-
-    def __str__(self):
-        properties = [self.__name__, self.surface_width, self.surface_height, hex(id(self))]
-        return "klibs.Drawbject.{0} ({1} x {2}) at {3}".format(*properties)
 
     def _init_surface(self):
         self._update_dimensions()
@@ -335,10 +331,6 @@ class Drawbject(object):
         self.surface.flush()
         return self.canvas
 
-    @abc.abstractproperty
-    def __name__(self):
-        pass
-
 
 class FixationCross(Drawbject):
     """Creates a Drawbject containing a fixation cross.
@@ -372,10 +364,6 @@ class FixationCross(Drawbject):
             pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
         return pts
 
-    @property
-    def __name__(self):
-        return "FixationCross"
-
 
 class Ellipse(Drawbject):
     """Creates a Drawbject containing an ellipse.
@@ -405,10 +393,6 @@ class Ellipse(Drawbject):
         self.surface.ellipse([x1, y1, x2, y2], stroke, self._fill)
         self.surface.flush()
         return self.canvas
-
-    @property
-    def __name__(self):
-        return "Ellipse"
 
     @property
     def width(self):
@@ -523,10 +507,6 @@ class Annulus(Drawbject):
         self.surface.flush()
         return self.canvas
 
-    @property
-    def __name__(self):
-        return "Annulus"
-
 
 class Rectangle(Drawbject):
     """Creates a Drawbject containing a rectangle.
@@ -560,10 +540,6 @@ class Rectangle(Drawbject):
             pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
         return pts
 
-    @property
-    def __name__(self):
-        return "Rectangle"
-
 
 class Asterisk(Drawbject):
     """Creates a Drawbject containing an asterisk.
@@ -596,10 +572,6 @@ class Asterisk(Drawbject):
         if self.rotation != 0:
             pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
         return pts
-
-    @property
-    def __name__(self):
-        return "Asterisk"
 
 
 class SquareAsterisk(Drawbject):
@@ -636,10 +608,6 @@ class SquareAsterisk(Drawbject):
         if self.rotation != 0:
             pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
         return pts
-
-    @property
-    def __name__(self):
-        return "SquareAsterisk"
 
 
 class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this still useful?
@@ -695,10 +663,6 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
         self.surface.flush()
         return self.canvas
 
-    @property
-    def __name__(self):
-        return "Line"
-
 
 class Triangle(Drawbject):
     """Creates a Drawbject containing an isoceles or equilateral triangle.
@@ -733,10 +697,6 @@ class Triangle(Drawbject):
         if self.rotation != 0:
             pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
         return pts
-
-    @property
-    def __name__(self):
-        return "Triangle"
 
 
 class Arrow(Drawbject):
@@ -787,10 +747,6 @@ class Arrow(Drawbject):
         if self.rotation != 0:
             pts = rotate_points(pts, (0,0), self.rotation, flat=True)
         return pts
-
-    @property
-    def __name__(self):
-        return "Arrow"
 
 
 class ColorWheel(Drawbject):
@@ -878,7 +834,3 @@ class ColorWheel(Drawbject):
     @property
     def colors(self):
         return self._colors
-
-    @property
-    def __name__(self):
-        return "ColorWheel"

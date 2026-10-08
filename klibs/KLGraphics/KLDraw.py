@@ -12,7 +12,10 @@ from numpy import asarray
 from klibs.KLConstants import STROKE_CENTER, STROKE_INNER, STROKE_OUTER
 from klibs import P
 from klibs.KLInternal import iterable
-from klibs.KLUtilities import point_pos, rotate_points, translate_points, canvas_size_from_points
+from klibs.KLUtilities import (
+    point_pos, rotate_points, translate_points, canvas_size_from_points,
+    line_segment_len, flatten_points
+)
 from klibs.KLGraphics.utils import rgb_to_rgba, aggdraw_to_array
 from klibs.KLGraphics.colorspaces import COLORSPACE_CONST
 
@@ -215,7 +218,7 @@ class Drawbject():
     def _update_dimensions(self):
         pts = self._draw_points(outline=True)
         if pts != None:
-            self._dimensions = canvas_size_from_points(pts, flat=True)
+            self._dimensions = canvas_size_from_points(pts)
         else:
             stroke_w = 0
             if self.stroke:
@@ -324,8 +327,9 @@ class Drawbject():
         pts = self._draw_points()
         dx = self.surface_width / 2.0
         dy = self.surface_height / 2.0
-        pts = translate_points(pts, delta=(dx, dy), flat=True)
-        
+        pts = translate_points(pts, delta=(dx, dy))
+        pts = flatten_points(pts) # aggdraw requires flat x, y list
+
         stroke = self.stroke._pen if self.stroke else _null_stroke
         self.surface.polygon(pts, stroke, self._fill)
         self.surface.flush()
@@ -356,12 +360,12 @@ class FixationCross(Drawbject):
         ht = self.thickness / 2.0 + so # half of the cross' thickness
         hs = self.object_width / 2.0 + so # half of the cross' size
         pts = []
-        pts += [-hs, ht, -ht, ht, -ht, hs] # upper-left corner
-        pts += [ht, hs, ht, ht, hs, ht] # upper-right corner
-        pts += [hs, -ht, ht, -ht, ht, -hs] # lower-right corner
-        pts += [-ht, -hs, -ht, -ht, -hs, -ht] # lower-left corner
+        pts += [(-hs, ht), (-ht, ht), (-ht, hs)] # upper-left corner
+        pts += [(ht, hs), (ht, ht), (hs, ht)] # upper-right corner
+        pts += [(hs, -ht), (ht, -ht), (ht, -hs)] # lower-right corner
+        pts += [(-ht, -hs), (-ht, -ht), (-hs, -ht)] # lower-left corner
         if self.rotation != 0:
-            pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
+            pts = rotate_points(pts, (0, 0), self.rotation)
         return pts
 
 
@@ -531,13 +535,13 @@ class Rectangle(Drawbject):
     def _draw_points(self, outline=False):
         sw = self.stroke.width if self.stroke else 0
         so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
-        x1 = -(self.object_width/2.0 + so)
-        y1 = -(self.object_height/2.0 + so)
-        x2 = (self.object_width/2.0 + so)
-        y2 = (self.object_height/2.0 + so)
-        pts = [x1, y1, x2, y1, x2, y2, x1, y2]
+        x1 = -(self.object_width / 2.0 + so)
+        y1 = -(self.object_height / 2.0 + so)
+        x2 = (self.object_width / 2.0 + so)
+        y2 = (self.object_height / 2.0 + so)
+        pts = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
         if self.rotation != 0:
-            pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
+            pts = rotate_points(pts, (0, 0), self.rotation)
         return pts
 
 
@@ -567,10 +571,10 @@ class Asterisk(Drawbject):
         hs = self.size / 2.0 # half of the asterisk's size
         pts = []
         for s in range(0, self.spokes):
-            spoke = [-ht, -ht, -ht, -hs, ht, -hs, ht, -ht]
-            pts += rotate_points(spoke, (0, 0), s*(360.0/self.spokes), flat=True)
+            spoke = [(-ht, -ht), (-ht, -hs), (ht, -hs), (ht, -ht)]
+            pts += rotate_points(spoke, (0, 0), s * (360.0 / self.spokes))
         if self.rotation != 0:
-            pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
+            pts = rotate_points(pts, (0, 0), self.rotation)
         return pts
 
 
@@ -601,12 +605,12 @@ class SquareAsterisk(Drawbject):
         pts = []
         for s in range(0, spokes):
             if s%2 == 0: # alternate between short/flat and long/pointed spokes
-                spoke = [-ht, ht, -ht, hss, ht, hss, ht, ht]
+                spoke = [(-ht, ht), (-ht, hss), (ht, hss), (ht, ht)]
             else:
-                spoke = [-ht, ht, -ht, hds-ht, 0, hds, ht, hds-ht, ht, ht]
-            pts += rotate_points(spoke, (0, 0), s*(-360.0/spokes), flat=True)
+                spoke = [(-ht, ht), (-ht, hds-ht), (0, hds), (ht, hds-ht), (ht, ht)]
+            pts += rotate_points(spoke, (0, 0), s * (-360.0 / spokes))
         if self.rotation != 0:
-            pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
+            pts = rotate_points(pts, (0, 0), self.rotation)
         return pts
 
 
@@ -693,9 +697,9 @@ class Triangle(Drawbject):
         so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
         half_y = self.height / 2.0 + so
         half_x = (half_y*2)/(self.height/(self.base/2.0)) # to preserve angles when adding stroke
-        pts = [-half_x, half_y, 0, -half_y, half_x, half_y]
+        pts = [(-half_x, half_y), (0, -half_y), (half_x, half_y)]
         if self.rotation != 0:
-            pts = rotate_points(pts, (0, 0), self.rotation, flat=True)
+            pts = rotate_points(pts, (0, 0), self.rotation)
         return pts
 
 
@@ -736,16 +740,16 @@ class Arrow(Drawbject):
         half_hh = (self.head_w+2*so)/(self.head_w/(self.head_h/2.0)) # half head height
         pts = []
         # draw the tail
-        pts += [xo + self.tail_w, self.tail_h / 2.0 + so]
-        pts += [xo, self.tail_h / 2.0 + so]
-        pts += [xo, -self.tail_h / 2.0 - so]
-        pts += [xo + self.tail_w, -self.tail_h / 2.0 - so]
+        pts += [(xo + self.tail_w, self.tail_h / 2.0 + so)]
+        pts += [(xo, self.tail_h / 2.0 + so)]
+        pts += [(xo, -self.tail_h / 2.0 - so)]
+        pts += [(xo + self.tail_w, -self.tail_h / 2.0 - so)]
         # draw the head
-        pts += [xo + self.tail_w, -half_hh]
-        pts += [xo + self.tail_w + self.head_w + so*2, 0]
-        pts += [xo + self.tail_w, half_hh]
+        pts += [(xo + self.tail_w, -half_hh)]
+        pts += [(xo + self.tail_w + self.head_w + so*2, 0)]
+        pts += [(xo + self.tail_w, half_hh)]
         if self.rotation != 0:
-            pts = rotate_points(pts, (0,0), self.rotation, flat=True)
+            pts = rotate_points(pts, (0,0), self.rotation)
         return pts
 
 

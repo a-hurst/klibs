@@ -38,6 +38,65 @@ def _get_midpoint(pts):
     yc = (max(y_points) + min(y_points)) / 2.0
     return (int(xc), int(yc))
 
+def _normalize(p, origin=None):
+    # Normalizes a vector to a length of 1
+    x1, y1 = origin if origin else (0, 0)
+    x2, y2 = p
+    dist = line_segment_len((x1, y1), (x2, y2))
+    return ((x2 - x1) / dist, (y2 - y1) / dist)    
+
+def _calc_miter(a, b, c, thickness):
+    # Calculates the (x, y) coords of a miter join for a line intersection with
+    # a given line thickness
+    abx, aby = _normalize(b, a)
+    bcx, bcy = _normalize(c, b)
+    tanx, tany = _normalize((abx + bcx, aby + bcy))
+    miter_x, miter_y = (-tany, tanx)
+    d = (thickness / 2) / (miter_x * -aby + miter_y * abx)
+    # Once distance/angle of miter are known, calculate coords
+    xout = round(b[0] + miter_x * d, 8)
+    yout = round(b[1] + miter_y * d, 8)
+    return (xout, yout)
+
+def _adjust_for_stroke(pts, stroke, outline=False):
+    """Scales a shape's points up or down properly based on its stroke.
+
+    For polygons with non-90° angles, determining the size of the surface needed to
+    fit the shape with a given stroke requires some extra trigonometry. Since all
+    strokes are rendered with miter joins, we use the math for these to calculate the
+    points along the outside of a shape with a given stroke.
+
+    If 'outline' is True, the returned points will define the outline of the stroked
+    shape. If False, the returned points will be the points required to draw the shape
+    correctly with the given stroke size/alignment.
+
+    Args:
+        pts (list): A list of (x, y) coordinates defining a shape.
+        stroke (:obj:`~Stroke`): The stroke properties for the shape.
+        outline (bool): Whether the returned points should define the outline of the
+            stroked shape instead of its path. Defaults to False.
+
+    """
+    align = stroke.alignment
+    if (align == 'inner' and outline) or (align == 'center' and not outline):
+        # In these two cases, no scaling needed
+        return pts
+    if align == 'outer':
+        thickness = stroke.width * 2 if outline else stroke.width
+    elif align == 'center':
+        thickness = stroke.width
+    else:
+        thickness = -stroke.width
+    # Calculate the miter join coordinates for each vertex
+    out = []
+    n = len(pts)
+    for i in range(n):
+        p0 = pts[(i - 1) % n]
+        p1 = pts[i]
+        p2 = pts[(i + 1) % n]
+        out.append(_calc_miter(p0, p1, p2, -thickness))
+    return out
+
 
 def cursor(color=None):
     dc =  Draw("RGBA", [32, 32], (0, 0, 0, 0))
@@ -331,9 +390,15 @@ class Drawbject():
         return None
 
     @abc.abstractmethod
+    def _get_midpoint(self):
+        # Returns the midpoint of the points defining the shape to be aligned to the
+        # center of the surface. Usually (0, 0), but needs adjustment in some cases.
+        return (0, 0)
+
+    @abc.abstractmethod
     def draw(self):
         pts = self._draw_points()
-        xc, yc = _get_midpoint(pts)
+        xc, yc = self._get_midpoint()
         dx = self.surface_width / 2.0
         dy = self.surface_height / 2.0
         pts = translate_points(pts, delta=(dx - xc, dy - yc))
@@ -700,13 +765,17 @@ class Triangle(Drawbject):
             height = base/2.0 * sqrt(3)
         self.height = height
         super(Triangle, self).__init__(base, height, stroke, fill, rotation)
+
+    def _get_midpoint(self):
+        # Needed since midpoint changes based on stroke properties
+        return _get_midpoint(self._draw_points(outline=True))
     
     def _draw_points(self, outline=False):
-        sw = self.stroke.width if self.stroke else 0
-        so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
-        half_y = self.height / 2.0 + so
-        half_x = (half_y*2)/(self.height/(self.base/2.0)) # to preserve angles when adding stroke
+        half_y = self.height / 2.0
+        half_x = (half_y * 2) / (self.height / (self.base / 2.0))
         pts = [(-half_x, half_y), (0, -half_y), (half_x, half_y)]
+        if self.stroke:
+            pts = _adjust_for_stroke(pts, self.stroke, outline)
         if self.rotation != 0:
             pts = rotate_points(pts, (0, 0), self.rotation)
         return pts
@@ -741,22 +810,26 @@ class Arrow(Drawbject):
         arrow_w = self.head_w + self.tail_w
         arrow_h = self.head_h if head_h > tail_h else tail_h
         super(Arrow, self).__init__(arrow_w, arrow_h, stroke, fill, rotation)
+
+    def _get_midpoint(self):
+        # Needed since midpoint changes based on stroke properties
+        return _get_midpoint(self._draw_points(outline=True))
     
     def _draw_points(self, outline=False):
-        sw = self.stroke.width if self.stroke else 0
-        so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
-        xo = -(self.tail_w + self.head_w) / 2.0 - so # starting x value (x origin)
-        half_hh = (self.head_w+2*so)/(self.head_w/(self.head_h/2.0)) # half head height
+        xo = -(self.tail_w + self.head_w) / 2.0 # starting x value (x origin)
+        half_hh = (self.head_w+2) / (self.head_w / (self.head_h/2.0)) # half head height
         pts = []
         # draw the tail
-        pts += [(xo + self.tail_w, self.tail_h / 2.0 + so)]
-        pts += [(xo, self.tail_h / 2.0 + so)]
-        pts += [(xo, -self.tail_h / 2.0 - so)]
-        pts += [(xo + self.tail_w, -self.tail_h / 2.0 - so)]
+        pts += [(xo + self.tail_w, self.tail_h / 2.0)]
+        pts += [(xo, self.tail_h / 2.0)]
+        pts += [(xo, -self.tail_h / 2.0)]
+        pts += [(xo + self.tail_w, -self.tail_h / 2.0)]
         # draw the head
         pts += [(xo + self.tail_w, -half_hh)]
-        pts += [(xo + self.tail_w + self.head_w + so*2, 0)]
+        pts += [(xo + self.tail_w + self.head_w, 0)]
         pts += [(xo + self.tail_w, half_hh)]
+        if self.stroke:
+            pts = _adjust_for_stroke(pts, self.stroke, outline)
         if self.rotation != 0:
             pts = rotate_points(pts, (0,0), self.rotation)
         return pts

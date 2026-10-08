@@ -79,7 +79,10 @@ Fixed Bugs:
 * Fixed a minor anti-aliasing issue with ``KLDraw.Rectangle`` when drawn
   without a stroke.
 * Fixed a bug where some shapes (Arrows, Triangles, Asterisks with odd numbers
-  of spokes) could be clipped when rendered if rotated.
+  of spokes) could be clipped during rendering if rotated.
+* Fixed a bug where the corners of Arrows and Triangles were clipped if rendered
+  with a stroke.
+
 
 0.7.8b2
 -------

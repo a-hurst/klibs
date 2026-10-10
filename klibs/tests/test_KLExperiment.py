@@ -72,6 +72,7 @@ def test_execute(run_environment_manual):
     class TestExperiment(Experiment):
 
         def setup(self):
+            P.block_number = 0
             self.last_block = 0
             self.last_trial = 0
             self.total_trials = 0

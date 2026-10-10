@@ -72,9 +72,20 @@ class Experiment(EnvAgent):
 
         if self.blocks == None:
             self.blocks = self.trial_factory.export_trials()
-
         P.blocks_per_experiment = len(self.blocks)
-        P.block_number = 0
+
+        # Check whether we're resuming from an incomplete session and fast-forward if we are
+        resume_session = P.block_number > 0 and P.trial_number > 0
+        if resume_session:
+            # Drop completed blocks
+            P.block_number -= 1 # since it gets incremented during loop below
+            self.blocks = self.blocks[P.block_number: ]
+            # If at end of current block, jump to next block
+            if P.trial_number > len(self.blocks[0]):
+                self.blocks = self.blocks[1:]
+                P.block_number += 1
+                P.trial_number = 1
+
         P.trial_id = 0
         for block in self.blocks:
             P.recycle_count = 0
@@ -83,10 +94,15 @@ class Experiment(EnvAgent):
             P.practicing = block.practice
             self.block_label = block.label
             self.block()
-            P.trial_number = 1
+
+            P.trial_number = P.trial_number if resume_session else 1
             remaining = list(block.trials)
             if P.max_trials_per_block != False:
                 remaining = remaining[:P.max_trials_per_block]
+            if resume_session:
+                remaining = remaining[(P.trial_number - 1): ]
+                resume_session = False
+
             while len(remaining):
                 trial = remaining.pop(0)
                 try:

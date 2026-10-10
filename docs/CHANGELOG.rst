@@ -35,6 +35,11 @@ Runtime Changes:
   environment management utilities such as uv and Poetry. Any packages required
   by a project beyond klibs itself should be added to the 'dependencies' section
   of this file.
+* If ``P.block_number`` and ``P.trial_number`` are set manually prior to the
+  first block, the runtime will skip ahead to the specified block/trial of the
+  task. Note that the random seed from the previous session will still need to
+  be loaded and set manually in order for the same sequence of trials to be
+  generated.
 
 
 API Changes:

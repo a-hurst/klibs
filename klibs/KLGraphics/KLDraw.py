@@ -466,20 +466,10 @@ class Ellipse(Drawbject):
         """int: The width of the ellipse in pixels."""
         return self.object_width
 
-    @width.setter
-    def width(self, value):
-        self.object_width = value
-        self._init_surface()
-
     @property
     def height(self):
         """int: The height of the ellipse in pixels."""
         return self.object_height
-
-    @height.setter
-    def height(self, value):
-        self.object_height = value
-        self._init_surface()
 
     @property
     def diameter(self):
@@ -492,12 +482,6 @@ class Ellipse(Drawbject):
             return self.object_width
         else:
             return None
-
-    @diameter.setter
-    def diameter(self, value):
-        self.object_height = value
-        self.object_width = value
-        self._init_surface()
 
 
 class Circle(Ellipse):

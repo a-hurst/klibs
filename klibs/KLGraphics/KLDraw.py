@@ -669,21 +669,11 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
         thickness (int): The thickness of the line in pixels.
         rotation (int, optional): The degrees by which the line should be rotated. Defaults
             to 0 (vertical).
-        pts(List[Tuple[x1,y1],Tuple[x2,y2]], optional): A pair of x,y pixel coordinates
-            indicating where the line should be drawn between. Note that this still creates
-            a surface just large enough to contain the line, so you will still need to blit
-            your line in the proper location if you want to draw a line between two
-            specific points on the screen.
 
     """
-
-    def __init__(self, length, color, thickness, rotation=0, pts=None):
-        if pts:
-            self.p1, self.p2 = pts
-        else:
-            self.p1 = (0,0)
-            self.p2 = point_pos(self.p1, length, -90, rotation) # rotation of 0 = vertical line
-
+    def __init__(self, length, color, thickness, rotation=0):
+        self.p1 = (0,0)
+        self.p2 = point_pos(self.p1, length, -90, rotation) # rotation of 0 = vertical line
         self._translate_to_positive()
         # determine surface margins based on the rotation and thickness of the line so it doesn't
         # get cropped at the corners

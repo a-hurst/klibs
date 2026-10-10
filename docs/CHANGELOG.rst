@@ -62,6 +62,7 @@ API Changes:
   used instead of ``fill_colour`` for any new projects.
 * Added a new class :class:`~klibs.KLGraphics.KLDraw.Stroke` for defining the
   outline properties of shapes.
+* Removed the ``pts`` argument from :class:`~klibs.KLGraphics.KLDraw.Line`.
 
 
 Fixed Bugs:

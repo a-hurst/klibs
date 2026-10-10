@@ -1,11 +1,9 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 import abc
-from bisect import bisect
-from os.path import join
 from math import cos, sin, radians, ceil, sqrt
 
-from aggdraw import Brush, Draw, Pen, Symbol
+from aggdraw import Brush, Draw, Pen
 from PIL import Image
 from numpy import asarray
 
@@ -196,10 +194,10 @@ class Stroke():
 
 
 class Drawbject():
-    """An abstract class that serves as the foundation for all KLDraw shapes. All Drawbjects
-    are drawn on an internal surface using the aggdraw drawing library, which can then be drawn
-    to the display buffer using blit() and displayed on the screen using flip(). For more
-    infomration on drawing in KLibs, please refer to the guide in the documentation.
+    """An abstract base class for all KLDraw shapes.
+
+    The fill, stroke, and rotation of a Drawbject can updated at any time after it
+    is created.
 
     Args:
         width (int): The width of the shape in pixels.
@@ -212,13 +210,6 @@ class Drawbject():
             rendering. Defaults to 0.
 
     Attributes:
-        object_width (int): The width of the shape in pixels.
-        object_height (int): The height of the shape in pixels.
-        surface (:obj:`aggdraw.Draw`): The aggdraw context on which the shape is drawn.
-            When a shape is drawn to the surface, it is immediately applied to the canvas.
-        canvas (:obj:`PIL.Image.Image`): The Image object that contains the shape of the
-            Drawbject before opacity has been applied. Initialized upon creation with a
-            size of (surface_width x surface_height).
         rendered (None or :obj:`numpy.array`): The rendered surface containing the shape,
             which is created using the render() method. If the Drawbject has not yet been
             rendered, this attribute will be 'None'.
@@ -307,9 +298,8 @@ class Drawbject():
     def surface_width(self):
         """int: The width of the draw surface in pixels.
         
-        At minimum two pixels wider than the object_width (if no stroke or stroke is
-        inner aligned), at maximum (2 + 2 * stroke_width) pixels wider than object width
-        (if stroke is outer aligned).
+        The width of the rendered draw surface after taking any stroke or rotation into
+        account. At minimum 2 pixels wider than the width of the surface contents.
 
         """
         return self._dimensions[0]
@@ -318,9 +308,8 @@ class Drawbject():
     def surface_height(self):
         """int: The height of the draw surface in pixels.
         
-        At minimum two pixels wider than the object_height (if no stroke or stroke is
-        inner aligned), at maximum (2 + 2 * stroke_height) pixels wider than object
-        height (if stroke is outer aligned).
+        The height of the rendered draw surface after taking any stroke or rotation into
+        account. At minimum 2 pixels taller than the height of the surface contents.
 
         """
         return self._dimensions[1]
@@ -411,7 +400,7 @@ class Drawbject():
 
 
 class FixationCross(Drawbject):
-    """Creates a Drawbject containing a fixation cross.
+    """Creates a drawable fixation cross.
 
     Args:
         size (int): The height and width of the cross in pixels.
@@ -444,7 +433,7 @@ class FixationCross(Drawbject):
 
 
 class Ellipse(Drawbject):
-    """Creates a Drawbject containing an ellipse.
+    """Creates a drawable ellipse.
 
     Args:
         width (int): The width of the ellipse in pixels.
@@ -512,11 +501,7 @@ class Ellipse(Drawbject):
 
 
 class Circle(Ellipse):
-    """Creates a Drawbject containing a circle. A special case of the Ellipse.
-
-    Mainly here for backwards compatibility with older experiments, may be removed in a
-    future release. You should probably use :obj:`~klibs.KLGraphics.KLDraw.Ellipse` instead
-    of this.
+    """Creates a drawable circle.
 
     Args:
         diameter (int): The diameter of the circle in pixels.
@@ -533,7 +518,7 @@ class Circle(Ellipse):
 
 
 class Annulus(Drawbject):
-    """Creates a Drawbject containing an annulus.
+    """Creates a drawable annulus (a ring).
 
     Args:
         diameter (int): The diameter of the annulus in pixels.
@@ -587,7 +572,7 @@ class Annulus(Drawbject):
 
 
 class Rectangle(Drawbject):
-    """Creates a Drawbject containing a rectangle.
+    """Creates a drawable rectangle.
 
     Args:
         width (int): The width of the rectangle in pixels.
@@ -620,7 +605,7 @@ class Rectangle(Drawbject):
 
 
 class Asterisk(Drawbject):
-    """Creates a Drawbject containing an asterisk.
+    """Creates a drawable asterisk.
 
     Args:
         size (int): The height and width of the asterisk in pixels.
@@ -653,8 +638,10 @@ class Asterisk(Drawbject):
 
 
 class SquareAsterisk(Drawbject):
-    """Creates a Drawbject containing an eight-spoke square-shaped asterisk. Spokes alternate
-    between short with flat ends and long with pointed ends.
+    """Creates a drawable square asterisk.
+    
+    A square asterisk has 8 spokes and a square appearance. Spokes alternate between
+    short with flat ends and long with pointed ends.
 
     Args:
         size (int): The height and width of the asterisk in pixels.
@@ -689,7 +676,7 @@ class SquareAsterisk(Drawbject):
 
 
 class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this still useful?
-    """Creates a Drawbject containing a line.
+    """Creates a drawable line.
 
     Args:
         length (int): The length of the line in pixels.
@@ -743,7 +730,7 @@ class Line(Drawbject): # Now that Rectangle Drawbjects can be rotated, is this s
 
 
 class Triangle(Drawbject):
-    """Creates a Drawbject containing an isoceles or equilateral triangle.
+    """Creates a drawable isoceles or equilateral triangle.
 
     Args:
         base (int): The width of the base of the triangle in pixels.
@@ -782,7 +769,7 @@ class Triangle(Drawbject):
 
 
 class Arrow(Drawbject):
-    """Creates a Drawbject containing an arrow.
+    """Creates a drawable arrow.
 
     Note that research on arrows as spatial cues suggests that arrows are followed 
     reflexively to an extent, so if you are looking to use an arrow in your experiment
@@ -836,16 +823,22 @@ class Arrow(Drawbject):
 
 
 class ColorWheel(Drawbject):
-    """Creates a Drawbject containing a color wheel. By default, the color wheel
-    is constant-luminance.
+    """Creates a drawable color wheel.
+
+    A color wheel is an annulus filled with a color spectrum instead of a solid fill.
+    Colors are rendered clockwise around the wheel, starting from the top (defined as
+    0°).
+    
+    For backwards compatibility, colour wheels default to using a colorspace that is
+    constant-luminance but not perceptually uniform. For any new studies, the
+    :attr:`~klibs.KLGraphics.COLORSPACE_CIELUV` colorspace should be used instead.
 
     Args:
         diameter (int): The diameter of the color wheel in pixels.
         thickness (int, optional): The width of the ring of the color wheel in pixels.
             Defaults to one quarter of the diameter if not specified.
         colors (:obj:`list`, optional): The list of colours to render the colour
-            wheel with, in the form of RGB or RGBA tuples. Defaults to a CIELUV
-            constant-luminance colour wheel if not specified.
+            wheel with, in the form of RGB or RGBA tuples.
         rotation (int, optional): The angle in degrees by which to rotate the color wheel
             when rendered. Defaults to 0 (no rotation).
         
@@ -853,6 +846,8 @@ class ColorWheel(Drawbject):
 
     def __init__(self, diameter, thickness=None, colors=None, rotation=0):
         if colors == None:
+            # [Compat]: Bad default, but needed until old colour wheel studies are
+            # pinned to a specific version of klibs
             colors = COLORSPACE_CONST
         self._colors = [rgb_to_rgba(tuple(c)) for c in colors]
         self.diameter = diameter
@@ -863,17 +858,17 @@ class ColorWheel(Drawbject):
     def draw(self):
         rotation = self.rotation
         center = self.surface_width / 2.0
-        r = self.radius + 1
-        for i in range(0, len(self.colors)):
-            brush = Brush(rgb_to_rgba(self.colors[i]))
-            vertices = [center, center]
-            for i in range(0, 4):
-                r_shift = -0.25 if i < 2 else 1.25
-                r_shift -= rotation
-                func = cos if i % 2 else sin
-                vertices.append(r + r * func(radians(r_shift + 180)))
-            self.surface.polygon(vertices, brush)
-            rotation += 360.0 / len(self.colors)
+        xy_1 = center - (self.radius + 1)
+        xy_2 = center + (self.radius + 1)
+
+        # Draw a pie slice for each colour on the wheel
+        deg_per_c = 360.0 / len(self.colors)
+        for color in self.colors:
+            brush = Brush(color)
+            angle1 = 90 - rotation - (0.1 + deg_per_c / 2)
+            angle2 = 90 - rotation + (0.1 + deg_per_c / 2)
+            self.surface.pieslice([xy_1, xy_1, xy_2, xy_2], angle1, angle2, brush)
+            rotation += deg_per_c
         self.surface.flush()
 
         # Create annulus mask and apply it to colour disc
@@ -888,35 +883,56 @@ class ColorWheel(Drawbject):
 
         return self.canvas
 
-    def color_from_angle(self, angle, rotation=None):
-        """Retrieves the color at a given angle on the wheel, taking any rotation into account.
+    def color_from_angle(self, angle):
+        """Retrieves the color at a given angle on the wheel.
+
+        For example, to retrieve the color at the bottom of the wheel, you would do::
+
+            color = wheel.color_from_angle(180)
+
+        This method automatically accounts for any rotation of the wheel.
+
+        Args:
+            angle (float): The angle (in degrees) of the color to retrieve, clockwise
+                relative to the top of the wheel (0°).
+
+        Returns:
+            tuple: The RGBA color at the specified angle.
+
         """
-        if not rotation:
-            rotation = self.rotation
-        
         degrees_per_colour = 360.0 / len(self.colors)
-        adj_angle = (angle - rotation) % 360
+        adj_angle = (angle - self.rotation) % 360
         i = int(adj_angle / degrees_per_colour)
         color = self.colors[i]
         return color
 
-    def angle_from_color(self, color, rotation=None):
-        """Retreives the angle of the middle of a given color on the wheel, taking any rotation
-        into account.
+    def angle_from_color(self, color):
+        """Retreives the angle of a given color on the wheel.
+
+        For example, to retrieve the angle for a given color response, you would do::
+
+            resp_angle = wheel.angle_from_color(resp_color)
+
+        This method automatically accounts for any rotation of the wheel.
+
+        Args:
+            color (tuple): The RGBA color to return the current angle for.
+
+        Returns:
+            float: The angle (in degrees) of the specified color.
+
         """
         #TODO: return true middle when two or more adjacent colours are the same
-        if not rotation:
-            rotation = self.rotation
-
         try:
             i = self.colors.index(rgb_to_rgba(tuple(color)))
         except ValueError:
             err_str = "The color '{0}' does not exist in the color wheel palette."
             raise ValueError(err_str.format(rgb_to_rgba(color)))
         degrees_per_colour = 360.0 / len(self.colors)
-        angle = ((i + 0.5) * degrees_per_colour + rotation) % 360
+        angle = ((i + 0.5) * degrees_per_colour + self.rotation) % 360
         return angle
 
     @property
     def colors(self):
+        """list: The full set of colors used for the color spectrum of the wheel."""
         return self._colors

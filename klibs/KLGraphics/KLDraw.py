@@ -232,8 +232,8 @@ class Drawbject():
         self.fill = fill
 
         self._dimensions = None
-        self.object_width = width
-        self.object_height = height
+        self._shape_width = width
+        self._shape_height = height
         self.rotation = rotation
 
         self.render()
@@ -284,7 +284,7 @@ class Drawbject():
                     stroke_w = self.stroke.width * 2
                 elif self.stroke.alignment == 'center':
                     stroke_w = self.stroke.width
-            w, h = [self.object_width, self.object_height]
+            w, h = [self._shape_width, self._shape_height]
             self._dimensions = [int(ceil(w+stroke_w))+2, int(ceil(h+stroke_w))+2]
 
     @property
@@ -421,7 +421,7 @@ class FixationCross(Drawbject):
         sw = self.stroke.width if self.stroke else 0
         so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
         ht = self.thickness / 2.0 + so # half of the cross' thickness
-        hs = self.object_width / 2.0 + so # half of the cross' size
+        hs = self._shape_width / 2.0 + so # half of the cross' size
         pts = []
         pts += [(-hs, ht), (-ht, ht), (-ht, hs)] # upper-left corner
         pts += [(ht, hs), (ht, ht), (hs, ht)] # upper-right corner
@@ -452,10 +452,10 @@ class Ellipse(Drawbject):
 
     def draw(self):
         surf_c = self.surface_width / 2.0 # center of the drawing surface
-        x1 = surf_c-(self.object_width/2.0 + self.stroke_offset)
-        y1 = surf_c-(self.object_height/2.0 + self.stroke_offset)
-        x2 = surf_c+(self.object_width/2.0 + self.stroke_offset)
-        y2 = surf_c+(self.object_height/2.0 + self.stroke_offset)
+        x1 = surf_c-(self._shape_width/2.0 + self.stroke_offset)
+        y1 = surf_c-(self._shape_height/2.0 + self.stroke_offset)
+        x2 = surf_c+(self._shape_width/2.0 + self.stroke_offset)
+        y2 = surf_c+(self._shape_height/2.0 + self.stroke_offset)
         stroke = self.stroke._pen if self.stroke else None
         self.surface.ellipse([x1, y1, x2, y2], stroke, self._fill)
         self.surface.flush()
@@ -464,12 +464,12 @@ class Ellipse(Drawbject):
     @property
     def width(self):
         """int: The width of the ellipse in pixels."""
-        return self.object_width
+        return self._shape_width
 
     @property
     def height(self):
         """int: The height of the ellipse in pixels."""
-        return self.object_height
+        return self._shape_height
 
     @property
     def diameter(self):
@@ -478,8 +478,8 @@ class Ellipse(Drawbject):
         return 'None'.
 
         """
-        if self.object_width == self.object_height:
-            return self.object_width
+        if self._shape_width == self._shape_height:
+            return self._shape_width
         else:
             return None
 
@@ -578,10 +578,10 @@ class Rectangle(Drawbject):
     def _draw_points(self, outline=False):
         sw = self.stroke.width if self.stroke else 0
         so = self.stroke_offset + sw / 2.0 if outline else self.stroke_offset
-        x1 = -(self.object_width / 2.0 + so)
-        y1 = -(self.object_height / 2.0 + so)
-        x2 = (self.object_width / 2.0 + so)
-        y2 = (self.object_height / 2.0 + so)
+        x1 = -(self._shape_width / 2.0 + so)
+        y1 = -(self._shape_height / 2.0 + so)
+        x2 = (self._shape_width / 2.0 + so)
+        y2 = (self._shape_height / 2.0 + so)
         pts = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
         if self.rotation != 0:
             pts = rotate_points(pts, (0, 0), self.rotation)

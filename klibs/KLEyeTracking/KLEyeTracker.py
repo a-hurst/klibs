@@ -41,7 +41,7 @@ class EyeTracker(BoundaryInspector):
         self.initialized = False
         self.local_start_time = None
         self.tracker_start_time = None
-        self.__recording = False
+        self._recording = False
         self._unresolved_exceptions = 0
         self._quitting = False
         self._el = None
@@ -71,7 +71,7 @@ class EyeTracker(BoundaryInspector):
         }
 
 
-    def __within_boundary__(self, label, event, report, inspect):
+    def _within_boundary(self, label, event, report, inspect):
         """Checks whether an event is within a boundary. For internal use.
 
         Args:
@@ -98,7 +98,7 @@ class EyeTracker(BoundaryInspector):
         return timestamp if result else False
 
 
-    def __exited_boundary__(self, label, event, report):
+    def _exited_boundary(self, label, event, report):
         """Checks whether a saccade event exited a given boundary. For internal use.
 
         Args:
@@ -128,7 +128,7 @@ class EyeTracker(BoundaryInspector):
         return timestamp if (start_inside and not end_inside) else False
 
 
-    def __saccade_in_direction__(self, doi, event, report):
+    def _saccade_in_direction(self, doi, event, report):
         """Checks whether a saccade event occurred in a given direction. For internal use.
 
         Args:
@@ -211,7 +211,7 @@ class EyeTracker(BoundaryInspector):
                 the data files of eye trackers that support data markup.
 
         """
-        self.__recording = True
+        self._recording = True
 
 
     def stop(self):
@@ -222,7 +222,7 @@ class EyeTracker(BoundaryInspector):
         To resume recording after this method is called, use the :meth:`start` method.
 
         """
-        self.__recording = False
+        self._recording = False
 
 
     def shut_down(self, incomplete=False):
@@ -370,7 +370,7 @@ class EyeTracker(BoundaryInspector):
             # if inspect or report not given, default to most reasonable option
             _report = report if report else self._event_defaults[e_type][0]
             _inspect = inspect if inspect else self._event_defaults[e_type][1]
-            timestamp = self.__within_boundary__(label, e, _report, _inspect)
+            timestamp = self._within_boundary(label, e, _report, _inspect)
             if timestamp:
                 return timestamp
 
@@ -462,8 +462,8 @@ class EyeTracker(BoundaryInspector):
         for e in event_queue:
             if e == None or self.get_event_type(e) != EL_SACCADE_END:
                 continue
-            started_within = self.__within_boundary__(label, e, EL_TIME_START, EL_GAZE_START)
-            ended_within = self.__within_boundary__(label, e, report, EL_GAZE_END)
+            started_within = self._within_boundary(label, e, EL_TIME_START, EL_GAZE_START)
+            ended_within = self._within_boundary(label, e, report, EL_GAZE_END)
             if ended_within and not started_within:
                 timestamp = ended_within
                 return timestamp
@@ -498,7 +498,7 @@ class EyeTracker(BoundaryInspector):
         for e in event_queue:
             if e == None or self.get_event_type(e) != EL_SACCADE_END:
                 continue
-            timestamp = self.__exited_boundary__(label, e, report)
+            timestamp = self._exited_boundary(label, e, report)
             if timestamp:
                 return timestamp
 
@@ -556,7 +556,7 @@ class EyeTracker(BoundaryInspector):
         for e in event_queue:
             if e == None or self.get_event_type(e) != EL_SACCADE_END:
                 continue
-            timestamp = self.__saccade_in_direction__(doi, e, report)
+            timestamp = self._saccade_in_direction(doi, e, report)
             if timestamp:
                 return timestamp
 

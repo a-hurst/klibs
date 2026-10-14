@@ -50,7 +50,7 @@ class TryLink(EyeTracker):
         self.initialized = False
         self.local_start_time = None
         self.tracker_start_time = None
-        self.__recording = False
+        self._recording = False
         self.__fix = None # the fixation currently in progress
         self.__sacc = None # the saccade currently in progress
 
@@ -87,7 +87,7 @@ class TryLink(EyeTracker):
 
         """
         self.local_start_time = now()
-        self.__recording = True
+        self._recording = True
         self.tracker_start_time = self.now()
         return 0
 
@@ -102,7 +102,7 @@ class TryLink(EyeTracker):
         """
         self.__fix = None
         self.__sacc = None
-        self.__recording = False
+        self._recording = False
 
 
     def shut_down(self, incomplete=False):
@@ -451,5 +451,5 @@ class TryLink(EyeTracker):
         """bool: Whether the eye tracker is currently recording data.
 
         """
-        return self.__recording
+        return self._recording
         

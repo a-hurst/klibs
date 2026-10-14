@@ -67,7 +67,7 @@ class EyeLink(EyeTracker):
         EyeTracker.__init__(self)
         self._el = _get_eyelink()
         self._custom_display = None
-        self.__recording = False
+        self._recording = False
         self._unresolved_exceptions = 0
         self._quitting = False
         self.version = None
@@ -126,7 +126,7 @@ class EyeLink(EyeTracker):
         start = self._el.startRecording(EL_TRUE, EL_TRUE, EL_TRUE, EL_TRUE)
         if start == 0:
             self.tracker_start_time = self.now()
-            self.__recording = True
+            self._recording = True
             if self.eye != None:
                 self.write("TRIAL_ID {0}".format(str(trial_number)))
                 self.write("TRIAL_START")
@@ -150,7 +150,7 @@ class EyeLink(EyeTracker):
         endRealTimeMode()
         pumpDelay(100)
         self._el.stopRecording()
-        self.__recording = False
+        self._recording = False
         self._el.sendMessage("TRIAL OK")
         flushGetkeyQueue()
 
@@ -181,7 +181,7 @@ class EyeLink(EyeTracker):
         self._quitting = True
         if self._el.isRecording() == 0:
             self._el.stopRecording()
-            self.__recording = False
+            self._recording = False
         self._el.setOfflineMode()
         msecDelay(500)
         self._el.closeDataFile()
@@ -520,7 +520,7 @@ class EyeLink(EyeTracker):
         """bool: Whether the eye tracker is currently recording data.
 
         """
-        return self.__recording
+        return self._recording
 
 
     @property

@@ -91,9 +91,10 @@ class EyeEventTemplate(object):
         self._last_sample_time = start_time
         self.last_update = start_time
 
-    def _add_sample(self, x, y):
+    def _add_sample(self, x, y, timestamp):
         self.__x_samples.append(x)
         self.__y_samples.append(y)
+        self._last_sample_time = timestamp
 
     def _vector_change(self, x, y):
         if len(self.__x_samples) < 2:
@@ -153,16 +154,18 @@ class EyeEventGenerator():
             min_velocity = 4
         self.max_dispersion = max_dispersion
         self.min_velocity = min_velocity
-        self.__fix = None
-        self.__sacc = None
+        self.in_fixation = False
+        self.in_saccade = False
+        self._current = None
         self._events = []
         
     def reset(self):
         """Reset the generator, clearing any in-progress events.
 
         """
-        self.__fix = None
-        self.__sacc = None
+        self.in_fixation = False
+        self.in_saccade = False
+        self._current = None
         self._events = []
 
     def get_events(self):
@@ -176,6 +179,26 @@ class EyeEventGenerator():
         self._events = []
         return events
 
+    def _start_saccade(self, new):
+        # Start a new saccade, ending any current saccade or fixation
+        if self.in_saccade:
+            self._events.append(EyeEvent(EL_SACCADE_END, self._current))
+        elif self.in_fixation:
+            self._events.append(EyeEvent(EL_FIXATION_END, self._current))
+        self._current = new
+        self._events.append(EyeEvent(EL_SACCADE_START, new))
+        self.in_fixation = False
+        self.in_saccade = True
+
+    def _start_fixation(self, new):
+        # Start a new fixation, ending any current saccade
+        if self.in_saccade:
+            self._events.append(EyeEvent(EL_SACCADE_END, self._current))
+        self._current = new
+        self._events.append(EyeEvent(EL_FIXATION_START, new))
+        self.in_saccade = False
+        self.in_fixation = True
+
     def update(self, x, y, timestamp):
         """Adds a new gaze sample to the generator.
         
@@ -185,50 +208,43 @@ class EyeEventGenerator():
             timestamp (int): The timestamp (in milliseconds) of the gaze sample.
 
         """
-        if self.__fix:
+        if self.in_fixation:
             # Add current sample to fixation template
-            self.__fix._add_sample(x, y)
-            self.__fix._last_sample_time = timestamp
+            self._current._add_sample(x, y, timestamp)
 
             # If spatial dispersion of samples surpasses threshold, end fixation
             # and start saccade
-            if self.__fix._dispersion > self.max_dispersion:
-                self._events.append(EyeEvent(EL_FIXATION_END, self.__fix))
-                self.__fix = None
-                self.__sacc = EyeEventTemplate(timestamp, x, y)
-                self._events.append(EyeEvent(EL_SACCADE_START, self.__sacc))
+            if self._current._dispersion > self.max_dispersion:
+                s = EyeEventTemplate(timestamp, x, y)
+                self._start_saccade(s)
 
             else:
                 # If dispersion is below threshold and fixation in progress, add
                 # fixation update events at regular intervals
-                if timestamp > (self.__fix.last_update + 50):
-                    self._events.append(EyeEvent(EL_FIXATION_UPDATE, self.__fix))
-                    self.__fix.last_update = timestamp
+                if timestamp > (self._current.last_update + 50):
+                    self._events.append(EyeEvent(EL_FIXATION_UPDATE, self._current))
+                    self._current.last_update = timestamp
 
-        elif self.__sacc:
+        elif self.in_saccade:
             # If mouse movement falls below velocity threshold, end saccade
             # and start fixation
             # NOTE: Not actual velocity!
-            dx = x - self.__sacc.end_gaze[0]
-            dy = y - self.__sacc.end_gaze[1]
+            dx = x - self._current.end_gaze[0]
+            dy = y - self._current.end_gaze[1]
             if abs(dx) < self.min_velocity and abs(dy) < self.min_velocity:
-                self._events.append(EyeEvent(EL_SACCADE_END, self.__sacc))
-                self.__sacc = None
-                self.__fix = EyeEventTemplate(timestamp, x, y)
-                self._events.append(EyeEvent(EL_FIXATION_START, self.__fix))
+                fix = EyeEventTemplate(timestamp, x, y)
+                self._start_fixation(fix)
 
             # If saccade vector changes by more than 45 degrees, end saccade
             # and start a new one
-            elif abs(self.__sacc._vector_change(x, y)) > 45.0:
-                self._events.append(EyeEvent(EL_SACCADE_END, self.__sacc))
-                self.__sacc = EyeEventTemplate(timestamp, x, y)
-                self._events.append(EyeEvent(EL_SACCADE_START, self.__sacc))
+            elif abs(self._current._vector_change(x, y)) > 45.0:
+                s = EyeEventTemplate(timestamp, x, y)
+                self._start_saccade(s)
 
             else:
-                self.__sacc._add_sample(x, y)
-                self.__sacc._last_sample_time = timestamp
+                self._current._add_sample(x, y, timestamp)
 
         else:
             # If neither a fixation or saccade is in progress, start a fixation
-            self.__fix = EyeEventTemplate(timestamp, x, y)
-            self._events.append(EyeEvent(EL_FIXATION_START, self.__fix))
+            fix = EyeEventTemplate(timestamp, x, y)
+            self._start_fixation(fix)

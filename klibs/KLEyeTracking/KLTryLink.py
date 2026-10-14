@@ -16,7 +16,7 @@ from klibs.KLUserInterface import (
     ui_request, mouse_pos, mouse_clicked, key_pressed, show_cursor, hide_cursor
 )
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
-from klibs.KLEyeTracking.events import GazeSample, EyeEvent, EyeEventTemplate
+from klibs.KLEyeTracking.events import GazeSample, EyeEventGenerator
 
 from sdl2 import SDL_GetTicks, SDL_Delay
 from sdl2.ext import cursor_hidden
@@ -51,8 +51,7 @@ class TryLink(EyeTracker):
         self.local_start_time = None
         self.tracker_start_time = None
         self._recording = False
-        self.__fix = None # the fixation currently in progress
-        self.__sacc = None # the saccade currently in progress
+        self._generator = EyeEventGenerator()
 
 
     def _setup(self):
@@ -100,8 +99,7 @@ class TryLink(EyeTracker):
         To resume recording after this method is called, use the :meth:`start` method.
 
         """
-        self.__fix = None
-        self.__sacc = None
+        self._generator.reset()
         self._recording = False
 
 
@@ -141,8 +139,6 @@ class TryLink(EyeTracker):
 
         samples = EL_GAZE_POS in valid_events
         events = len(valid_events.intersection(EL_ALL_EVENTS)) > 0
-        max_dispersion = 15
-        min_velocity = 4
 
         timestamp = self.now()
         x, y = self.gaze()
@@ -152,60 +148,10 @@ class TryLink(EyeTracker):
             queue.append(GazeSample(timestamp, (x, y)))
             
         if events:
-            if self.__fix:
-                # Add current sample to fixation template
-                self.__fix._add_sample(x, y)
-                self.__fix._last_sample_time = timestamp
-
-                # If spatial dispersion of samples surpasses threshold, end fixation
-                # and start saccade
-                if self.__fix._dispersion > max_dispersion:
-                    if EL_FIXATION_END in valid_events:
-                        queue.append(EyeEvent(EL_FIXATION_END, self.__fix))
-                    self.__fix = None
-                    self.__sacc = EyeEventTemplate(timestamp, x, y)
-                    if EL_SACCADE_START in valid_events:
-                        queue.append(EyeEvent(EL_SACCADE_START, self.__sacc))
-
-                else:
-                    # If dispersion is below threshold and fixation in progress, add
-                    # fixation update events at regular intervals
-                    if timestamp > (self.__fix.last_update + 50):
-                        if EL_FIXATION_UPDATE in valid_events:
-                            queue.append(EyeEvent(EL_FIXATION_UPDATE, self.__fix))
-                            self.__fix.last_update = timestamp
-                        
-            elif self.__sacc:
-                # If mouse movement falls below velocity threshold, end saccade
-                # and start fixation
-                dx = x - self.__sacc.end_gaze[0]
-                dy = y - self.__sacc.end_gaze[1]
-                if abs(dx) < min_velocity and abs(dy) < min_velocity:
-                    if EL_SACCADE_END in valid_events:
-                        queue.append(EyeEvent(EL_SACCADE_END, self.__sacc))
-                    self.__sacc = None
-                    self.__fix = EyeEventTemplate(timestamp, x, y)
-                    if EL_FIXATION_START in valid_events:
-                        queue.append(EyeEvent(EL_FIXATION_START, self.__fix))
-
-                # If saccade vector changes by more than 45 degrees, end saccade
-                # and start a new one
-                elif abs(self.__sacc._vector_change(x, y)) > 45.0:
-                    if EL_SACCADE_END in valid_events:
-                        queue.append(EyeEvent(EL_SACCADE_END, self.__sacc))
-                    self.__sacc = EyeEventTemplate(timestamp, x, y)
-                    if EL_SACCADE_START in valid_events:
-                        queue.append(EyeEvent(EL_SACCADE_START, self.__sacc))
-
-                else:
-                    self.__sacc._add_sample(x, y)
-                    self.__sacc._last_sample_time = timestamp
-
-            else:
-                # If neither a fixation or saccade is in progress, start a fixation
-                self.__fix = EyeEventTemplate(timestamp, x, y)
-                if EL_FIXATION_START in valid_events:
-                    queue.append(EyeEvent(EL_FIXATION_START, self.__fix))
+            self._generator.update(x, y, timestamp)
+            for e in self._generator.get_events():
+                if e.type in valid_events:
+                    queue.append(e)
 
         return queue
 
@@ -215,8 +161,7 @@ class TryLink(EyeTracker):
         discarded.
 
         """
-        self.__fix = None
-        self.__sacc = None
+        self._generator.reset()
 
 
     def _drift_correct(self, loc, target_callback):

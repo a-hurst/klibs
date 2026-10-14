@@ -44,6 +44,7 @@ class EyeTracker(BoundaryInspector):
         self.__recording = False
         self._unresolved_exceptions = 0
         self._quitting = False
+        self._el = None
         self._eye_names = {
             EL_RIGHT_EYE: 'right',
             EL_LEFT_EYE: 'left',
@@ -777,9 +778,29 @@ class EyeTracker(BoundaryInspector):
 
 
     @property
+    def eyelink(self):
+        """:obj:`pylink.EyeLink` or None: The internal EyeLink object (if connected).
+
+        Allows access to methods provided by the``pylink.EyeLink`` class that are not
+        wrapped by the klibs EyeTracker API. Note that any code accessing these methods
+        will not work in mouse simulation mode or with non-EyeLink trackers, so the
+        presence of an EyeLink tracker should be checked before use::
+
+            # If using EyeLink, set all pins high on port C of analog card
+            if self.el.eyelink:
+                self.el.eyelink.writeIOPort(4, 255)
+
+        If not connected to an EyeLink eye tracker, this attribute will be None.
+        
+        """
+        return self._el
+
+
+    @property
     def eye(self):
-        """:obj:`str` or None: The eye(s) currently being recorded by the tracker. Can be 'left',
-        'right', 'both', or None (if no eye is currently available).
+        """:obj:`str` or None: The eye(s) currently being recorded by the tracker.
+        
+        Can be 'left', 'right', 'both', or None (if no eye is currently available).
 
         """
         pass

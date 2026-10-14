@@ -63,6 +63,11 @@ API Changes:
 * Added a new class :class:`~klibs.KLGraphics.KLDraw.Stroke` for defining the
   outline properties of shapes.
 * Removed the ``pts`` argument from :class:`~klibs.KLGraphics.KLDraw.Line`.
+* Added a new property :attr:`~klibs.KLEyeTracking.EyeTracker.eyelink` to the
+  EyeTracker class allowing code to access methods of the internal
+  ``pylink.EyeLink`` object in a clear and documented way, while also allowing
+  for properly-written code to still work seamlessly with mouse simulation or
+  other trackers.
 
 
 Fixed Bugs:

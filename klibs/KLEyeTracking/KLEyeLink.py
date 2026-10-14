@@ -26,7 +26,25 @@ if PYLINK_AVAILABLE:
         from pylink import EyeLink as BaseEyeLink
     from .KLCustomEyeLinkDisplay import ELCustomDisplay
 
-class EyeLink(BaseEyeLink, EyeTracker):
+# NOTE: Currently no way of checking whether EyeLink connected and available without
+# attempting (and failing) to connect to the tracker. Tracker can be pinged, but no 
+# easy way to do that in pure Python (and ping requires admin sometimes?). EyeLink
+# communication itself is via UDP.
+
+
+def _get_eyelink():
+    # Wrapper for getting EyeLink connection and handling errors gracefully
+    try:
+        print("")
+        return BaseEyeLink()
+    except RuntimeError as e:
+        if "Could not connect" in str(e):
+            print("! If the EyeLink is on, ready, & connected, try turning off "
+                "the Wi-Fi on this machine or restarting the EyeLink PC.\n")
+        raise e
+
+
+class EyeLink(EyeTracker):
     """A connection to an SR Research EyeLink eye tracker, providing a friendly interface to the
     pylink API along with a pretty setup/calibration display.
     
@@ -45,19 +63,10 @@ class EyeLink(BaseEyeLink, EyeTracker):
             to the eye tracker's internal clock.
 
     """
-
     def __init__(self):
-        if P.eye_tracker_available:
-            print("")
-            try:
-                BaseEyeLink.__init__(self)
-            except RuntimeError as e:
-                if "Could not connect" in str(e):
-                    print("! If the EyeLink is on, ready, & connected, try turning off "
-                        "the Wi-Fi on this machine or restarting the EyeLink PC.\n")
-                raise e
         EyeTracker.__init__(self)
-        self.__custom_display = None
+        self._el = _get_eyelink()
+        self._custom_display = None
         self.__recording = False
         self._unresolved_exceptions = 0
         self._quitting = False
@@ -69,26 +78,27 @@ class EyeLink(BaseEyeLink, EyeTracker):
         """The EyeLink-specific part of the setup process.
         
         """
-        self.version = self.getTrackerVersionString()
-        self.__custom_display = ELCustomDisplay()
-        openGraphicsEx(self.__custom_display)
+        self.version = self._el.getTrackerVersionString()
+        self._custom_display = ELCustomDisplay()
+        openGraphicsEx(self._custom_display)
 
         flushGetkeyQueue()
-        self.setOfflineMode()
-        self.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(P.screen_x-1, P.screen_y-1))
-        self.setLinkEventFilter("FIXATION,SACCADE,BLINK,LEFT,RIGHT")
-        self.setLinkEventData("GAZE, GAZERES, AREA, VELOCITY") # Enables fix/sacc start events
-        self.openDataFile(self.edf_filename)
-        self.write("DISPLAY_COORDS 0 0 {0} {1}".format(P.screen_x-1, P.screen_y-1))
-        self.setSaccadeVelocityThreshold(P.saccadic_velocity_threshold)
-        self.setAccelerationThreshold(P.saccadic_acceleration_threshold)
-        self.setMotionThreshold(P.saccadic_motion_threshold)
+        self._el.setOfflineMode()
+        x_adj, y_adj = (P.screen_x - 1, P.screen_y - 1)
+        self._el.sendCommand("screen_pixel_coords = 0 0 {0} {1}".format(x_adj, y_adj))
+        self._el.setLinkEventFilter("FIXATION,SACCADE,BLINK,LEFT,RIGHT")
+        self._el.setLinkEventData("GAZE, GAZERES, AREA, VELOCITY") # Enables fix/sacc start events
+        self._el.openDataFile(self.edf_filename)
+        self.write("DISPLAY_COORDS 0 0 {0} {1}".format(x_adj, y_adj))
+        self._el.setSaccadeVelocityThreshold(P.saccadic_velocity_threshold)
+        self._el.setAccelerationThreshold(P.saccadic_acceleration_threshold)
+        self._el.setMotionThreshold(P.saccadic_motion_threshold)
         beginRealTimeMode(10)
 
 
     def _check_connection(self):
         # Ensures that the tracker connection is still alive
-        if not self.isConnected():
+        if not self._el.isConnected():
             e = "Unexpectedly lost the connection to the EyeLink"
             raise RuntimeError(e)
 
@@ -108,12 +118,12 @@ class EyeLink(BaseEyeLink, EyeTracker):
         """Enters the calibration and setup mode for the EyeLink.
 
         """
-        self.doTrackerSetup()
+        self._el.doTrackerSetup()
 
 
     def start(self, trial_number):
         self.local_start_time = now()
-        start = self.startRecording(EL_TRUE, EL_TRUE, EL_TRUE, EL_TRUE)
+        start = self._el.startRecording(EL_TRUE, EL_TRUE, EL_TRUE, EL_TRUE)
         if start == 0:
             self.tracker_start_time = self.now()
             self.__recording = True
@@ -139,9 +149,9 @@ class EyeLink(BaseEyeLink, EyeTracker):
         """
         endRealTimeMode()
         pumpDelay(100)
-        self.stopRecording()
+        self._el.stopRecording()
         self.__recording = False
-        self.sendMessage("TRIAL OK")
+        self._el.sendMessage("TRIAL OK")
         flushGetkeyQueue()
 
 
@@ -169,14 +179,14 @@ class EyeLink(BaseEyeLink, EyeTracker):
         edf_path = os.path.join(edf_dir, self.edf_filename)
 
         self._quitting = True
-        if self.isRecording() == 0:
-            self.stopRecording()
+        if self._el.isRecording() == 0:
+            self._el.stopRecording()
             self.__recording = False
-        self.setOfflineMode()
+        self._el.setOfflineMode()
         msecDelay(500)
-        self.closeDataFile()
-        self.receiveDataFile(self.edf_filename, edf_path)
-        return self.close()
+        self._el.closeDataFile()
+        self._el.receiveDataFile(self.edf_filename, edf_path)
+        return self._el.close()
 
 
     def get_event_queue(self, include=[], exclude=[]):
@@ -205,15 +215,15 @@ class EyeLink(BaseEyeLink, EyeTracker):
         events = int(len(valid_events.intersection(EL_ALL_EVENTS)) > 0)
 
         queue = []
-        if self.getDataCount(samples, events) != 0:  # i.e. if data available
+        if self._el.getDataCount(samples, events) != 0:  # i.e. if data available
             last_sample = None
             while True:
-                d_type = self.getNextData()
+                d_type = self._el.getNextData()
                 if d_type == 0:
                     break
                 elif d_type not in valid_events:
                     continue
-                data = self.getFloatData()
+                data = self._el.getFloatData()
                 # once the same sample has been sent twice, gtfo
                 if data == last_sample:
                     break
@@ -222,7 +232,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
                 queue.append(data)
         
         if samples == True and len(queue) == 0: # if no samples from getNextData, fetch latest
-            newest_sample = self.getNewestSample()
+            newest_sample = self._el.getNewestSample()
             queue = [newest_sample] if newest_sample != None else []
 
         return queue
@@ -233,7 +243,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
         discarded.
 
         """
-        self.resetData()
+        self._el.resetData()
 
 
     def _drift_correct(self, loc, target_callback):
@@ -248,16 +258,16 @@ class EyeLink(BaseEyeLink, EyeTracker):
             self._check_connection()
             target_callback() # redraws drift correct on screen
             try:
-                ret = self.doDriftCorrect(loc[0], loc[1], EL_FALSE, EL_TRUE)
+                ret = self._el.doDriftCorrect(loc[0], loc[1], EL_FALSE, EL_TRUE)
             except RuntimeError as e:
                 # If error is that escape has been pressed, just do drift correct again
                 if "Escape" in str(e):
                     continue
                 # If drift correct doesn't work, try again after setting tracker to
                 # offline mode
-                self.setOfflineMode()
-                self.waitForModeReady(500)
-                ret = self.doDriftCorrect(loc[0], loc[1], EL_FALSE, EL_TRUE)
+                self._el.setOfflineMode()
+                self._el.waitForModeReady(500)
+                ret = self._el.doDriftCorrect(loc[0], loc[1], EL_FALSE, EL_TRUE)
 
             # If Esc was hit to recalibrate during drift correct, redo drift correct
             if ret != 27:
@@ -265,12 +275,12 @@ class EyeLink(BaseEyeLink, EyeTracker):
 
         # Get the magnitude of the drift correct error (if available)
         drift = -1.0
-        drift_msg = self.getCalibrationMessage()
+        drift_msg = self._el.getCalibrationMessage()
         if drift_msg[:5] == "drift":
             drift = float(drift_msg.split(" ")[1])
 
         # Apply the drift correct (if possible) and reset cursor visibility
-        self.applyDriftCorrect()
+        self._el.applyDriftCorrect()
         if not mouse_hidden:
             show_cursor()
         
@@ -295,7 +305,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
             RuntimeError: If neither eye is currently available for recording.
 
         """
-        sample = self.getNewestSample()
+        sample = self._el.getNewestSample()
         if sample is not 0:
             if sample.isRightSample():
                 gaze_pos = sample.getRightEye().getGaze()
@@ -336,7 +346,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
             float: The current tracker time in the specified time unit.
 
         """
-        time = self.trackerTime()
+        time = self._el.trackerTime()
         return time * 0.001 if unit == TK_S else time
 
 
@@ -347,7 +357,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
             message (str): The message to write to the eye tracker's data file.
 
         """
-        self.sendMessage(message)
+        self._el.sendMessage(message)
 
 
     def get_event_type(self, e):
@@ -494,7 +504,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
         'both', or None (if no eye is currently available).
 
         """
-        return self._eye_names[self.eyeAvailable()]
+        return self._eye_names[self._el.eyeAvailable()]
     
 
     @property
@@ -502,7 +512,7 @@ class EyeLink(BaseEyeLink, EyeTracker):
         """bool: Whether the EyeLink is currently in setup/calibration mode.
 
         """
-        return self.inSetup() != 0
+        return self._el.inSetup() != 0
 
 
     @property

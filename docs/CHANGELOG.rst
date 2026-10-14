@@ -40,6 +40,11 @@ Runtime Changes:
   task. Note that the random seed from the previous session will still need to
   be loaded and set manually in order for the same sequence of trials to be
   generated.
+* Added a new parameter ``P.dm_click_to_blink``, which enables simulation of
+  blinks for eye tracking tasks when in mouse simulation mode by clicking a
+  mouse button. A blink start event is generated when the mouse is first
+  clicked, and a blink end event is generated when the button is released.
+  Must be enabled manually for new projects.
 
 
 API Changes:

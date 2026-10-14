@@ -46,7 +46,7 @@ class TestEyeEventGenerator():
     def test_saccades(self):
         g = EyeEventGenerator(max_dispersion=10, min_velocity=4)
 
-        # Should produce fixation start as soon as a sample is added
+        # Test starting a saccade with a jump in movement
         g.update(400, 300, 5)
         g.update(420, 320, 20)
         events = g.get_events()
@@ -83,3 +83,40 @@ class TestEyeEventGenerator():
         assert events[0].end_time == 65
         assert events[1].type == EL_FIXATION_START
         assert events[1].start_time == 80
+
+    def test_blinks(self):
+        g = EyeEventGenerator(max_dispersion=10, min_velocity=4)
+
+        # Test starting a blink with null gaze coordinates
+        g.update(400, 300, 5)
+        g.update(None, None, 20)
+        events = g.get_events()
+        assert len(events) == 3
+        assert events[0].type == EL_FIXATION_START
+        assert events[1].type == EL_FIXATION_END
+        assert events[2].type == EL_BLINK_START
+        assert events[2].start_time == 20
+
+        # Ensure blink continues as long as gaze is missing
+        g.update(None, None, 35)
+        assert not g.get_events()
+
+        # Test that blink ends when gaze returns
+        g.update(430, 300, 50)
+        events = g.get_events()
+        assert len(events) == 2
+        assert events[0].type == EL_BLINK_END
+        assert events[0].end_time == 50
+        assert events[1].type == EL_FIXATION_START
+
+        # Test that blink ends saccade events properly
+        g.update(420, 320, 65)
+        events = g.get_events()
+        assert len(events) == 2
+        assert events[0].type == EL_FIXATION_END
+        assert events[1].type == EL_SACCADE_START
+        g.update(None, None, 80)
+        events = g.get_events()
+        assert len(events) == 2
+        assert events[0].type == EL_SACCADE_END
+        assert events[1].type == EL_BLINK_START

@@ -60,13 +60,15 @@ class EyeEvent(object):
     def __init__(self, etype, template):
         self.type = etype
         self.start_time = template.start_time
-        self.start_gaze = template.start_gaze
+        if self.type not in [EL_BLINK_START, EL_BLINK_END]:
+            self.start_gaze = template.start_gaze
         if self.type in [EL_SACCADE_END, EL_FIXATION_END, EL_FIXATION_UPDATE]:
             self.end_time = template.end_time
             self.end_gaze = template.end_gaze
             if self.type != EL_SACCADE_END:
                 self.avg_gaze = template.avg_gaze
-
+        elif self.type == EL_BLINK_END:
+            self.end_time = template.end_time
 
 class EyeEventTemplate(object):
     """A template for creating eye events (e.g saccades, fixations) from collections
@@ -156,6 +158,7 @@ class EyeEventGenerator():
         self.min_velocity = min_velocity
         self.in_fixation = False
         self.in_saccade = False
+        self.in_blink = False
         self._current = None
         self._events = []
         
@@ -165,6 +168,7 @@ class EyeEventGenerator():
         """
         self.in_fixation = False
         self.in_saccade = False
+        self.in_blink = False
         self._current = None
         self._events = []
 
@@ -187,17 +191,33 @@ class EyeEventGenerator():
             self._events.append(EyeEvent(EL_FIXATION_END, self._current))
         self._current = new
         self._events.append(EyeEvent(EL_SACCADE_START, new))
+        self.in_blink = False
         self.in_fixation = False
         self.in_saccade = True
 
     def _start_fixation(self, new):
-        # Start a new fixation, ending any current saccade
+        # Start a new fixation, ending any current saccade or blink
         if self.in_saccade:
             self._events.append(EyeEvent(EL_SACCADE_END, self._current))
+        elif self.in_blink:
+            self._events.append(EyeEvent(EL_BLINK_END, self._current))
         self._current = new
         self._events.append(EyeEvent(EL_FIXATION_START, new))
+        self.in_blink = False
         self.in_saccade = False
         self.in_fixation = True
+
+    def _start_blink(self, new):
+        # Start a new blink, ending any current saccade or fixation
+        if self.in_saccade:
+            self._events.append(EyeEvent(EL_SACCADE_END, self._current))
+        elif self.in_fixation:
+            self._events.append(EyeEvent(EL_FIXATION_END, self._current))
+        self._current = new
+        self._events.append(EyeEvent(EL_BLINK_START, new))
+        self.in_saccade = False
+        self.in_fixation = False
+        self.in_blink = True
 
     def update(self, x, y, timestamp):
         """Adds a new gaze sample to the generator.
@@ -208,7 +228,21 @@ class EyeEventGenerator():
             timestamp (int): The timestamp (in milliseconds) of the gaze sample.
 
         """
-        if self.in_fixation:
+        blink = (x is None or y is None)
+
+        if self.in_blink:
+            self._current._add_sample(x, y, timestamp)
+            # If eye no longer missing, start a fixation event
+            if not blink:
+                fix = EyeEventTemplate(timestamp, x, y)
+                self._start_fixation(fix)
+
+        elif blink and not self.in_blink:
+            # If eye missing and it wasn't before, start a blink event
+            b = EyeEventTemplate(timestamp, x, y)
+            self._start_blink(b)
+
+        elif self.in_fixation:
             # Add current sample to fixation template
             self._current._add_sample(x, y, timestamp)
 

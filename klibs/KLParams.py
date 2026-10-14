@@ -124,6 +124,7 @@ dm_trial_show_mouse = True
 dm_auto_threshold = True # for audio responses
 dm_ignore_local_overrides = False
 dm_show_gaze_dot = True
+dm_click_to_blink = False
 #debug_level = 3 # (not implemented)
 #dm_print_log = True # (not implemented)
 #dm_print_events = True # (not implemented)

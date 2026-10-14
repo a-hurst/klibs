@@ -19,7 +19,7 @@ from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
 from klibs.KLEyeTracking.events import GazeSample, EyeEventGenerator
 
 from sdl2 import SDL_GetTicks, SDL_Delay
-from sdl2.ext import cursor_hidden
+from sdl2.ext import cursor_hidden, mouse_button_state
 
 
 class TryLink(EyeTracker):
@@ -142,11 +142,15 @@ class TryLink(EyeTracker):
 
         timestamp = self.now()
         x, y = self.gaze()
-        queue = []
+        mouse_clicked = mouse_button_state().any_pressed
+        blink = P.dm_click_to_blink and mouse_clicked
+        if blink:
+            # Simulate blink if mouse button pressed
+            x, y = (None, None)
 
-        if samples:
+        queue = []
+        if samples and not blink:
             queue.append(GazeSample(timestamp, (x, y)))
-            
         if events:
             self._generator.update(x, y, timestamp)
             for e in self._generator.get_events():

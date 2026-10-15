@@ -14,7 +14,7 @@ from klibs.KLConstants import (
     EL_FIXATION_START, EL_FIXATION_END, EL_FIXATION_UPDATE,
     EL_BLINK_START, EL_BLINK_END
 )
-from klibs.KLUtilities import mean
+from klibs.KLUtilities import mean, line_segment_len
 
 
 class GazeSample(object):
@@ -108,6 +108,10 @@ class EyeEventTemplate(object):
         diff = atan2(b2[1]-b1[1], b2[0]-b1[0]) - atan2(a2[1]-a1[1], a2[0]-a1[0])
         return (degrees(diff) + 180) % 360 - 180
 
+    def _get_velocity(self, x, y, timestamp):
+        dist = line_segment_len(self.end_gaze, (x, y))
+        return abs(dist / (timestamp - self._last_sample_time))
+        
     @property
     def _dispersion(self):
         dx = max(self.__x_samples) - min(self.__x_samples)
@@ -144,18 +148,18 @@ class EyeEventGenerator():
     Args:
         max_dispersion (float): The maximum vertical or horizontal dispersion of
             samples to result in a saccade start/fixation end.
-        min_velocity (float): The minimum change in direction for an in-progress
-            saccade. If velocity falls below this value, the saccade will end and
-            a fixation will start.
+        min_velocity (float): The minimum velocity (in pixels per second) for an
+            ongoing saccade. If velocity drops below this threshold the saccade will
+            end and a new fixation will begin.
 
     """
     def __init__(self, max_dispersion=None, min_velocity=None):
         if not max_dispersion:
             max_dispersion = 15
         if not min_velocity:
-            min_velocity = 4
+            min_velocity = 240
         self.max_dispersion = max_dispersion
-        self.min_velocity = min_velocity
+        self.min_velocity = min_velocity / 1000.0
         self.in_fixation = False
         self.in_saccade = False
         self.in_blink = False
@@ -262,10 +266,8 @@ class EyeEventGenerator():
         elif self.in_saccade:
             # If mouse movement falls below velocity threshold, end saccade
             # and start fixation
-            # NOTE: Not actual velocity!
-            dx = x - self._current.end_gaze[0]
-            dy = y - self._current.end_gaze[1]
-            if abs(dx) < self.min_velocity and abs(dy) < self.min_velocity:
+            v = self._current._get_velocity(x, y, timestamp)
+            if v < self.min_velocity:
                 fix = EyeEventTemplate(timestamp, x, y)
                 self._start_fixation(fix)
 

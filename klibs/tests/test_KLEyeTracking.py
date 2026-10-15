@@ -8,7 +8,7 @@ class TestEyeEventGenerator():
 
     def test_init(self):
         g = EyeEventGenerator()
-        g = EyeEventGenerator(max_dispersion=10, min_velocity=4)
+        g = EyeEventGenerator(max_dispersion=10, min_velocity=200)
 
     def test_fixations(self):
         g = EyeEventGenerator(max_dispersion=10)
@@ -44,7 +44,7 @@ class TestEyeEventGenerator():
         assert events[1].start_time == 65
 
     def test_saccades(self):
-        g = EyeEventGenerator(max_dispersion=10, min_velocity=4)
+        g = EyeEventGenerator(max_dispersion=10, min_velocity=240)
 
         # Test starting a saccade with a jump in movement
         g.update(400, 300, 5)
@@ -75,7 +75,7 @@ class TestEyeEventGenerator():
 
         # Fixations should end when the dispersion criteria are met
         g.update(400, 300, 65)
-        g.update(403, 302, 80)
+        g.update(403, 301, 80)
         events = g.get_events()
         assert len(events) == 2
         assert events[0].type == EL_SACCADE_END

@@ -43,6 +43,25 @@ def _get_eyelink():
                 "the Wi-Fi on this machine or restarting the EyeLink PC.\n")
         raise e
 
+def _get_eyelink_version(s):
+    # Gets the actual hardware version of the tracker based on the software
+    # version number
+    if "EYELINK CL" in s:
+        s = s.replace("EYELINK CL", "").strip()
+        try:
+            tracker = "EyeLink CL"
+            version = float(s)
+            if int(version) in (3, 4):
+                tracker = "EyeLink 1000"
+            elif int(version) == 5:
+                tracker = "EyeLink 1000 Plus"
+            elif int(version) == 6:
+                tracker = "EyeLink Portable Duo"
+            return tracker + " {}".format(version)
+        except ValueError:
+            pass
+    return s.replace("EYELINK", "EyeLink").strip()
+
 
 class EyeLink(EyeTracker):
     """A connection to an SR Research EyeLink eye tracker, providing a friendly interface to the
@@ -78,7 +97,8 @@ class EyeLink(EyeTracker):
         """The EyeLink-specific part of the setup process.
         
         """
-        self.version = self._el.getTrackerVersionString()
+        v = self._el.getTrackerVersionString()
+        self.version = _get_eyelink_version(v)
         self._custom_display = ELCustomDisplay()
         openGraphicsEx(self._custom_display)
 

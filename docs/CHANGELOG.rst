@@ -45,6 +45,8 @@ Runtime Changes:
   mouse button. A blink start event is generated when the mouse is first
   clicked, and a blink end event is generated when the button is released.
   Must be enabled manually for new projects.
+* EyeLink eye trackers are now identified properly by model name (e.g.
+  "EyeLink 1000 Plus") in the collected klibs runtime info.
 
 
 API Changes:

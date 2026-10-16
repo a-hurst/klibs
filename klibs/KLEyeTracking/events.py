@@ -17,7 +17,7 @@ from klibs.KLConstants import (
 from klibs.KLUtilities import mean, line_segment_len
 
 
-class GazeSample(object):
+class GazeSample():
     """A simulated gaze sample event. For internal use.
 
     Args:
@@ -34,7 +34,7 @@ class GazeSample(object):
         self.gaze = gaze
 
 
-class EyeEvent(object):
+class EyeEvent():
     """A simulated eye event (e.g saccade, fixation). For internal use.
 
     Args:
@@ -70,7 +70,8 @@ class EyeEvent(object):
         elif self.type == BLINK_END:
             self.end_time = template.end_time
 
-class EyeEventTemplate(object):
+
+class EyeEventTemplate():
     """A template for creating eye events (e.g saccades, fixations) from collections
     of samples. For internal use.
 
@@ -84,9 +85,7 @@ class EyeEventTemplate(object):
             update event was issued.
 
     """
-
     def __init__(self, start_time, start_x, start_y):
-        super(EyeEventTemplate, self).__init__()
         self.__start = start_time
         self.__x_samples = [start_x]
         self.__y_samples = [start_y]
@@ -111,9 +110,11 @@ class EyeEventTemplate(object):
     def _get_velocity(self, x, y, timestamp):
         dist = line_segment_len(self.end_gaze, (x, y))
         return abs(dist / (timestamp - self._last_sample_time))
-        
+    
     @property
     def _dispersion(self):
+        # NOTE: Figure out how to make a method that takes x/y so fixation ends
+        # don't include final sample beyond dispersion threshold?
         dx = max(self.__x_samples) - min(self.__x_samples)
         dy = max(self.__y_samples) - min(self.__y_samples)
         return dx + dy

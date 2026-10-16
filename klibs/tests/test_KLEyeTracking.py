@@ -2,6 +2,31 @@ import pytest
 
 from klibs.KLConstants import *
 from klibs.KLEyeTracking.events import EyeEventGenerator
+from klibs.KLEyeTracking.KLTryLink import TryLink
+
+
+class CustomTryLink(TryLink):
+
+    def __init__(self):
+        super(CustomTryLink, self).__init__()
+        self.samples = []
+        self._current_gaze = None
+
+    def add_samples(self, samples):
+        self.samples += samples
+
+    def now(self):
+        # NOTE: Need to do this in now because TryLink calls it first when
+        # generating events
+        if not len(self.samples):
+            return 0
+        x, y, timestamp = self.samples.pop(0)
+        self._current_gaze = (x, y)
+        return timestamp
+
+    def gaze(self, return_integers=True, binocular_mode=RIGHT_EYE):
+        return self._current_gaze
+
 
 
 class TestEyeEventGenerator():
@@ -120,3 +145,25 @@ class TestEyeEventGenerator():
         assert len(events) == 2
         assert events[0].type == EL_SACCADE_END
         assert events[1].type == EL_BLINK_START
+
+
+class TestTryLink():
+
+    def test_init(self):
+        tst = TryLink()
+
+    def test_get_event_queue(self):
+        tst = CustomTryLink()
+        # Start recording and check for gaze sample + start fixation
+        tst.start(1)
+        tst.add_samples([(400, 300, 0)])
+        events = tst.get_event_queue()
+        assert len(events) == 2
+        sample, start_fix = (None, None)
+        for e in events:
+            if tst.get_event_type(e) == GAZE_SAMPLE:
+                sample = e
+            elif tst.get_event_type(e) == FIXATION_START:
+                start_fix = e
+        assert sample
+        assert start_fix

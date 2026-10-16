@@ -2,10 +2,10 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 from klibs.KLExceptions import EyeTrackerError
-from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
-    EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
-    EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
-    EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
+from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR,
+    FIXATION_START, FIXATION_UPDATE, FIXATION_END, GAZE_SAMPLE,
+    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END, 
+    EL_GAZE_START, EL_GAZE_END, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
     EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
     TK_S, TK_MS)
 from klibs import P
@@ -45,29 +45,23 @@ class EyeTracker(BoundaryInspector):
         self._unresolved_exceptions = 0
         self._quitting = False
         self._el = None
-        self._eye_names = {
-            EL_RIGHT_EYE: 'right',
-            EL_LEFT_EYE: 'left',
-            EL_BOTH_EYES: 'both',
-            EL_NO_EYES: None
-        }
         self._event_names = {
-            EL_GAZE_POS: 'gaze position',
-            EL_BLINK_START: 'blink start',
-            EL_BLINK_END: 'blink end',
-            EL_SACCADE_START: 'saccade start',
-            EL_SACCADE_END: 'saccade end',
-            EL_FIXATION_START: 'fixation start',
-            EL_FIXATION_END: 'fixation end',
-            EL_FIXATION_UPDATE: 'fixation update'
+            GAZE_SAMPLE: 'gaze position',
+            BLINK_START: 'blink start',
+            BLINK_END: 'blink end',
+            SACCADE_START: 'saccade start',
+            SACCADE_END: 'saccade end',
+            FIXATION_START: 'fixation start',
+            FIXATION_END: 'fixation end',
+            FIXATION_UPDATE: 'fixation update'
         }
         self._event_defaults = {
-            EL_GAZE_POS: [None, None],
-            EL_SACCADE_START: [EL_TIME_START, EL_GAZE_START],
-            EL_SACCADE_END: [EL_TIME_END, EL_GAZE_END],
-            EL_FIXATION_START: [EL_TIME_START, EL_GAZE_START],
-            EL_FIXATION_END: [EL_TIME_END, EL_GAZE_AVG],
-            EL_FIXATION_UPDATE: [EL_TIME_END, EL_GAZE_AVG]            
+            GAZE_SAMPLE: [None, None],
+            SACCADE_START: [EL_TIME_START, EL_GAZE_START],
+            SACCADE_END: [EL_TIME_END, EL_GAZE_END],
+            FIXATION_START: [EL_TIME_START, EL_GAZE_START],
+            FIXATION_END: [EL_TIME_END, EL_GAZE_AVG],
+            FIXATION_UPDATE: [EL_TIME_END, EL_GAZE_AVG]            
         }
 
 
@@ -114,7 +108,7 @@ class EyeTracker(BoundaryInspector):
 
         """
         e_type = self.get_event_type(event)
-        if e_type != EL_SACCADE_END:
+        if e_type != SACCADE_END:
             typename = self.get_event_name(e_type)
             err = "Only saccade end events can be used for boundary exit tests ({0} given)"
             raise EyeTrackerError(err.format(typename))
@@ -145,7 +139,7 @@ class EyeTracker(BoundaryInspector):
                 
         """
         e_type = self.get_event_type(event)
-        if e_type != EL_SACCADE_END:
+        if e_type != SACCADE_END:
             typename = self.get_event_name(e_type)
             err = "Only saccade end events can be used for saccade direction tests ({0} given)"
             raise EyeTrackerError(err.format(typename))
@@ -308,26 +302,26 @@ class EyeTracker(BoundaryInspector):
         The valid event constants for this function, along with their supported 'inspect' and
         'report' flag values, are listed in the table below:
 
-        +------------------------+-------------------------------------+--------------------+
-        | Valid Events           | Inspect Values                      | Report Values      |
-        +========================+=====================================+====================+
-        | ``EL_GAZE_POS``        | N/A                                 | N/A                |
-        +------------------------+-------------------------------------+--------------------+
-        | ``EL_SACCADE_START``   | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
-        +------------------------+-------------------------------------+--------------------+
-        | ``EL_SACCADE_END``     | ``EL_GAZE_START``, ``EL_GAZE_END``  | ``EL_TIME_START``, |
-        |                        |                                     | ``EL_TIME_END``    |
-        +------------------------+-------------------------------------+--------------------+
-        | ``EL_FIXATION_START``  | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
-        +------------------------+-------------------------------------+--------------------+
-        | ``EL_FIXATION_END``    | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
-        |                        | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
-        +------------------------+-------------------------------------+--------------------+
-        | ``EL_FIXATION_UPDATE`` | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
-        |                        | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
-        +------------------------+-------------------------------------+--------------------+
+        +---------------------+-------------------------------------+--------------------+
+        | Valid Events        | Inspect Values                      | Report Values      |
+        +=====================+=====================================+====================+
+        | ``GAZE_SAMPLE``     | N/A                                 | N/A                |
+        +---------------------+-------------------------------------+--------------------+
+        | ``SACCADE_START``   | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
+        +---------------------+-------------------------------------+--------------------+
+        | ``SACCADE_END``     | ``EL_GAZE_START``, ``EL_GAZE_END``  | ``EL_TIME_START``, |
+        |                     |                                     | ``EL_TIME_END``    |
+        +---------------------+-------------------------------------+--------------------+
+        | ``FIXATION_START``  | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
+        +---------------------+-------------------------------------+--------------------+
+        | ``FIXATION_END``    | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
+        |                     | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
+        +---------------------+-------------------------------------+--------------------+
+        | ``FIXATION_UPDATE`` | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
+        |                     | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
+        +---------------------+-------------------------------------+--------------------+
 
-        Note that gaze samples (``EL_GAZE_POS``) represent the gaze at a single point in time
+        Note that gaze samples (``GAZE_SAMPLE``) represent the gaze at a single point in time
         and thus have no start or end, so they are not affected by the values of the 'inspect'
         and 'report' flags.
 
@@ -355,9 +349,9 @@ class EyeTracker(BoundaryInspector):
             valid event in the queue was within the specified boundary, otherwise False.
 
         """
-        if valid_events in EL_ALL_EVENTS or valid_events == EL_GAZE_POS:
+        if valid_events in EL_ALL_EVENTS or valid_events == GAZE_SAMPLE:
             valid_events = [valid_events]
-        if any(e in [EL_BLINK_START, EL_BLINK_END] for e in valid_events):
+        if any(e in [BLINK_START, BLINK_END] for e in valid_events):
             raise ValueError("Cannot inspect the gaze coordinates of blink events.")
         if not event_queue:
             event_queue = self.get_event_queue(valid_events)
@@ -377,7 +371,7 @@ class EyeTracker(BoundaryInspector):
         return False
 
 
-    def fixated_boundary(self, label, valid_events=EL_FIXATION_START, event_queue=None,
+    def fixated_boundary(self, label, valid_events=FIXATION_START, event_queue=None,
                                                     report=None, inspect=None):
         """Checks whether a specified boundary has been fixated since the last time the eye
         event queue was fetched.
@@ -391,17 +385,17 @@ class EyeTracker(BoundaryInspector):
         The valid event constants for this function, along with their supported 'inspect' and
         'report' flag values, are listed in the table below:
 
-        +------------------------+-------------------------------------+--------------------+
-        | Valid Events           | Inspect Values                      | Report Values      |
-        +========================+=====================================+====================+
-        | ``EL_FIXATION_START``  | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
-        +------------------------+-------------------------------------+--------------------+
-        | ``EL_FIXATION_UPDATE`` | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
-        |                        | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
-        +------------------------+-------------------------------------+--------------------+
-        | ``EL_FIXATION_END``    | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
-        |                        | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
-        +------------------------+-------------------------------------+--------------------+
+        +---------------------+-------------------------------------+--------------------+
+        | Valid Events        | Inspect Values                      | Report Values      |
+        +=====================+=====================================+====================+
+        | ``FIXATION_START``  | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
+        +---------------------+-------------------------------------+--------------------+
+        | ``FIXATION_UPDATE`` | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
+        |                     | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
+        +---------------------+-------------------------------------+--------------------+
+        | ``FIXATION_END``    | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
+        |                     | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
+        +---------------------+-------------------------------------+--------------------+
 
         Args:
             label (str): The label of the boundary to check if the event is in, added using
@@ -429,7 +423,7 @@ class EyeTracker(BoundaryInspector):
             valid_events = [valid_events]
 
         for e_type in valid_events:
-            if e_type not in EL_FIXATION_ALL:
+            if e_type not in (FIXATION_START, FIXATION_END, FIXATION_UPDATE):
                 raise ValueError("Valid events for fixated_boundary must be fixation events.")
 
         return self.within_boundary(label, valid_events, event_queue, report, inspect) 
@@ -455,12 +449,12 @@ class EyeTracker(BoundaryInspector):
 
         """
         if not event_queue:
-            event_queue = self.get_event_queue([EL_SACCADE_END])
+            event_queue = self.get_event_queue([SACCADE_END])
         if not len(event_queue):
             return False
 
         for e in event_queue:
-            if e == None or self.get_event_type(e) != EL_SACCADE_END:
+            if e == None or self.get_event_type(e) != SACCADE_END:
                 continue
             started_within = self._within_boundary(label, e, EL_TIME_START, EL_GAZE_START)
             ended_within = self._within_boundary(label, e, report, EL_GAZE_END)
@@ -491,12 +485,12 @@ class EyeTracker(BoundaryInspector):
 
         """
         if not event_queue:
-            event_queue = self.get_event_queue([EL_SACCADE_END])
+            event_queue = self.get_event_queue([SACCADE_END])
         if not len(event_queue):
             return False
 
         for e in event_queue:
-            if e == None or self.get_event_type(e) != EL_SACCADE_END:
+            if e == None or self.get_event_type(e) != SACCADE_END:
                 continue
             timestamp = self._exited_boundary(label, e, report)
             if timestamp:
@@ -549,12 +543,12 @@ class EyeTracker(BoundaryInspector):
                 raise ValueError(err_str.format(direction, valid_dois))
             
         if not event_queue:
-            event_queue = self.get_event_queue([EL_SACCADE_END])
+            event_queue = self.get_event_queue([SACCADE_END])
         if not len(event_queue):
             return False
 
         for e in event_queue:
-            if e == None or self.get_event_type(e) != EL_SACCADE_END:
+            if e == None or self.get_event_type(e) != SACCADE_END:
                 continue
             timestamp = self._saccade_in_direction(doi, e, report)
             if timestamp:
@@ -629,16 +623,16 @@ class EyeTracker(BoundaryInspector):
         raise NotImplementedError(e)
 
 
-    def gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):
+    def gaze(self, return_integers=True, binocular_mode=RIGHT_EYE):
         """Fetches the (x,y) coordinates of the participant's current gaze on the screen.
 
         Args:
             return_integers (bool, optional): Whether to return the gaze coordinates as integers
                 or floats. Defaults to True (integers).
             binocular_mode (int, optional): Tells the function which gaze coordinates to return
-                for binocular samples. Can be any of ``EL_RIGHT_EYE`` (returns right eye gaze),
-                ``EL_LEFT_EYE`` (returns left eye gaze), or ``EL_BOTH_EYES`` (returns average gaze
-                of both eyes). Defaults to ``EL_RIGHT_EYE``.
+                for binocular samples. Can be any of ``RIGHT_EYE`` (returns right eye gaze),
+                ``LEFT_EYE`` (returns left eye gaze), or ``BINOCULAR`` (returns average gaze
+                of both eyes). Defaults to ``RIGHT_EYE``.
         
         Returns:
             A :obj:`Tuple` containing the (x,y) pixel coordinates of the participant's gaze.
@@ -679,7 +673,7 @@ class EyeTracker(BoundaryInspector):
             e: An eye event from the tracker.
         
         Returns:
-            The numeric type of the event (e.g. ``EL_END_SACCADE``, ``EL_START_FIXATION``).
+            The numeric type of the event (e.g. ``SACCADE_END``, ``FIXATION_START``).
 
         """
         pass
@@ -722,7 +716,7 @@ class EyeTracker(BoundaryInspector):
 
         Raises:
             EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
-                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``EL_SACCADE_END`` event).
+                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``SACCADE_END`` event).
 
         """
         pass
@@ -743,7 +737,7 @@ class EyeTracker(BoundaryInspector):
 
         Raises:
             EyeTrackerError: If asked to report the end timestamp for an eye event that only has
-                a start timestamp (e.g. ``EL_FIXATION_START``).
+                a start timestamp (e.g. ``FIXATION_START``).
 
         """
         pass
@@ -758,7 +752,7 @@ class EyeTracker(BoundaryInspector):
             q = self.el.get_event_queue() # fetch all unprocessed eye events
             for event in q:
                 info = self.el.get_event_info(event)
-                if info['type'] == EL_SACCADE_END:
+                if info['type'] == SACCADE_END:
                     end_gaze = info[EL_GAZE_END]
                     end_time = info[EL_TIME_END]
         

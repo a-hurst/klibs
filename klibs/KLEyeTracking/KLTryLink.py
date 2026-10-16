@@ -2,10 +2,10 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 from klibs.KLExceptions import EyeTrackerError
-from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
-    EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
-    EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
-    EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
+from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR,
+    FIXATION_START, FIXATION_UPDATE, FIXATION_END, GAZE_SAMPLE,
+    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END, 
+    EL_GAZE_START, EL_GAZE_END, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
     EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
     TK_S, TK_MS)
 from klibs import P
@@ -133,11 +133,11 @@ class TryLink(EyeTracker):
         if len(include):
             valid_events = set(include)
         elif len(exclude):
-            valid_events = set(EL_ALL_EVENTS + [EL_GAZE_POS]).difference(exclude)
+            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE]).difference(exclude)
         else:
-            valid_events = set(EL_ALL_EVENTS + [EL_GAZE_POS])
+            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE])
 
-        samples = EL_GAZE_POS in valid_events
+        samples = GAZE_SAMPLE in valid_events
         events = len(valid_events.intersection(EL_ALL_EVENTS)) > 0
 
         timestamp = self.now()
@@ -207,7 +207,7 @@ class TryLink(EyeTracker):
         return round(px_to_deg(dist_px), 2)
 
 
-    def gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):
+    def gaze(self, return_integers=True, binocular_mode=RIGHT_EYE):
         """Fetches the (x,y) coordinates of the participant's current gaze on the screen. In
         TryLink mode, this fetches the current coordinates of the mouse cursor.
 
@@ -215,9 +215,9 @@ class TryLink(EyeTracker):
             return_integers (bool, optional): Whether to return the gaze coordinates as integers
                 or floats. Defaults to True (integers).
             binocular_mode (int, optional): Tells the function which gaze coordinates to return
-                for binocular samples. Can be any of ``EL_RIGHT_EYE`` (returns right eye gaze),
-                ``EL_LEFT_EYE`` (returns left eye gaze), or ``EL_BOTH_EYES`` (returns average gaze
-                of both eyes). Defaults to ``EL_RIGHT_EYE``. In TryLink mode, this has no effect.
+                for binocular samples. Can be any of ``RIGHT_EYE`` (returns right eye gaze),
+                ``LEFT_EYE`` (returns left eye gaze), or ``BINOCULAR`` (returns average gaze
+                of both eyes). Defaults to ``RIGHT_EYE``. In TryLink mode, this has no effect.
         
         Returns:
             A :obj:`Tuple` containing the (x,y) pixel coordinates of the participant's gaze.
@@ -284,10 +284,10 @@ class TryLink(EyeTracker):
 
         Raises:
             EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
-                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``EL_SACCADE_END`` event).
+                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``SACCADE_END`` event).
 
         """
-        if event.type == EL_GAZE_POS:
+        if event.type == GAZE_SAMPLE:
             coords = event.gaze
         else:
             try:
@@ -320,10 +320,10 @@ class TryLink(EyeTracker):
 
         Raises:
             EyeTrackerError: If asked to report the end timestamp for an eye event that only has
-                a start timestamp (e.g. ``EL_FIXATION_START``).
+                a start timestamp (e.g. ``FIXATION_START``).
 
         """
-        if event.type == EL_GAZE_POS:
+        if event.type == GAZE_SAMPLE:
             return event.time
         else:
             try:
@@ -343,7 +343,7 @@ class TryLink(EyeTracker):
             q = self.el.get_event_queue() # fetch all unprocessed eye events
             for event in q:
                 info = self.el.get_event_info(event)
-                if info['type'] == EL_SACCADE_END:
+                if info['type'] == SACCADE_END:
                     end_gaze = info[EL_GAZE_END]
                     end_time = info[EL_TIME_END]
         
@@ -360,7 +360,7 @@ class TryLink(EyeTracker):
         """
         info = {}
         info['type'] = event.type
-        if event.type == EL_GAZE_POS:
+        if event.type == GAZE_SAMPLE:
             info[EL_TIME_START] = event.time
             info[EL_TIME_END] = event.time
             info[EL_GAZE_START] = event.gaze
@@ -368,10 +368,10 @@ class TryLink(EyeTracker):
         else:
             info[EL_TIME_START] = event.start_time
             info[EL_GAZE_START] = event.start_gaze
-            if event.type in [EL_SACCADE_END, EL_FIXATION_END, EL_FIXATION_UPDATE]:
+            if event.type in [SACCADE_END, FIXATION_END, FIXATION_UPDATE]:
                 info[EL_TIME_END] = event.end_time
                 info[EL_GAZE_END] = event.end_gaze
-                if event.type != EL_SACCADE_END:
+                if event.type != SACCADE_END:
                     info[EL_GAZE_AVG] = event.avg_gaze
         
         return info

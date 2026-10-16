@@ -75,6 +75,11 @@ API Changes:
   ``pylink.EyeLink`` object in a clear and documented way, while also allowing
   for properly-written code to still work seamlessly with mouse simulation or
   other trackers.
+* Added new alias constants for identifying eye events: ``GAZE_SAMPLE``,
+  ``BLINK_START``, ``BLINK_END``, ``SACCADE_START``, ``SACCADE_END``,
+  ``FIXATION_START``, ``FIXATION_END``, and ``FIXATION_UPDATE``. These replace
+  the earlier ``EL_`` prefixed eye event constants and should be used for all
+  future projects.
 
 
 Fixed Bugs:

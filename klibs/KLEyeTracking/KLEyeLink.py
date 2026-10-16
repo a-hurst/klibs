@@ -6,10 +6,10 @@ from sdl2.ext import cursor_hidden
 from klibs.KLEyeTracking import PYLINK_AVAILABLE
 
 from klibs.KLExceptions import EyeTrackerError
-from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
-    EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
-    EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
-    EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
+from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR, EL_NO_EYES,
+    FIXATION_START, FIXATION_UPDATE, FIXATION_END, GAZE_SAMPLE,
+    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END, 
+    EL_GAZE_START, EL_GAZE_END, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
     EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
     TK_S, TK_MS)
 from klibs import P
@@ -31,6 +31,13 @@ if PYLINK_AVAILABLE:
 # easy way to do that in pure Python (and ping requires admin sometimes?). EyeLink
 # communication itself is via UDP.
 
+
+EYE_NAME_MAP = {
+    RIGHT_EYE: 'right',
+    LEFT_EYE: 'left',
+    BINOCULAR: 'both',
+    EL_NO_EYES: None
+}
 
 def _get_eyelink():
     # Wrapper for getting EyeLink connection and handling errors gracefully
@@ -227,11 +234,11 @@ class EyeLink(EyeTracker):
         if len(include):
             valid_events = set(include)
         elif len(exclude):
-            valid_events = set(EL_ALL_EVENTS + [EL_GAZE_POS]).difference(exclude)
+            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE]).difference(exclude)
         else:
-            valid_events = set(EL_ALL_EVENTS + [EL_GAZE_POS])
+            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE])
 
-        samples = int(EL_GAZE_POS in valid_events)
+        samples = int(GAZE_SAMPLE in valid_events)
         events = int(len(valid_events.intersection(EL_ALL_EVENTS)) > 0)
 
         queue = []
@@ -307,16 +314,16 @@ class EyeLink(EyeTracker):
         return drift
 
 
-    def gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):
+    def gaze(self, return_integers=True, binocular_mode=RIGHT_EYE):
         """Fetches the (x,y) coordinates of the participant's current gaze on the screen.
 
         Args:
             return_integers (bool, optional): Whether to return the gaze coordinates as integers
                 or floats. Defaults to True (integers).
             binocular_mode (int, optional): Tells the function which gaze coordinates to return
-                for binocular samples. Can be any of ``EL_RIGHT_EYE`` (returns right eye gaze),
-                ``EL_LEFT_EYE`` (returns left eye gaze), or ``EL_BOTH_EYES`` (returns average gaze
-                of both eyes). Defaults to ``EL_RIGHT_EYE``.
+                for binocular samples. Can be any of ``RIGHT_EYE`` (returns right eye gaze),
+                ``LEFT_EYE`` (returns left eye gaze), or ``BINOCULAR`` (returns average gaze
+                of both eyes). Defaults to ``RIGHT_EYE``.
         
         Returns:
             A :obj:`Tuple` containing the (x,y) pixel coordinates of the participant's gaze.
@@ -332,11 +339,11 @@ class EyeLink(EyeTracker):
             elif sample.isLeftSample():
                 gaze_pos = sample.getLeftEye().getGaze()
             elif sample.isBinocular():
-                if binocular_mode == EL_RIGHT_EYE:
+                if binocular_mode == RIGHT_EYE:
                     gaze_pos = sample.getRightEye().getGaze()
-                elif binocular_mode == EL_LEFT_EYE:
+                elif binocular_mode == LEFT_EYE:
                     gaze_pos = sample.getLeftEye().getGaze()
-                elif binocular_mode == EL_BOTH_EYES:
+                elif binocular_mode == BINOCULAR:
                     rx, ry = sample.getRightEye().getGaze()
                     lx, ly = sample.getLeftEye().getGaze()
                     # if either eye is missing, use good eye instead of averaging
@@ -410,10 +417,10 @@ class EyeLink(EyeTracker):
 
         Raises:
             EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
-                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``EL_SACCADE_END`` event).
+                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``SACCADE_END`` event).
 
         """
-        if event.getType() == EL_GAZE_POS:
+        if event.getType() == GAZE_SAMPLE:
             if event.isLeftSample():
                 coords = event.getLeftEye().getGaze()
             elif event.isRightSample():
@@ -453,10 +460,10 @@ class EyeLink(EyeTracker):
 
         Raises:
             EyeTrackerError: If asked to report the end timestamp for an eye event that only has
-                a start timestamp (e.g. ``EL_FIXATION_START``).
+                a start timestamp (e.g. ``FIXATION_START``).
 
         """
-        if event.getType() == EL_GAZE_POS:
+        if event.getType() == GAZE_SAMPLE:
             return event.getTime()
         else:
             try:
@@ -476,7 +483,7 @@ class EyeLink(EyeTracker):
             q = self.el.get_event_queue() # fetch all unprocessed eye events
             for event in q:
                 info = self.el.get_event_info(event)
-                if info['type'] == EL_SACCADE_END:
+                if info['type'] == SACCADE_END:
                     end_gaze = info[EL_GAZE_END]
                     end_time = info[EL_TIME_END]
         
@@ -493,7 +500,7 @@ class EyeLink(EyeTracker):
         """
         info = {}
         info['type'] = event.getType()
-        if info['type'] == EL_GAZE_POS:
+        if info['type'] == GAZE_SAMPLE:
             gaze = self.get_event_gaze(event, EL_GAZE_START)
             time = self.get_event_timestamp(event, EL_TIME_START)
             info[EL_TIME_START] = time
@@ -501,18 +508,18 @@ class EyeLink(EyeTracker):
             info[EL_GAZE_START] = gaze
             info[EL_GAZE_END] = gaze
 
-        elif info['type'] in [EL_BLINK_START, EL_BLINK_END]:
+        elif info['type'] in [BLINK_START, BLINK_END]:
             info[EL_TIME_START] = event.getStartTime()
-            if info['type'] == EL_BLINK_END:
+            if info['type'] == BLINK_END:
                 info[EL_TIME_END] = event.getEndTime()
                 
         else:
             info[EL_TIME_START] = event.getStartTime()
             info[EL_GAZE_START] = event.getStartGaze()
-            if info['type'] in [EL_SACCADE_END, EL_FIXATION_END, EL_FIXATION_UPDATE]:
+            if info['type'] in [SACCADE_END, FIXATION_END, FIXATION_UPDATE]:
                 info[EL_TIME_END] = event.getEndTime()
                 info[EL_GAZE_END] = event.getEndGaze()
-                if info['type'] != EL_SACCADE_END:
+                if info['type'] != SACCADE_END:
                     info[EL_GAZE_AVG] = event.getAverageGaze()
         
         return info
@@ -524,7 +531,7 @@ class EyeLink(EyeTracker):
         'both', or None (if no eye is currently available).
 
         """
-        return self._eye_names[self._el.eyeAvailable()]
+        return EYE_NAME_MAP[self._el.eyeAvailable()]
     
 
     @property

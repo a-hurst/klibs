@@ -63,8 +63,8 @@ class TestEyeEventGenerator():
         assert len(events) == 2
         assert events[0].type == EL_FIXATION_END
         assert events[0].start_time == 5
-        assert events[0].end_time == 65
-        assert events[0].end_gaze == (411, 300)
+        assert events[0].end_time == 60
+        assert events[0].end_gaze == (402, 298)
         assert events[1].type == EL_SACCADE_START
         assert events[1].start_time == 65
 

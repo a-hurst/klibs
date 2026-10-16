@@ -92,12 +92,12 @@ class EyeEventTemplate():
         self._last_sample_time = start_time
         self.last_update = start_time
 
-    def _add_sample(self, x, y, timestamp):
+    def add_sample(self, x, y, timestamp):
         self.__x_samples.append(x)
         self.__y_samples.append(y)
         self._last_sample_time = timestamp
 
-    def _vector_change(self, x, y):
+    def vector_change(self, x, y):
         if len(self.__x_samples) < 2:
             return 0.0
         a1 = (self.__x_samples[0], self.__y_samples[0])
@@ -107,16 +107,13 @@ class EyeEventTemplate():
         diff = atan2(b2[1]-b1[1], b2[0]-b1[0]) - atan2(a2[1]-a1[1], a2[0]-a1[0])
         return (degrees(diff) + 180) % 360 - 180
 
-    def _get_velocity(self, x, y, timestamp):
+    def get_velocity(self, x, y, timestamp):
         dist = line_segment_len(self.end_gaze, (x, y))
         return abs(dist / (timestamp - self._last_sample_time))
     
-    @property
-    def _dispersion(self):
-        # NOTE: Figure out how to make a method that takes x/y so fixation ends
-        # don't include final sample beyond dispersion threshold?
-        dx = max(self.__x_samples) - min(self.__x_samples)
-        dy = max(self.__y_samples) - min(self.__y_samples)
+    def dispersion(self, x, y):
+        dx = max(self.__x_samples + [x]) - min(self.__x_samples + [x])
+        dy = max(self.__y_samples + [y]) - min(self.__y_samples + [y])
         return dx + dy
 
     @property
@@ -236,7 +233,7 @@ class EyeEventGenerator():
         blink = (x is None or y is None)
 
         if self.in_blink:
-            self._current._add_sample(x, y, timestamp)
+            self._current.add_sample(x, y, timestamp)
             # If eye no longer missing, start a fixation event
             if not blink:
                 fix = EyeEventTemplate(timestamp, x, y)
@@ -248,16 +245,16 @@ class EyeEventGenerator():
             self._start_blink(b)
 
         elif self.in_fixation:
-            # Add current sample to fixation template
-            self._current._add_sample(x, y, timestamp)
-
             # If spatial dispersion of samples surpasses threshold, end fixation
             # and start saccade
-            if self._current._dispersion > self.max_dispersion:
+            if self._current.dispersion(x, y) > self.max_dispersion:
                 s = EyeEventTemplate(timestamp, x, y)
                 self._start_saccade(s)
 
             else:
+                # Add current sample to fixation template
+                self._current.add_sample(x, y, timestamp)
+
                 # If dispersion is below threshold and fixation in progress, add
                 # fixation update events at regular intervals
                 if timestamp > (self._current.last_update + 50):
@@ -267,19 +264,19 @@ class EyeEventGenerator():
         elif self.in_saccade:
             # If mouse movement falls below velocity threshold, end saccade
             # and start fixation
-            v = self._current._get_velocity(x, y, timestamp)
+            v = self._current.get_velocity(x, y, timestamp)
             if v < self.min_velocity:
                 fix = EyeEventTemplate(timestamp, x, y)
                 self._start_fixation(fix)
 
             # If saccade vector changes by more than 45 degrees, end saccade
             # and start a new one
-            elif abs(self._current._vector_change(x, y)) > 45.0:
+            elif abs(self._current.vector_change(x, y)) > 45.0:
                 s = EyeEventTemplate(timestamp, x, y)
                 self._start_saccade(s)
 
             else:
-                self._current._add_sample(x, y, timestamp)
+                self._current.add_sample(x, y, timestamp)
 
         else:
             # If neither a fixation or saccade is in progress, start a fixation

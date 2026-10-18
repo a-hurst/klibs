@@ -1,6 +1,7 @@
 import pytest
 
 from klibs.KLConstants import *
+from klibs.KLBoundary import RectangleBoundary
 from klibs.KLEyeTracking.events import EyeEventGenerator
 from klibs.KLEyeTracking.KLTryLink import TryLink
 
@@ -167,3 +168,84 @@ class TestTryLink():
                 start_fix = e
         assert sample
         assert start_fix
+
+    def test_within_boundary(self):
+        bounds = RectangleBoundary('test', (500, 400), (600, 500))
+        tst = CustomTryLink()
+        tst.add_boundary(bounds)
+        # Start recording and make sure boundary not counted as fixated
+        tst.start(1)
+        tst.add_samples([(400, 300, 0)])
+        events = tst.get_event_queue()
+        assert len(events) > 0
+        assert not tst.within_boundary('test', GAZE_SAMPLE, event_queue=events)
+        # Saccade to just outside boundary and re-test
+        tst.add_samples([
+            (401, 301, 10), (499, 400, 20)
+        ])
+        while len(tst.samples):
+            # Needs to be called once per sample
+            events = tst.get_event_queue() 
+        assert not tst.within_boundary('test', GAZE_SAMPLE, event_queue=events)
+        # Drift gaze inside boundary and re-test
+        tst.add_samples([(501, 401, 30)])
+        events = tst.get_event_queue()
+        assert tst.within_boundary('test', GAZE_SAMPLE, event_queue=events)
+
+    def test_fixated_boundary(self):
+        bounds = RectangleBoundary('test', (500, 400), (600, 500))
+        tst = CustomTryLink()
+        tst.add_boundary(bounds)
+        # Start recording and make sure boundary not counted as fixated
+        tst.start(1)
+        tst.add_samples([(400, 300, 0)])
+        events = tst.get_event_queue(include=[FIXATION_START])
+        assert len(events) == 1
+        assert not tst.fixated_boundary('test', event_queue=events)
+        # Saccade to boundary and re-test
+        tst.add_samples([
+            (401, 301, 10), (550, 440, 20), (551, 439, 30)
+        ])
+        while len(tst.samples):
+            # Needs to be called once per sample
+            events = tst.get_event_queue() 
+        assert tst.fixated_boundary('test', event_queue=events)
+
+    def test_saccade_to_boundary(self):
+        bounds = RectangleBoundary('test', (500, 400), (600, 500))
+        tst = CustomTryLink()
+        tst.add_boundary(bounds)
+        # Start recording and make sure no saccade detected
+        tst.start(1)
+        tst.add_samples([(400, 300, 0)])
+        events = tst.get_event_queue()
+        assert len(events) > 0
+        assert not tst.saccade_to_boundary('test', event_queue=events)
+        # Saccade from boundary and re-test
+        tst.add_samples([
+            (401, 301, 10), (420, 320, 20), (550, 440, 30), (551, 439, 40)
+        ])
+        while len(tst.samples):
+            # Needs to be called once per sample
+            events = tst.get_event_queue() 
+        assert tst.saccade_to_boundary('test', event_queue=events)
+
+    def test_saccade_from_boundary(self):
+        bounds = RectangleBoundary('fixation', (380, 280), (420, 320))
+        tst = CustomTryLink()
+        tst.add_boundary(bounds)
+        # Start recording and make sure no saccade detected
+        tst.start(1)
+        tst.add_samples([(400, 300, 0)])
+        events = tst.get_event_queue()
+        assert len(events) > 0
+        assert not tst.saccade_from_boundary('fixation', event_queue=events)
+        # Saccade from boundary and re-test
+        tst.add_samples([
+            (401, 301, 10), (420, 320, 20), (550, 440, 30), (551, 439, 40)
+        ])
+        while len(tst.samples):
+            # Needs to be called once per sample
+            events = tst.get_event_queue() 
+        assert tst.saccade_from_boundary('fixation', event_queue=events)
+

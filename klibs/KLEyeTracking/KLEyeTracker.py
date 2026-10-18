@@ -10,14 +10,14 @@ from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR,
     TK_S, TK_MS)
 from klibs import P
 from klibs.KLUtilities import iterable, pretty_list
-from klibs.KLBoundary import BoundaryInspector
+from klibs.KLBoundary import BoundarySet
 from klibs.KLGraphics import blit, fill, flip
 from klibs.KLGraphics.KLDraw import drift_correct_target
 
 # TODO: Add way of specifying calibration type (e.g. 'HV9') in params
 
 
-class EyeTracker(BoundaryInspector):
+class EyeTracker():
     """A base eye tracker class, laying out the essential attributes and methods required for an
     eye tracker to be used with KLibs.
     
@@ -36,11 +36,11 @@ class EyeTracker(BoundaryInspector):
     """
 
     def __init__(self):
-        BoundaryInspector.__init__(self)
         self.version = None
         self.initialized = False
         self.local_start_time = None
         self.tracker_start_time = None
+        self.boundaries = BoundarySet()
         self._recording = False
         self._unresolved_exceptions = 0
         self._quitting = False
@@ -88,7 +88,7 @@ class EyeTracker(BoundaryInspector):
         timestamp = self.get_event_timestamp(event, report)
         gaze_coords = self.get_event_gaze(event, inspect)
 
-        result = BoundaryInspector.within_boundary(self, label, gaze_coords)
+        result = self.boundaries.within_boundary(label, gaze_coords)
         return timestamp if result else False
 
 
@@ -117,8 +117,8 @@ class EyeTracker(BoundaryInspector):
         start_gaze = self.get_event_gaze(event, EL_GAZE_START)
         end_gaze = self.get_event_gaze(event, EL_GAZE_END)
 
-        start_inside = BoundaryInspector.within_boundary(self, label, start_gaze)
-        end_inside = BoundaryInspector.within_boundary(self, label, end_gaze)
+        start_inside = self.boundaries.within_boundary(label, start_gaze)
+        end_inside = self.boundaries.within_boundary(label, end_gaze)
         return timestamp if (start_inside and not end_inside) else False
 
 
@@ -287,6 +287,33 @@ class EyeTracker(BoundaryInspector):
 
         """
         pass
+
+    
+    def add_boundary(self, boundary, bounds=None, shape=None):
+        """Adds a boundary to the tracker.
+    
+        Args:
+            boundary (:obj:`~klibs.KLBoundary.Boundary`): A Boundary object to add to
+                the tracker.
+        
+        """
+        # NOTE: Not documenting further for now since I'm unsure of this API apart from
+        # backwards compat
+        self.boundaries.add_boundary(boundary, bounds, shape)
+
+
+    def clear_boundaries(self, preserve=[]):
+        """Removes all boundaries from the tracker.
+
+        Args:
+            preserve (:obj:`List`, optional): A list containing the labels of any
+                boundaries that should remain in the set after the clear.
+
+        Raises:
+            KeyError: If any label does not correspond to a boundary within the set.
+
+        """
+        self.boundaries.clear_boundaries(preserve)
 
 
     def within_boundary(self, label, valid_events, event_queue=None, report=None, inspect=None):

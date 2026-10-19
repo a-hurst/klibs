@@ -40,7 +40,13 @@ def rgb_to_rgba(rgb):
     Returns:
         Tuple[r, g, b, a]: A 4-element RGBA tuple.
     """
-    return tuple(rgb) if len(rgb) == 4 else tuple([rgb[0], rgb[1], rgb[2], 255])
+    if len(rgb) == 4:
+        return tuple(rgb)
+    elif len(rgb) == 3:
+        return tuple([rgb[0], rgb[1], rgb[2], 255])
+    else:
+        e = "Color must be an RGB or RGBA iterable (got '{0}')"
+        raise ValueError(e.format(str(rgb)))
 
 
 def add_alpha(array, opacity=255):

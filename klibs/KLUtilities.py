@@ -116,6 +116,20 @@ def deg_to_px(deg, even=False):
     return int(px)
 
 
+def flatten_points(pts):
+    """Flattens a list of (x, y) tuples into an [x, y, x, y...] list.
+
+    Args:
+        pts (list): A list of (x, y) tuples to flatten.
+
+    Returns:
+        list: A flattened list of x, y coordinates.
+
+    """
+    # NOTE: pts must be list of tuples, list of lists results in a TypeError
+    return list(sum(pts, ()))
+
+
 def interpolated_path_len(points):
     # where points is a list of coordinate tuples
     path_len = 0

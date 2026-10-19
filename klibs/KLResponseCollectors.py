@@ -603,7 +603,7 @@ class ColorWheelResponse(ResponseListener):
                 if not pos in self.__bounds:
                     continue
                 response_angle = angle_between(pos, P.screen_c, 90, clockwise=True)
-                if self.__wheel.__name__ == "ColorWheel":
+                if type(self.__wheel).__name__ == "ColorWheel":
                     target_color = self.__probe.fill_color
                     target_angle = self.__wheel.angle_from_color(target_color)
                 else:

@@ -54,6 +54,16 @@ API Changes:
   ``self.audio`` attribute of the Experiment class or collect audio responses
   using the legacy ResponseCollector module will no longer work. Reworked
   audio input handling may be re-added at a later date.
+* Removed the unused and unnecessary ``auto_draw`` parameter from all shapes
+  in KLDraw. All shapes are now automatically pre-rendered internally when
+  created.
+* The ``fill`` attribute of KLDraw shapes now returns the fill colour (if any)
+  of the shape instead of the internal aggdraw Brush. This attribute should be
+  used instead of ``fill_colour`` for any new projects.
+* Added a new class :class:`~klibs.KLGraphics.KLDraw.Stroke` for defining the
+  outline properties of shapes.
+* Removed the ``pts`` argument from :class:`~klibs.KLGraphics.KLDraw.Line`.
+
 
 Fixed Bugs:
 
@@ -67,6 +77,12 @@ Fixed Bugs:
   multi-line text slightly in existing tasks.
 * Multiline text no longer clips the bottoms of characters when lines of text
   are spaced too closely together.
+* Fixed a minor anti-aliasing issue with ``KLDraw.Rectangle`` when drawn
+  without a stroke.
+* Fixed a bug where some shapes (Arrows, Triangles, Asterisks with odd numbers
+  of spokes) could be clipped during rendering if rotated.
+* Fixed a bug where the corners of Arrows and Triangles were clipped if rendered
+  with a stroke.
 
 
 0.7.8b2

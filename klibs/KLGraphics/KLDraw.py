@@ -134,15 +134,15 @@ def drift_correct_target():
 
 
 class Stroke():
-    """Defines the outline properties of a shape.
+    """Defines the outline properties for a shape.
 
     A Stroke defines the color, width (thickness), and alignment for the outline of a
-    shape. For example, to create an empty red square with a stroke width of 10 pixels,
+    shape. For example, to create an empty red box with a stroke width of 10 pixels,
     you would do the following::
 
         RED = (255, 0, 0)
         outline = Stroke(10, RED)
-        rect = Rectangle(100, 100, stroke=outline)
+        box = Rectangle(100, 100, stroke=outline)
 
     The alignment of the stroke determines whether the outline is along the outside
     of the shape ('outer'), the inside of the shape ('inner'), or centered along the
@@ -179,7 +179,7 @@ class Stroke():
 
     @property
     def width(self):
-        """int: The width of the stroke."""
+        """int: The thickness of the stroke (in pixels)."""
         return self._width
 
     @property
@@ -256,16 +256,16 @@ class Drawbject():
         self.surface.setantialias(True)
 
     def render(self):
-        """Pre-renders the shape so it can be drawn to the screen using
-        :func:`~klibs.KLGraphics.blit`. Although it is not necessary to pre-render
-        shapes before drawing them to the screen, it will make the initial blit faster
-        and is recommended wherever possible. 
+        """Renders and returns a texture containing the shape.
+        
+        Although it is not necessary to pre-render shapes before drawing them to the
+        screen, it will make the initial blit faster and is recommended wherever possible.
         
         Once a Drawbject has been rendered, it will not need to be rendered again unless
         any of its properties (e.g. stroke, fill, rotation) are changed.
         
         Returns:
-            :obj:`~numpy.ndarray`: A numpy array of the rendered shape.
+            :obj:`~numpy.ndarray`: A texture containing the rendered shape.
 
         """
         self._init_surface()
@@ -289,14 +289,14 @@ class Drawbject():
 
     @property
     def dimensions(self):
-        """List[int, int]: The height and width of the internal surface on which the shape
+        """list: The height and width (in pixels) of the surface on which the shape
         is drawn.
         """
         return self._dimensions
 
     @property
     def surface_width(self):
-        """int: The width of the draw surface in pixels.
+        """int: The width (in pixels) of the surface on which the shape is drawn.
         
         The width of the rendered draw surface after taking any stroke or rotation into
         account. At minimum 2 pixels wider than the width of the surface contents.
@@ -306,7 +306,7 @@ class Drawbject():
 
     @property
     def surface_height(self):
-        """int: The height of the draw surface in pixels.
+        """int: The height (in pixels) of the surface on which the shape is drawn.
         
         The height of the rendered draw surface after taking any stroke or rotation into
         account. At minimum 2 pixels taller than the height of the surface contents.
@@ -473,9 +473,10 @@ class Ellipse(Drawbject):
 
     @property
     def diameter(self):
-        """int or None: The diameter of the ellipse in pixels. If the height and width of
-        the ellipse are not the same (i.e. if it is an oval and not a circle), this will
-        return 'None'.
+        """int or None: The diameter of the ellipse in pixels.
+        
+        If the height and width of the ellipse are not the same (i.e. if it is an oval
+        and not a circle), the diameter will be None.
 
         """
         if self._shape_width == self._shape_height:

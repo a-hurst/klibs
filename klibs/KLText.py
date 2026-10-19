@@ -109,7 +109,8 @@ def _render_multiline(lines, style, width, align):
     line_pad = int(round(style.size_px * (style.line_space - 1.0)))
     net_line_height = style.size_px + line_pad
     height = (len(lines) - 1) * net_line_height + style._lineskip_px
-    surf = _create_surface((width, height))
+    surf_fill = list(style.color[:3][::-1]) + [0] # Needed for correct alpha blending
+    surf = _create_surface((width, height), fill=surf_fill)
     # Render all lines with proper alignment to surface
     for i in range(len(lines)):
         if not len(lines[i]):

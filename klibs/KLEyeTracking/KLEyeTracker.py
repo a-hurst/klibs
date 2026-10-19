@@ -302,6 +302,20 @@ class EyeTracker():
         self.boundaries.add_boundary(boundary, bounds, shape)
 
 
+    def add_boundaries(self, boundaries):
+        """Adds multiple boundaries to the tracker.
+        
+        See :meth:`add_boundary` for more info.
+
+        Args:
+            boundaries (:obj:`List`): A list of :obj:`Boundary` objects to add to the set.
+        
+        """
+        # NOTE: Not documenting further for now since I'm unsure of this API apart from
+        # backwards compat
+        self.boundaries.add_boundaries(boundaries)
+
+
     def clear_boundaries(self, preserve=[]):
         """Removes all boundaries from the tracker.
 

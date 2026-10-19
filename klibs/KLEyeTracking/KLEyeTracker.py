@@ -316,64 +316,42 @@ class EyeTracker():
         self.boundaries.clear_boundaries(preserve)
 
 
-    def within_boundary(self, label, valid_events, event_queue=None, report=None, inspect=None):
-        """Checks whether a fixation, saccade, or gaze sample has occured within the specified
-        boundary since the last time the eye event queue was fetched.
+    def within_boundary(self, label, valid_events, event_queue=None):
+        """Checks whether an eye event has occurred within a given boundary.
 
-        By default, this method tests the most useful gaze attribute of each event against the
-        given boundary. This means that ``EL_GAZE_START`` is inspected for saccade and fixation 
-        start events, ``EL_GAZE_END`` is inspected for saccade end events, and ``EL_GAZE_AVG``
-        is inspected for fixation update and fixation end events. You can manually specify which
-        gaze attribute to use for boundary testing with the 'inspect' argument.
+        This method tests the most relevant gaze attribute of each event type against
+        the given boundary. The gaze coordinates inspected for each eye event type are
+        listed in the follow table:
 
-        The valid event constants for this function, along with their supported 'inspect' and
-        'report' flag values, are listed in the table below:
+        +---------------------+-------------------------------+
+        | Valid Events        | Inspected Gaze Coordinates    |
+        +=====================+===============================+
+        | ``GAZE_SAMPLE``     | Gaze (right eye if binocular) |
+        +---------------------+-------------------------------+
+        | ``SACCADE_START``   | Gaze at saccade onset         |
+        +---------------------+-------------------------------+
+        | ``SACCADE_END``     | Gaze at saccade end           |
+        +---------------------+-------------------------------+
+        | ``FIXATION_START``  | Gaze at fixation onset        |
+        +---------------------+-------------------------------+
+        | ``FIXATION_END``    | Average gaze during fixation  |
+        +---------------------+-------------------------------+
+        | ``FIXATION_UPDATE`` | Average gaze during fixation  |
+        +---------------------+-------------------------------+
 
-        +---------------------+-------------------------------------+--------------------+
-        | Valid Events        | Inspect Values                      | Report Values      |
-        +=====================+=====================================+====================+
-        | ``GAZE_SAMPLE``     | N/A                                 | N/A                |
-        +---------------------+-------------------------------------+--------------------+
-        | ``SACCADE_START``   | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
-        +---------------------+-------------------------------------+--------------------+
-        | ``SACCADE_END``     | ``EL_GAZE_START``, ``EL_GAZE_END``  | ``EL_TIME_START``, |
-        |                     |                                     | ``EL_TIME_END``    |
-        +---------------------+-------------------------------------+--------------------+
-        | ``FIXATION_START``  | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
-        +---------------------+-------------------------------------+--------------------+
-        | ``FIXATION_END``    | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
-        |                     | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
-        +---------------------+-------------------------------------+--------------------+
-        | ``FIXATION_UPDATE`` | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
-        |                     | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
-        +---------------------+-------------------------------------+--------------------+
-
-        Note that gaze samples (``GAZE_SAMPLE``) represent the gaze at a single point in time
-        and thus have no start or end, so they are not affected by the values of the 'inspect'
-        and 'report' flags.
+        If an event queue is not provided, this method will retrieve and empty the event
+        queue from the tracker.
 
         Args:
-            label (str): The label of the boundary to check for events in, added using
-                add_boundary().
-            valid_events (:obj:`List`): A list of constants indicating the event type(s) to
-                process.
-            event_queue (:obj:`List`, optional): A queue of events returned from
-                :meth:`get_event_queue` to inspect for the eye events. If no event queue is
-                provided, the eye event queue will be fetched and processed, emptying it in
-                the process.
-            report (optional): A flag indicating whether to report the start time
-                (``EL_TIME_START``) or end time (``EL_TIME_END``) of the event. Defaults to
-                end time for all events except fixation start and saccade start.
-            inspect (optional): A flag indicating which gaze attribute of events should be
-                checked against the boundary: the gaze at the start of the event
-                (``EL_GAZE_START``), the gaze at the end of the event (``EL_GAZE_END``), or
-                the events's average gaze (``EL_GAZE_AVG``). Defaults to inspecting start gaze
-                for fixation/saccade start events, average gaze for fixation update/end events, and
-                end gaze for saccade end events.
+            label (str): The label of the boundary of interest (e.g. 'fixation').
+            valid_events (:obj:`List`): A list of constants indicating the event type(s)
+                to process.
+            event_queue (:obj:`List`, optional): A queue of eye events returned from
+                :meth:`get_event_queue`.
 
         Returns:
-            The timestamp of the start or end of the event (see the 'report' argument) if a
-            valid event in the queue was within the specified boundary, otherwise False.
+            bool: True if any valid eye events fell within the boundary,
+            otherwise False.
 
         """
         if valid_events in EL_ALL_EVENTS or valid_events == GAZE_SAMPLE:
@@ -388,62 +366,34 @@ class EyeTracker():
             if e == None or self.get_event_type(e) not in valid_events:
                 continue
             e_type = self.get_event_type(e)
-            # if inspect or report not given, default to most reasonable option
-            _report = report if report else self._event_defaults[e_type][0]
-            _inspect = inspect if inspect else self._event_defaults[e_type][1]
+            _report = self._event_defaults[e_type][0]
+            _inspect = self._event_defaults[e_type][1]
             timestamp = self._within_boundary(label, e, _report, _inspect)
             if timestamp:
-                return timestamp
+                return True
 
         return False
 
 
-    def fixated_boundary(self, label, valid_events=FIXATION_START, event_queue=None,
-                                                    report=None, inspect=None):
-        """Checks whether a specified boundary has been fixated since the last time the eye
-        event queue was fetched.
+    def fixated_boundary(self, label, valid_events=FIXATION_START, event_queue=None):
+        """Checks whether a specified boundary has been fixated.
 
-        By default, this method tests the most useful gaze attribute of each event against the
-        given boundary. This means that ``EL_GAZE_START`` is inspected for fixation start events
-        and ``EL_GAZE_AVG`` is inspected for fixation update and fixation end events. You can
-        manually specify which gaze attribute to use for boundary testing with the 'inspect'
-        argument.
-
-        The valid event constants for this function, along with their supported 'inspect' and
-        'report' flag values, are listed in the table below:
-
-        +---------------------+-------------------------------------+--------------------+
-        | Valid Events        | Inspect Values                      | Report Values      |
-        +=====================+=====================================+====================+
-        | ``FIXATION_START``  | ``EL_GAZE_START``                   | ``EL_TIME_START``  |
-        +---------------------+-------------------------------------+--------------------+
-        | ``FIXATION_UPDATE`` | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
-        |                     | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
-        +---------------------+-------------------------------------+--------------------+
-        | ``FIXATION_END``    | ``EL_GAZE_START``, ``EL_GAZE_AVG``, | ``EL_TIME_START``, |
-        |                     | ``EL_GAZE_END``                     | ``EL_TIME_END``    |
-        +---------------------+-------------------------------------+--------------------+
+        By default, this method checks the event queue for any fixation start events
+        that occurred within the boundary. However, ``FIXATION_UPDATE`` and
+        ``FIXATION_END`` events can also be tested against a boundary.
+        
+        If an event queue is not provided, this method will retrieve and empty the event
+        queue from the tracker.
 
         Args:
-            label (str): The label of the boundary to check if the event is in, added using
-                add_boundary().
-            valid_events (:obj:`List`, optional): A list of constants indicating the fixation
-                event type(s) to process. Defaults to fixation start events. 
-            event_queue (:obj:`List`, optional): A queue of events returned from
-                :meth:`get_event_queue` to inspect for the fixation events. If no event queue
-                is provided, the eye event queue will be fetched and processed, emptying it in
-                the process.
-            report (optional): A flag indicating whether to report the start time
-                (``EL_TIME_START``) or end time (``EL_TIME_END``) of the fixation.
-            inspect (optional): A flag indicating which gaze attribute of the fixation should be
-                checked against the boundary: the gaze at the start of the fixation
-                (``EL_GAZE_START``), the gaze at the end of the fixation (``EL_GAZE_END``), or
-                the fixation's average gaze (``EL_GAZE_AVG``). Defaults to inspecting start gaze
-                for fixation start events and average gaze for fixation update/end events.
+            label (str): The label of the boundary of interest (e.g. 'fixation').
+            valid_events (:obj:`List`, optional): A list of constants indicating the
+                fixation event type(s) to process.
+            event_queue (:obj:`List`, optional): A queue of eye events returned from
+                :meth:`get_event_queue`.
 
         Returns:
-            The timestamp of the start or end of the event (see the 'report' argument) if a
-            valid fixation event in the queue was within the specified boundary, otherwise False.
+            bool: True if the boundary was fixated, otherwise False.
 
         """
         if not iterable(valid_events):
@@ -453,26 +403,23 @@ class EyeTracker():
             if e_type not in (FIXATION_START, FIXATION_END, FIXATION_UPDATE):
                 raise ValueError("Valid events for fixated_boundary must be fixation events.")
 
-        return self.within_boundary(label, valid_events, event_queue, report, inspect) 
+        return self.within_boundary(label, valid_events, event_queue) 
 
 
-    def saccade_to_boundary(self, label, event_queue=None, report=EL_TIME_END):
-        """Checks whether any saccades have entered a given boundary since the last time the
-        eye event queue was fetched.
+    def saccade_to_boundary(self, label, event_queue=None):
+        """Checks whether any saccades have entered a given boundary.
+
+        For a saccade to count as entering a boundary, it must begin outside the
+        boundary and end inside of it. If an event queue is not provided, this method
+        will retrieve and empty the event queue from the tracker.
 
         Args:
-            label (str): The label of the boundary to check if the saccade entered, added using
-                add_boundary().
-            event_queue (:obj:`List`, optional): A queue of events returned from
-                :meth:`get_event_queue` to inspect for saccade end events. If no event queue
-                is provided, the eye event queue will be fetched and processed, emptying it in
-                the process.
-            report (optional): A flag indicating whether to report the start time
-                (``EL_TIME_START``) or end time (``EL_TIME_END``) of the saccade.
+            label (str): The label of the boundary of interest (e.g. 'fixation').
+            event_queue (:obj:`List`, optional): A queue of eye events returned from
+                :meth:`get_event_queue`.
 
         Returns:
-            The timestamp of the start or end of the event (see the 'report' argument) if a
-            saccade in the queue started outside and ended inside the boundary, otherwise False.
+            bool: True if any saccades entered the boundary, otherwise False.
 
         """
         if not event_queue:
@@ -484,31 +431,27 @@ class EyeTracker():
             if e == None or self.get_event_type(e) != SACCADE_END:
                 continue
             started_within = self._within_boundary(label, e, EL_TIME_START, EL_GAZE_START)
-            ended_within = self._within_boundary(label, e, report, EL_GAZE_END)
+            ended_within = self._within_boundary(label, e, EL_TIME_END, EL_GAZE_END)
             if ended_within and not started_within:
-                timestamp = ended_within
-                return timestamp
+                return True
 
         return False
 
 
-    def saccade_from_boundary(self, label, event_queue=None, report=EL_TIME_END):
-        """Checks whether any saccades have exited a given boundary since the last time the
-        eye event queue was fetched.
+    def saccade_from_boundary(self, label, event_queue=None):
+        """Checks whether any saccades have exited a given boundary.
+
+        For a saccade to count as exiting a boundary, it must begin within the boundary
+        and end outside of it. If an event queue is not provided, this method will
+        retrieve and empty the event queue from the tracker.
 
         Args:
-            label (str): The label of the boundary to check if the saccade exited, added using
-                add_boundary().
-            event_queue (:obj:`List`, optional): A queue of events returned from
-                :meth:`get_event_queue` to inspect for saccade end events. If no event queue
-                is provided, the eye event queue will be fetched and processed, emptying it in
-                the process.
-            report (optional): A flag indicating whether to report the start time
-                (``EL_TIME_START``) or end time (``EL_TIME_END``) of the saccade.
+            label (str): The label of the boundary of interest (e.g. 'fixation').
+            event_queue (:obj:`List`, optional): A queue of eye events returned from
+                :meth:`get_event_queue`.
 
         Returns:
-            The timestamp of the start or end of the event (see the 'report' argument) if a
-            saccade in the queue started inside and ended outside the boundary, otherwise False.
+            bool: True if any saccades exited the boundary, otherwise False.
 
         """
         if not event_queue:
@@ -519,44 +462,42 @@ class EyeTracker():
         for e in event_queue:
             if e == None or self.get_event_type(e) != SACCADE_END:
                 continue
-            timestamp = self._exited_boundary(label, e, report)
+            timestamp = self._exited_boundary(label, e, EL_TIME_START)
             if timestamp:
-                return timestamp
+                return True
 
         return False
 
 
-    def saccade_in_direction(self, doi, event_queue=None, report=EL_TIME_START):
-        """Checks whether any saccades have occured in a given direction since the last time the
-        eye event queue was fetched.
+    def saccade_in_direction(self, doi, event_queue=None):
+        """Checks whether any saccades have occured in a given direction.
 
-        Valid directions include 'up', 'down', 'left', and 'right'. In addition, you can specify
-        both a horizontal and vertical direction (e.g. ['left', 'up']) to be more specific in your
-        direction of interest. For example::
+        Valid directions include 'up', 'down', 'left', and 'right'. In addition, you
+        can specify both a horizontal and vertical direction (e.g. ['left', 'up']) to
+        be more specific in your direction of interest. For example::
         
-             self.el.saccade_in_directon(doi=['up'])
+            self.el.saccade_in_directon(doi=['up'])
              
-        will detect any saccades that end higher on the screen than they start, whereas::
+        will detect any saccades that end higher on the screen than they start,
+        whereas::
         
             self.el.saccade_in_directon(doi=['up', 'right'])
             
-        will only detect saccades that meet that criteria *and* end further to the right than they
-        start.
+        will only detect saccades that meet that criteria *and* end further to the right
+        than they start.
+
+        If an event queue is not provided, this method will retrieve and empty the event
+        queue from the tracker.
 
         Args:
-            doi (:obj:`List` of str): The names of the direction(s) of interest to watch for
-                saccades in. Both a vertical ('up' or 'down') or horizontal ('left' or 'right')
-                direction of interest can be specified.
-            event_queue (:obj:`List`, optional): A queue of events returned from
-                :meth:`get_event_queue` to inspect for saccade end events. If no event queue
-                is provided, the eye event queue will be fetched and processed, emptying it in
-                the process.
-            report (optional): A flag indicating whether to report the start time
-                (``EL_TIME_START``) or end time (``EL_TIME_END``) of the saccade.
+            doi (:obj:`List` of str): The names of the direction(s) of interest. Both a
+                vertical and a horizontal direction of interest can be specified.
+            event_queue (:obj:`List`, optional): A queue of eye events returned from
+                :meth:`get_event_queue`.
 
         Returns:
-            The timestamp of the start or end of the event (see the 'report' argument) if a
-            saccade in the queue occurred in a direction of interest, otherwise False.
+            bool: True if any saccades occurred in the specified direction,
+            otherwise False.
 
         """
         if not iterable(doi): 
@@ -579,7 +520,7 @@ class EyeTracker():
                 continue
             timestamp = self._saccade_in_direction(doi, e, report)
             if timestamp:
-                return timestamp
+                return True
 
         return False
 

@@ -80,6 +80,9 @@ API Changes:
   ``FIXATION_START``, ``FIXATION_END``, and ``FIXATION_UPDATE``. These replace
   the earlier ``EL_`` prefixed eye event constants and should be used for all
   future projects.
+* Removed the ``report`` and ``inspect`` arguments from all boundary testing
+  methods in :class:`~klibs.KLEyeTracking.EyeTracker`, as they have never been
+  used and complicated the API considerably.
 
 
 Fixed Bugs:

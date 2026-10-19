@@ -14,7 +14,7 @@ of their memory::
         "Do you feel like you noticed a repeating sequence? (y/n)",
         choices = ['y', 'n']
     )
-    seq_learned = learned_q.collect()
+    seq_learned = learned_q.prompt()
 
     seq = None
     if seq_learned == "y":
@@ -22,7 +22,7 @@ of their memory::
             "Please enter the sequence to the best of your memory:",
             max_len=10, case='lower'
         )
-        seq = seq_q.collect()
+        seq = seq_q.prompt()
 
 When a Query response is collected, the query text is presented on screen and the
 user's response is rendered underneath it as it is entered on the keyboard. Once
@@ -200,7 +200,7 @@ class Query():
         blit(resp_msg, self._input_reg, self._input_loc)
         flip()
 
-    def collect(self):
+    def prompt(self):
         """Presents the query and collects a response.
 
         This method draws the query to the screen and waits for the user to
@@ -270,7 +270,7 @@ class NumberQuery(Query):
             "Please enter a number between 1 and 7"
             min=1, max=7
         )
-        rating = rating_q.collect()
+        rating = rating_q.prompt()
 
     Args:
         q (str or list): The text of the query to present to the participant. Can
@@ -293,7 +293,7 @@ class NumberQuery(Query):
         self.allow_blank = allow_blank
         self._validate_options()
 
-    def collect(self):
+    def prompt(self):
         """Presents the query and collects a numeric response.
         
         Returns as soon as a valid response has been submitted.
@@ -302,7 +302,7 @@ class NumberQuery(Query):
             The number (int or float) entered by the user.
         
         """
-        return super(NumberQuery, self).collect()
+        return super(NumberQuery, self).prompt()
         
     def _validate_options(self):
         if self.max < self.min:
@@ -349,7 +349,7 @@ class ChoiceQuery(Query):
             "Please enter the condition to use for this participant:",
             choices=["A", "B", "C"], case="upper"
         )
-        condition = cond_q.collect()
+        condition = cond_q.prompt()
 
     ChoiceQueries are not case sensitive, meaning that a response of 'a' will
     still match with (and return) 'A' if it exists as a response option. For
@@ -372,7 +372,7 @@ class ChoiceQuery(Query):
         self.case = case
         self._validate_options()
 
-    def collect(self):
+    def prompt(self):
         """Presents the query and collects a multiple-choice response.
 
         Returns as soon as a valid response has been submitted.
@@ -381,7 +381,7 @@ class ChoiceQuery(Query):
             str: The choice entered by the user.
         
         """
-        return super(ChoiceQuery, self).collect()
+        return super(ChoiceQuery, self).prompt()
 
     def _validate_options(self):
         # Make sure at least two response options and convert to strings if necessary
@@ -431,7 +431,7 @@ class TextQuery(Query):
             "If you feel like you learned a sequence, please enter it now:",
             min_length=0, max_length=10, case='upper'
         )
-        sequence = seq_q.collect()
+        sequence = seq_q.prompt()
 
 
     For aesthetic or input normalization purposes, you can specify the case of the
@@ -461,7 +461,7 @@ class TextQuery(Query):
         self.password = password
         self._validate_options()
 
-    def collect(self):
+    def prompt(self):
         """Presents the query and collects a freeform text response.
         
         Returns as soon as a valid response has been submitted.
@@ -470,7 +470,7 @@ class TextQuery(Query):
             str: The response entered by the user.
         
         """
-        return super(TextQuery, self).collect()
+        return super(TextQuery, self).prompt()
         
     def _validate_options(self):
         if self.min_l > self.max_l:

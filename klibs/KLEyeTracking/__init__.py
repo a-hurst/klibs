@@ -3,6 +3,7 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 
 from klibs import P
 from klibs.KLInternal import package_available
+from .KLEyeTracker import EyeTracker
 from .KLTryLink import TryLink
 
 PYLINK_AVAILABLE = package_available('pylink')

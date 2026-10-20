@@ -47,6 +47,11 @@ Runtime Changes:
   Must be enabled manually for new projects.
 * EyeLink eye trackers are now identified properly by model name (e.g.
   "EyeLink 1000 Plus") in the collected klibs runtime info.
+* :func:`~klibs.KLUserInterface.ui_request` no longer tries to initiate
+  eye tracker calibration if Ctrl/Cmd + C is pressed. Mid-trial calibration
+  is generally a bad idea, and should be implemented on a case-by-case basis
+  with care to properly end the trial and log any desired trial data before
+  starting calibration.
 
 
 API Changes:
@@ -85,6 +90,7 @@ API Changes:
   used and complicated the API considerably.
 * Removed the unused ``unit`` parameter from the ``now()`` method in the
   :class:`~klibs.KLEyeTracking.EyeTracker` class.
+
 
 
 Fixed Bugs:

@@ -156,6 +156,23 @@ class EyeTracker():
         return timestamp if result else False
 
 
+    def _get_tracker_events(self, events, samples=False):
+        """Internal method for retrieving eye events from the tracker.
+
+        This must be implemented for all EyeTracker types.
+
+        Args:
+            events (list): A list of the desired event types to retrieve.
+            samples (bool): Whether gaze samples should be returned in addition to other
+                event types.
+
+        Returns:
+            list: A list of tracker-specific events.
+
+        """
+        raise NotImplementedError()
+
+
     def _setup(self):
         """The eye tracker specific part of the setup process. This, not 'setup()', should be
         overridden by any eye trackers that subclass the EyeTracker class.
@@ -275,10 +292,19 @@ class EyeTracker():
                 from the returned queue. Defaults to an empty list (i.e. no events excluded.)
 
         Returns:
-            A :obj:`List` of eye events.
+            list: A list of eye events.
 
         """
-        pass
+        if len(include):
+            valid_events = set(include)
+        elif len(exclude):
+            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE]).difference(exclude)
+        else:
+            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE])
+
+        samples = GAZE_SAMPLE in valid_events
+        queue = self._get_tracker_events(valid_events, samples)
+        return queue
 
 
     def clear_queue(self):

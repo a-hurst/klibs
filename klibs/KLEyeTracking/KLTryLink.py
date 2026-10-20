@@ -136,6 +136,38 @@ class TryLink(EyeTracker):
         return 0
 
 
+    def _get_tracker_events(self, events, samples=False):
+        """Internal method for retrieving eye events from the tracker.
+
+        Args:
+            events (list): A list of the desired event types to retrieve.
+            samples (bool): Whether gaze samples should be returned in addition to other
+                event types.
+
+        Returns:
+            list: A list of tracker-specific events.
+
+        """
+        timestamp = self.now()
+        x, y = self.gaze()
+        mouse_clicked = mouse_button_state().any_pressed
+        blink = P.dm_click_to_blink and mouse_clicked
+        if blink:
+            # Simulate blink if mouse button pressed
+            x, y = (None, None)
+
+        queue = []
+        self._generator.update(x, y, timestamp)
+        for e in self._generator.get_events():
+            if e.type in events:
+                queue.append(e)
+        if samples and not blink:
+            # NOTE: Check whether tracker sends gaze samples during blinks
+            queue.append(MouseSample(timestamp, (x, y)))
+
+        return queue
+
+
     def get_event_queue(self, include=[], exclude=[]):
         """Fetches and returns the eye tracker's event queue, emptying it in the process. 
         
@@ -147,35 +179,7 @@ class TryLink(EyeTracker):
             A :obj:`List` of simulated eye events.
 
         """
-        if len(include):
-            valid_events = set(include)
-        elif len(exclude):
-            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE]).difference(exclude)
-        else:
-            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE])
-
-        samples = GAZE_SAMPLE in valid_events
-        events = len(valid_events.intersection(EL_ALL_EVENTS)) > 0
-
-        timestamp = self.now()
-        x, y = self.gaze()
-        mouse_clicked = mouse_button_state().any_pressed
-        blink = P.dm_click_to_blink and mouse_clicked
-        if blink:
-            # Simulate blink if mouse button pressed
-            x, y = (None, None)
-
-        queue = []
-        if samples and not blink:
-            # NOTE: Check whether tracker sends gaze samples during blinks
-            queue.append(MouseSample(timestamp, (x, y)))
-        if events:
-            self._generator.update(x, y, timestamp)
-            for e in self._generator.get_events():
-                if e.type in valid_events:
-                    queue.append(e)
-
-        return queue
+        return EyeTracker.get_event_queue(self, include, exclude) # so it shows up in the docs
 
 
     def clear_queue(self):

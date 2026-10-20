@@ -216,6 +216,48 @@ class EyeLink(EyeTracker):
         return self._el.close()
 
 
+    def _get_tracker_events(self, events, samples=False):
+        """Internal method for retrieving eye events from the tracker.
+
+        Args:
+            events (list): A list of the desired event types to retrieve.
+            samples (bool): Whether gaze samples should be returned in addition to other
+                event types.
+
+        Returns:
+            list: A list of tracker-specific events.
+
+        """
+        queue = []
+        get_samples = int(samples)
+        get_events = int(len(events.intersection(EL_ALL_EVENTS)) > 0)
+
+        # If any data waiting, process it all
+        any_samples = self._el.getDataCount(1, 0)
+        if self._el.getDataCount(get_samples, get_events) != 0:
+            last_event = None
+            while True:
+                e_type = self._el.getNextData()
+                if e_type == 0:
+                    break
+                elif e_type not in valid_events:
+                    continue
+                event = self._el.getFloatData()
+                # If same event sent twice, stop immediately
+                if event == last_event:
+                    break
+                last_sample = data
+                queue.append(data)
+        
+        # If no gaze samples from getNextData, append latest sample
+        if samples and not any_samples:
+            s = self._el.getNewestSample()
+            if s != None:
+                queue.append(s)
+
+        return queue
+
+
     def get_event_queue(self, include=[], exclude=[]):
         """Fetches and returns the EyeLink's event queue, emptying it in the process.
 
@@ -230,39 +272,7 @@ class EyeLink(EyeTracker):
             A :obj:`List` of eye events.
 
         """
-        
-        if len(include):
-            valid_events = set(include)
-        elif len(exclude):
-            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE]).difference(exclude)
-        else:
-            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE])
-
-        samples = int(GAZE_SAMPLE in valid_events)
-        events = int(len(valid_events.intersection(EL_ALL_EVENTS)) > 0)
-
-        queue = []
-        if self._el.getDataCount(samples, events) != 0:  # i.e. if data available
-            last_sample = None
-            while True:
-                d_type = self._el.getNextData()
-                if d_type == 0:
-                    break
-                elif d_type not in valid_events:
-                    continue
-                data = self._el.getFloatData()
-                # once the same sample has been sent twice, gtfo
-                if data == last_sample:
-                    break
-                else:
-                    last_sample = data
-                queue.append(data)
-        
-        if samples == True and len(queue) == 0: # if no samples from getNextData, fetch latest
-            newest_sample = self._el.getNewestSample()
-            queue = [newest_sample] if newest_sample != None else []
-
-        return queue
+        return EyeTracker.get_event_queue(self, include, exclude) # so it shows up in the docs
 
 
     def clear_queue(self):

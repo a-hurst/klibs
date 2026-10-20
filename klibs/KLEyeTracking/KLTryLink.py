@@ -15,7 +15,7 @@ from klibs.KLEventQueue import pump, flush
 from klibs.KLUserInterface import (
     ui_request, mouse_pos, mouse_clicked, key_pressed, show_cursor, hide_cursor
 )
-from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
+from klibs.KLEyeTracking.KLEyeTracker import EyeTracker, EventParser
 from klibs.KLEyeTracking.utils import GazeEventGenerator
 
 from sdl2 import SDL_GetTicks, SDL_Delay
@@ -37,6 +37,76 @@ class MouseSample():
         self.type = GAZE_SAMPLE
         self.time = time
         self.gaze = gaze
+
+
+class TryLinkEventParser(EventParser):
+    """A parser defining how to extract data from simulated tracker events.
+
+    """
+    def get_type(self, e):
+        """Retrieves the type of a given event (e.g. ``BLINK_START``).
+        """
+        return e.type
+
+    def eye(self, e):
+        """Retrieves the eye for a given event.
+        """
+        return RIGHT_EYE
+
+    def timestamp(self, e):
+        """Gets the timestamp (in msec) for a gaze sample.
+        """
+        return e.time
+
+    def left_gaze(self, e):
+        """Gets the left eye (x, y) gaze coordinates for a gaze sample.
+        """
+        return None
+
+    def right_gaze(self, e):
+        """Gets the right eye (x, y) gaze coordinates for a gaze sample.
+        """
+        return e.gaze
+
+    def left_pupil_size(self, e):
+        """Gets the left eye pupil size (arbitrary units) for a gaze sample.
+        """
+        return None
+
+    def right_pupil_size(self, e):
+        """Gets the right eye pupil size (arbitrary units) for a gaze sample.
+        """
+        return 2000
+
+    def start_time(self, e):
+        """Gets the timestamp (in msec) for the start of the event.
+        """
+        return e.start_time
+
+    def end_time(self, e):
+        """Gets the timestamp (in msec) for the end of the event.
+        """
+        return e.end_time
+
+    def start_gaze(self, e):
+        """Gets the (x, y) gaze coordinates at the start of the event.
+        """
+        return e.start_gaze
+
+    def end_gaze(self, e):
+        """Gets the (x, y) gaze coordinates at the end of the event.
+        """
+        return e.end_gaze
+
+    def avg_gaze(self, e):
+        """Gets the average (x, y) gaze coordinates for the event.
+        """
+        return e.avg_gaze
+
+    def duration(self, e):
+        """Gets the total duration (in msec) for the event.
+        """
+        return e.end_time - e.start_time
 
 
 class TryLink(EyeTracker):
@@ -69,6 +139,7 @@ class TryLink(EyeTracker):
         self.tracker_start_time = None
         self._recording = False
         self._generator = GazeEventGenerator()
+        self._parser = TryLinkEventParser()
 
 
     def _setup(self):
@@ -268,129 +339,6 @@ class TryLink(EyeTracker):
 
         """
         pass
-
-
-    def get_event_type(self, e):
-        """Fetches the numeric code corresponding to an eye event's type (e.g end saccade, start
-        fixation).
-        
-        Args:
-            e: An eye event from the tracker.
-        
-        Returns:
-            The numeric type of the event (e.g. ``EL_END_SACCADE``, ``EL_START_FIXATION``).
-
-        """
-        return e.type
-
-
-    def get_event_gaze(self, event, inspect):
-        """Retrieves the gaze coordinates from an eye event or gaze sample.
-
-        Args:
-            event: The eye event (e.g. saccade, fixation, gaze sample) to return the gaze
-                coordinates from.
-            inspect: A flag indicating the type of gaze to retrieve: the gaze at the start of
-                the event (``EL_GAZE_START``), the gaze at the end of the event (``EL_GAZE_END``),
-                or the event's average gaze (``EL_GAZE_AVG``). Note that not all eye events have
-                all three gaze attributes. Has no effect on gaze samples.
-        
-        Returns:
-            The (x, y) gaze coordinates for the event.
-
-        Raises:
-            EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
-                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``SACCADE_END`` event).
-
-        """
-        if event.type == GAZE_SAMPLE:
-            coords = event.gaze
-        else:
-            try:
-                if inspect == EL_GAZE_START:
-                    coords = event.start_gaze
-                elif inspect == EL_GAZE_END:
-                    coords = event.end_gaze
-                elif inspect == EL_GAZE_AVG:
-                    coords = event.avg_gaze
-            except AttributeError:
-                typename = self.get_event_name(event.type)
-                err = "Cannot inspect {0} for {1} events."
-                raise EyeTrackerError(err.format(inspect, typename))
-
-        return coords
-
-
-    def get_event_timestamp(self, event, report):
-        """Gets the timestamp from an eye event or gaze sample.
-
-        Args:
-            event: The eye event (e.g. saccade, fixation, gaze sample) to return the timestamp
-                from.
-            report: A flag indicating whether to report the start time (``EL_TIME_START``) or
-                end time (``EL_TIME_END``) of the eye event. Has no effect on gaze samples,
-                which do not have separate start/end times.
-        
-        Returns:
-            The timestamp for the start or end of the event.
-
-        Raises:
-            EyeTrackerError: If asked to report the end timestamp for an eye event that only has
-                a start timestamp (e.g. ``FIXATION_START``).
-
-        """
-        if event.type == GAZE_SAMPLE:
-            return event.time
-        else:
-            try:
-                return event.start_time if report == EL_TIME_START else event.end_time
-            except AttributeError:
-                typename = self.get_event_name(event.type)
-                err = "Cannot report {0} for {1} events."
-                raise EyeTrackerError(err.format(report, typename))
-
-
-    def get_event_info(self, event):
-        """Returns all available info about an eye event or gaze sample in the form of a
-        :obj:`dict`.
-        
-        Usage::
-
-            q = self.el.get_event_queue() # fetch all unprocessed eye events
-            for event in q:
-                info = self.el.get_event_info(event)
-                if info['type'] == SACCADE_END:
-                    end_gaze = info[EL_GAZE_END]
-                    end_time = info[EL_TIME_END]
-        
-        See the table in :meth:`within_boundary` for a list of the attributes available for each
-        eye event type.
-
-        Args:
-            event: The eye event (e.g. saccade, fixation, gaze sample) to collect the attributes of.
-
-        Returns:
-            A :obj:`dict` containing the available attributes of the event, such as start/end time,
-            start/end/average gaze, and type name.
-
-        """
-        info = {}
-        info['type'] = event.type
-        if event.type == GAZE_SAMPLE:
-            info[EL_TIME_START] = event.time
-            info[EL_TIME_END] = event.time
-            info[EL_GAZE_START] = event.gaze
-            info[EL_GAZE_END] = event.gaze
-        else:
-            info[EL_TIME_START] = event.start_time
-            info[EL_GAZE_START] = event.start_gaze
-            if event.type in [SACCADE_END, FIXATION_END, FIXATION_UPDATE]:
-                info[EL_TIME_END] = event.end_time
-                info[EL_GAZE_END] = event.end_gaze
-                if event.type != SACCADE_END:
-                    info[EL_GAZE_AVG] = event.avg_gaze
-        
-        return info
 
 
     @property

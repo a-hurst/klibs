@@ -16,7 +16,7 @@ from klibs.KLUserInterface import (
     ui_request, mouse_pos, mouse_clicked, key_pressed, show_cursor, hide_cursor
 )
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
-from klibs.KLEyeTracking.events import GazeEventGenerator
+from klibs.KLEyeTracking.utils import GazeEventGenerator
 
 from sdl2 import SDL_GetTicks, SDL_Delay
 from sdl2.ext import cursor_hidden, mouse_button_state

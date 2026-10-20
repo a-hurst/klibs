@@ -2,7 +2,7 @@ import pytest
 
 from klibs.KLConstants import *
 from klibs.KLBoundary import RectangleBoundary
-from klibs.KLEyeTracking.events import GazeEventGenerator
+from klibs.KLEyeTracking.utils import GazeEventGenerator
 from klibs.KLEyeTracking.KLTryLink import TryLink
 
 

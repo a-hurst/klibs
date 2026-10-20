@@ -106,7 +106,7 @@ class EyeLink(EyeTracker):
         """
         v = self._el.getTrackerVersionString()
         self.version = _get_eyelink_version(v)
-        self._custom_display = ELCustomDisplay()
+        self._custom_display = ELCustomDisplay(self)
         openGraphicsEx(self._custom_display)
 
         flushGetkeyQueue()

@@ -249,3 +249,25 @@ class TestTryLink():
             events = tst.get_event_queue() 
         assert tst.saccade_from_boundary('fixation', event_queue=events)
 
+    def test_saccade_in_direction(self):
+        tst = CustomTryLink()
+        # Start recording and make sure no saccade detected
+        tst.start(1)
+        tst.add_samples([(400, 300, 0)])
+        events = tst.get_event_queue()
+        assert len(events) > 0
+        # Saccade from boundary and re-test
+        tst.add_samples([
+            (401, 301, 10), (420, 320, 20), (550, 440, 30), (551, 439, 40)
+        ])
+        while len(tst.samples):
+            # Needs to be called once per sample
+            events = tst.get_event_queue()
+        assert tst.saccade_in_direction('down', events)
+        assert tst.saccade_in_direction('right', events)
+        assert not tst.saccade_in_direction('up', events)
+        assert not tst.saccade_in_direction('left', events)
+        assert tst.saccade_in_direction(['down', 'right'], events)
+        assert not tst.saccade_in_direction(['down', 'left'], events)
+        assert not tst.saccade_in_direction(['up', 'right'], events)
+        assert not tst.saccade_in_direction(['up', 'left'], events)

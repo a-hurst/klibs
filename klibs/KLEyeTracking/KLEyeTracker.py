@@ -196,104 +196,13 @@ class EyeTracker():
             FIXATION_UPDATE: 'fixation update'
         }
         self._event_defaults = {
-            GAZE_SAMPLE: [None, None],
-            SACCADE_START: [EL_TIME_START, EL_GAZE_START],
-            SACCADE_END: [EL_TIME_END, EL_GAZE_END],
-            FIXATION_START: [EL_TIME_START, EL_GAZE_START],
-            FIXATION_END: [EL_TIME_END, EL_GAZE_AVG],
-            FIXATION_UPDATE: [EL_TIME_END, EL_GAZE_AVG]            
+            GAZE_SAMPLE: None,
+            SACCADE_START: EL_GAZE_START,
+            SACCADE_END: EL_GAZE_END,
+            FIXATION_START: EL_GAZE_START,
+            FIXATION_END: EL_GAZE_AVG,
+            FIXATION_UPDATE: EL_GAZE_AVG,
         }
-
-
-    def _within_boundary(self, label, event, report, inspect):
-        """Checks whether an event is within a boundary. For internal use.
-
-        Args:
-            label (str): The label of the boundary to check if the event is in, added using
-                add_boundary().
-            event: The eye event (e.g. saccade, fixation, gaze sample) to test against the
-                given boundary.
-            report: A flag indicating whether to report the start time (``EL_TIME_START``) or
-                end time (``EL_TIME_END``) of the eye event.
-            inspect: A flag indicating which gaze attribute of the eye event should be checked
-                against the boundary: the gaze at the start of the event (``EL_GAZE_START``),
-                the gaze at the end of the event (``EL_GAZE_END``), or the event's average gaze
-                (``EL_GAZE_AVG``). Note that not all eye events have all three gaze attributes.
-
-        Returns:
-            The timestamp of the start or end of the event (see the 'report' argument) if the
-            inspected region was within the specified boundary, otherwise False.
-
-        """
-        timestamp = self.get_event_timestamp(event, report)
-        gaze_coords = self.get_event_gaze(event, inspect)
-
-        result = self.boundaries.within_boundary(label, gaze_coords)
-        return timestamp if result else False
-
-
-    def _exited_boundary(self, label, event, report):
-        """Checks whether a saccade event exited a given boundary. For internal use.
-
-        Args:
-            label (str): The label of the boundary to check if the event is in, added using
-                add_boundary().
-            event: The saccade-end event to test against the given boundary.
-            report: A flag indicating whether to report the start time (``EL_TIME_START``) or
-                end time (``EL_TIME_END``) of the saccade.
-
-        Returns:
-            The timestamp of the start or end of the event (see the 'report' argument) if the
-            saccade exited the given boundary, otherwise False.
-
-        """
-        e_type = self.get_event_type(event)
-        if e_type != SACCADE_END:
-            typename = self.get_event_name(e_type)
-            err = "Only saccade end events can be used for boundary exit tests ({0} given)"
-            raise EyeTrackerError(err.format(typename))
-
-        timestamp = self.get_event_timestamp(event, report)
-        start_gaze = self.get_event_gaze(event, EL_GAZE_START)
-        end_gaze = self.get_event_gaze(event, EL_GAZE_END)
-
-        start_inside = self.boundaries.within_boundary(label, start_gaze)
-        end_inside = self.boundaries.within_boundary(label, end_gaze)
-        return timestamp if (start_inside and not end_inside) else False
-
-
-    def _saccade_in_direction(self, doi, event, report):
-        """Checks whether a saccade event occurred in a given direction. For internal use.
-
-        Args:
-            doi (:obj:`List` of str): The names of the direction(s) of interest to watch for
-                saccades in. Both a vertical ('up' or 'down') or horizontal ('left' or 'right')
-                direction of interest can be specified.
-            event: The saccade-end event to check the direction of.
-            report: A flag indicating whether to report the start time (``EL_TIME_START``) or
-                end time (``EL_TIME_END``) of the saccade.
-
-        Returns:
-            The timestamp of the start or end of the event (see the 'report' argument) if the
-            saccade direction matched all the given directions of interest, otherwise False.
-                
-        """
-        e_type = self.get_event_type(event)
-        if e_type != SACCADE_END:
-            typename = self.get_event_name(e_type)
-            err = "Only saccade end events can be used for saccade direction tests ({0} given)"
-            raise EyeTrackerError(err.format(typename))
-            
-        sxp, syp = self.get_event_gaze(event, EL_GAZE_START)
-        exp, eyp = self.get_event_gaze(event, EL_GAZE_END)
-        sacc_direction = [None, None]
-        sacc_direction[0] = "right" if (exp - sxp) > 0 else "left"
-        sacc_direction[1] = "down"  if (eyp - syp) > 0 else "up"
-        timestamp = self.get_event_timestamp(event, report)
-        
-        # Check if the direction(s) of interest match the direction of the saccade
-        result = all(direction in sacc_direction for direction in doi)
-        return timestamp if result else False
 
 
     def _get_tracker_events(self, events, samples=False):
@@ -562,13 +471,10 @@ class EyeTracker():
 
         timestamp = None
         for e in event_queue:
-            if e == None or self.get_event_type(e) not in valid_events:
+            if e == None or e.type not in valid_events:
                 continue
-            e_type = self.get_event_type(e)
-            _report = self._event_defaults[e_type][0]
-            _inspect = self._event_defaults[e_type][1]
-            timestamp = self._within_boundary(label, e, _report, _inspect)
-            if timestamp:
+            gaze = self.get_event_gaze(e, self._event_defaults[e.type])
+            if self.boundaries.within_boundary(label, gaze):
                 return True
 
         return False
@@ -623,15 +529,13 @@ class EyeTracker():
         """
         if not event_queue:
             event_queue = self.get_event_queue([SACCADE_END])
-        if not len(event_queue):
-            return False
 
         for e in event_queue:
-            if e == None or self.get_event_type(e) != SACCADE_END:
+            if e == None or e.type != SACCADE_END:
                 continue
-            started_within = self._within_boundary(label, e, EL_TIME_START, EL_GAZE_START)
-            ended_within = self._within_boundary(label, e, EL_TIME_END, EL_GAZE_END)
-            if ended_within and not started_within:
+            starts_in = self.boundaries.within_boundary(label, e.start_gaze)
+            ends_in = self.boundaries.within_boundary(label, e.end_gaze)
+            if ends_in and not starts_in:
                 return True
 
         return False
@@ -655,14 +559,13 @@ class EyeTracker():
         """
         if not event_queue:
             event_queue = self.get_event_queue([SACCADE_END])
-        if not len(event_queue):
-            return False
 
         for e in event_queue:
-            if e == None or self.get_event_type(e) != SACCADE_END:
+            if e == None or e.type != SACCADE_END:
                 continue
-            timestamp = self._exited_boundary(label, e, EL_TIME_START)
-            if timestamp:
+            starts_in = self.boundaries.within_boundary(label, e.start_gaze)
+            ends_in = self.boundaries.within_boundary(label, e.end_gaze)
+            if starts_in and not ends_in:
                 return True
 
         return False
@@ -711,14 +614,18 @@ class EyeTracker():
             
         if not event_queue:
             event_queue = self.get_event_queue([SACCADE_END])
-        if not len(event_queue):
-            return False
 
         for e in event_queue:
-            if e == None or self.get_event_type(e) != SACCADE_END:
+            if e == None or e.type != SACCADE_END:
                 continue
-            timestamp = self._saccade_in_direction(doi, e, EL_TIME_START)
-            if timestamp:
+            sxp, syp = e.start_gaze
+            exp, eyp = e.end_gaze
+            directions = [
+                "right" if (exp - sxp) > 0 else "left",
+                "down"  if (eyp - syp) > 0 else "up"
+            ]
+            # Check if the direction(s) of interest match the direction of the saccade
+            if all(d in directions for d in doi):
                 return True
 
         return False

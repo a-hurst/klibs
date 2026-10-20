@@ -2,10 +2,10 @@
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
 from klibs.KLExceptions import EyeTrackerError
-from klibs.KLConstants import (EL_LEFT_EYE, EL_RIGHT_EYE, EL_BOTH_EYES, EL_NO_EYES,
-    EL_FIXATION_START, EL_FIXATION_UPDATE, EL_FIXATION_END, EL_FIXATION_ALL,
-    EL_SACCADE_START, EL_SACCADE_END, EL_BLINK_START, EL_BLINK_END, 
-    EL_GAZE_START, EL_GAZE_END, EL_GAZE_POS, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
+from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR,
+    FIXATION_START, FIXATION_UPDATE, FIXATION_END, GAZE_SAMPLE,
+    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END, 
+    EL_GAZE_START, EL_GAZE_END, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
     EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
     TK_S, TK_MS)
 from klibs import P
@@ -16,10 +16,27 @@ from klibs.KLUserInterface import (
     ui_request, mouse_pos, mouse_clicked, key_pressed, show_cursor, hide_cursor
 )
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
-from klibs.KLEyeTracking.events import GazeSample, EyeEvent, EyeEventTemplate
+from klibs.KLEyeTracking.events import GazeEventGenerator
 
 from sdl2 import SDL_GetTicks, SDL_Delay
-from sdl2.ext import cursor_hidden
+from sdl2.ext import cursor_hidden, mouse_button_state
+
+
+class MouseSample():
+    """A simulated gaze sample event. For internal TryLink use.
+
+    Args:
+        time (int): The time that the sample was recorded.
+        gaze (Tuple(float, float)): The (x, y) gaze coordinates of the sample.
+    
+    Attributes:
+        type (int): The type code of the event (i.e. ``GAZE_SAMPLE``).
+
+    """
+    def __init__(self, time, gaze):
+        self.type = GAZE_SAMPLE
+        self.time = time
+        self.gaze = gaze
 
 
 class TryLink(EyeTracker):
@@ -50,9 +67,8 @@ class TryLink(EyeTracker):
         self.initialized = False
         self.local_start_time = None
         self.tracker_start_time = None
-        self.__recording = False
-        self.__fix = None # the fixation currently in progress
-        self.__sacc = None # the saccade currently in progress
+        self._recording = False
+        self._generator = GazeEventGenerator()
 
 
     def _setup(self):
@@ -87,7 +103,7 @@ class TryLink(EyeTracker):
 
         """
         self.local_start_time = now()
-        self.__recording = True
+        self._recording = True
         self.tracker_start_time = self.now()
         return 0
 
@@ -100,9 +116,8 @@ class TryLink(EyeTracker):
         To resume recording after this method is called, use the :meth:`start` method.
 
         """
-        self.__fix = None
-        self.__sacc = None
-        self.__recording = False
+        self._generator.reset()
+        self._recording = False
 
 
     def shut_down(self, incomplete=False):
@@ -135,77 +150,30 @@ class TryLink(EyeTracker):
         if len(include):
             valid_events = set(include)
         elif len(exclude):
-            valid_events = set(EL_ALL_EVENTS + [EL_GAZE_POS]).difference(exclude)
+            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE]).difference(exclude)
         else:
-            valid_events = set(EL_ALL_EVENTS + [EL_GAZE_POS])
+            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE])
 
-        samples = EL_GAZE_POS in valid_events
+        samples = GAZE_SAMPLE in valid_events
         events = len(valid_events.intersection(EL_ALL_EVENTS)) > 0
-        max_dispersion = 15
-        min_velocity = 4
 
         timestamp = self.now()
         x, y = self.gaze()
+        mouse_clicked = mouse_button_state().any_pressed
+        blink = P.dm_click_to_blink and mouse_clicked
+        if blink:
+            # Simulate blink if mouse button pressed
+            x, y = (None, None)
+
         queue = []
-
-        if samples:
-            queue.append(GazeSample(timestamp, (x, y)))
-            
+        if samples and not blink:
+            # NOTE: Check whether tracker sends gaze samples during blinks
+            queue.append(MouseSample(timestamp, (x, y)))
         if events:
-            if self.__fix:
-                # Add current sample to fixation template
-                self.__fix._add_sample(x, y)
-                self.__fix._last_sample_time = timestamp
-
-                # If spatial dispersion of samples surpasses threshold, end fixation
-                # and start saccade
-                if self.__fix._dispersion > max_dispersion:
-                    if EL_FIXATION_END in valid_events:
-                        queue.append(EyeEvent(EL_FIXATION_END, self.__fix))
-                    self.__fix = None
-                    self.__sacc = EyeEventTemplate(timestamp, x, y)
-                    if EL_SACCADE_START in valid_events:
-                        queue.append(EyeEvent(EL_SACCADE_START, self.__sacc))
-
-                else:
-                    # If dispersion is below threshold and fixation in progress, add
-                    # fixation update events at regular intervals
-                    if timestamp > (self.__fix.last_update + 50):
-                        if EL_FIXATION_UPDATE in valid_events:
-                            queue.append(EyeEvent(EL_FIXATION_UPDATE, self.__fix))
-                            self.__fix.last_update = timestamp
-                        
-            elif self.__sacc:
-                # If mouse movement falls below velocity threshold, end saccade
-                # and start fixation
-                dx = x - self.__sacc.end_gaze[0]
-                dy = y - self.__sacc.end_gaze[1]
-                if abs(dx) < min_velocity and abs(dy) < min_velocity:
-                    if EL_SACCADE_END in valid_events:
-                        queue.append(EyeEvent(EL_SACCADE_END, self.__sacc))
-                    self.__sacc = None
-                    self.__fix = EyeEventTemplate(timestamp, x, y)
-                    if EL_FIXATION_START in valid_events:
-                        queue.append(EyeEvent(EL_FIXATION_START, self.__fix))
-
-                # If saccade vector changes by more than 45 degrees, end saccade
-                # and start a new one
-                elif abs(self.__sacc._vector_change(x, y)) > 45.0:
-                    if EL_SACCADE_END in valid_events:
-                        queue.append(EyeEvent(EL_SACCADE_END, self.__sacc))
-                    self.__sacc = EyeEventTemplate(timestamp, x, y)
-                    if EL_SACCADE_START in valid_events:
-                        queue.append(EyeEvent(EL_SACCADE_START, self.__sacc))
-
-                else:
-                    self.__sacc._add_sample(x, y)
-                    self.__sacc._last_sample_time = timestamp
-
-            else:
-                # If neither a fixation or saccade is in progress, start a fixation
-                self.__fix = EyeEventTemplate(timestamp, x, y)
-                if EL_FIXATION_START in valid_events:
-                    queue.append(EyeEvent(EL_FIXATION_START, self.__fix))
+            self._generator.update(x, y, timestamp)
+            for e in self._generator.get_events():
+                if e.type in valid_events:
+                    queue.append(e)
 
         return queue
 
@@ -215,8 +183,7 @@ class TryLink(EyeTracker):
         discarded.
 
         """
-        self.__fix = None
-        self.__sacc = None
+        self._generator.reset()
 
 
     def _drift_correct(self, loc, target_callback):
@@ -258,7 +225,7 @@ class TryLink(EyeTracker):
         return round(px_to_deg(dist_px), 2)
 
 
-    def gaze(self, return_integers=True, binocular_mode=EL_RIGHT_EYE):
+    def gaze(self, return_integers=True, binocular_mode=RIGHT_EYE):
         """Fetches the (x,y) coordinates of the participant's current gaze on the screen. In
         TryLink mode, this fetches the current coordinates of the mouse cursor.
 
@@ -266,9 +233,9 @@ class TryLink(EyeTracker):
             return_integers (bool, optional): Whether to return the gaze coordinates as integers
                 or floats. Defaults to True (integers).
             binocular_mode (int, optional): Tells the function which gaze coordinates to return
-                for binocular samples. Can be any of ``EL_RIGHT_EYE`` (returns right eye gaze),
-                ``EL_LEFT_EYE`` (returns left eye gaze), or ``EL_BOTH_EYES`` (returns average gaze
-                of both eyes). Defaults to ``EL_RIGHT_EYE``. In TryLink mode, this has no effect.
+                for binocular samples. Can be any of ``RIGHT_EYE`` (returns right eye gaze),
+                ``LEFT_EYE`` (returns left eye gaze), or ``BINOCULAR`` (returns average gaze
+                of both eyes). Defaults to ``RIGHT_EYE``. In TryLink mode, this has no effect.
         
         Returns:
             A :obj:`Tuple` containing the (x,y) pixel coordinates of the participant's gaze.
@@ -278,20 +245,14 @@ class TryLink(EyeTracker):
         return gaze_pos if return_integers else tuple(float(p) for p in gaze_pos)
 
 
-    def now(self, unit=TK_MS):
-        """Fetches the current time according to the tracker's internal clock. In TryLink
-        simulation mode, this returns the time since the experiment was first launched.
-
-        Args:
-            unit (int, optional): The units in which the time should be returned. Can be either
-                ``TK_S`` (seconds) or ``TK_MS`` (milliseconds). Defaults to milliseconds.
+    def now(self):
+        """Fetches the current time according to the tracker's internal clock.
 
         Returns:
-            float: The current tracker time in the specified time unit.
+            float: The current tracker time (in milliseconds).
 
         """
-        time = float(SDL_GetTicks())
-        return time * 0.001 if unit == TK_S else time
+        return float(SDL_GetTicks())
 
 
     def write(self, message):
@@ -335,10 +296,10 @@ class TryLink(EyeTracker):
 
         Raises:
             EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
-                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``EL_SACCADE_END`` event).
+                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``SACCADE_END`` event).
 
         """
-        if event.type == EL_GAZE_POS:
+        if event.type == GAZE_SAMPLE:
             coords = event.gaze
         else:
             try:
@@ -371,10 +332,10 @@ class TryLink(EyeTracker):
 
         Raises:
             EyeTrackerError: If asked to report the end timestamp for an eye event that only has
-                a start timestamp (e.g. ``EL_FIXATION_START``).
+                a start timestamp (e.g. ``FIXATION_START``).
 
         """
-        if event.type == EL_GAZE_POS:
+        if event.type == GAZE_SAMPLE:
             return event.time
         else:
             try:
@@ -394,7 +355,7 @@ class TryLink(EyeTracker):
             q = self.el.get_event_queue() # fetch all unprocessed eye events
             for event in q:
                 info = self.el.get_event_info(event)
-                if info['type'] == EL_SACCADE_END:
+                if info['type'] == SACCADE_END:
                     end_gaze = info[EL_GAZE_END]
                     end_time = info[EL_TIME_END]
         
@@ -411,7 +372,7 @@ class TryLink(EyeTracker):
         """
         info = {}
         info['type'] = event.type
-        if event.type == EL_GAZE_POS:
+        if event.type == GAZE_SAMPLE:
             info[EL_TIME_START] = event.time
             info[EL_TIME_END] = event.time
             info[EL_GAZE_START] = event.gaze
@@ -419,10 +380,10 @@ class TryLink(EyeTracker):
         else:
             info[EL_TIME_START] = event.start_time
             info[EL_GAZE_START] = event.start_gaze
-            if event.type in [EL_SACCADE_END, EL_FIXATION_END, EL_FIXATION_UPDATE]:
+            if event.type in [SACCADE_END, FIXATION_END, FIXATION_UPDATE]:
                 info[EL_TIME_END] = event.end_time
                 info[EL_GAZE_END] = event.end_gaze
-                if event.type != EL_SACCADE_END:
+                if event.type != SACCADE_END:
                     info[EL_GAZE_AVG] = event.avg_gaze
         
         return info
@@ -439,8 +400,9 @@ class TryLink(EyeTracker):
 
     @property
     def in_setup(self):
-        """bool: Whether the eye tracker is currently in setup/calibration mode. Always False
-        when using TryLink simulation.
+        """bool: Whether the eye tracker is currently in setup/calibration mode.
+        
+        Always False when using TryLink simulation.
 
         """
         return False
@@ -451,5 +413,5 @@ class TryLink(EyeTracker):
         """bool: Whether the eye tracker is currently recording data.
 
         """
-        return self.__recording
+        return self._recording
         

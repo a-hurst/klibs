@@ -191,7 +191,7 @@ def get_clicks(button=None, released=False, queue=None):
             for mouse button release events instead of mouse button click events.
             Defaults to False.
         queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to
-            checkfor valid mouse button events.
+            check for valid mouse button events.
 
     Returns:
         :obj:`List`: A list containing the (x, y) coordinates of any matching mouse
@@ -341,40 +341,43 @@ def konami_code(callback=None, cb_args={}, queue=None):
 
 
 def ui_request(key_press=None, execute=True, queue=None):
-    """Checks keyboard input for interface commands, which currently include:
+    """Checks the user input for special runtime commands.
+    
+    Only one type of command is currently implemented:
     
     - Quit (Ctrl/Command-Q): Quit the experiment runtime
 
-    - Calibrate Eye Tracker (Ctrl/Command-C): Enter setup mode for the connected eye tracker, 
-      if eye tracking is enabled for the experiment and not using TryLink simulation.
+    This function is meant to be called during any loops in your experiment where you
+    want to be able to exit the task gracefully. For example, if you want to be
+    able to quit the task during the presentation of trial feedback, you might do
+    something like this::
+
+        fill()
+        blit(feedback, 5, P.screen_c)
+        flip()
+        duration = CountDown(1.0)
+        while duration.counting():
+            ui_request()
+
+    Most other functions that process keyboard/mouse input (with the exception of
+    :func:`mouse_pos`) call ``ui_request`` internally, meaning you typically only
+    need to call it explicitly when no other input processing is being performed.
     
-    If no event queue from :func:`~klibs.KLEventQueue.pump` and no keypress event(s) are
-    supplied to this function, the current contents of the SDL2 event queue will be fetched
-    and processed using :func:`~klibs.KLEventQueue.pump`. 
-    
-    This function is meant to be called during loops in your experiment where no other input
-    checking occurs, to ensure that you can quit your experiment or recalibrate your eye
-    tracker during those periods.
-    
-    This function is called implicitly by other functions that process keyboard/mouse input, such
-    as :func:`any_key`, :func:`key_pressed`, and :func:`mouse_clicked` (but not :func:`mouse_pos`),
-    so you will not need to call it yourself in places where one of them is already being called. 
-    In addition, the :obj:`~klibs.KLResponseCollectors.ResponseCollector` collect method also
-    calls this function every loop, meaning that you do not need to include it when writing
-    ResponseCollector callbacks.
+    If no event queue from :func:`~klibs.KLEventQueue.pump` is provided and no keypress
+    event(s) are supplied to this function, the contents of the input event queue will
+    be fetched and emptied when this function is called.
 
     Args:
-        key_press (:obj:`sdl2.SDL_Keysym`, optional): The key.keysym of an SDL_KEYDOWN event to
-            check for a valid UI command.
-        execute (bool, optional): If True, valid UI commands will be executed immediately. 
-            Otherwise, valid UI commands will return a string indicating the type of command
-            received. Defaults to True.
-        queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of SDL Events to check
-            for valid UI commands.
+        key_press (:obj:`sdl2.SDL_Keysym`, optional): The key.keysym of an SDL_KEYDOWN
+            event to check for a valid UI command.
+        execute (bool, optional): If True, valid UI commands will be executed
+            immediately. Defaults to True.
+        queue (:obj:`List` of :obj:`sdl2.SDL_Event`, optional): A list of events to
+            check for valid runtime commands.
         
     Returns:
-        str or bool: "quit" if a Quit request encountered, "el_calibrate" if a Calibrate 
-            Eye Tracker request encountered, otherwise False.
+        str or bool: "quit" if a Quit request encountered, otherwise False.
+
     """
     if key_press == None:
         if queue == None:
@@ -401,13 +404,6 @@ def ui_request(key_press=None, execute=True, queue=None):
                     from klibs.KLEnvironment import exp
                     exp.quit()
                 return "quit"
-            elif k.sym == SDLK_c:
-                if P.eye_tracking:
-                    from klibs.KLEnvironment import el
-                    if el.initialized: # make sure el.setup() has been run already
-                        if execute:
-                            el.calibrate()
-                        return "el_calibrate"
         return False
 
 

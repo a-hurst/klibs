@@ -40,6 +40,18 @@ Runtime Changes:
   task. Note that the random seed from the previous session will still need to
   be loaded and set manually in order for the same sequence of trials to be
   generated.
+* Added a new parameter ``P.dm_click_to_blink``, which enables simulation of
+  blinks for eye tracking tasks when in mouse simulation mode by clicking a
+  mouse button. A blink start event is generated when the mouse is first
+  clicked, and a blink end event is generated when the button is released.
+  Must be enabled manually for new projects.
+* EyeLink eye trackers are now identified properly by model name (e.g.
+  "EyeLink 1000 Plus") in the collected klibs runtime info.
+* :func:`~klibs.KLUserInterface.ui_request` no longer tries to initiate
+  eye tracker calibration if Ctrl/Cmd + C is pressed. Mid-trial calibration
+  is generally a bad idea, and should be implemented on a case-by-case basis
+  with care to properly end the trial and log any desired trial data before
+  starting calibration.
 
 
 API Changes:
@@ -63,6 +75,22 @@ API Changes:
 * Added a new class :class:`~klibs.KLGraphics.KLDraw.Stroke` for defining the
   outline properties of shapes.
 * Removed the ``pts`` argument from :class:`~klibs.KLGraphics.KLDraw.Line`.
+* Added a new property :attr:`~klibs.KLEyeTracking.EyeTracker.eyelink` to the
+  EyeTracker class allowing code to access methods of the internal
+  ``pylink.EyeLink`` object in a clear and documented way, while also allowing
+  for properly-written code to still work seamlessly with mouse simulation or
+  other trackers.
+* Added new alias constants for identifying eye events: ``GAZE_SAMPLE``,
+  ``BLINK_START``, ``BLINK_END``, ``SACCADE_START``, ``SACCADE_END``,
+  ``FIXATION_START``, ``FIXATION_END``, and ``FIXATION_UPDATE``. These replace
+  the earlier ``EL_`` prefixed eye event constants and should be used for all
+  future projects.
+* Removed the ``report`` and ``inspect`` arguments from all boundary testing
+  methods in :class:`~klibs.KLEyeTracking.EyeTracker`, as they have never been
+  used and complicated the API considerably.
+* Removed the unused ``unit`` parameter from the ``now()`` method in the
+  :class:`~klibs.KLEyeTracking.EyeTracker` class.
+
 
 
 Fixed Bugs:

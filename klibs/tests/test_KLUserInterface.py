@@ -27,9 +27,6 @@ class UIRequestTester(object):
     def quit(self):
         self.command = 'quit'
 
-    def calibrate(self):
-        self.command = 'calibrate'
-
 
 # Actual tests
 
@@ -208,7 +205,6 @@ def test_ui_request(with_sdl):
     normal_keys = [keydown('q'), keyup('q'), keydown('c'), click('left')]
     quit_cmd = [keydown('q', mod='meta')]
     quit_ctrl = [keydown('q', mod='ctrl')]
-    calibrate_ctrl = [keydown('c', mod='ctrl')]
     quit_keysym = quit_ctrl[0].key.keysym
     not_quit = keydown('q', mod='ctrl')
     not_quit.type = sdl2.SDL_MOUSEBUTTONDOWN
@@ -217,7 +213,6 @@ def test_ui_request(with_sdl):
     assert ui.ui_request(queue=normal_keys, execute=False) == False
     assert ui.ui_request(queue=quit_cmd, execute=False) == 'quit'
     assert ui.ui_request(queue=quit_ctrl, execute=False) == 'quit'
-    assert ui.ui_request(queue=calibrate_ctrl, execute=False) == 'el_calibrate'
     assert ui.ui_request(quit_keysym, execute=False) == 'quit'
 
     # Test execution of quit commands in environment
@@ -228,14 +223,6 @@ def test_ui_request(with_sdl):
     ui.ui_request(queue=quit_ctrl)
     assert env.exp.command == 'quit'
     env.exp.command = None
-
-    # Test execution of calibrate commands in environment
-    ui.ui_request(queue=calibrate_ctrl)
-    assert env.el.command == 'calibrate'
-    env.el.command = None
-    env.el.initialized = False
-    ui.ui_request(queue=calibrate_ctrl)
-    assert env.el.command == None
 
     # Test edge cases
     assert ui.ui_request(queue=[]) == False

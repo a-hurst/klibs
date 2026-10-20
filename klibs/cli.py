@@ -267,6 +267,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
     from klibs.KLText import TextManager, add_text_style
     from klibs.KLCommunication import init_messaging, collect_demographics
     from klibs.KLUserInterface import any_key
+    from klibs.KLEyeTracking import _get_eyetracker
 
     # Sanitize and switch to path, exiting with error if not a KLibs project directory
     project_name = initialize_path(path)
@@ -349,11 +350,7 @@ def run(screen_size, path, condition, devmode, no_tracker, seed):
             P.eye_tracker_available = False
         if P.development_mode and P.dm_show_gaze_dot:
             P.show_gaze_dot = True
-        from klibs import KLEyeTracking # needs to be imported after params are read in
-        try:
-            env.el = KLEyeTracking.Tracker()
-        except RuntimeError:
-            return
+        env.el = _get_eyetracker()
     env.db = DatabaseManager(
         P.database_path, P.database_local_path if P.multi_user else None
     )

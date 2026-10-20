@@ -49,10 +49,10 @@ default_condition = None
 #########################################
 # Development Mode Settings
 #########################################
-dm_auto_threshold = True
 dm_trial_show_mouse = True
 dm_ignore_local_overrides = False
 dm_show_gaze_dot = True
+dm_click_to_blink = False
 
 #########################################
 # Database Settings

@@ -9,7 +9,6 @@ from PIL import Image
 from aggdraw import Draw, Brush, Pen
 from math import ceil, floor
     
-from klibs.KLEnvironment import EnvAgent
 from klibs.KLConstants import EYELINK_1000
 from klibs import P
 from klibs.KLUtilities import clip
@@ -24,15 +23,14 @@ from klibs.KLAudio import AudioClip  # just a simple class for playing sdl2 soun
 # TODO: Add flexible image scaling support (tab to toggle size?)
 
 
-class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
+class ELCustomDisplay(pylink.EyeLinkCustomDisplay):
     """An EyeLinkCustomDisplay implementation for KLibs.
 
     This class allows for interactive EyeLink camera setup and calibration in
     KLibs, and has been tested with EyeLink II and EyeLink 1000 trackers.
 
     """
-    def __init__(self):
-        EnvAgent.__init__(self)
+    def __init__(self, tracker):
         self.__imgwidth__ = 0
         self.__imgheight__ = 0
         self._output_height = 480  # scaled output height for camera image
@@ -41,6 +39,8 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
         self.img = None # PIL.Image
         self.drawer = None # aggdraw Draw with self.img as context
         self.title = None
+        self.tracker = tracker
+        self.el = tracker._el # The internal pylink.EyeLink instance
 
         add_text_style("el_setup", "20px", font="Hind-Medium")
         self.dc_target = drift_correct_target()
@@ -160,7 +160,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
         for event in pump(True):
             if event.type == sdl2.SDL_KEYDOWN:
                 keysym = event.key.keysym
-                if not self.el._quitting:  
+                if not self.tracker._quitting:  
                     # don't process quit requests while already quitting
                     ui_request(keysym)
                 try:
@@ -168,7 +168,7 @@ class ELCustomDisplay(pylink.EyeLinkCustomDisplay, EnvAgent):
                 except KeyError:
                     key = keysym.sym
                 # don't allow escape to control tracker unless calibrating
-                if key == pylink.ESC_KEY and not self.el.in_setup:  
+                if key == pylink.ESC_KEY and not self.tracker.in_setup:  
                     key = pylink.JUNK_KEY
                 keys.append(pylink.KeyInput(key, keysym.mod))
         return keys

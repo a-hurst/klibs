@@ -1,45 +1,28 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Austin Hurst'
 
-"""This module contains classes that are used for generating eye events (e.g. fixations, saccades)
-from collections of gaze coordinates. Designed for internal use by the TryLink eye tracker
-simulator, but could easily be adapted for any eye tracker that provides gaze coordinates.
+"""This module contains classes that are used for generating eye events (e.g. fixations,
+saccades) from collections of gaze coordinates. Designed for internaluse by the TryLink
+eye tracker simulator, but could easily be adapted for any eye tracker that provides
+gaze coordinates.
 
 """
 
 from math import atan2, degrees
 
 from klibs.KLConstants import (
-    GAZE_SAMPLE, BLINK_START, BLINK_END, SACCADE_START, SACCADE_END,
+    BLINK_START, BLINK_END, SACCADE_START, SACCADE_END,
     FIXATION_START, FIXATION_END, FIXATION_UPDATE,
-    LEFT_EYE, RIGHT_EYE, BINOCULAR
 )
 from klibs.KLUtilities import mean, line_segment_len
 
 
-class GazeSample():
-    """A simulated gaze sample event. For internal use.
+class GazeEvent():
+    """An eye event (e.g saccade, fixation) generated from gaze samples.
 
     Args:
-        time (int): The time that the sample was recorded.
-        gaze (Tuple(float, float)): The (x, y) gaze coordinates of the sample.
-    
-    Attributes:
-        type (int): The type code of the event (i.e. ``GAZE_SAMPLE``).
-
-    """
-    def __init__(self, time, gaze):
-        self.type = GAZE_SAMPLE
-        self.time = time
-        self.gaze = gaze
-
-
-class EyeEvent():
-    """A simulated eye event (e.g saccade, fixation). For internal use.
-
-    Args:
-        etype (int): The type code of the eye event (e.g. ``SACCADE_END``).
-        template (:obj:`EyeEventTemplate`): An eye event template object to create the
+        etype (int): The type of the eye event (e.g. ``SACCADE_END``).
+        template (:obj:`GazeEventTemplate`): An eye event template object to create the
             event from.
     
     Attributes:
@@ -71,9 +54,10 @@ class EyeEvent():
             self.end_time = template.end_time
 
 
-class EyeEventTemplate():
-    """A template for creating eye events (e.g saccades, fixations) from collections
-    of samples. For internal use.
+class GazeEventTemplate():
+    """A template for creating eye events from gaze samples.
+
+    For internal use by the GazeEventGenerator class.
 
     Args:
         start_time (int): The start time of the eye event.
@@ -137,7 +121,7 @@ class EyeEventTemplate():
         return (mean(self.__x_samples), mean(self.__y_samples))
 
 
-class EyeEventGenerator():
+class GazeEventGenerator():
     """Internal class for generating eye events from gaze samples.
 
     Currently only used for TryLink, but could be adapted to any eye tracker that
@@ -188,11 +172,11 @@ class EyeEventGenerator():
     def _start_saccade(self, new):
         # Start a new saccade, ending any current saccade or fixation
         if self.in_saccade:
-            self._events.append(EyeEvent(SACCADE_END, self._current))
+            self._events.append(GazeEvent(SACCADE_END, self._current))
         elif self.in_fixation:
-            self._events.append(EyeEvent(FIXATION_END, self._current))
+            self._events.append(GazeEvent(FIXATION_END, self._current))
         self._current = new
-        self._events.append(EyeEvent(SACCADE_START, new))
+        self._events.append(GazeEvent(SACCADE_START, new))
         self.in_blink = False
         self.in_fixation = False
         self.in_saccade = True
@@ -200,11 +184,11 @@ class EyeEventGenerator():
     def _start_fixation(self, new):
         # Start a new fixation, ending any current saccade or blink
         if self.in_saccade:
-            self._events.append(EyeEvent(SACCADE_END, self._current))
+            self._events.append(GazeEvent(SACCADE_END, self._current))
         elif self.in_blink:
-            self._events.append(EyeEvent(BLINK_END, self._current))
+            self._events.append(GazeEvent(BLINK_END, self._current))
         self._current = new
-        self._events.append(EyeEvent(FIXATION_START, new))
+        self._events.append(GazeEvent(FIXATION_START, new))
         self.in_blink = False
         self.in_saccade = False
         self.in_fixation = True
@@ -212,11 +196,11 @@ class EyeEventGenerator():
     def _start_blink(self, new):
         # Start a new blink, ending any current saccade or fixation
         if self.in_saccade:
-            self._events.append(EyeEvent(SACCADE_END, self._current))
+            self._events.append(GazeEvent(SACCADE_END, self._current))
         elif self.in_fixation:
-            self._events.append(EyeEvent(FIXATION_END, self._current))
+            self._events.append(GazeEvent(FIXATION_END, self._current))
         self._current = new
-        self._events.append(EyeEvent(BLINK_START, new))
+        self._events.append(GazeEvent(BLINK_START, new))
         self.in_saccade = False
         self.in_fixation = False
         self.in_blink = True
@@ -236,19 +220,19 @@ class EyeEventGenerator():
             self._current.add_sample(x, y, timestamp)
             # If eye no longer missing, start a fixation event
             if not blink:
-                fix = EyeEventTemplate(timestamp, x, y)
+                fix = GazeEventTemplate(timestamp, x, y)
                 self._start_fixation(fix)
 
         elif blink and not self.in_blink:
             # If eye missing and it wasn't before, start a blink event
-            b = EyeEventTemplate(timestamp, x, y)
+            b = GazeEventTemplate(timestamp, x, y)
             self._start_blink(b)
 
         elif self.in_fixation:
             # If spatial dispersion of samples surpasses threshold, end fixation
             # and start saccade
             if self._current.dispersion(x, y) > self.max_dispersion:
-                s = EyeEventTemplate(timestamp, x, y)
+                s = GazeEventTemplate(timestamp, x, y)
                 self._start_saccade(s)
 
             else:
@@ -258,7 +242,7 @@ class EyeEventGenerator():
                 # If dispersion is below threshold and fixation in progress, add
                 # fixation update events at regular intervals
                 if timestamp > (self._current.last_update + 50):
-                    self._events.append(EyeEvent(FIXATION_UPDATE, self._current))
+                    self._events.append(GazeEvent(FIXATION_UPDATE, self._current))
                     self._current.last_update = timestamp
 
         elif self.in_saccade:
@@ -266,13 +250,13 @@ class EyeEventGenerator():
             # and start fixation
             v = self._current.get_velocity(x, y, timestamp)
             if v < self.min_velocity:
-                fix = EyeEventTemplate(timestamp, x, y)
+                fix = GazeEventTemplate(timestamp, x, y)
                 self._start_fixation(fix)
 
             # If saccade vector changes by more than 45 degrees, end saccade
             # and start a new one
             elif abs(self._current.vector_change(x, y)) > 45.0:
-                s = EyeEventTemplate(timestamp, x, y)
+                s = GazeEventTemplate(timestamp, x, y)
                 self._start_saccade(s)
 
             else:
@@ -280,5 +264,5 @@ class EyeEventGenerator():
 
         else:
             # If neither a fixation or saccade is in progress, start a fixation
-            fix = EyeEventTemplate(timestamp, x, y)
+            fix = GazeEventTemplate(timestamp, x, y)
             self._start_fixation(fix)

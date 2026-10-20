@@ -2,7 +2,7 @@ import pytest
 
 from klibs.KLConstants import *
 from klibs.KLBoundary import RectangleBoundary
-from klibs.KLEyeTracking.events import EyeEventGenerator
+from klibs.KLEyeTracking.events import GazeEventGenerator
 from klibs.KLEyeTracking.KLTryLink import TryLink
 
 
@@ -30,14 +30,14 @@ class CustomTryLink(TryLink):
 
 
 
-class TestEyeEventGenerator():
+class TestGazeEventGenerator():
 
     def test_init(self):
-        g = EyeEventGenerator()
-        g = EyeEventGenerator(max_dispersion=10, min_velocity=200)
+        g = GazeEventGenerator()
+        g = GazeEventGenerator(max_dispersion=10, min_velocity=200)
 
     def test_fixations(self):
-        g = EyeEventGenerator(max_dispersion=10)
+        g = GazeEventGenerator(max_dispersion=10)
 
         # Should produce fixation start as soon as a sample is added
         g.update(400, 300, 5)
@@ -70,7 +70,7 @@ class TestEyeEventGenerator():
         assert events[1].start_time == 65
 
     def test_saccades(self):
-        g = EyeEventGenerator(max_dispersion=10, min_velocity=240)
+        g = GazeEventGenerator(max_dispersion=10, min_velocity=240)
 
         # Test starting a saccade with a jump in movement
         g.update(400, 300, 5)
@@ -111,7 +111,7 @@ class TestEyeEventGenerator():
         assert events[1].start_time == 80
 
     def test_blinks(self):
-        g = EyeEventGenerator(max_dispersion=10, min_velocity=4)
+        g = GazeEventGenerator(max_dispersion=10, min_velocity=4)
 
         # Test starting a blink with null gaze coordinates
         g.update(400, 300, 5)

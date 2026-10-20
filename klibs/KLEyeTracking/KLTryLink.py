@@ -16,10 +16,27 @@ from klibs.KLUserInterface import (
     ui_request, mouse_pos, mouse_clicked, key_pressed, show_cursor, hide_cursor
 )
 from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
-from klibs.KLEyeTracking.events import GazeSample, EyeEventGenerator
+from klibs.KLEyeTracking.events import GazeEventGenerator
 
 from sdl2 import SDL_GetTicks, SDL_Delay
 from sdl2.ext import cursor_hidden, mouse_button_state
+
+
+class MouseSample():
+    """A simulated gaze sample event. For internal TryLink use.
+
+    Args:
+        time (int): The time that the sample was recorded.
+        gaze (Tuple(float, float)): The (x, y) gaze coordinates of the sample.
+    
+    Attributes:
+        type (int): The type code of the event (i.e. ``GAZE_SAMPLE``).
+
+    """
+    def __init__(self, time, gaze):
+        self.type = GAZE_SAMPLE
+        self.time = time
+        self.gaze = gaze
 
 
 class TryLink(EyeTracker):
@@ -51,7 +68,7 @@ class TryLink(EyeTracker):
         self.local_start_time = None
         self.tracker_start_time = None
         self._recording = False
-        self._generator = EyeEventGenerator()
+        self._generator = GazeEventGenerator()
 
 
     def _setup(self):
@@ -150,7 +167,8 @@ class TryLink(EyeTracker):
 
         queue = []
         if samples and not blink:
-            queue.append(GazeSample(timestamp, (x, y)))
+            # NOTE: Check whether tracker sends gaze samples during blinks
+            queue.append(MouseSample(timestamp, (x, y)))
         if events:
             self._generator.update(x, y, timestamp)
             for e in self._generator.get_events():
@@ -388,8 +406,9 @@ class TryLink(EyeTracker):
 
     @property
     def in_setup(self):
-        """bool: Whether the eye tracker is currently in setup/calibration mode. Always False
-        when using TryLink simulation.
+        """bool: Whether the eye tracker is currently in setup/calibration mode.
+        
+        Always False when using TryLink simulation.
 
         """
         return False

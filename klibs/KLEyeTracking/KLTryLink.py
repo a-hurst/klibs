@@ -245,20 +245,14 @@ class TryLink(EyeTracker):
         return gaze_pos if return_integers else tuple(float(p) for p in gaze_pos)
 
 
-    def now(self, unit=TK_MS):
-        """Fetches the current time according to the tracker's internal clock. In TryLink
-        simulation mode, this returns the time since the experiment was first launched.
-
-        Args:
-            unit (int, optional): The units in which the time should be returned. Can be either
-                ``TK_S`` (seconds) or ``TK_MS`` (milliseconds). Defaults to milliseconds.
+    def now(self):
+        """Fetches the current time according to the tracker's internal clock.
 
         Returns:
-            float: The current tracker time in the specified time unit.
+            float: The current tracker time (in milliseconds).
 
         """
-        time = float(SDL_GetTicks())
-        return time * 0.001 if unit == TK_S else time
+        return float(SDL_GetTicks())
 
 
     def write(self, message):

@@ -532,7 +532,7 @@ class EyeTracker():
         for e in event_queue:
             if e == None or self.get_event_type(e) != SACCADE_END:
                 continue
-            timestamp = self._saccade_in_direction(doi, e, report)
+            timestamp = self._saccade_in_direction(doi, e, EL_TIME_START)
             if timestamp:
                 return True
 
@@ -623,15 +623,11 @@ class EyeTracker():
         pass
 
 
-    def now(self, unit=TK_MS):
+    def now(self):
         """Fetches the current time according to the tracker's internal clock.
 
-        Args:
-            unit (int, optional): The units in which the time should be returned. Can be either
-                ``TK_S`` (seconds) or ``TK_MS`` (milliseconds). Defaults to milliseconds.
-
         Returns:
-            float: The current tracker time in the specified time unit.
+            float: The current tracker time (in milliseconds).
 
         """
         pass

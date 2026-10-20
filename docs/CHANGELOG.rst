@@ -83,6 +83,8 @@ API Changes:
 * Removed the ``report`` and ``inspect`` arguments from all boundary testing
   methods in :class:`~klibs.KLEyeTracking.EyeTracker`, as they have never been
   used and complicated the API considerably.
+* Removed the unused ``unit`` parameter from the ``now()`` method in the
+  :class:`~klibs.KLEyeTracking.EyeTracker` class.
 
 
 Fixed Bugs:

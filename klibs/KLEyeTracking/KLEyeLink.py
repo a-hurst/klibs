@@ -362,19 +362,14 @@ class EyeLink(EyeTracker):
         return tuple(int(p) for p in gaze_pos) if return_integers else gaze_pos
 
 
-    def now(self, unit=TK_MS):
+    def now(self):
         """Fetches the current time according to the tracker's internal clock.
 
-        Args:
-            unit (int, optional): The units in which the time should be returned. Can be either
-                ``TK_S`` (seconds) or ``TK_MS`` (milliseconds). Defaults to milliseconds.
-
         Returns:
-            float: The current tracker time in the specified time unit.
+            float: The current tracker time (in milliseconds).
 
         """
-        time = self._el.trackerTime()
-        return time * 0.001 if unit == TK_S else time
+        return self._el.trackerTime()
 
 
     def write(self, message):

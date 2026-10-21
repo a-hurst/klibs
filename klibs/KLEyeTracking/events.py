@@ -78,7 +78,7 @@ class GazeSample(EyeEvent):
     Gaze samples can be inspected for information about the gaze, pupil size,
     and tracker status at the time the sample was recorded::
 
-        for e in self.el.get_events(GAZE_SAMPLE):
+        for e in self.el.get_event_queue(GAZE_SAMPLE):
             if e.left and e.right:
                 gaze_l = e.left.gaze
                 gaze_r = e.right.gaze

@@ -53,6 +53,9 @@ Runtime Changes:
   is generally a bad idea, and should be implemented on a case-by-case basis
   with care to properly end the trial and log any desired trial data before
   starting calibration.
+* The :meth:`~klibs.KLEyeTracking.EyeTracker.get_event_queue` method for the
+  ``EyeTracker`` class now returns :obj:`~klibs.KLEyeTracking.EyeEvent`
+  objects instead of tracker-specific event types.
 
 
 API Changes:
@@ -96,7 +99,12 @@ API Changes:
   used and complicated the API considerably.
 * Removed the unused ``unit`` parameter from the ``now()`` method in the
   :class:`~klibs.KLEyeTracking.EyeTracker` class.
-
+* Added a new API :mod:`klibs.KLEyeTracking.events`, defining a clean and
+  tracker-agnostic way of parsing and extracting information from eye events
+  from the :class:`~klibs.KLEyeTracking.EyeTracker` event queue.
+* Added a new method :meth:`~klibs.KLEyeTracking.EyeTracker.get_sample` to
+  retrieve the most recent :obj:`~klibs.KLEyeTracking.GazeSample` event from
+  the tracker.
 
 
 Fixed Bugs:

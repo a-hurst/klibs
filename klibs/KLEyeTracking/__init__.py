@@ -5,6 +5,7 @@ from klibs import P
 from klibs.KLInternal import package_available
 from .KLEyeTracker import EyeTracker
 from .KLTryLink import TryLink
+from .events import EyeEvent, GazeSample
 
 PYLINK_AVAILABLE = package_available('pylink')
 

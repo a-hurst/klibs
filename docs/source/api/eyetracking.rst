@@ -1,5 +1,5 @@
 `klibs.KLEyeTracking` - Working with eye trackers
-**************************************************
+*************************************************
 
 The KLEyeTracking module provides a simple unified interface for working with different kinds of
 eye trackers in your experiments. All supported eye trackers make use of the same common interface
@@ -9,7 +9,7 @@ with the interface should work on any of the different types of eye trackers tha
 Currently, KLibs has built-in support for two kinds of eye tracker: SR Research EyeLink trackers,
 and a simulated eye tracker that uses mouse movements as a stand-in for gaze and gaze events,
 allowing you to write and run eye-tracking experiments without a physical eye tracker
-present. You can view more detailed documentation for each of these tracker types here:
+present. Relevant details about each tracker type are provided here:
 
 .. toctree::
     :maxdepth: 1
@@ -50,10 +50,79 @@ Additionally, if you want to disable automatic starting and stopping of the eye 
 recording manually, you can set the parameter ``manual_eyelink_recording`` to True in your
 project's ``params.py`` file.
 
+Understanding The Event Queue
+-----------------------------
+
+During eye tracking, a number of different eye events can occur. A participant
+might make a saccade from one location to another, fixate a stimulus for a given
+duration, or blink in a critical period. When these events occur, they are
+logged and placed in a queue so that they can be retrieved and inspected for
+events of interest (e.g. a saccade away from fixation).
+
+The eye event queue is retrieved using the EyeTracker's
+:meth:`~klibs.KLEyeTracking.EyeTracker.get_event_queue` method, which returns a
+list of :obj:`~klibs.KLEyeTracking.events.EyeEvent` objects. A table of the
+different event types and their corresponding type constants is provided below:
+
++---------------------+---------------------------------------------------+
+| Event Type          | Event Class                                       |
++=====================+===================================================+
+| ``GAZE_SAMPLE``     | :obj:`~klibs.KLEyeTracking.events.GazeSample`     |
++---------------------+---------------------------------------------------+
+| ``FIXATION_START``  | :obj:`~klibs.KLEyeTracking.events.FixationStart`  |
++---------------------+---------------------------------------------------+
+| ``FIXATION_END``    | :obj:`~klibs.KLEyeTracking.events.FixationEnd`    |
++---------------------+---------------------------------------------------+
+| ``FIXATION_UPDATE`` | :obj:`~klibs.KLEyeTracking.events.FixationUpdate` |
++---------------------+---------------------------------------------------+
+| ``SACCADE_START``   | :obj:`~klibs.KLEyeTracking.events.SaccadeStart`   |
++---------------------+---------------------------------------------------+
+| ``SACCADE_END``     | :obj:`~klibs.KLEyeTracking.events.SaccadeEnd`     |
++---------------------+---------------------------------------------------+
+| ``BLINK_START``     | :obj:`~klibs.KLEyeTracking.events.BlinkStart`     |
++---------------------+---------------------------------------------------+
+| ``BLINK_END``       | :obj:`~klibs.KLEyeTracking.events.BlinkEnd`       |
++---------------------+---------------------------------------------------+
+
+To avoid problems with event processing when performing multiple tests in a 
+short interval (e.g. checking for fixations in multiple boundaries every
+iteration of a loop), you should use this method to retrieve the eye tracker
+event queue once at the start and then pass it to every function that inspects
+eye events.
+
+For example, the following code will not reliably detect saccades to the second
+boundary:
+
+.. code-block:: python
+
+    while self.evm.before('cue_on'):
+        draw_stimuli()
+        if self.el.saccade_to_boundary('boundary1'):
+            print('saccade to boundary 1!')
+        if self.el.saccade_to_boundary('boundary2'):
+            print('saccade to boundary 2!')
+        flip() # refresh screen
+
+This is because the first call to :meth:`saccade_to_boundary` fetches and clears
+the eye event queue, meaning that the second call is only processing the
+saccades that have happened in the tiny interval since the first call. To fix
+this, you should fetch the queue once per loop:
+
+.. code-block:: python
+
+    while self.evm.before('cue_on'):
+        draw_stimuli()
+        el_q = self.el.get_event_queue() # fetch queue once per loop
+        if self.el.saccade_to_boundary('boundary1', event_queue=el_q):
+            print('saccade to boundary 1!')
+        if self.el.saccade_to_boundary('boundary2', event_queue=el_q):
+            print('saccade to boundary 2!')
+        flip() # refresh screen
+
+
 The EyeTracker API
 ===================
 
-.. automodule:: klibs.KLEyeTracking.KLEyeTracker
-	:undoc-members:
+.. autoclass:: klibs.KLEyeTracking.EyeTracker
 	:members:
 		

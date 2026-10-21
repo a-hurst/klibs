@@ -8,14 +8,12 @@ from klibs.KLEyeTracking import PYLINK_AVAILABLE
 from klibs.KLExceptions import EyeTrackerError
 from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR, EL_NO_EYES,
     FIXATION_START, FIXATION_UPDATE, FIXATION_END, GAZE_SAMPLE,
-    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END, 
-    EL_GAZE_START, EL_GAZE_END, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
-    EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
-    TK_S, TK_MS)
+    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END,
+    EL_ALL_EVENTS, EL_TRUE, EL_FALSE)
 from klibs import P
 from klibs.KLInternal import now, hide_stderr
 from klibs.KLUserInterface import show_cursor, hide_cursor
-from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
+from klibs.KLEyeTracking.KLEyeTracker import EyeTracker, EventParser
 
 if PYLINK_AVAILABLE:
     with hide_stderr(macos_only=True):
@@ -31,6 +29,8 @@ if PYLINK_AVAILABLE:
 # easy way to do that in pure Python (and ping requires admin sometimes?). EyeLink
 # communication itself is via UDP.
 
+NO_DATA = 0
+MISSING_DATA = -32768
 
 EYE_NAME_MAP = {
     RIGHT_EYE: 'right',
@@ -70,23 +70,101 @@ def _get_eyelink_version(s):
     return s.replace("EYELINK", "EyeLink").strip()
 
 
+class EyeLinkEventParser(EventParser):
+    """A parser defining how to extract different data from EyeLink events.
+
+    """
+    def get_type(self, e):
+        """Retrieves the type of a given event (e.g. ``BLINK_START``).
+        """
+        return e.getType()
+
+    def eye(self, e):
+        """Retrieves the eye for a given event.
+        """
+        return e.getEye()
+
+    def timestamp(self, e):
+        """Gets the timestamp (in msec) for a gaze sample.
+        """
+        return e.getTime()
+
+    def left_gaze(self, e):
+        """Gets the left eye (x, y) gaze coordinates for a gaze sample.
+        """
+        eye = e.getLeftEye()
+        if eye:
+            x, y = eye.getGaze()
+            if int(x) != MISSING_DATA:
+                return (x, y)
+        return None
+
+    def right_gaze(self, e):
+        """Gets the right eye (x, y) gaze coordinates for a gaze sample.
+        """
+        eye = e.getRightEye()
+        if eye:
+            x, y = eye.getGaze()
+            if int(x) != MISSING_DATA:
+                return (x, y)
+        return None
+
+    def left_pupil_size(self, e):
+        """Gets the left eye pupil size (arbitrary units) for a gaze sample.
+        """
+        eye = e.getLeftEye()
+        if eye:
+            ps = eye.getPupilSize()
+            if int(ps) != MISSING_DATA:
+                return ps
+        return None
+
+    def right_pupil_size(self, e):
+        """Gets the right eye pupil size (arbitrary units) for a gaze sample.
+        """
+        eye = e.getRightEye()
+        if eye:
+            ps = eye.getPupilSize()
+            if int(ps) != MISSING_DATA:
+                return ps
+        return None
+
+    def start_time(self, e):
+        """Gets the timestamp (in msec) for the start of the event.
+        """
+        return e.getStartTime()
+
+    def end_time(self, e):
+        """Gets the timestamp (in msec) for the end of the event.
+        """
+        return e.getEndTime()
+
+    def start_gaze(self, e):
+        """Gets the (x, y) gaze coordinates at the start of the event.
+        """
+        return e.getStartGaze()
+
+    def end_gaze(self, e):
+        """Gets the (x, y) gaze coordinates at the end of the event.
+        """
+        return e.getEndGaze()
+
+    def avg_gaze(self, e):
+        """Gets the average (x, y) gaze coordinates for the event.
+        """
+        return e.getAverageGaze()
+
+    def duration(self, e):
+        """Gets the total duration (in msec) for the event.
+        """
+        # Pylink docs say to add 4 seconds for real duration, but mentions
+        # EyeLink II when it says this. Is this stil correct for newer trackers?
+        return (e.getEndTime() - e.getStartTime()) + 4
+
+
+
 class EyeLink(EyeTracker):
-    """A connection to an SR Research EyeLink eye tracker, providing a friendly interface to the
-    pylink API along with a pretty setup/calibration display.
-    
-    If pylink is installed in your project's Python environment and ``P.eye_tracker_availiable``
-    is set to True in a project that makes use of eye tracking, an instance of this class will be
-    provided as the attribute ``self.el`` of the Experiment object.
-
-    For more general and comprehensive documentation, see the :class:`~.EyeTracker` class.
-
-    Attributes:
-        version (str): The model name and software version of the eye tracker.
-        initialized (bool): A flag indicating whether :meth:`setup` has been run successfully.
-        local_start_time (float): The time at which the tracker last started recording, according
-            to the local computer's clock.
-        tracker_start_time (float): The time at which the tracker last started recording, according
-            to the eye tracker's internal clock.
+    """A connection to an SR Research EyeLink eye tracker.
 
     """
     def __init__(self):
@@ -96,6 +174,7 @@ class EyeLink(EyeTracker):
         self._recording = False
         self._unresolved_exceptions = 0
         self._quitting = False
+        self._parser = EyeLinkEventParser()
         self.version = None
         self.initialized = False
 
@@ -130,19 +209,25 @@ class EyeLink(EyeTracker):
             raise RuntimeError(e)
 
 
-    def setup(self):
-        """Initalizes the EyeLink for the first time and enters setup/calibration mode.
-
-        Called automatically after demographics collection during the KLibs runtime unless
-        ``P.manual_eyelink_setup`` is True, in which case it must be called manually
-        before the eye tracker is first used in the experiment.
-
-        """
-        EyeTracker.setup(self) # so it shows up in the docs
-
-
     def calibrate(self):
-        """Enters the calibration and setup mode for the EyeLink.
+        """Enters calibration and setup mode for the EyeLink.
+
+        For EyeLink trackers, this will open a setup screen where you can perform camera
+        setup, calibrate the tracker, and validate an existing calibration:
+
+        +--------------+-------------------------------+
+        | Key          | Function                      |
+        +==============+===============================+
+        | Enter/Return | Toggles camera setup display  |
+        +--------------+-------------------------------+
+        | C            | Starts calibration            |
+        +--------------+-------------------------------+
+        | V            | Starts calibration validation |
+        +--------------+-------------------------------+
+        | O            | Gaze at fixation onset        |
+        +--------------+-------------------------------+
+        | Esc          | Exits tracker setup           |
+        +--------------+-------------------------------+
 
         """
         self._el.doTrackerSetup()
@@ -216,58 +301,64 @@ class EyeLink(EyeTracker):
         return self._el.close()
 
 
-    def get_event_queue(self, include=[], exclude=[]):
-        """Fetches and returns the EyeLink's event queue, emptying it in the process.
+    def _get_tracker_events(self, events, samples=False):
+        """Internal method for retrieving eye events from the tracker.
 
         Args:
-            include (:obj:`List`, optional): A list specifying the types of eye events to fetch
-                from the event queue. Includes all eye event types by default, unless they are
-                explicitly excluded.
-            exclude (:obj:`List`, optional): A list specifying the types of eye events to exclude
-                from the returned queue. Defaults to an empty list (i.e. no events excluded.)
+            events (list): A list of the desired event types to retrieve.
+            samples (bool): Whether gaze samples should be returned in addition to other
+                event types.
 
         Returns:
-            A :obj:`List` of eye events.
+            list: A list of tracker-specific events.
 
         """
-        
-        if len(include):
-            valid_events = set(include)
-        elif len(exclude):
-            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE]).difference(exclude)
-        else:
-            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE])
-
-        samples = int(GAZE_SAMPLE in valid_events)
-        events = int(len(valid_events.intersection(EL_ALL_EVENTS)) > 0)
-
+        # NOTE: Currently input, button, and message events are simply discarded
         queue = []
-        if self._el.getDataCount(samples, events) != 0:  # i.e. if data available
-            last_sample = None
+        get_samples = int(samples)
+        get_events = int(len(events.intersection(EL_ALL_EVENTS)) > 0)
+
+        # If any data waiting, process it all
+        any_samples = self._el.getDataCount(1, 0)
+        if self._el.getDataCount(get_samples, get_events) != 0:
+            last_event = None
             while True:
-                d_type = self._el.getNextData()
-                if d_type == 0:
+                e_type = self._el.getNextData()
+                if e_type == NO_DATA:
                     break
-                elif d_type not in valid_events:
+                elif e_type not in valid_events:
                     continue
-                data = self._el.getFloatData()
-                # once the same sample has been sent twice, gtfo
-                if data == last_sample:
+                event = self._el.getFloatData()
+                # If same event sent twice, stop immediately
+                if event == last_event:
                     break
-                else:
-                    last_sample = data
+                last_sample = data
                 queue.append(data)
         
-        if samples == True and len(queue) == 0: # if no samples from getNextData, fetch latest
-            newest_sample = self._el.getNewestSample()
-            queue = [newest_sample] if newest_sample != None else []
+        # If no gaze samples from getNextData, append latest sample
+        if samples and not any_samples:
+            s = self._el.getNewestSample()
+            if s != None:
+                queue.append(s)
 
         return queue
 
 
+    def _get_latest_sample(self):
+        """Internal method for retrieving the most recent gaze sample from the tracker.
+
+        Returns:
+            A tracker-specific gaze sample event.
+
+        """
+        s = self._el.getNewestSample()
+        return s if s != None else None
+
+
     def clear_queue(self):
-        """Clears the event queue for the eye tracker. Any uninspected eye events will be
-        discarded.
+        """Clears the event queue for the eye tracker.
+        
+        Any uninspected eye events will be discarded.
 
         """
         self._el.resetData()
@@ -347,9 +438,9 @@ class EyeLink(EyeTracker):
                     rx, ry = sample.getRightEye().getGaze()
                     lx, ly = sample.getLeftEye().getGaze()
                     # if either eye is missing, use good eye instead of averaging
-                    if int(lx) == -32768:
+                    if int(lx) == MISSING_DATA:
                         gaze_pos = (rx, ry)
-                    elif int(rx) == -32768:
+                    elif int(rx) == MISSING_DATA:
                         gaze_pos = (lx, ly)
                     else:
                         gaze_pos = ( (rx+lx)/2, (ry+ly)/2 )
@@ -373,7 +464,18 @@ class EyeLink(EyeTracker):
 
 
     def write(self, message):
-        """Writes a message to the EyeLink EDF file. Unicode characters are supported.
+        """Writes a message to the EyeLink EDF file.
+        
+        Any messages set to the EyeLink will be included as message events in the
+        recorded data, which can be used as markup to identify the onsets of important
+        trial events (e.g. 'target_on') in the data for later analysis.
+        
+        It is recommended to include the current block and trial number in markup
+        messages to make it easy to connect eye tracking data back to the trial data::
+
+            self.el.write("cue_on b{0} t{1}".format(P.block_number, P.trial_number))
+        
+        Unicode characters are supported.
         
         Args:
             message (str): The message to write to the eye tracker's data file.
@@ -382,148 +484,11 @@ class EyeLink(EyeTracker):
         self._el.sendMessage(message)
 
 
-    def get_event_type(self, e):
-        """Fetches the numeric code corresponding to an eye event's type (e.g end saccade, start
-        fixation).
-        
-        Args:
-            e: An eye event from the tracker.
-        
-        Returns:
-            The numeric type of the event (e.g. ``EL_END_SACCADE``, ``EL_START_FIXATION``).
-
-        """
-        return e.getType()
-
-
-    def get_event_gaze(self, event, inspect):
-        """Retrieves the gaze coordinates from an eye event or gaze sample.
-
-        Args:
-            event: The eye event (e.g. saccade, fixation, gaze sample) to return the gaze
-                coordinates from.
-            inspect: A flag indicating the type of gaze to retrieve: the gaze at the start of
-                the event (``EL_GAZE_START``), the gaze at the end of the event (``EL_GAZE_END``),
-                or the event's average gaze (``EL_GAZE_AVG``). Note that not all eye events have
-                all three gaze attributes. Has no effect on gaze samples.
-        
-        Returns:
-            The (x, y) gaze coordinates for the event.
-
-        Raises:
-            EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
-                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``SACCADE_END`` event).
-
-        """
-        if event.getType() == GAZE_SAMPLE:
-            if event.isLeftSample():
-                coords = event.getLeftEye().getGaze()
-            elif event.isRightSample():
-                coords = event.getRightEye().getGaze()
-            elif event.isBinocular():
-                coords = event.getRightEye().getGaze()
-            else:
-                return None
-        else:
-            try:
-                if inspect == EL_GAZE_START:
-                    coords = event.getStartGaze()
-                elif inspect == EL_GAZE_END:
-                    coords = event.getEndGaze()
-                elif inspect == EL_GAZE_AVG:
-                    coords = event.getAverageGaze()
-            except AttributeError:
-                typename = self.get_event_name(event.type)
-                err = "Cannot inspect {0} for {1} events."
-                raise EyeTrackerError(err.format(inspect, typename))
-
-        return coords
-
-
-    def get_event_timestamp(self, event, report):
-        """Gets the timestamp from an eye event or gaze sample.
-
-        Args:
-            event: The eye event (e.g. saccade, fixation, gaze sample) to return the timestamp
-                from.
-            report: A flag indicating whether to report the start time (``EL_TIME_START``) or
-                end time (``EL_TIME_END``) of the eye event. Has no effect on gaze samples,
-                which do not have separate start/end times.
-        
-        Returns:
-            The timestamp for the start or end of the event.
-
-        Raises:
-            EyeTrackerError: If asked to report the end timestamp for an eye event that only has
-                a start timestamp (e.g. ``FIXATION_START``).
-
-        """
-        if event.getType() == GAZE_SAMPLE:
-            return event.getTime()
-        else:
-            try:
-                return event.getStartTime() if report == EL_TIME_START else event.getEndTime()
-            except AttributeError:
-                typename = self.get_event_name(event.type)
-                err = "Cannot report {0} for {1} events."
-                raise EyeTrackerError(err.format(report, typename))
-
-    
-    def get_event_info(self, event):
-        """Returns all available info about an eye event or gaze sample in the form of a
-        :obj:`dict`.
-        
-        Usage::
-
-            q = self.el.get_event_queue() # fetch all unprocessed eye events
-            for event in q:
-                info = self.el.get_event_info(event)
-                if info['type'] == SACCADE_END:
-                    end_gaze = info[EL_GAZE_END]
-                    end_time = info[EL_TIME_END]
-        
-        See the table in :meth:`within_boundary` for a list of the attributes available for each
-        eye event type.
-
-        Args:
-            event: The eye event (e.g. saccade, fixation, gaze sample) to collect the attributes of.
-
-        Returns:
-            A :obj:`dict` containing the available attributes of the event, such as start/end time,
-            start/end/average gaze, and type name.
-
-        """
-        info = {}
-        info['type'] = event.getType()
-        if info['type'] == GAZE_SAMPLE:
-            gaze = self.get_event_gaze(event, EL_GAZE_START)
-            time = self.get_event_timestamp(event, EL_TIME_START)
-            info[EL_TIME_START] = time
-            info[EL_TIME_END] = time
-            info[EL_GAZE_START] = gaze
-            info[EL_GAZE_END] = gaze
-
-        elif info['type'] in [BLINK_START, BLINK_END]:
-            info[EL_TIME_START] = event.getStartTime()
-            if info['type'] == BLINK_END:
-                info[EL_TIME_END] = event.getEndTime()
-                
-        else:
-            info[EL_TIME_START] = event.getStartTime()
-            info[EL_GAZE_START] = event.getStartGaze()
-            if info['type'] in [SACCADE_END, FIXATION_END, FIXATION_UPDATE]:
-                info[EL_TIME_END] = event.getEndTime()
-                info[EL_GAZE_END] = event.getEndGaze()
-                if info['type'] != SACCADE_END:
-                    info[EL_GAZE_AVG] = event.getAverageGaze()
-        
-        return info
-
-
     @property
     def eye(self):
-        """str or None: The eye(s) currently being recorded by the tracker. Can be 'left', 'right',
-        'both', or None (if no eye is currently available).
+        """str or None: The eye(s) currently being recorded by the tracker.
+        
+        Can be 'left', 'right', 'both', or None (if no eye is currently available).
 
         """
         return EYE_NAME_MAP[self._el.eyeAvailable()]

@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+from time import monotonic_ns
+
 from klibs.KLExceptions import EyeTrackerError
 from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR,
     FIXATION_START, FIXATION_UPDATE, FIXATION_END, GAZE_SAMPLE,
-    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END, 
-    EL_GAZE_START, EL_GAZE_END, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
-    EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
-    TK_S, TK_MS)
+    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END)
 from klibs import P
 from klibs.KLUtilities import now, line_segment_len, px_to_deg
 from klibs.KLBoundary import CircleBoundary
@@ -15,7 +14,7 @@ from klibs.KLEventQueue import pump, flush
 from klibs.KLUserInterface import (
     ui_request, mouse_pos, mouse_clicked, key_pressed, show_cursor, hide_cursor
 )
-from klibs.KLEyeTracking.KLEyeTracker import EyeTracker
+from klibs.KLEyeTracking.KLEyeTracker import EyeTracker, EventParser
 from klibs.KLEyeTracking.utils import GazeEventGenerator
 
 from sdl2 import SDL_GetTicks, SDL_Delay
@@ -39,28 +38,80 @@ class MouseSample():
         self.gaze = gaze
 
 
-class TryLink(EyeTracker):
-    """A simulated eye tracker, using the position and movements of the mouse cursor as a stand-in
-    for gaze position and saccades/fixations. Used for developing, testing, and demoing experiments
-    that require an eye tracker without the need to have eye tracking hardware present.
-
-    TryLink simulation is used by default if the 'pylink' Python package is not installed, or if
-    ``P.eye_tracking`` is True but ``P.eye_tracker_availiable`` is False. In addition, TryLink
-    simulation can be forced by adding the flag ``-ELx`` to the ``klibs run`` command when
-    launching an experiment.
-
-    For more general and comprehensive documentation, see the :class:`~.EyeTracker` class.
-
-    Attributes:
-        version (str): The model name and software version of the eye tracker.
-        initialized (bool): A flag indicating whether :meth:`setup` has been run successfully.
-        local_start_time (float): The time at which the tracker last started recording, according
-            to the local computer's clock.
-        tracker_start_time (float): The time at which the tracker last started recording, according
-            to the eye tracker's internal clock.
+class TryLinkEventParser(EventParser):
+    """A parser defining how to extract data from simulated tracker events.
 
     """
+    def get_type(self, e):
+        """Retrieves the type of a given event (e.g. ``BLINK_START``).
+        """
+        return e.type
 
+    def eye(self, e):
+        """Retrieves the eye for a given event.
+        """
+        return RIGHT_EYE
+
+    def timestamp(self, e):
+        """Gets the timestamp (in msec) for a gaze sample.
+        """
+        return e.time
+
+    def left_gaze(self, e):
+        """Gets the left eye (x, y) gaze coordinates for a gaze sample.
+        """
+        return None
+
+    def right_gaze(self, e):
+        """Gets the right eye (x, y) gaze coordinates for a gaze sample.
+        """
+        return e.gaze
+
+    def left_pupil_size(self, e):
+        """Gets the left eye pupil size (arbitrary units) for a gaze sample.
+        """
+        return None
+
+    def right_pupil_size(self, e):
+        """Gets the right eye pupil size (arbitrary units) for a gaze sample.
+        """
+        return 2000 if e.gaze else None
+
+    def start_time(self, e):
+        """Gets the timestamp (in msec) for the start of the event.
+        """
+        return e.start_time
+
+    def end_time(self, e):
+        """Gets the timestamp (in msec) for the end of the event.
+        """
+        return e.end_time
+
+    def start_gaze(self, e):
+        """Gets the (x, y) gaze coordinates at the start of the event.
+        """
+        return e.start_gaze
+
+    def end_gaze(self, e):
+        """Gets the (x, y) gaze coordinates at the end of the event.
+        """
+        return e.end_gaze
+
+    def avg_gaze(self, e):
+        """Gets the average (x, y) gaze coordinates for the event.
+        """
+        return e.avg_gaze
+
+    def duration(self, e):
+        """Gets the total duration (in msec) for the event.
+        """
+        return e.end_time - e.start_time
+
+
+class TryLink(EyeTracker):
+    """A mouse-based simulated eye tracker for task development and testing.
+
+    """
     def __init__(self):
         EyeTracker.__init__(self)
         self.version = None
@@ -69,6 +120,7 @@ class TryLink(EyeTracker):
         self.tracker_start_time = None
         self._recording = False
         self._generator = GazeEventGenerator()
+        self._parser = TryLinkEventParser()
 
 
     def _setup(self):
@@ -78,12 +130,10 @@ class TryLink(EyeTracker):
         self.version = "TryLink 0.1a"
 
 
-    def setup(self):
-        EyeTracker.setup(self) # so it shows up in the docs
-
-
     def calibrate(self):
-        """Enters the calibration and setup mode for the eye tracker. Does nothing in TryLink mode. 
+        """Enters the calibration and setup mode for the eye tracker.
+        
+        Does nothing in TryLink mode. 
 
         """
         pass
@@ -121,42 +171,31 @@ class TryLink(EyeTracker):
 
 
     def shut_down(self, incomplete=False):
-        """Terminates recording and disconnects from the eye tracker, putting it into standby mode.
-        Should also transfer any data files from the current session to the KLibs computer
-        from the tracker (e.g. EDF files). Does nothing when using TryLink simulation.
+        """Terminates recording and disconnects from the eye tracker.
 
         Called automatically whenever KLibs exits. For internal use only.
 
         Args:
-            incomplete (bool, optional): Whether the full session was completed before the function
-                was called. Has no effect in TryLink simulation mode. Defaults to False.
+            incomplete (bool, optional): Whether the full session was completed.
+                Defaults to False.
 
         """
         self.stop()
         return 0
 
 
-    def get_event_queue(self, include=[], exclude=[]):
-        """Fetches and returns the eye tracker's event queue, emptying it in the process. 
-        
-        In TryLink simulation mode, this uses some fancy voodoo with mouse cursor movement to
-        produce eye events, allowing you to write and test your eye tracking code on any computer
-        without needing physical access to an eye tracker itself.
+    def _get_tracker_events(self, events, samples=False):
+        """Internal method for retrieving eye events from the tracker.
+
+        Args:
+            events (list): A list of the desired event types to retrieve.
+            samples (bool): Whether gaze samples should be returned in addition to other
+                event types.
 
         Returns:
-            A :obj:`List` of simulated eye events.
+            list: A list of tracker-specific events.
 
         """
-        if len(include):
-            valid_events = set(include)
-        elif len(exclude):
-            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE]).difference(exclude)
-        else:
-            valid_events = set(EL_ALL_EVENTS + [GAZE_SAMPLE])
-
-        samples = GAZE_SAMPLE in valid_events
-        events = len(valid_events.intersection(EL_ALL_EVENTS)) > 0
-
         timestamp = self.now()
         x, y = self.gaze()
         mouse_clicked = mouse_button_state().any_pressed
@@ -166,21 +205,35 @@ class TryLink(EyeTracker):
             x, y = (None, None)
 
         queue = []
-        if samples and not blink:
-            # NOTE: Check whether tracker sends gaze samples during blinks
-            queue.append(MouseSample(timestamp, (x, y)))
-        if events:
-            self._generator.update(x, y, timestamp)
-            for e in self._generator.get_events():
-                if e.type in valid_events:
-                    queue.append(e)
+        self._generator.update(x, y, timestamp)
+        for e in self._generator.get_events():
+            if e.type in events:
+                queue.append(e)
+        if samples:
+            gaze = None if blink else (x, y)
+            queue.append(MouseSample(timestamp, gaze))
 
         return queue
 
 
+    def _get_latest_sample(self):
+        """Internal method for retrieving the most recent gaze sample from the tracker.
+
+        Returns:
+            A tracker-specific gaze sample event.
+
+        """
+        timestamp = self.now()
+        mouse_clicked = mouse_button_state().any_pressed
+        blink = P.dm_click_to_blink and mouse_clicked
+        gaze = None if blink else self.gaze()
+        return MouseSample(timestamp, gaze)
+
+
     def clear_queue(self):
-        """Clears the event queue for emulated eye events. Any uninspected eye events will be
-        discarded.
+        """Clears the event queue for emulated eye events.
+        
+        Any uninspected eye events will be discarded.
 
         """
         self._generator.reset()
@@ -225,17 +278,42 @@ class TryLink(EyeTracker):
         return round(px_to_deg(dist_px), 2)
 
 
-    def gaze(self, return_integers=True, binocular_mode=RIGHT_EYE):
-        """Fetches the (x,y) coordinates of the participant's current gaze on the screen. In
-        TryLink mode, this fetches the current coordinates of the mouse cursor.
+    def drift_correct(self, location=None, target=None, fill_color=None, draw_target=True):
+        """Interactively checks the accuracy of the tracker's calibration.
+        
+        In TryLink mode, drift correct targets are presented on screen exactly as
+        they are with real hardware. To perform a drift correct in TryLink mode, move
+        the mouse cursor to the midpoint of the drift correct target and either press
+        the space bar or click the mouse.
 
         Args:
-            return_integers (bool, optional): Whether to return the gaze coordinates as integers
-                or floats. Defaults to True (integers).
-            binocular_mode (int, optional): Tells the function which gaze coordinates to return
-                for binocular samples. Can be any of ``RIGHT_EYE`` (returns right eye gaze),
-                ``LEFT_EYE`` (returns left eye gaze), or ``BINOCULAR`` (returns average gaze
-                of both eyes). Defaults to ``RIGHT_EYE``. In TryLink mode, this has no effect.
+            location (tuple, optional): The (x, y) pixel coordinates at which to draw
+                the drift correct target. Defaults to the center of the screen.
+            target (optional): A :obj:`Drawbject` or other stimulus texture to use as
+                the drift correct target. Defaults to a circular target.
+            fill_color (tuple, optional): The fill colour to use for the background of
+                the drift correct screen. Defaults to ``P.default_fill_color``.
+            draw_target (bool, optional): If True, this method will draw and present the
+                drift correct target when called. If False it will not draw the target,
+                allowing the use of custom drift correct screens. Defaults to True.
+
+        Returns:
+            float: The magnitude of the measured drift (in degrees of visual angle).
+
+        """
+        return EyeTracker.drift_correct(self, location, target, fill_color, draw_target)
+
+
+    def gaze(self, return_integers=True, binocular_mode=RIGHT_EYE):
+        """Fetches the (x,y) coordinates of the participant's gaze on the screen.
+        
+        In TryLink mode, this fetches the current coordinates of the mouse cursor.
+
+        Args:
+            return_integers (bool, optional): Whether to return the gaze coordinates as
+                integers or floats. Defaults to True (integers).
+            binocular_mode (int, optional): Tells the function which gaze coordinates
+                to return for binocular samples. In TryLink mode, this has no effect.
         
         Returns:
             A :obj:`Tuple` containing the (x,y) pixel coordinates of the participant's gaze.
@@ -252,12 +330,13 @@ class TryLink(EyeTracker):
             float: The current tracker time (in milliseconds).
 
         """
-        return float(SDL_GetTicks())
+        return float(monotonic_ns() / 1000000)
 
 
     def write(self, message):
-        """Writes a message to the eye tracker's data file. In TryLink mode, this method
-        does nothing.
+        """Writes a message to the eye tracker's data file.
+        
+        Does nothing in TryLink mode.
         
         Args:
             message (str): The message to write to the eye tracker's data file.
@@ -266,133 +345,11 @@ class TryLink(EyeTracker):
         pass
 
 
-    def get_event_type(self, e):
-        """Fetches the numeric code corresponding to an eye event's type (e.g end saccade, start
-        fixation).
-        
-        Args:
-            e: An eye event from the tracker.
-        
-        Returns:
-            The numeric type of the event (e.g. ``EL_END_SACCADE``, ``EL_START_FIXATION``).
-
-        """
-        return e.type
-
-
-    def get_event_gaze(self, event, inspect):
-        """Retrieves the gaze coordinates from an eye event or gaze sample.
-
-        Args:
-            event: The eye event (e.g. saccade, fixation, gaze sample) to return the gaze
-                coordinates from.
-            inspect: A flag indicating the type of gaze to retrieve: the gaze at the start of
-                the event (``EL_GAZE_START``), the gaze at the end of the event (``EL_GAZE_END``),
-                or the event's average gaze (``EL_GAZE_AVG``). Note that not all eye events have
-                all three gaze attributes. Has no effect on gaze samples.
-        
-        Returns:
-            The (x, y) gaze coordinates for the event.
-
-        Raises:
-            EyeTrackerError: If asked to inspect the end gaze or average gaze for an eye event that
-                lacks that attribute (e.g. ``EL_GAZE_AVG`` for a ``SACCADE_END`` event).
-
-        """
-        if event.type == GAZE_SAMPLE:
-            coords = event.gaze
-        else:
-            try:
-                if inspect == EL_GAZE_START:
-                    coords = event.start_gaze
-                elif inspect == EL_GAZE_END:
-                    coords = event.end_gaze
-                elif inspect == EL_GAZE_AVG:
-                    coords = event.avg_gaze
-            except AttributeError:
-                typename = self.get_event_name(event.type)
-                err = "Cannot inspect {0} for {1} events."
-                raise EyeTrackerError(err.format(inspect, typename))
-
-        return coords
-
-
-    def get_event_timestamp(self, event, report):
-        """Gets the timestamp from an eye event or gaze sample.
-
-        Args:
-            event: The eye event (e.g. saccade, fixation, gaze sample) to return the timestamp
-                from.
-            report: A flag indicating whether to report the start time (``EL_TIME_START``) or
-                end time (``EL_TIME_END``) of the eye event. Has no effect on gaze samples,
-                which do not have separate start/end times.
-        
-        Returns:
-            The timestamp for the start or end of the event.
-
-        Raises:
-            EyeTrackerError: If asked to report the end timestamp for an eye event that only has
-                a start timestamp (e.g. ``FIXATION_START``).
-
-        """
-        if event.type == GAZE_SAMPLE:
-            return event.time
-        else:
-            try:
-                return event.start_time if report == EL_TIME_START else event.end_time
-            except AttributeError:
-                typename = self.get_event_name(event.type)
-                err = "Cannot report {0} for {1} events."
-                raise EyeTrackerError(err.format(report, typename))
-
-
-    def get_event_info(self, event):
-        """Returns all available info about an eye event or gaze sample in the form of a
-        :obj:`dict`.
-        
-        Usage::
-
-            q = self.el.get_event_queue() # fetch all unprocessed eye events
-            for event in q:
-                info = self.el.get_event_info(event)
-                if info['type'] == SACCADE_END:
-                    end_gaze = info[EL_GAZE_END]
-                    end_time = info[EL_TIME_END]
-        
-        See the table in :meth:`within_boundary` for a list of the attributes available for each
-        eye event type.
-
-        Args:
-            event: The eye event (e.g. saccade, fixation, gaze sample) to collect the attributes of.
-
-        Returns:
-            A :obj:`dict` containing the available attributes of the event, such as start/end time,
-            start/end/average gaze, and type name.
-
-        """
-        info = {}
-        info['type'] = event.type
-        if event.type == GAZE_SAMPLE:
-            info[EL_TIME_START] = event.time
-            info[EL_TIME_END] = event.time
-            info[EL_GAZE_START] = event.gaze
-            info[EL_GAZE_END] = event.gaze
-        else:
-            info[EL_TIME_START] = event.start_time
-            info[EL_GAZE_START] = event.start_gaze
-            if event.type in [SACCADE_END, FIXATION_END, FIXATION_UPDATE]:
-                info[EL_TIME_END] = event.end_time
-                info[EL_GAZE_END] = event.end_gaze
-                if event.type != SACCADE_END:
-                    info[EL_GAZE_AVG] = event.avg_gaze
-        
-        return info
-
-
     @property
     def eye(self):
-        """str or None: The eye(s) currently being recorded by the tracker. Can be 'left', 'right',
-        'both', or None (if no eye is currently available). Always the right eye in TryLink mode.
+        """str: The eye(s) currently being recorded by the tracker.
+        
+        Always 'right' in TryLink mode.
 
         """
         return 'right'

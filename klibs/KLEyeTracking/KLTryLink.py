@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 __author__ = 'Jonathan Mulle & Austin Hurst'
 
+from time import monotonic_ns
+
 from klibs.KLExceptions import EyeTrackerError
 from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR,
     FIXATION_START, FIXATION_UPDATE, FIXATION_END, GAZE_SAMPLE,
@@ -328,7 +330,7 @@ class TryLink(EyeTracker):
             float: The current tracker time (in milliseconds).
 
         """
-        return float(SDL_GetTicks())
+        return float(monotonic_ns() / 1000000)
 
 
     def write(self, message):

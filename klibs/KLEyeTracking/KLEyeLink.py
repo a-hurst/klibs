@@ -344,6 +344,17 @@ class EyeLink(EyeTracker):
         return queue
 
 
+    def _get_latest_sample(self):
+        """Internal method for retrieving the most recent gaze sample from the tracker.
+
+        Returns:
+            A tracker-specific gaze sample event.
+
+        """
+        s = self._el.getNewestSample()
+        return s if s != None else None
+
+
     def clear_queue(self):
         """Clears the event queue for the eye tracker.
         

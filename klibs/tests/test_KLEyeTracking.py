@@ -3,7 +3,7 @@ import pytest
 from klibs.KLConstants import *
 from klibs.KLBoundary import RectangleBoundary
 from klibs.KLEyeTracking.utils import GazeEventGenerator
-from klibs.KLEyeTracking.KLTryLink import TryLink
+from klibs.KLEyeTracking import TryLink, GazeSample
 
 
 class CustomTryLink(TryLink):
@@ -206,6 +206,18 @@ class TestTryLink():
         assert events[0].right
         assert events[0].right.gaze == (404, 305)
         assert events[0].right.pupil_size == 2000
+
+    def test_get_sample(self):
+        tst = CustomTryLink()
+        # Start recording and check for gaze sample + start fixation
+        tst.start(1)
+        tst.add_samples([(400, 300, 15)])
+        s = tst.get_sample()
+        assert isinstance(s, GazeSample)
+        assert s.timestamp == 15
+        assert s.gaze == (400, 300)
+        assert s.right
+        assert not s.left
 
     def test_within_boundary(self):
         bounds = RectangleBoundary('test', (500, 400), (600, 500))

@@ -213,6 +213,18 @@ class EyeTracker():
         raise NotImplementedError()
 
 
+    def _get_latest_sample(self):
+        """Internal method for retrieving the most recent gaze sample from the tracker.
+
+        This must be implemented for all EyeTracker types.
+
+        Returns:
+            A tracker-specific gaze sample event.
+
+        """
+        raise NotImplementedError()
+
+
     def _setup(self):
         """The eye tracker specific part of the setup process. This, not 'setup()', should be
         overridden by any eye trackers that subclass the EyeTracker class.
@@ -292,6 +304,36 @@ class EyeTracker():
 
         """
         pass
+
+
+    def get_sample(self):
+        """Returns the most recent gaze sample from the tracker.
+
+        The returned sample can be inspected for attributes such as timestamp,
+        left/right eye gaze, current pupil size, and more::
+
+            s = self.el.get_sample()
+            stime = s.timestamp
+            # If both eyes present, get difference in pupil size
+            if s.left and s.right:
+                ps_left = s.left.pupil_size
+                ps_right = s.right.pupil_size
+                ps_diff = abs(ps_left - ps_right)
+
+        See the :obj:`~klibs.KLEyeTracking.GazeSample` documentation for a full list
+        of attributes.
+
+        Returns:
+            :obj:`~klibs.KLEyeTracking.GazeSample`: The most recent gaze sample.
+
+        """
+        if not self.recording:
+            err = "Cannot retrieve eye data when eye tracker is not recording."
+            raise RuntimeError(err)
+        e = self._get_latest_sample()
+        if not e:
+            return None
+        return GazeSample(e, self._parser)
 
 
     def get_event_queue(self, include=[], exclude=[]):

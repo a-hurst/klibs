@@ -216,18 +216,18 @@ class TryLink(EyeTracker):
         return queue
 
 
-    def get_event_queue(self, include=[], exclude=[]):
-        """Fetches and returns the eye tracker's event queue, emptying it in the process. 
-        
-        In TryLink simulation mode, this uses some fancy voodoo with mouse cursor movement to
-        produce eye events, allowing you to write and test your eye tracking code on any computer
-        without needing physical access to an eye tracker itself.
+    def _get_latest_sample(self):
+        """Internal method for retrieving the most recent gaze sample from the tracker.
 
         Returns:
-            A :obj:`List` of simulated eye events.
+            A tracker-specific gaze sample event.
 
         """
-        return EyeTracker.get_event_queue(self, include, exclude) # so it shows up in the docs
+        timestamp = self.now()
+        mouse_clicked = mouse_button_state().any_pressed
+        blink = P.dm_click_to_blink and mouse_clicked
+        gaze = None if blink else self.gaze()
+        return MouseSample(timestamp, gaze)
 
 
     def clear_queue(self):

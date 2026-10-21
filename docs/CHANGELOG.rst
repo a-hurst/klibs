@@ -102,6 +102,9 @@ API Changes:
 * Added a new API :mod:`klibs.KLEyeTracking.events`, defining a clean and
   tracker-agnostic way of parsing and extracting information from eye events
   from the :class:`~klibs.KLEyeTracking.EyeTracker` event queue.
+* Added a new method :meth:`~klibs.KLEyeTracking.EyeTracker.get_sample` to
+  retrieve the most recent :obj:`~klibs.KLEyeTracking.GazeSample` event from
+  the tracker.
 
 
 Fixed Bugs:

@@ -242,7 +242,7 @@ class FixationUpdate(EyeEvent):
         """tuple: The average (x, y) gaze coordinates (in pixels) for the fixation.
         
         """
-        return self.parser.end_gaze(self.raw)
+        return self.parser.avg_gaze(self.raw)
 
     @property
     def duration(self):
@@ -288,7 +288,7 @@ class FixationEnd(EyeEvent):
         """tuple: The average (x, y) gaze coordinates (in pixels) for the fixation.
         
         """
-        return self.parser.end_gaze(self.raw)
+        return self.parser.avg_gaze(self.raw)
 
     @property
     def duration(self):

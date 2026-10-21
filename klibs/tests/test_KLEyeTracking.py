@@ -168,6 +168,44 @@ class TestTryLink():
                 start_fix = e
         assert sample
         assert start_fix
+        # Test the generation of EyeEvents
+        tst.add_samples([
+            (402, 298, 40), (None, None, 50), (405, 304, 78)
+        ])
+        events = []
+        while len(tst.samples):
+            # Needs to be called once per sample
+            events += tst.get_event_queue([FIXATION_END, BLINK_START, BLINK_END])
+        event_log = 0
+        for e in events:
+            if e.type == FIXATION_END:
+                assert e.start_time == 0
+                assert e.end_time == 40
+                assert e.start_gaze == (400, 300)
+                assert e.end_gaze == (402, 298)
+                assert e.average_gaze == (401, 299)
+                event_log += 1
+            elif e.type == BLINK_START:
+                assert e.start_time == 50
+                event_log += 10
+            elif e.type == BLINK_END:
+                assert e.start_time == 50
+                assert e.end_time == 78
+                assert e.duration == 28
+                event_log += 100
+        assert event_log == 111
+        # Test gaze sample attributes
+        tst.add_samples([(404, 305, 80)])
+        events = tst.get_event_queue([GAZE_SAMPLE])
+        assert events[0].type == GAZE_SAMPLE
+        assert events[0].timestamp == 80
+        assert events[0].gaze == (404, 305)
+        assert events[0].pupil_size == 2000
+        assert not events[0].binocular
+        assert not events[0].left
+        assert events[0].right
+        assert events[0].right.gaze == (404, 305)
+        assert events[0].right.pupil_size == 2000
 
     def test_within_boundary(self):
         bounds = RectangleBoundary('test', (500, 400), (600, 500))

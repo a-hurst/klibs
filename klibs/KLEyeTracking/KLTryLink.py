@@ -75,7 +75,7 @@ class TryLinkEventParser(EventParser):
     def right_pupil_size(self, e):
         """Gets the right eye pupil size (arbitrary units) for a gaze sample.
         """
-        return 2000
+        return 2000 if e.gaze else None
 
     def start_time(self, e):
         """Gets the timestamp (in msec) for the start of the event.
@@ -209,9 +209,9 @@ class TryLink(EyeTracker):
         for e in self._generator.get_events():
             if e.type in events:
                 queue.append(e)
-        if samples and not blink:
-            # NOTE: Check whether tracker sends gaze samples during blinks
-            queue.append(MouseSample(timestamp, (x, y)))
+        if samples:
+            gaze = None if blink else (x, y)
+            queue.append(MouseSample(timestamp, gaze))
 
         return queue
 

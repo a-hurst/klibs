@@ -236,7 +236,7 @@ class EyeTracker():
         self._setup()
         P.eye_tracker_name = self.version
         if P.demographics_collected and 'session_info' in db.table_schemas:
-                db.update('session_info', {'eyetracker': self.version})
+            db.update('session_info', {'eyetracker': self.version})
         self.calibrate()
         self.initialized = True
 

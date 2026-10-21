@@ -56,7 +56,7 @@ class EnvAgent(object):
 
     @property
     def el(self):
-        """:obj:`~klibs.KLEyeTracking.KLEyeTracker`: If 'P.eye_tracking' is True, this is the
+        """:obj:`~klibs.KLEyeTracking.EyeTracker`: If 'P.eye_tracking' is True, this is the
         EyeTracker instance for the KLibs runtime environment. Otherwise, None.
 
         """

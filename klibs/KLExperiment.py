@@ -22,6 +22,8 @@ class Experiment(EnvAgent):
         from klibs.KLEventInterface import EventManager
         from klibs.KLResponseCollectors import ResponseCollector
         from klibs.KLTrialFactory import TrialFactory
+        from klibs.KLEyeTracking import EyeTracker
+        from klibs.KLEnvironment import el
 
         super(Experiment, self).__init__()
 
@@ -33,6 +35,7 @@ class Experiment(EnvAgent):
         self.rc = ResponseCollector() # add default response collector
         self.database = self.db # use database from env
         self._evm = EventManager()
+        self._el = el if el else EyeTracker()
 
         self._exp_factors, self._exp_structure = self._get_exp_structure()
         self.trial_factory = TrialFactory(self._exp_factors)
@@ -503,6 +506,20 @@ class Experiment(EnvAgent):
             if not colnames[i] == 'id':
                 out[colnames[i]] = values[i]
         return out
+
+
+    @property
+    def el(self):
+        """:obj:`~klibs.KLEyeTracking.EyeTracker`: The eye tracker instance for the task.
+
+        Raises:
+            RuntimeError: If ``eye_tracking`` is False in the project's params.py file.
+
+        """
+        if not P.eye_tracking:
+            e = "Eye tracking must be enabled in params.py before accessing self.el."
+            raise RuntimeError(e)
+        return self._el
 
 
     @property

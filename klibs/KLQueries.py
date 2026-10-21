@@ -80,9 +80,10 @@ class QueryStyle():
             for the query and input text. Defaults to center alignment.
         registration (int, optional): An integer from 1 to 9 indicating the anchor point
             on the query text to align with the given location. Defaults to the midpoint
-            of the top edge.
+            of the bottom edge.
         location (tuple, optional): A custom location in (x, y) pixel coordinates
-            specifying where to draw the query text.
+            specifying where to draw the query text. Defaults to slightly above the
+            middle of the screen.
         input_offset (float, optional): The vertical offset between the last line of
             query text and the rendered input in units of line spacing.
         bg_color (tuple, optional): A custom background fill color to use for the query.
@@ -94,14 +95,14 @@ class QueryStyle():
         self,
         textstyle='default',
         align='center',
-        registration=8,
+        registration=2,
         location=None,
         input_offset=2.0,
         bg_color=None,
         err_color=None
     ):
         self.reg = registration
-        self.loc = location if location else (P.screen_c[0], P.screen_y * 0.08)
+        self.loc = location if location else (P.screen_c[0], int(P.screen_y * 0.48))
         self.align = align
         self.input_offset = input_offset
         self.bg_color = bg_color

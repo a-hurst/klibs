@@ -8,10 +8,8 @@ from klibs.KLEyeTracking import PYLINK_AVAILABLE
 from klibs.KLExceptions import EyeTrackerError
 from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR, EL_NO_EYES,
     FIXATION_START, FIXATION_UPDATE, FIXATION_END, GAZE_SAMPLE,
-    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END, 
-    EL_GAZE_START, EL_GAZE_END, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
-    EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
-    TK_S, TK_MS)
+    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END,
+    EL_ALL_EVENTS, EL_TRUE, EL_FALSE)
 from klibs import P
 from klibs.KLInternal import now, hide_stderr
 from klibs.KLUserInterface import show_cursor, hide_cursor
@@ -31,6 +29,7 @@ if PYLINK_AVAILABLE:
 # easy way to do that in pure Python (and ping requires admin sometimes?). EyeLink
 # communication itself is via UDP.
 
+NO_DATA = 0
 MISSING_DATA = -32768
 
 EYE_NAME_MAP = {
@@ -165,22 +164,7 @@ class EyeLinkEventParser(EventParser):
 
 
 class EyeLink(EyeTracker):
-    """A connection to an SR Research EyeLink eye tracker, providing a friendly interface to the
-    pylink API along with a pretty setup/calibration display.
-    
-    If pylink is installed in your project's Python environment and ``P.eye_tracker_availiable``
-    is set to True in a project that makes use of eye tracking, an instance of this class will be
-    provided as the attribute ``self.el`` of the Experiment object.
-
-    For more general and comprehensive documentation, see the :class:`~.EyeTracker` class.
-
-    Attributes:
-        version (str): The model name and software version of the eye tracker.
-        initialized (bool): A flag indicating whether :meth:`setup` has been run successfully.
-        local_start_time (float): The time at which the tracker last started recording, according
-            to the local computer's clock.
-        tracker_start_time (float): The time at which the tracker last started recording, according
-            to the eye tracker's internal clock.
+    """A connection to an SR Research EyeLink eye tracker.
 
     """
     def __init__(self):
@@ -225,19 +209,25 @@ class EyeLink(EyeTracker):
             raise RuntimeError(e)
 
 
-    def setup(self):
-        """Initalizes the EyeLink for the first time and enters setup/calibration mode.
-
-        Called automatically after demographics collection during the KLibs runtime unless
-        ``P.manual_eyelink_setup`` is True, in which case it must be called manually
-        before the eye tracker is first used in the experiment.
-
-        """
-        EyeTracker.setup(self) # so it shows up in the docs
-
-
     def calibrate(self):
-        """Enters the calibration and setup mode for the EyeLink.
+        """Enters calibration and setup mode for the EyeLink.
+
+        For EyeLink trackers, this will open a setup screen where you can perform camera
+        setup, calibrate the tracker, and validate an existing calibration:
+
+        +--------------+-------------------------------+
+        | Key          | Function                      |
+        +==============+===============================+
+        | Enter/Return | Toggles camera setup display  |
+        +--------------+-------------------------------+
+        | C            | Starts calibration            |
+        +--------------+-------------------------------+
+        | V            | Starts calibration validation |
+        +--------------+-------------------------------+
+        | O            | Gaze at fixation onset        |
+        +--------------+-------------------------------+
+        | Esc          | Exits tracker setup           |
+        +--------------+-------------------------------+
 
         """
         self._el.doTrackerSetup()
@@ -323,6 +313,7 @@ class EyeLink(EyeTracker):
             list: A list of tracker-specific events.
 
         """
+        # NOTE: Currently input, button, and message events are simply discarded
         queue = []
         get_samples = int(samples)
         get_events = int(len(events.intersection(EL_ALL_EVENTS)) > 0)
@@ -333,7 +324,7 @@ class EyeLink(EyeTracker):
             last_event = None
             while True:
                 e_type = self._el.getNextData()
-                if e_type == 0:
+                if e_type == NO_DATA:
                     break
                 elif e_type not in valid_events:
                     continue
@@ -353,26 +344,10 @@ class EyeLink(EyeTracker):
         return queue
 
 
-    def get_event_queue(self, include=[], exclude=[]):
-        """Fetches and returns the EyeLink's event queue, emptying it in the process.
-
-        Args:
-            include (:obj:`List`, optional): A list specifying the types of eye events to fetch
-                from the event queue. Includes all eye event types by default, unless they are
-                explicitly excluded.
-            exclude (:obj:`List`, optional): A list specifying the types of eye events to exclude
-                from the returned queue. Defaults to an empty list (i.e. no events excluded.)
-
-        Returns:
-            A :obj:`List` of eye events.
-
-        """
-        return EyeTracker.get_event_queue(self, include, exclude) # so it shows up in the docs
-
-
     def clear_queue(self):
-        """Clears the event queue for the eye tracker. Any uninspected eye events will be
-        discarded.
+        """Clears the event queue for the eye tracker.
+        
+        Any uninspected eye events will be discarded.
 
         """
         self._el.resetData()
@@ -478,7 +453,18 @@ class EyeLink(EyeTracker):
 
 
     def write(self, message):
-        """Writes a message to the EyeLink EDF file. Unicode characters are supported.
+        """Writes a message to the EyeLink EDF file.
+        
+        Any messages set to the EyeLink will be included as message events in the
+        recorded data, which can be used as markup to identify the onsets of important
+        trial events (e.g. 'target_on') in the data for later analysis.
+        
+        It is recommended to include the current block and trial number in markup
+        messages to make it easy to connect eye tracking data back to the trial data::
+
+            self.el.write("cue_on b{0} t{1}".format(P.block_number, P.trial_number))
+        
+        Unicode characters are supported.
         
         Args:
             message (str): The message to write to the eye tracker's data file.
@@ -489,8 +475,9 @@ class EyeLink(EyeTracker):
 
     @property
     def eye(self):
-        """str or None: The eye(s) currently being recorded by the tracker. Can be 'left', 'right',
-        'both', or None (if no eye is currently available).
+        """str or None: The eye(s) currently being recorded by the tracker.
+        
+        Can be 'left', 'right', 'both', or None (if no eye is currently available).
 
         """
         return EYE_NAME_MAP[self._el.eyeAvailable()]

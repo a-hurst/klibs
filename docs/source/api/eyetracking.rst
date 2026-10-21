@@ -9,7 +9,7 @@ with the interface should work on any of the different types of eye trackers tha
 Currently, KLibs has built-in support for two kinds of eye tracker: SR Research EyeLink trackers,
 and a simulated eye tracker that uses mouse movements as a stand-in for gaze and gaze events,
 allowing you to write and run eye-tracking experiments without a physical eye tracker
-present. You can view more detailed documentation for each of these tracker types here:
+present. Relevant details about each tracker type are provided here:
 
 .. toctree::
     :maxdepth: 1
@@ -50,10 +50,23 @@ Additionally, if you want to disable automatic starting and stopping of the eye 
 recording manually, you can set the parameter ``manual_eyelink_recording`` to True in your
 project's ``params.py`` file.
 
+Working With Eye Events
+-----------------------
+
+During eye tracking, a number of different eye events can occur. A participant
+might make a saccade from one location to another, fixate a stimulus for a given
+duration, or blink in a critical period. To facilitate working with these events
+in your code, klibs converts different eye events into Pythonic objects that can
+be easily processed and inspected.
+
+.. toctree::
+    :maxdepth: 2
+    
+    Eye Events <KLEyeTracking/events>
+
 The EyeTracker API
 ===================
 
-.. automodule:: klibs.KLEyeTracking.KLEyeTracker
-	:undoc-members:
+.. autoclass:: klibs.KLEyeTracking.EyeTracker
 	:members:
 		

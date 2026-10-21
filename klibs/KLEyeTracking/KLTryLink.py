@@ -4,10 +4,7 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 from klibs.KLExceptions import EyeTrackerError
 from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR,
     FIXATION_START, FIXATION_UPDATE, FIXATION_END, GAZE_SAMPLE,
-    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END, 
-    EL_GAZE_START, EL_GAZE_END, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
-    EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
-    TK_S, TK_MS)
+    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END)
 from klibs import P
 from klibs.KLUtilities import now, line_segment_len, px_to_deg
 from klibs.KLBoundary import CircleBoundary
@@ -110,27 +107,9 @@ class TryLinkEventParser(EventParser):
 
 
 class TryLink(EyeTracker):
-    """A simulated eye tracker, using the position and movements of the mouse cursor as a stand-in
-    for gaze position and saccades/fixations. Used for developing, testing, and demoing experiments
-    that require an eye tracker without the need to have eye tracking hardware present.
-
-    TryLink simulation is used by default if the 'pylink' Python package is not installed, or if
-    ``P.eye_tracking`` is True but ``P.eye_tracker_availiable`` is False. In addition, TryLink
-    simulation can be forced by adding the flag ``-ELx`` to the ``klibs run`` command when
-    launching an experiment.
-
-    For more general and comprehensive documentation, see the :class:`~.EyeTracker` class.
-
-    Attributes:
-        version (str): The model name and software version of the eye tracker.
-        initialized (bool): A flag indicating whether :meth:`setup` has been run successfully.
-        local_start_time (float): The time at which the tracker last started recording, according
-            to the local computer's clock.
-        tracker_start_time (float): The time at which the tracker last started recording, according
-            to the eye tracker's internal clock.
+    """A mouse-based simulated eye tracker for task development and testing.
 
     """
-
     def __init__(self):
         EyeTracker.__init__(self)
         self.version = None
@@ -149,12 +128,10 @@ class TryLink(EyeTracker):
         self.version = "TryLink 0.1a"
 
 
-    def setup(self):
-        EyeTracker.setup(self) # so it shows up in the docs
-
-
     def calibrate(self):
-        """Enters the calibration and setup mode for the eye tracker. Does nothing in TryLink mode. 
+        """Enters the calibration and setup mode for the eye tracker.
+        
+        Does nothing in TryLink mode. 
 
         """
         pass
@@ -192,15 +169,13 @@ class TryLink(EyeTracker):
 
 
     def shut_down(self, incomplete=False):
-        """Terminates recording and disconnects from the eye tracker, putting it into standby mode.
-        Should also transfer any data files from the current session to the KLibs computer
-        from the tracker (e.g. EDF files). Does nothing when using TryLink simulation.
+        """Terminates recording and disconnects from the eye tracker.
 
         Called automatically whenever KLibs exits. For internal use only.
 
         Args:
-            incomplete (bool, optional): Whether the full session was completed before the function
-                was called. Has no effect in TryLink simulation mode. Defaults to False.
+            incomplete (bool, optional): Whether the full session was completed.
+                Defaults to False.
 
         """
         self.stop()
@@ -254,8 +229,9 @@ class TryLink(EyeTracker):
 
 
     def clear_queue(self):
-        """Clears the event queue for emulated eye events. Any uninspected eye events will be
-        discarded.
+        """Clears the event queue for emulated eye events.
+        
+        Any uninspected eye events will be discarded.
 
         """
         self._generator.reset()
@@ -300,17 +276,42 @@ class TryLink(EyeTracker):
         return round(px_to_deg(dist_px), 2)
 
 
-    def gaze(self, return_integers=True, binocular_mode=RIGHT_EYE):
-        """Fetches the (x,y) coordinates of the participant's current gaze on the screen. In
-        TryLink mode, this fetches the current coordinates of the mouse cursor.
+    def drift_correct(self, location=None, target=None, fill_color=None, draw_target=True):
+        """Interactively checks the accuracy of the tracker's calibration.
+        
+        In TryLink mode, drift correct targets are presented on screen exactly as
+        they are with real hardware. To perform a drift correct in TryLink mode, move
+        the mouse cursor to the midpoint of the drift correct target and either press
+        the space bar or click the mouse.
 
         Args:
-            return_integers (bool, optional): Whether to return the gaze coordinates as integers
-                or floats. Defaults to True (integers).
-            binocular_mode (int, optional): Tells the function which gaze coordinates to return
-                for binocular samples. Can be any of ``RIGHT_EYE`` (returns right eye gaze),
-                ``LEFT_EYE`` (returns left eye gaze), or ``BINOCULAR`` (returns average gaze
-                of both eyes). Defaults to ``RIGHT_EYE``. In TryLink mode, this has no effect.
+            location (tuple, optional): The (x, y) pixel coordinates at which to draw
+                the drift correct target. Defaults to the center of the screen.
+            target (optional): A :obj:`Drawbject` or other stimulus texture to use as
+                the drift correct target. Defaults to a circular target.
+            fill_color (tuple, optional): The fill colour to use for the background of
+                the drift correct screen. Defaults to ``P.default_fill_color``.
+            draw_target (bool, optional): If True, this method will draw and present the
+                drift correct target when called. If False it will not draw the target,
+                allowing the use of custom drift correct screens. Defaults to True.
+
+        Returns:
+            float: The magnitude of the measured drift (in degrees of visual angle).
+
+        """
+        return EyeTracker.drift_correct(self, location, target, fill_color, draw_target)
+
+
+    def gaze(self, return_integers=True, binocular_mode=RIGHT_EYE):
+        """Fetches the (x,y) coordinates of the participant's gaze on the screen.
+        
+        In TryLink mode, this fetches the current coordinates of the mouse cursor.
+
+        Args:
+            return_integers (bool, optional): Whether to return the gaze coordinates as
+                integers or floats. Defaults to True (integers).
+            binocular_mode (int, optional): Tells the function which gaze coordinates
+                to return for binocular samples. In TryLink mode, this has no effect.
         
         Returns:
             A :obj:`Tuple` containing the (x,y) pixel coordinates of the participant's gaze.
@@ -331,8 +332,9 @@ class TryLink(EyeTracker):
 
 
     def write(self, message):
-        """Writes a message to the eye tracker's data file. In TryLink mode, this method
-        does nothing.
+        """Writes a message to the eye tracker's data file.
+        
+        Does nothing in TryLink mode.
         
         Args:
             message (str): The message to write to the eye tracker's data file.
@@ -343,8 +345,9 @@ class TryLink(EyeTracker):
 
     @property
     def eye(self):
-        """str or None: The eye(s) currently being recorded by the tracker. Can be 'left', 'right',
-        'both', or None (if no eye is currently available). Always the right eye in TryLink mode.
+        """str: The eye(s) currently being recorded by the tracker.
+        
+        Always 'right' in TryLink mode.
 
         """
         return 'right'

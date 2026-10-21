@@ -4,10 +4,9 @@ __author__ = 'Jonathan Mulle & Austin Hurst'
 from klibs.KLExceptions import EyeTrackerError
 from klibs.KLConstants import (LEFT_EYE, RIGHT_EYE, BINOCULAR,
     FIXATION_START, FIXATION_UPDATE, FIXATION_END, GAZE_SAMPLE,
-    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END, 
+    SACCADE_START, SACCADE_END, BLINK_START, BLINK_END,
     EL_GAZE_START, EL_GAZE_END, EL_GAZE_AVG, EL_TIME_START, EL_TIME_END,
-    EL_ALL_EVENTS, EL_TRUE, EL_FALSE,
-    TK_S, TK_MS)
+    EL_ALL_EVENTS)
 from klibs import P
 from klibs.KLUtilities import iterable, pretty_list
 from klibs.KLBoundary import BoundarySet
@@ -157,23 +156,15 @@ class EventParser():
 
 
 class EyeTracker():
-    """A base eye tracker class, laying out the essential attributes and methods required for an
-    eye tracker to be used with KLibs.
-    
-    Primarily used for defining a common and unified API for both SR Research EyeLink eye trackers
-    (via pylink) and eye tracker emulation via the mouse cursor, but hopefully flexible enough to
-    allow for supporting additional eye tracker brands/models in the future.
+    """A platform-independent interface for working with eye trackers.
 
     Attributes:
         version (str): The model name and software version of the eye tracker.
-        initialized (bool): A flag indicating whether :meth:`setup` has been run successfully.
-        local_start_time (float): The time at which the tracker last started recording, according
-            to the local computer's clock.
-        tracker_start_time (float): The time at which the tracker last started recording, according
-            to the eye tracker's internal clock.
+        initialized (bool): A flag indicating whether :meth:`setup` has been run.
+        tracker_start_time (float): The time (in milliseconds) at which the tracker
+            last started recording, according to the eye tracker's internal clock.
 
     """
-
     def __init__(self):
         self.version = None
         self.initialized = False
@@ -286,16 +277,17 @@ class EyeTracker():
 
 
     def shut_down(self, incomplete=False):
-        """Terminates recording and disconnects from the eye tracker, putting it into standby mode.
+        """Terminates recording and disconnects from the eye tracker.
+        
         Should also transfer any data files from the current session to the KLibs computer
         from the tracker (e.g. EDF files).
 
         Called automatically whenever KLibs exits. For internal use only.
 
         Args:
-            incomplete (bool, optional): Whether the full session was completed before the function
-                was called. If True, any tracker data files will be written to an 'incomplete'
-                subfolder of the eye tracker data directory ('ExpAssets/EDF'). Defaults to False.
+            incomplete (bool, optional): Whether the full session was completed before
+                this method was called. If True, any tracker data files will be written
+                to an 'incomplete' subfolder of the EDF directory. Defaults to False.
 
         """
         pass
@@ -341,7 +333,7 @@ class EyeTracker():
                 from the returned queue. Defaults to an empty list (i.e. no events excluded.)
 
         Returns:
-            list: A list of eye events.
+            list: A list of :obj:`~klibs.KLEyeTracking.EyeEvent` objects.
 
         """
         if len(include):
@@ -376,8 +368,9 @@ class EyeTracker():
 
 
     def clear_queue(self):
-        """Clears the event queue for the eye tracker. Any uninspected eye events will be
-        discarded.
+        """Clears the event queue for the eye tracker.
+        
+        Any uninspected eye events will be discarded.
 
         """
         pass
@@ -698,7 +691,7 @@ class EyeTracker():
 
 
     def gaze(self, return_integers=True, binocular_mode=RIGHT_EYE):
-        """Fetches the (x,y) coordinates of the participant's current gaze on the screen.
+        """Fetches the (x,y) coordinates of the participant's gaze on the screen.
 
         Args:
             return_integers (bool, optional): Whether to return the gaze coordinates as integers
@@ -736,8 +729,10 @@ class EyeTracker():
 
 
     def get_event_type(self, e):
-        """Fetches the numeric code corresponding to an eye event's type (e.g end saccade, start
-        fixation).
+        """Fetches the numeric code corresponding to an eye event's type.
+
+        Deprecated, use the ``type`` attribute of :obj:`~klibs.KLEyeTracking.EyeEvent`
+        objects instead.
         
         Args:
             e: An eye event from the tracker.
@@ -837,21 +832,10 @@ class EyeTracker():
 
 
     def get_event_info(self, event):
-        """Returns all available info about an eye event or gaze sample in the form of a
-        :obj:`dict`.
+        """Returns info about an eye event or gaze sample in the form of a dict.
         
-        Usage::
-
-            q = self.el.get_event_queue() # fetch all unprocessed eye events
-            for event in q:
-                info = self.el.get_event_info(event)
-                if info['type'] == SACCADE_END:
-                    end_gaze = info[EL_GAZE_END]
-                    end_time = info[EL_TIME_END]
-        
-        
-        See the table in :meth:`within_boundary` for a list of the attributes available for each
-        eye event type.
+        Deprecated, the attributes of :obj:`~klibs.KLEyeTracking.EyeEvent` objects
+        should be used instead.
 
         Args:
             event: The eye event (e.g. saccade, fixation, gaze sample) to collect the attributes of.

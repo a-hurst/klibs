@@ -15,12 +15,13 @@ Runtime Changes:
   prior to the start of the first block, and likewise ensures that demographics
   collection is not performed more than once.
 * Demographics collection has been changed so that queries in
-  `user_queries.json` are skipped if they do not correspond to a column in the
+  ``user_queries.json`` are skipped if they do not correspond to a column in the
   `participants` table of the database. Additionally, the query for the
   participant's unique identifer is now always collected first.
 * Demographics collection now fails immediately with an informative message if
   a required column in the `participants` table does not have a corresponding
   query.
+* Custom EVAL statements in ``user_queries.json`` files are no longer supported.
 * EyeLink EDF files collected while in development mode are now saved in the
   subfolder ``EDF/devmode/`` to separate them from actual participant data.
 * ``klibs export`` no longer exports data collected in development mode unless
@@ -56,6 +57,11 @@ Runtime Changes:
 
 API Changes:
 
+* Added a new module :mod:`~klibs.KLQueries` which provides a set of classes
+  for prompting participants for input and collecting/validating responses.
+* The :func:`~klibs.KLCommunication.query` function has been deprecated in
+  favour of the :mod:`~klibs.KLQueries` module and should be not be used for
+  new projects.
 * Added a new attribute :attr:`~klibs.Experiment.participant_info` to the
   Experiment class that provides a dictionary for easy access to participant
   information collected during demographics (e.g. handedness).

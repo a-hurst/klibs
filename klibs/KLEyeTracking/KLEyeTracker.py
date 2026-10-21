@@ -464,7 +464,7 @@ class EyeTracker():
             if e == None or e.type not in valid_events:
                 continue
             gaze = self.get_event_gaze(e, self._event_defaults[e.type])
-            if self.boundaries.within_boundary(label, gaze):
+            if gaze and self.boundaries.within_boundary(label, gaze):
                 return True
 
         return False

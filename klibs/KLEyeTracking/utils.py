@@ -70,23 +70,23 @@ class GazeEventTemplate():
 
     """
     def __init__(self, start_time, start_x, start_y):
-        self.__start = start_time
-        self.__x_samples = [start_x]
-        self.__y_samples = [start_y]
+        self._start = start_time
+        self._x_samples = [start_x]
+        self._y_samples = [start_y]
         self._last_sample_time = start_time
         self.last_update = start_time
 
     def add_sample(self, x, y, timestamp):
-        self.__x_samples.append(x)
-        self.__y_samples.append(y)
+        self._x_samples.append(x)
+        self._y_samples.append(y)
         self._last_sample_time = timestamp
 
     def vector_change(self, x, y):
-        if len(self.__x_samples) < 2:
+        if len(self._x_samples) < 2:
             return 0.0
-        a1 = (self.__x_samples[0], self.__y_samples[0])
-        a2 = (self.__x_samples[1], self.__y_samples[1])
-        b1 = (self.__x_samples[-1], self.__y_samples[-1])
+        a1 = (self._x_samples[0], self._y_samples[0])
+        a2 = (self._x_samples[1], self._y_samples[1])
+        b1 = (self._x_samples[-1], self._y_samples[-1])
         b2 = (x, y)
         diff = atan2(b2[1]-b1[1], b2[0]-b1[0]) - atan2(a2[1]-a1[1], a2[0]-a1[0])
         return (degrees(diff) + 180) % 360 - 180
@@ -96,13 +96,13 @@ class GazeEventTemplate():
         return abs(dist / (timestamp - self._last_sample_time))
     
     def dispersion(self, x, y):
-        dx = max(self.__x_samples + [x]) - min(self.__x_samples + [x])
-        dy = max(self.__y_samples + [y]) - min(self.__y_samples + [y])
+        dx = max(self._x_samples + [x]) - min(self._x_samples + [x])
+        dy = max(self._y_samples + [y]) - min(self._y_samples + [y])
         return dx + dy
 
     @property
     def start_time(self):
-        return self.__start
+        return self._start
     
     @property
     def end_time(self):
@@ -110,15 +110,15 @@ class GazeEventTemplate():
 
     @property
     def start_gaze(self):
-        return (self.__x_samples[0], self.__y_samples[0])
+        return (self._x_samples[0], self._y_samples[0])
     
     @property
     def end_gaze(self):
-        return (self.__x_samples[-1], self.__y_samples[-1])
+        return (self._x_samples[-1], self._y_samples[-1])
 
     @property
     def avg_gaze(self):
-        return (mean(self.__x_samples), mean(self.__y_samples))
+        return (mean(self._x_samples), mean(self._y_samples))
 
 
 class GazeEventGenerator():

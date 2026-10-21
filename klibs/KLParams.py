@@ -61,6 +61,7 @@ color_output = False # whether cso() outputs colorized text or not
 # Eye Tracking Settings
 eye_tracking = False
 eye_tracker_available = False
+eye_tracker_name = "NA"
 manual_eyelink_setup = False
 manual_eyelink_recording = False
 show_gaze_dot = False # overridden by dm_show_gaze_dot if in development mode

@@ -193,8 +193,7 @@ def runtime_info_init():
         info['condition'] = P.condition
 
     if P.eye_tracking:
-        from klibs.KLEnvironment import el
-        info['eyetracker'] = el.version if el.initialized else 'NA'
+        info['eyetracker'] = P.eye_tracker_name
         info['el_velocity_thresh'] = P.saccadic_velocity_threshold
         info['el_accel_thresh'] = P.saccadic_acceleration_threshold
         info['el_motion_thresh'] = P.saccadic_motion_threshold

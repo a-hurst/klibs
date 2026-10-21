@@ -294,36 +294,32 @@ class EyeTracker():
 
 
     def get_event_queue(self, include=[], exclude=[]):
-        """Fetches and returns the eye tracker's event queue, emptying it in the process.
+        """Retrieves and empties the eye tracker's event queue.
 
-        To avoid problems with event processing when performing multiple tests in a short interval
-        (e.g. checking for fixations in multiple boundaries every iteration of a loop), you should
-        use this method to retrieve the eye tracker event queue once at the start and then pass it
-        to every function that inspects eye events.
-        
-        For example, the following code will not reliably detect saccades to the second boundary::
+        The different types of events returned by this method are listed in the
+        :class:`~klibs.KLEyeTracking.EyeEvent` documentation along with their
+        corresponding type codes. You can inspect these events directly or pass them
+        to any of the convenience methods provided by the EyeTracker class::
 
-            while self.evm.before('cue_on'):
-                draw_stimuli()
-                if self.el.saccade_to_boundary('boundary1'):
-                    print('saccade to boundary 1!')
-                if self.el.saccade_to_boundary('boundary2'):
-                    print('saccade to boundary 2!')
-                flip() # refresh screen
+            events = self.el.get_event_queue()
 
-        This is because the first call to :meth:`saccade_to_boundary` fetches and clears the eye
-        event queue, meaning that the second call is only processing the saccades that have
-        happened in the tiny interval since the first call. To fix this, you should fetch the
-        queue once per loop::
+            # Check for saccades from fixation
+            if self.el.saccade_from_boundary('fixation', events):
+                self.show_error_message(self.looked_away_msg)
+                err = 'looked_away'
 
-            while self.evm.before('cue_on'):
-                draw_stimuli()
-                el_q = self.el.get_event_queue() # fetch queue once per loop
-                if self.el.saccade_to_boundary('boundary1', event_queue=el_q):
-                    print('saccade to boundary 1!')
-                if self.el.saccade_to_boundary('boundary2', event_queue=el_q):
-                    print('saccade to boundary 2!')
-                flip() # refresh screen
+            # Check for any blinks
+			for e in events:
+				if e.type in [BLINK_START, BLINK_END]:
+					self.show_error_message(self.blinked_msg)
+                    err = 'blink'
+					break
+
+        To avoid problems with event processing when performing multiple tests in a
+        short interval (e.g. checking for fixations in multiple boundaries every
+        iteration of a loop), you should use this method to retrieve the eye tracker
+        event queue once at the start and then pass it to every function that inspects
+        eye events.
 
         Args:
             include (:obj:`List`, optional): A list specifying the types of eye events to fetch

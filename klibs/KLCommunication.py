@@ -18,11 +18,26 @@ from klibs.KLUtilities import colored_stdout as cso
 from klibs.KLRuntimeInfo import runtime_info_init, TaskArchiver
 from klibs.KLGraphics import blit, clear, fill, flip
 from klibs.KLUserInterface import ui_request, any_key
-from klibs.KLText import _get_text_style, add_text_style, message
+from klibs.KLText import _get_text_style, message
+
+user_queries = None  # [Compat]: Only needed for TraceLab and BaseballTOJ
 
 
-user_queries = None
-default_strings = None
+def _parse_eval(statement):
+    # Parse legacy eval statements without actually using eval
+    if not isinstance(statement, str):
+        return statement
+    elif statement[:5] != "EVAL:":
+        return statement
+    elif statement == "EVAL: now()":
+        return now()
+    elif statement == "EVAL: int(now())":
+        return int(now())
+    elif statement[:9] == "EVAL: 'm'":
+        return ("m" if now() % 2 > 1  else "f")
+    else:
+        e = "Custom EVAL statements are no longer supported."
+        raise RuntimeError(e)
 
 
 def _get_demographics_queries(db, queries):
@@ -155,11 +170,10 @@ def collect_demographics(anonymous=False):
 
 
 def init_messaging():
-    # This function should be removed somehow: user queries should be a) redone, and
-    # b) loaded in with a regular function
-    # Need to do in a way that won't break TraceLab
+    # This function should be removed as soon as use of 'experimental' queries
+    # is removed from BaseballTOJ and TraceLab and replaced with an internal
+    # _load_demographics function.
     global user_queries
-    global default_strings
 
     # Load the user_queries file in and store the queries in an object
     try:
@@ -171,45 +185,14 @@ def init_messaging():
                 err = "<red>Error: user_queries.json file missing required section '{0}'.</red>"
                 cso(err.format(req))
                 raise ValueError()
-            default_strings = user_queries.default_strings # for easy accessiblity
     except ValueError:
         raise ValueError("User queries file has at least one formatting error; cannot continue.")
 
 
 def query(query_ob, anonymous=False):
-    '''Asks the user a question and collects the response via the keyboard. Intended for use with
-    the queries contained within a project's user_queries.json file. This function is used
-    internally for collecting demographics at the start of each run, but can also be used during
-    experiment runtime to collect info from participants based on the queries contained in the
-    "experimental" section of the user_queries.json file.
-
-    Args:
-        query_ob (:class:`~klibs.KLJSON_Object.AttributeDict`): The object containing the query
-            to present. See :obj:`~klibs.KLCommunication.user_queries` for more information.
-        anonymous (bool, optional): If True, will immediately return the query object's anonymous
-            value without prompting the user (used interally for P.development_mode). Defaults to
-            False.
-    
-    Returns:
-        The response to the query, coerced to the type specified by query_ob.format.type (can be
-        str, int, float, bool, or None).
-    
-    Raises:
-        ValueError: If the query object's type is not one of "str", "int", "float", "bool", or None,
-            or if a query_ob.format.range value is given and the type is not "int" or "float".
-        TypeError: If query_ob.accepted is specified and it is not a list of values, or if a
-            query_ob.format.range is specified and it is not a two-item list.
-            
-    '''
+    # [Compat]: Deprecated, only needed by TraceLab and BaseballTOJ
     if anonymous:
-        try:
-            # Check if anon value is an EVAL statement, and if so evaluate it
-            eval_statement = re.match(re.compile(u"^EVAL:[ ]*(.*)$"), query_ob.anonymous_value)
-            if eval_statement:
-                query_ob.anonymous_value = eval(eval_statement.group(1))
-        except TypeError:
-            pass
-        return query_ob.anonymous_value
+        return _parse_eval(query_ob.anonymous_value)
 
     f = query_ob.format
     if f.type not in ("int", "float", "str", "bool", None):
@@ -246,6 +229,7 @@ def query(query_ob, anonymous=False):
 
     # Create an informative error message for invalid responses
     accepted_responses = query_ob.accepted  # for code readability
+    default_strings = user_queries['default_strings']
     try:
         if accepted_responses:
             try:

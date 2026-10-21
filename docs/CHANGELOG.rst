@@ -15,12 +15,13 @@ Runtime Changes:
   prior to the start of the first block, and likewise ensures that demographics
   collection is not performed more than once.
 * Demographics collection has been changed so that queries in
-  `user_queries.json` are skipped if they do not correspond to a column in the
+  ``user_queries.json`` are skipped if they do not correspond to a column in the
   `participants` table of the database. Additionally, the query for the
   participant's unique identifer is now always collected first.
 * Demographics collection now fails immediately with an informative message if
   a required column in the `participants` table does not have a corresponding
   query.
+* Custom EVAL statements in ``user_queries.json`` files are no longer supported.
 * EyeLink EDF files collected while in development mode are now saved in the
   subfolder ``EDF/devmode/`` to separate them from actual participant data.
 * ``klibs export`` no longer exports data collected in development mode unless
